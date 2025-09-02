@@ -451,6 +451,6 @@
   if (typeof module !== "undefined" && module.exports) {
     module.exports = exp;
   } else {
-    root.task = exp;
+    root.tasks = exp;
   }
 }(globalThis));

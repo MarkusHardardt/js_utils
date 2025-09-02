@@ -2,7 +2,7 @@
     "use strict";
 
     var exp = {
-        task: typeof module !== "undefined" && module.exports ? require('./src/tasks').js : root.other
+        tasks: typeof module !== "undefined" && module.exports ? require('./src/tasks').js : root.tasks
     };
 
     Object.seal(exp);
