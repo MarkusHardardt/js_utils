@@ -2,7 +2,10 @@
     "use strict";
 
     var exp = {
-        tasks: typeof module !== "undefined" && module.exports ? require('./src/tasks') : root.tasks
+        tasks: typeof module !== "undefined" && module.exports ? require('./src/tasks') : root.tasks,
+        sorting: typeof module !== "undefined" && module.exports ? require('./src/sorting') : root.sorting,
+        regex: typeof module !== "undefined" && module.exports ? require('./src/regex') : root.regex,
+        math: typeof module !== "undefined" && module.exports ? require('./src/math') : root.math
     };
 
     Object.seal(exp);
