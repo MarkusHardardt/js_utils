@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/MarkusHardardt/js_utils/issues"
   },
-  "homepage": "https://github.com/MarkusHardardt/js_utils#readme"
+  "homepage": "https://github.com/MarkusHardardt/js_utils#readme",
+  "dependencies": {
+    "md5": "^2.3.0"
+  }
 }

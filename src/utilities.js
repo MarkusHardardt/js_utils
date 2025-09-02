@@ -238,7 +238,7 @@
     }
   };
 
-  var md5 = typeof require === 'function' ? require('md5') : function(i_string, i_options) {
+  var md5 = module !== "undefined" && module.exports ? require('md5') : function(i_string, i_options) {
     return CryptoJS.MD5(i_string, i_options).toString(CryptoJS.enc.Hex);
   };
 
