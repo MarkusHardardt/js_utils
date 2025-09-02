@@ -6,7 +6,7 @@
         sorting: typeof module !== "undefined" && module.exports ? require('./src/sorting') : root.sorting,
         regex: typeof module !== "undefined" && module.exports ? require('./src/regex') : root.regex,
         math: typeof module !== "undefined" && module.exports ? require('./src/math') : root.math,
-        utils: typeof module !== "undefined" && module.exports ? require('./src/utils') : root.utils
+        utilities: typeof module !== "undefined" && module.exports ? require('./src/utilities') : root.utilities
     };
 
     Object.seal(exp);
