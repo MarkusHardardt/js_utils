@@ -7,7 +7,7 @@
 
   // store for performance reasons
 
-  var utils = typeof module !== "undefined" && module.exports ? require('./src/utils') : root.utils;
+  var utils = typeof module !== "undefined" && module.exports ? require('./utils') : root.utils;
   var get_first_index_of_identical = utils.getFirstIndexOfIdentical;
 
   var compare_objects = function(i_object1, i_object2, i_compare) {
