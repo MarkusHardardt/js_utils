@@ -1,13 +1,13 @@
 (function (root) {
   "use strict";
 
-  var exec = function (i_object, i_success, i_error, i_timeout, i_millis) {
-    if (typeof i_object === 'function') {
+  var exec = function (data, success, error, timeout, millis) {
+    if (typeof data === 'function') {
       var done = false, timeout = false;
       try {
         var this_call = true, success, result, error, exception;
         // call safely ...
-        i_object(function (i_result) {
+        data(function (result) {
           // on success:
           if (!done) {
             done = true;
@@ -16,13 +16,13 @@
             }
             if (this_call) {
               success = true;
-              result = i_result;
+              result = result;
             }
             else {
-              i_success(i_result);
+              success(result);
             }
           }
-        }, function (i_exception) {
+        }, function (exception) {
           // on error:
           if (!done) {
             done = true;
@@ -31,48 +31,48 @@
             }
             if (this_call) {
               error = true;
-              exception = i_exception;
+              exception = exception;
             }
             else {
-              i_error(i_exception);
+              error(exception);
             }
           }
         });
         this_call = false;
         if (error) {
-          i_error(exception);
+          error(exception);
         }
         else if (success) {
-          i_success(result);
+          success(result);
         }
         // start watchdog only if required
-        else if (i_millis && i_timeout) {
+        else if (millis && timeout) {
           timeout = setTimeout(function () {
             if (!done) {
               done = true;
-              i_timeout(i_object);
+              timeout(data);
             }
-          }, Math.ceil(i_millis));
+          }, Math.ceil(millis));
         }
       }
       catch (exc) {
         done = true;
-        i_error(exc);
+        error(exc);
       }
     }
-    else if (Array.isArray(i_object)) {
+    else if (Array.isArray(data)) {
       // There are several ways to configure the serial / parallel behavior of
       // this mechanism. So at first we try to resolve how many tasks may be
       // called together and what is our first task.
-      var start = typeof i_object[0] === 'boolean' || typeof i_object[0] === 'number' ? 1 : 0, end = i_object.length, count = 1;
-      if (i_object.parallel === true || i_object[0] === true) {
+      var start = typeof data[0] === 'boolean' || typeof data[0] === 'number' ? 1 : 0, end = data.length, count = 1;
+      if (data.parallel === true || data[0] === true) {
         count = end - start;
       }
-      else if (typeof i_object.parallel === 'number' && i_object.parallel > 0) {
-        count = Math.min(i_object.parallel, end - start);
+      else if (typeof data.parallel === 'number' && data.parallel > 0) {
+        count = Math.min(data.parallel, end - start);
       }
-      else if (typeof i_object[0] === 'number' && i_object[0] > 0) {
-        count = Math.min(i_object[0], end - start);
+      else if (typeof data[0] === 'number' && data[0] > 0) {
+        count = Math.min(data[0], end - start);
       }
       // We store our task states inside an array and by calling 'next()' we
       // either trigger the next task or our success callback.
@@ -90,14 +90,14 @@
               exception = undefined;
               (function () {
                 var task = t;
-                exec(i_object[task], function (i_result) {
+                exec(data[task], function (result) {
                   states[task] = true;
-                  if (i_result !== undefined) {
+                  if (result !== undefined) {
                     if (results) {
-                      results.push(i_result);
+                      results.push(result);
                     }
                     else {
-                      results = [i_result];
+                      results = [result];
                     }
                   }
                   if (this_call) {
@@ -106,20 +106,20 @@
                   else {
                     next();
                   }
-                }, function (i_exception) {
+                }, function (exception) {
                   done = true;
                   if (this_call) {
                     error = true;
-                    exception = i_exception;
+                    exception = exception;
                   }
                   else {
-                    i_error(i_exception);
+                    error(exception);
                   }
-                }, i_timeout, i_millis);
+                }, timeout, millis);
               }());
               this_call = false;
               if (error) {
-                i_error(exception);
+                error(exception);
                 return;
               }
               else if (!success) {
@@ -137,7 +137,7 @@
           // Reaching this point means that all tasks have succeeded. So we are
           // done.
           done = true;
-          i_success(results);
+          success(results);
         }
       };
       // Now we call our next function as often as allowed. But if no tasks
@@ -149,11 +149,11 @@
         }
       }
       else {
-        i_success();
+        success();
       }
     }
     else {
-      i_error('Cannot execute! Object is not a function and no array: ' + i_object);
+      error('Cannot execute! Object is not a function and no array: ' + data);
     }
   };
 
@@ -174,24 +174,24 @@
         }
       }
       var this_call = true, success, result, error, exception;
-      exec(arguments[0], function (i_result) {
+      exec(arguments[0], function (result) {
         if (this_call) {
           success = true;
-          result = i_result;
+          result = result;
         }
         else if (on_success) {
-          on_success(i_result);
+          on_success(result);
         }
-      }, function (i_exception) {
+      }, function (exception) {
         if (this_call) {
           error = true;
-          exception = i_exception;
+          exception = exception;
         }
         else if (on_error) {
-          on_error(i_exception);
+          on_error(exception);
         }
         else {
-          throw new Error('EXCEPTION! Cannot execute: ' + i_exception);
+          throw new Error('EXCEPTION! Cannot execute: ' + exception);
         }
       }, on_timeout, millis);
       this_call = false;
@@ -245,20 +245,20 @@
                     run();
                   }
                 }
-              }, function (i_exception) {
+              }, function (exception) {
                 // handle error callback only once and if still running
                 if (running) {
                   running = false;
                   tasks.splice(0, tasks.length);
                   if (this_call) {
                     error = true;
-                    exception = i_exception;
+                    exception = exception;
                   }
                   else if (on_error) {
-                    on_error(i_exception);
+                    on_error(exception);
                   }
                   else {
-                    console.error('ERROR! On performing task: ' + i_exception);
+                    console.error('ERROR! On performing task: ' + exception);
                   }
                 }
               });
