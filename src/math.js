@@ -39,22 +39,22 @@
   var DEFAULT_STRESS_S1 = 0.3;
   var DEFAULT_STRESS_S2 = 0.9;
 
-  var sinh = Math.sinh || function (i_value) {
-    var exp = Math.exp(i_value);
+  var sinh = Math.sinh || function (value) {
+    var exp = Math.exp(value);
     return (exp - 1.0 / exp) * 0.5;
   };
 
-  var cosh = Math.cosh || function (i_value) {
-    var exp = Math.exp(i_value);
+  var cosh = Math.cosh || function (value) {
+    var exp = Math.exp(value);
     return (exp + 1.0 / exp) * 0.5;
   };
 
-  var asinh = Math.asinh || function (i_value) {
-    return Math.log(i_value + Math.sqrt(i_value * i_value + 1));
+  var asinh = Math.asinh || function (value) {
+    return Math.log(value + Math.sqrt(value * value + 1));
   };
 
-  var acosh = Math.acosh || function (i_value) {
-    return Math.log(i_value + Math.sqrt(i_value * i_value - 1));
+  var acosh = Math.acosh || function (value) {
+    return Math.log(value + Math.sqrt(value * value - 1));
   };
 
   /*
@@ -68,17 +68,17 @@
    * This next method is the first start
    * /JptApp/src/org/har/jpt/util/math/MathExt.java
    */
-  function fn_create_biomial_coefficients(i_maxN) {
+  function fn_create_biomial_coefficients(maxN) {
     // if too much
-    if (i_maxN < 0 || i_maxN >= 68) {
+    if (maxN < 0 || maxN >= 68) {
       // notify
-      throw new Error("Invalid value: " + i_maxN);
+      throw new Error("Invalid value: " + maxN);
     }
     // create a new matrix for the values
     var bicos = [];
 
     // for all rows
-    for (var i = 0; i <= i_maxN; i++) {
+    for (var i = 0; i <= maxN; i++) {
       // create a new array
       bicos[i] = [];
       // long[i + 1];
@@ -87,13 +87,13 @@
     bicos[0][0] = 1;
 
     // for all rows
-    for (var i = 1; i <= i_maxN; i++) {
+    for (var i = 1; i <= maxN; i++) {
       // set first and last value
       bicos[i][0] = 1;
       bicos[i][i] = 1;
 
       // for all row elements
-      for (var j = 1; j < i_maxN; j++) {
+      for (var j = 1; j < maxN; j++) {
         // set to the sum
         bicos[i][j] = bicos[i - 1][j - 1] + bicos[i - 1][j];
       }
@@ -102,11 +102,11 @@
     return bicos;
   }
 
-  function fn_get_smooth_normalized_transfer(i_s, i_s1, i_s2) {
+  function fn_get_smooth_normalized_transfer(value, start, end) {
     // get the parameters first
-    var s = typeof i_s === 'number' ? Math.abs(i_s) : 0.0;
-    var p1 = typeof i_s1 === 'number' ? i_s1 : 0.0;
-    var p2 = typeof i_s2 === 'number' ? i_s2 : 1.0;
+    var s = typeof value === 'number' ? Math.abs(value) : 0.0;
+    var p1 = typeof start === 'number' ? start : 0.0;
+    var p2 = typeof end === 'number' ? end : 1.0;
     var s1 = Math.max(Math.min(Math.min(p1, p2), 1.0), 0.0);
     var s2 = Math.max(Math.min(Math.max(p1, p2), 1.0), 0.0);
     // then decide what to return
@@ -202,8 +202,8 @@
     }
   }
 
-  function normalizeToPlusMinusPI(i_phi) {
-    var phi = i_phi;
+  function normalizeToPlusMinusPI(value) {
+    var phi = value;
     while (phi > PI) {
       phi -= TWO_PI;
     }
@@ -213,8 +213,8 @@
     return phi;
   }
 
-  function normalizeToPlusMinus180deg(i_angle) {
-    var angle = i_angle;
+  function normalizeToPlusMinus180deg(value) {
+    var angle = value;
     while (angle > 180) {
       angle -= 360;
     }
@@ -224,23 +224,23 @@
     return angle;
   }
 
-  var fn_copy_transform = function (i_target, i_source) {
-    i_target.d00 = i_source.d00;
-    i_target.d01 = i_source.d01;
-    i_target.x = i_source.x;
-    i_target.d10 = i_source.d10;
-    i_target.d11 = i_source.d11;
-    i_target.y = i_source.y;
-    i_target.i00 = i_source.i00;
-    i_target.i01 = i_source.i01;
-    i_target.i02 = i_source.i02;
-    i_target.i10 = i_source.i10;
-    i_target.i11 = i_source.i11;
-    i_target.i12 = i_source.i12;
-    i_target.scale = i_source.scale;
-    i_target.rotation = i_source.rotation;
-    i_target.mirrorX = i_source.mirrorX;
-    i_target.mirrorY = i_source.mirrorY;
+  var fn_copy_transform = function (target, source) {
+    target.d00 = source.d00;
+    target.d01 = source.d01;
+    target.x = source.x;
+    target.d10 = source.d10;
+    target.d11 = source.d11;
+    target.y = source.y;
+    target.i00 = source.i00;
+    target.i01 = source.i01;
+    target.i02 = source.i02;
+    target.i10 = source.i10;
+    target.i11 = source.i11;
+    target.i12 = source.i12;
+    target.scale = source.scale;
+    target.rotation = source.rotation;
+    target.mirrorX = source.mirrorX;
+    target.mirrorY = source.mirrorY;
   };
 
   var Transform = function () {
@@ -290,54 +290,54 @@
       this.mirrorY = false;
       return this;
     },
-    init: function (i_transform) {
+    init: function (transform) {
       // could use this but to reduce function calls we perform directly ...
       // fn_copy_transform(this, i_transform);
-      this.d00 = i_transform.d00;
-      this.d01 = i_transform.d01;
-      this.x = i_transform.x;
-      this.d10 = i_transform.d10;
-      this.d11 = i_transform.d11;
-      this.y = i_transform.y;
-      this.i00 = i_transform.i00;
-      this.i01 = i_transform.i01;
-      this.i02 = i_transform.i02;
-      this.i10 = i_transform.i10;
-      this.i11 = i_transform.i11;
-      this.i12 = i_transform.i12;
-      this.scale = i_transform.scale;
-      this.rotation = i_transform.rotation;
-      this.mirrorX = i_transform.mirrorX;
-      this.mirrorY = i_transform.mirrorY;
+      this.d00 = transform.d00;
+      this.d01 = transform.d01;
+      this.x = transform.x;
+      this.d10 = transform.d10;
+      this.d11 = transform.d11;
+      this.y = transform.y;
+      this.i00 = transform.i00;
+      this.i01 = transform.i01;
+      this.i02 = transform.i02;
+      this.i10 = transform.i10;
+      this.i11 = transform.i11;
+      this.i12 = transform.i12;
+      this.scale = transform.scale;
+      this.rotation = transform.rotation;
+      this.mirrorX = transform.mirrorX;
+      this.mirrorY = transform.mirrorY;
       return this;
     },
-    setScale: function (i_scale) {
-      this.d00 *= i_scale;
-      this.d01 *= i_scale;
-      this.d10 *= i_scale;
-      this.d11 *= i_scale;
-      this.scale *= i_scale;
+    setScale: function (scale) {
+      this.d00 *= scale;
+      this.d01 *= scale;
+      this.d10 *= scale;
+      this.d11 *= scale;
+      this.scale *= scale;
       // compute inverse
-      this.i00 /= i_scale;
-      this.i01 /= i_scale;
-      this.i02 /= i_scale;
-      this.i10 /= i_scale;
-      this.i11 /= i_scale;
-      this.i12 /= i_scale;
+      this.i00 /= scale;
+      this.i01 /= scale;
+      this.i02 /= scale;
+      this.i10 /= scale;
+      this.i11 /= scale;
+      this.i12 /= scale;
       return this;
     },
-    translate: function (i_translateX, i_translateY) {
+    translate: function (translateX, translateY) {
       // add the rotated and scaled translation vector
-      this.x += this.d00 * i_translateX + this.d01 * i_translateY;
-      this.y += this.d10 * i_translateX + this.d11 * i_translateY;
+      this.x += this.d00 * translateX + this.d01 * translateY;
+      this.y += this.d10 * translateX + this.d11 * translateY;
       // handle inverse
-      this.i02 -= i_translateX;
-      this.i12 -= i_translateY;
+      this.i02 -= translateX;
+      this.i12 -= translateY;
       return this;
     },
-    rotate: function (i_phi, i_mirrorX, i_mirrorY) {
-      var nmx = i_mirrorX === true;
-      var nmy = i_mirrorY === true;
+    rotate: function (phi, mirrorX, mirrorY) {
+      var nmx = mirrorX === true;
+      var nmy = mirrorY === true;
       var mx = this.mirrorX;
       var my = this.mirrorY;
       this.mirrorX = mx !== nmx;
@@ -347,10 +347,10 @@
       var d10 = this.d10;
       var d11 = this.d11;
       var m00, m01, m10, m11;
-      if (i_phi !== 0.0) {
-        var sin = Math.sin(i_phi);
-        var cos = Math.cos(i_phi);
-        this.rotation += mx === my ? i_phi : -i_phi;
+      if (phi !== 0.0) {
+        var sin = Math.sin(phi);
+        var cos = Math.cos(phi);
+        this.rotation += mx === my ? phi : -phi;
         m00 = nmx ? -(cos * d00 + sin * d01) : cos * d00 + sin * d01;
         m01 = nmy ? -(-sin * d00 + cos * d01) : -sin * d00 + cos * d01;
         m10 = nmx ? -(cos * d10 + sin * d11) : cos * d10 + sin * d11;
@@ -378,18 +378,18 @@
       this.i12 = (m10 * m02 - m00 * m12) / det;
       return this;
     },
-    concatenate: function (i_transform) {
+    concatenate: function (transform) {
       // does: [this] = [this] x [Tx]
       var d00 = this.d00;
       var d01 = this.d01;
       var d10 = this.d10;
       var d11 = this.d11;
-      var t00 = i_transform.d00;
-      var t01 = i_transform.d01;
-      var t02 = i_transform.x;
-      var t10 = i_transform.d10;
-      var t11 = i_transform.d11;
-      var t12 = i_transform.y;
+      var t00 = transform.d00;
+      var t01 = transform.d01;
+      var t02 = transform.x;
+      var t10 = transform.d10;
+      var t11 = transform.d11;
+      var t12 = transform.y;
 
       this.d00 = d00 * t00 + d01 * t10;
       this.d01 = d00 * t01 + d01 * t11;
@@ -399,14 +399,14 @@
       this.d11 = d10 * t01 + d11 * t11;
       this.y += d10 * t02 + d11 * t12;
 
-      this.scale *= i_transform.scale;
+      this.scale *= transform.scale;
 
-      var nmx = i_transform.mirrorX;
-      var nmy = i_transform.mirrorY;
+      var nmx = transform.mirrorX;
+      var nmy = transform.mirrorY;
       var mx = this.mirrorX;
       var my = this.mirrorY;
       // adjust the rotation depending on our current mirroring situation ...
-      this.rotation += mx === my ? i_transform.rotation : -i_transform.rotation;
+      this.rotation += mx === my ? transform.rotation : -transform.rotation;
       // ... and update the mirroring flags afterwards (!!!)
       this.mirrorX = mx !== nmx;
       this.mirrorY = my !== nmy;
@@ -418,12 +418,12 @@
       var i10 = this.i10;
       var i11 = this.i11;
       var i12 = this.i12;
-      var j00 = i_transform.i00;
-      var j01 = i_transform.i01;
-      var j02 = i_transform.i02;
-      var j10 = i_transform.i10;
-      var j11 = i_transform.i11;
-      var j12 = i_transform.i12;
+      var j00 = transform.i00;
+      var j01 = transform.i01;
+      var j02 = transform.i02;
+      var j10 = transform.i10;
+      var j11 = transform.i11;
+      var j12 = transform.i12;
 
       this.i00 = i00 * j00 + i10 * j01;
       this.i01 = i01 * j00 + i11 * j01;
@@ -435,7 +435,7 @@
 
       return this;
     },
-    preConcatenate: function (i_transform) {
+    preConcatenate: function (transform) {
       // does: [this] = [Tx] x [this]
       var d00 = this.d00;
       var d01 = this.d01;
@@ -443,12 +443,12 @@
       var d10 = this.d10;
       var d11 = this.d11;
       var y = this.y;
-      var t00 = i_transform.d00;
-      var t01 = i_transform.d01;
-      var t02 = i_transform.x;
-      var t10 = i_transform.d10;
-      var t11 = i_transform.d11;
-      var t12 = i_transform.y;
+      var t00 = transform.d00;
+      var t01 = transform.d01;
+      var t02 = transform.x;
+      var t10 = transform.d10;
+      var t11 = transform.d11;
+      var t12 = transform.y;
 
       this.d00 = d00 * t00 + d10 * t01;
       this.d01 = d01 * t00 + d11 * t01;
@@ -458,11 +458,11 @@
       this.d11 = d01 * t10 + d11 * t11;
       this.y = x * t10 + y * t11 + t12;
 
-      this.scale *= i_transform.scale;
-      var nmx = i_transform.mirrorX;
-      var nmy = i_transform.mirrorY;
+      this.scale *= transform.scale;
+      var nmx = transform.mirrorX;
+      var nmy = transform.mirrorY;
       // adjust the rotation depending on the transforms mirroring situation ...
-      this.rotation += nmx === nmy ? i_transform.rotation : -i_transform.rotation;
+      this.rotation += nmx === nmy ? transform.rotation : -transform.rotation;
       // ... and update the mirroring flags afterwards (!!!)
       this.mirrorX = this.mirrorX !== nmx;
       this.mirrorY = this.mirrorY !== nmy;
@@ -472,12 +472,12 @@
       var i01 = this.i01;
       var i10 = this.i10;
       var i11 = this.i11;
-      var j00 = i_transform.i00;
-      var j01 = i_transform.i01;
-      var j02 = i_transform.i02;
-      var j10 = i_transform.i10;
-      var j11 = i_transform.i11;
-      var j12 = i_transform.i12;
+      var j00 = transform.i00;
+      var j01 = transform.i01;
+      var j02 = transform.i02;
+      var j10 = transform.i10;
+      var j11 = transform.i11;
+      var j12 = transform.i12;
 
       this.i00 = i00 * j00 + i01 * j10;
       this.i01 = i00 * j01 + i01 * j11;
@@ -531,15 +531,15 @@
         return this;
       }
     },
-    initForPoints: function (i_metricX1, i_metricY1, i_metricX2, i_metricY2, i_pixelX1, i_pixelY1, i_pixelX2, i_pixelY2) {
+    initForPoints: function (metricX1, metricY1, metricX2, metricY2, pixelX1, pixelY1, pixelX2, pixelY2) {
       // store for performance reasons
       var mx = this.mirrorX === true;
       var my = this.mirrorY === true;
       // get the deltas
-      var dx = i_metricX2 - i_metricX1;
-      var dy = i_metricY2 - i_metricY1;
-      var du = i_pixelX2 - i_pixelX1;
-      var dv = i_pixelY2 - i_pixelY1;
+      var dx = metricX2 - metricX1;
+      var dy = metricY2 - metricY1;
+      var du = pixelX2 - pixelX1;
+      var dv = pixelY2 - pixelY1;
       // compute the cross products
       var dxdu = dx * du;
       var dxdv = dx * dv;
@@ -557,8 +557,8 @@
       this.i10 = my ? m2 : -m2;
       this.i01 = mx ? -m2 : m2;
       this.i11 = my ? -m1 : m1;
-      this.i02 = i_metricX1 - this.i00 * i_pixelX1 - this.i01 * i_pixelY1;
-      this.i12 = i_metricY1 - this.i10 * i_pixelX1 - this.i11 * i_pixelY1;
+      this.i02 = metricX1 - this.i00 * pixelX1 - this.i01 * pixelY1;
+      this.i12 = metricY1 - this.i10 * pixelX1 - this.i11 * pixelY1;
       // compute metric to image transform
       var mdiv = (dx * dx + dy * dy);
       m1 = m1num / mdiv;
@@ -568,31 +568,31 @@
       this.d10 = mx ? -m2 : m2;
       this.d01 = my ? m2 : -m2;
       this.d11 = my ? -m1 : m1;
-      this.x = i_pixelX1 - this.d00 * i_metricX1 - this.d01 * i_metricY1;
-      this.y = i_pixelY1 - this.d10 * i_metricX1 - this.d11 * i_metricY1;
+      this.x = pixelX1 - this.d00 * metricX1 - this.d01 * metricY1;
+      this.y = pixelY1 - this.d10 * metricX1 - this.d11 * metricY1;
       this.rotation = normalizeToPlusMinusPI(Math.atan2(m2num, m1num));
       this.scale = Math.sqrt(du2dv2 / mdiv);
       return this;
     },
-    initForPoint: function (i_metricX, i_metricY, i_pixelX, i_pixelY) {
+    initForPoint: function (metricX, metricY, pixelX, pixelY) {
       // initialize transforms
-      this.x = i_pixelX - this.d00 * i_metricX - this.d01 * i_metricY;
-      this.y = i_pixelY - this.d10 * i_metricX - this.d11 * i_metricY;
-      this.i02 = i_metricX - this.i00 * i_pixelX - this.i01 * i_pixelY;
-      this.i12 = i_metricY - this.i10 * i_pixelX - this.i11 * i_pixelY;
+      this.x = pixelX - this.d00 * metricX - this.d01 * metricY;
+      this.y = pixelY - this.d10 * metricX - this.d11 * metricY;
+      this.i02 = metricX - this.i00 * pixelX - this.i01 * pixelY;
+      this.i12 = metricY - this.i10 * pixelX - this.i11 * pixelY;
       return this;
     },
-    initForBounds: function (i_metric, i_pixelWidth, i_pixelHeight, i_mirrorX, i_mirrorY) {
+    initForBounds: function (metric, pixelWidth, pixelHeight, mirrorX, mirrorY) {
       // get the source rectangle bounds
-      var x = i_metric ? i_metric.x : 0.0;
-      var y = i_metric ? i_metric.y : 0.0;
-      var w = i_metric ? i_metric.width : 1.0;
-      var h = i_metric ? i_metric.height : 1.0;
+      var x = metric ? metric.x : 0.0;
+      var y = metric ? metric.y : 0.0;
+      var w = metric ? metric.width : 1.0;
+      var h = metric ? metric.height : 1.0;
       if (typeof x !== 'number' || typeof y !== 'number' || typeof w !== 'number' || typeof h !== 'number') {
-        var x1 = i_metric.x1;
-        var x2 = i_metric.x2;
-        var y1 = i_metric.y1;
-        var y2 = i_metric.y2;
+        var x1 = metric.x1;
+        var x2 = metric.x2;
+        var y1 = metric.y1;
+        var y2 = metric.y2;
         if (typeof x1 !== 'number' || typeof y1 !== 'number' || typeof x2 !== 'number' || typeof y2 !== 'number') {
           // nothing more to do
           this.setToIdentity();
@@ -609,18 +609,18 @@
         return false;
       }
       // store for performance reasons
-      var mx = i_mirrorX === true;
-      var my = i_mirrorY === true;
+      var mx = mirrorX === true;
+      var my = mirrorY === true;
       // depending on the aspect ratio of source and target rectangle the
       // transformed rectangle must fit vertically and horizontally - so we need
       // the lower scale factor of both
-      var pxw = i_pixelWidth / w;
-      var pxh = i_pixelHeight / h;
+      var pxw = pixelWidth / w;
+      var pxh = pixelHeight / h;
       var ds = Math.min(pxw, pxh);
       var is = 1.0 / ds;
       // this centers the target rectangle
-      var tx = mx ? (i_pixelWidth + ds * w) * 0.5 : (i_pixelWidth - ds * w) * 0.5;
-      var ty = my ? (i_pixelHeight + ds * h) * 0.5 : (i_pixelHeight - ds * h) * 0.5;
+      var tx = mx ? (pixelWidth + ds * w) * 0.5 : (pixelWidth - ds * w) * 0.5;
+      var ty = my ? (pixelHeight + ds * h) * 0.5 : (pixelHeight - ds * h) * 0.5;
 
       // the actual scale (y-scale is negative because of the vertical flip of
       // the y-axis: in metric systems the y-axis goes up, in images it goes
@@ -660,8 +660,8 @@
      * be rotated around the new origin with the angle i_phi. 4. The mirror x
      * and y states will be updated.
      */
-    applyCoordinateTransformation: function (i_translateX, i_translateY, i_scale, i_phi, i_mirrorX, i_mirrorY) {
-      this.translate(i_translateX, i_translateY).setScale(i_scale).rotate(i_phi, i_mirrorX, i_mirrorY);
+    applyCoordinateTransformation: function (translateX, translateY, scale, phi, mirrorX, mirrorY) {
+      this.translate(translateX, translateY).setScale(scale).rotate(phi, mirrorX, mirrorY);
     },
     /**
      * Transform coordinate system (fast version)
@@ -677,7 +677,7 @@
      * @param (i_parent):
      *          Optional parent transformation
      */
-    setToCoordinateTransform: function (i_params, i_parent) {
+    setToCoordinateTransform: function (params, parent) {
       // this method does the exact same operations like the following:
       //
       // this.init(i_parent); [1]
@@ -691,19 +691,19 @@
       // own
       // if not [1]
       var d00, d01, x, d10, d11, y, sca, rot, mx, my;
-      if (i_parent) {
-        d00 = i_parent.d00;
-        d01 = i_parent.d01;
-        x = i_parent.x;
-        d10 = i_parent.d10;
-        d11 = i_parent.d11;
-        y = i_parent.y;
-        sca = i_parent.scale;
-        rot = i_parent.rotation;
-        mx = i_parent.mirrorX;
-        my = i_parent.mirrorY;
+      if (parent) {
+        d00 = parent.d00;
+        d01 = parent.d01;
+        x = parent.x;
+        d10 = parent.d10;
+        d11 = parent.d11;
+        y = parent.y;
+        sca = parent.scale;
+        rot = parent.rotation;
+        mx = parent.mirrorX;
+        my = parent.mirrorY;
       }
-      else if (i_params) {
+      else if (params) {
         d00 = this.d00;
         d01 = this.d01;
         x = this.x;
@@ -716,10 +716,10 @@
         my = this.mirrorY;
       }
       // if parameters available
-      if (i_params) {
+      if (params) {
         // now we translate - but only if required [2]
-        var tx = i_params.x;
-        var ty = i_params.y;
+        var tx = params.x;
+        var ty = params.y;
         if (tx !== 0.0 && typeof tx === 'number') {
           if (ty !== 0.0 && typeof ty === 'number') {
             // add the rotated and scaled translation vector
@@ -738,7 +738,7 @@
           y += d11 * ty;
         }
         // next we scale - but only if required and valid [3]
-        var sc = i_params.scale;
+        var sc = params.scale;
         if (sc !== 1.0 && typeof sc === 'number' && sc > 0.0) {
           d00 *= sc;
           d01 *= sc;
@@ -749,20 +749,20 @@
         this.scale = sca;
         // finally we apply the new mirroring and rotate - but only if required
         // [4]
-        var pmx = i_params.mirrorX === true;
-        var pmy = i_params.mirrorY === true;
+        var pmx = params.mirrorX === true;
+        var pmy = params.mirrorY === true;
         this.mirrorX = mx !== pmx;
         this.mirrorY = my !== pmy;
         // try to get rotation angle
-        var phi = i_params.phi;
+        var phi = params.phi;
         if (typeof phi !== 'number') {
-          var a = i_params.angle;
+          var a = params.angle;
           if (typeof a === 'number') {
             phi = a !== 0.0 ? a * DEG2RAD : undefined;
           }
         }
         // if we must be upright we adjust angle with current rotation
-        if (i_params.upright === true) {
+        if (params.upright === true) {
           if (phi !== undefined) {
             phi += mx === my ? -rot : rot;
           }
@@ -811,7 +811,7 @@
         this.i12 = (m10 * x - m00 * y) / det;
       }
       // no parameters but at least a parent transform
-      else if (i_parent) {
+      else if (parent) {
         this.mirrorX = mx;
         this.mirrorY = my;
         this.d00 = d00;
@@ -822,25 +822,25 @@
         this.y = y;
         this.scale = sca;
         this.rotation = rot;
-        this.i00 = i_parent.i00;
-        this.i01 = i_parent.i01;
-        this.i02 = i_parent.i02;
-        this.i10 = i_parent.i10;
-        this.i11 = i_parent.i11;
-        this.i12 = i_parent.i12;
+        this.i00 = parent.i00;
+        this.i01 = parent.i01;
+        this.i02 = parent.i02;
+        this.i10 = parent.i10;
+        this.i11 = parent.i11;
+        this.i12 = parent.i12;
       }
     },
-    transform: function (i_x, i_y, i_point) {
-      var p = i_point || {};
-      p.x = this.d00 * i_x + this.d01 * i_y + this.x;
-      p.y = this.d10 * i_x + this.d11 * i_y + this.y;
+    transform: function (x, y, point) {
+      var p = point || {};
+      p.x = this.d00 * x + this.d01 * y + this.x;
+      p.y = this.d10 * x + this.d11 * y + this.y;
       return p;
     },
 
-    transformInverse: function (i_x, i_y, i_point) {
-      var p = i_point || {};
-      p.x = this.i00 * i_x + this.i01 * i_y + this.i02;
-      p.y = this.i10 * i_x + this.i11 * i_y + this.i12;
+    transformInverse: function (x, y, point) {
+      var p = point || {};
+      p.x = this.i00 * x + this.i01 * y + this.i02;
+      p.y = this.i10 * x + this.i11 * y + this.i12;
       return p;
     },
 
@@ -883,53 +883,53 @@
   ;
 
   Adjuster.prototype = {
-    reset: function (i_source, i_target, i_id) {
+    reset: function (source, target, id) {
       var config = this._cfg;
       config.splice(0, config.length);
       this.incrementSource = undefined;
       this.incrementTarget = undefined;
-      if (i_id !== undefined) {
-        this._id = i_id;
+      if (id !== undefined) {
+        this._id = id;
       }
       else {
         delete this._id;
       }
-      this._s = typeof i_source === 'number' ? i_source : 0.0;
-      this._t = typeof i_target === 'number' ? i_target : 0.0;
+      this._s = typeof source === 'number' ? source : 0.0;
+      this._t = typeof target === 'number' ? target : 0.0;
       this.valid = false;
     },
-    add: function (i_source, i_target, i_id) {
+    add: function (source, target, id) {
       var s = this._s;
-      var ds = i_source - s;
+      var ds = source - s;
       var cis = ds > 0.0 ? true : (ds < 0.0 ? false : undefined);
       var pis = this.incrementSource;
       if (cis === undefined || (pis !== undefined && pis !== cis)) {
         return false;
       }
       var t = this._t;
-      var dt = i_target - t;
+      var dt = target - t;
       var cit = dt > 0.0 ? true : (dt < 0.0 ? false : undefined);
       var pit = this.incrementTarget;
       if (cit === undefined || (pit !== undefined && pit !== cit)) {
         return false;
       }
       this._cfg.push({
-        id: i_id,
+        id: id,
         s1: s,
-        s2: i_source,
+        s2: source,
         ds: ds,
         t1: t,
-        t2: i_target,
+        t2: target,
         dt: dt,
       });
-      this._s = i_source;
+      this._s = source;
       this.incrementSource = cis;
-      this._t = i_target;
+      this._t = target;
       this.incrementTarget = cit;
       this.valid = true;
       return true;
     },
-    adjust: function (i_source) {
+    adjust: function (source) {
       var config = this._cfg;
       if (config.length > 0) {
         var is = this.incrementSource;
@@ -941,25 +941,25 @@
         var t1 = c1.t1;
         var t2 = c2.t2;
         var dt = t2 - t1;
-        if (is ? i_source <= s1 : i_source >= s1) {
-          return t1 + (i_source - s1) / ds * dt;
+        if (is ? source <= s1 : source >= s1) {
+          return t1 + (source - s1) / ds * dt;
         }
-        else if (is ? i_source >= s2 : i_source <= s2) {
-          return t2 + (i_source - s2) / ds * dt;
+        else if (is ? source >= s2 : source <= s2) {
+          return t2 + (source - s2) / ds * dt;
         }
         else {
           for (var i = 0; i < config.length; i++) {
             var c = config[i];
             s2 = c.s2;
-            if (is ? i_source <= s2 : i_source >= s2) {
-              return c.t1 + (i_source - c.s1) / c.ds * c.dt;
+            if (is ? source <= s2 : source >= s2) {
+              return c.t1 + (source - c.s1) / c.ds * c.dt;
             }
           }
         }
       }
       return false;
     },
-    adjustInverse: function (i_target) {
+    adjustInverse: function (target) {
       var config = this._cfg;
       if (config.length > 0) {
         var it = this.incrementTarget;
@@ -971,18 +971,18 @@
         var t1 = c1.t1;
         var t2 = c2.t2;
         var dt = t2 - t1;
-        if (it ? i_target <= t1 : i_target >= t1) {
-          return s1 + (i_target - t1) / dt * ds;
+        if (it ? target <= t1 : target >= t1) {
+          return s1 + (target - t1) / dt * ds;
         }
-        else if (it ? i_target >= t2 : i_target <= t2) {
-          return s2 + (i_target - t2) / dt * ds;
+        else if (it ? target >= t2 : target <= t2) {
+          return s2 + (target - t2) / dt * ds;
         }
         else {
           for (var i = 0; i < config.length; i++) {
             var c = config[i];
             t2 = c.t2;
-            if (it ? i_target <= t2 : i_target >= t2) {
-              return c.s1 + (i_target - c.t1) / c.dt * c.ds;
+            if (it ? target <= t2 : target >= t2) {
+              return c.s1 + (target - c.t1) / c.dt * c.ds;
             }
           }
         }
@@ -1018,11 +1018,11 @@
     }
   };
 
-  function getHarmonicRGB(i_value, i_min, i_max) {
-    var min = typeof i_min === 'number' ? Math.max(i_min, 0) : 0;
-    var max = typeof i_max === 'number' ? Math.min(i_max, 256) : 256;
+  function getHarmonicRGB(source, minimum, maximum) {
+    var min = typeof minimum === 'number' ? Math.max(minimum, 0) : 0;
+    var max = typeof maximum === 'number' ? Math.min(maximum, 256) : 256;
     var diff = (max - min) * 0.5;
-    var value = normalizeToPlusMinusPI(i_value * TWO_PI);
+    var value = normalizeToPlusMinusPI(source * TWO_PI);
     var r = Math.floor(min + (Math.cos(value) + 1) * diff);
     var g = Math.floor(min + (Math.cos(value + TWO_PI / 3) + 1) * diff);
     var b = Math.floor(min + (Math.cos(value - TWO_PI / 3) + 1) * diff);
@@ -1044,13 +1044,13 @@
    * endPhi: angle between second tangent in mathematical orientation (angle
    * between tangent vector and x-axis anticlockwise)
    */
-  function getArc(i_x1, i_y1, i_x2, i_y2, i_x3, i_y3, i_radius) {
+  function getArc(x1, y1, x2, y2, x3, y3, radius) {
     // compute the vectors
-    var v12x = i_x2 - i_x1;
-    var v12y = i_y2 - i_y1;
+    var v12x = x2 - x1;
+    var v12y = y2 - y1;
     var v12len2 = v12x * v12x + v12y * v12y;
-    var v23x = i_x3 - i_x2;
-    var v23y = i_y3 - i_y2;
+    var v23x = x3 - x2;
+    var v23y = y3 - y2;
     var v23len2 = v23x * v23x + v23y * v23y;
     // if too short
     if (v12len2 < MIN_LENGTH2 || v12len2 < MIN_LENGTH2) {
@@ -1075,21 +1075,21 @@
     var v12len = Math.sqrt(v12len2);
     var unitVector12x = v12x / v12len;
     var unitVector12y = v12y / v12len;
-    var offset12x = left ? -i_radius * unitVector12y : i_radius * unitVector12y;
-    var offset12y = left ? i_radius * unitVector12x : -i_radius * unitVector12x;
-    var line12x1 = i_x1 + offset12x;
-    var line12y1 = i_y1 + offset12y;
-    var line12x2 = i_x2 + offset12x;
-    var line12y2 = i_y2 + offset12y;
+    var offset12x = left ? -radius * unitVector12y : radius * unitVector12y;
+    var offset12y = left ? radius * unitVector12x : -radius * unitVector12x;
+    var line12x1 = x1 + offset12x;
+    var line12y1 = y1 + offset12y;
+    var line12x2 = x2 + offset12x;
+    var line12y2 = y2 + offset12y;
     var v23lenInv = 1.0 / Math.sqrt(v23len2);
     var unitVector23x = v23x * v23lenInv;
     var unitVector23y = v23y * v23lenInv;
-    var offset23x = left ? -i_radius * unitVector23y : i_radius * unitVector23y;
-    var offset23y = left ? i_radius * unitVector23x : -i_radius * unitVector23x;
-    var line23x2 = i_x2 + offset23x;
-    var line23y2 = i_y2 + offset23y;
-    var line23x3 = i_x3 + offset23x;
-    var line23y3 = i_y3 + offset23y;
+    var offset23x = left ? -radius * unitVector23y : radius * unitVector23y;
+    var offset23y = left ? radius * unitVector23x : -radius * unitVector23x;
+    var line23x2 = x2 + offset23x;
+    var line23y2 = y2 + offset23y;
+    var line23x3 = x3 + offset23x;
+    var line23y3 = y3 + offset23y;
     // compute the result and return
     var denominator = -line12x1 * line23y2 + line12x2 * line23y2 + line12x1 * line23y3 - line12x2 * line23y3;
     denominator += line23x2 * line12y1 - line23x3 * line12y1 - line23x2 * line12y2 + line23x3 * line12y2;
@@ -1115,7 +1115,7 @@
       right: left === false,
       centerX: centerX,
       centerY: centerY,
-      radius: i_radius,
+      radius: radius,
       startX: centerX - offset12x,
       startY: centerY - offset12y,
       startPhi: v12phi,
@@ -1125,43 +1125,43 @@
     };
   }
 
-  function fn_prepare_arc(i_context, i_contextTransform, i_point, i_part, i_start, i_end, i_left, i_curveTransform) {
-    var arc = i_part.arc;
+  function fn_prepare_arc(context, contextTransform, point, part, start, end, left, curveTransform) {
+    var arc = part.arc;
     var sphi = arc.startPhi;
     var ephi = arc.endPhi;
     var dphi = ephi - sphi;
-    var s1 = i_part.s1;
-    var slen = i_part.length;
+    var s1 = part.s1;
+    var slen = part.length;
     var left = arc.left;
     var ophi = left ? -HALF_PI : HALF_PI;
-    var phi1 = sphi + (i_start - s1) / slen * dphi + ophi;
-    var phi2 = sphi + (i_end - s1) / slen * dphi + ophi;
+    var phi1 = sphi + (start - s1) / slen * dphi + ophi;
+    var phi2 = sphi + (end - s1) / slen * dphi + ophi;
     // handler mirroring
-    var mx = i_contextTransform.mirrorX !== i_curveTransform.mirrorX;
+    var mx = contextTransform.mirrorX !== curveTransform.mirrorX;
     if (mx) {
       phi1 = PI - phi1;
       phi2 = PI - phi2;
     }
-    var my = i_contextTransform.mirrorY !== i_curveTransform.mirrorY;
+    var my = contextTransform.mirrorY !== curveTransform.mirrorY;
     if (my) {
       phi1 = -phi1;
       phi2 = -phi2;
     }
     // get center point
-    i_curveTransform.transform(arc.centerX, arc.centerY, i_point);
-    i_contextTransform.transform(i_point.x, i_point.y, i_point);
-    var tfrot = i_contextTransform.rotation - i_curveTransform.rotation;
+    curveTransform.transform(arc.centerX, arc.centerY, point);
+    contextTransform.transform(point.x, point.y, point);
+    var tfrot = contextTransform.rotation - curveTransform.rotation;
     var radius = arc.radius;
-    if (typeof i_left === 'number') {
-      radius += left ? -i_left : i_left;
+    if (typeof left === 'number') {
+      radius += left ? -left : left;
     }
-    radius *= i_contextTransform.scale;
-    radius *= i_curveTransform.scale;
-    i_context.arc(i_point.x, i_point.y, radius, phi1 + tfrot, phi2 + tfrot, left === (mx !== my));
+    radius *= contextTransform.scale;
+    radius *= curveTransform.scale;
+    context.arc(point.x, point.y, radius, phi1 + tfrot, phi2 + tfrot, left === (mx !== my));
   }
 
-  var ArcLine = function (i_curve) {
-    this._curve = i_curve;
+  var ArcLine = function (curve) {
+    this._curve = curve;
     this.length = 0.0;
     this.closed = false;
     this._p = {};
@@ -1290,20 +1290,20 @@
     getLength: function () {
       return this.length;
     },
-    _get_position_on_arc_line: function (i_position, i_left, i_point) {
+    _get_position_on_arc_line: function (position, left, point) {
       var parts = this._parts;
       for (var i = 0; i < parts.length; i++) {
         var part = parts[i];
         var s1 = part.s1;
-        if (i_position >= s1 && i_position <= part.s2) {
+        if (position >= s1 && position <= part.s2) {
           var tf = this._tf;
           var mirrored = tf.mirrorX !== tf.mirrorY;
-          var p = i_point || {};
+          var p = point || {};
           var arc = part.arc;
-          var rel = (i_position - s1) / part.length;
+          var rel = (position - s1) / part.length;
           if (arc === false) {
-            var x = part.x1 + (part.x2 - part.x1) * rel - part.ey * i_left;
-            var y = part.y1 + (part.y2 - part.y1) * rel + part.ex * i_left;
+            var x = part.x1 + (part.x2 - part.x1) * rel - part.ey * left;
+            var y = part.y1 + (part.y2 - part.y1) * rel + part.ex * left;
             tf.transform(x, y, p);
             p.phi = (mirrored ? -part.phi : part.phi) + tf.rotation;
           }
@@ -1311,8 +1311,8 @@
             var phi = arc.startPhi + (arc.endPhi - arc.startPhi) * rel;
             var cos = Math.cos(phi);
             var sin = Math.sin(phi);
-            var x = arc.centerX + (arc.left ? sin * arc.radius : -sin * arc.radius) - sin * i_left;
-            var y = arc.centerY + (arc.left ? -cos * arc.radius : cos * arc.radius) + cos * i_left;
+            var x = arc.centerX + (arc.left ? sin * arc.radius : -sin * arc.radius) - sin * left;
+            var y = arc.centerY + (arc.left ? -cos * arc.radius : cos * arc.radius) + cos * left;
             tf.transform(x, y, p);
             p.phi = (mirrored ? -phi : phi) + tf.rotation;
           }
@@ -1332,15 +1332,15 @@
      * @method
      * @memberof ArcLine.prototype
      * @param {Number}
-     *          i_position The position on the ArcLine
+     *          position The position on the ArcLine
      * @param {Object}
-     *          i_point Optional object for the result
+     *          point Optional object for the result
      * @returns {Object} If i_point is defined i_point will be returned.
      *          Otherwise a new object will be returned
      */
-    _transform: function (i_position, i_left, i_point) {
+    _transform: function (position, left, point) {
       var parts = this._parts;
-      if (typeof i_position !== 'number' || parts.length === 0) {
+      if (typeof position !== 'number' || parts.length === 0) {
         return false;
       }
       if (this.closed) {
@@ -1348,36 +1348,36 @@
         var curve_end = parts[parts.length - 1].s2;
         var length = curve_end - curve_start;
         // normalize position
-        var position = i_position;
+        var pos = position;
         var length = this.length;
-        while (position >= curve_end) {
-          position -= length;
+        while (pos >= curve_end) {
+          pos -= length;
         }
-        while (position < curve_start) {
-          position += length;
+        while (pos < curve_start) {
+          pos += length;
         }
-        return this._get_position_on_arc_line(position, i_left, i_point);
+        return this._get_position_on_arc_line(pos, left, point);
       }
       // check if before first segment
       var tf = this._tf;
       var mirrored = tf.mirrorX !== tf.mirrorY;
       var part = parts[0];
       var s1 = part.s1;
-      if (i_position < s1) {
-        var offset = i_position - s1;
+      if (position < s1) {
+        var offset = position - s1;
         var arc = part.arc;
-        var p = i_point || {};
+        var p = point || {};
         if (arc === false) {
-          var x = part.x1 + part.ex * offset - part.ey * i_left;
-          var y = part.y1 + part.ey * offset + part.ex * i_left;
+          var x = part.x1 + part.ex * offset - part.ey * left;
+          var y = part.y1 + part.ey * offset + part.ex * left;
           tf.transform(x, y, p);
           p.phi = (mirrored ? -part.phi : part.phi) + tf.rotation;
         }
         else {
           var cos = Math.cos(arc.startPhi);
           var sin = Math.sin(arc.startPhi);
-          var x = arc.centerX + (arc.left ? sin * arc.radius : -sin * arc.radius) + cos * offset - sin * i_left;
-          var y = arc.centerY + (arc.left ? -cos * arc.radius : cos * arc.radius) + sin * offset + cos * i_left;
+          var x = arc.centerX + (arc.left ? sin * arc.radius : -sin * arc.radius) + cos * offset - sin * left;
+          var y = arc.centerY + (arc.left ? -cos * arc.radius : cos * arc.radius) + sin * offset + cos * left;
           tf.transform(x, y, p);
           p.phi = (mirrored ? -arc.startPhi : arc.startPhi) + tf.rotation;
         }
@@ -1386,61 +1386,61 @@
       // check if behind last segment
       part = parts[parts.length - 1];
       var s2 = part.s2;
-      if (i_position >= s2) {
-        var offset = i_position - s2;
+      if (position >= s2) {
+        var offset = position - s2;
         var arc = part.arc;
-        var p = i_point || {};
+        var p = point || {};
         if (arc === false) {
-          var x = part.x2 + part.ex * offset - part.ey * i_left;
-          var y = part.y2 + part.ey * offset + part.ex * i_left;
+          var x = part.x2 + part.ex * offset - part.ey * left;
+          var y = part.y2 + part.ey * offset + part.ex * left;
           tf.transform(x, y, p);
           p.phi = (mirrored ? -part.phi : part.phi) + tf.rotation;
         }
         else {
           var cos = Math.cos(arc.endPhi);
           var sin = Math.sin(arc.endPhi);
-          var x = arc.centerX + (arc.left ? sin * arc.radius : -sin * arc.radius) + cos * offset - sin * i_left;
-          var y = arc.centerY + (arc.left ? -cos * arc.radius : cos * arc.radius) + sin * offset + cos * i_left;
+          var x = arc.centerX + (arc.left ? sin * arc.radius : -sin * arc.radius) + cos * offset - sin * left;
+          var y = arc.centerY + (arc.left ? -cos * arc.radius : cos * arc.radius) + sin * offset + cos * left;
           tf.transform(x, y, p);
           p.phi = (mirrored ? -arc.endPhi : arc.endPhi) + tf.rotation;
         }
         return p;
       }
       // must be in between
-      return this._get_position_on_arc_line(i_position, i_left, i_point);
+      return this._get_position_on_arc_line(position, left, point);
     },
-    transform: function (i_position, i_left, i_point) {
-      return this._transform(this._adjuster.adjust(i_position), i_left, i_point);
+    transform: function (position, left, point) {
+      return this._transform(this._adjuster.adjust(position), left, point);
     },
-    _stroke_arc_line: function (i_context, i_transform, i_start, i_end, i_left) {
+    _stroke_arc_line: function (context, transform, start, end, left) {
       var parts = this._parts;
-      var start_pos = i_start;
+      var start_pos = start;
       var p = this._p;
       for (var i = 0; i < parts.length; i++) {
         var part = parts[i];
         var s2 = part.s2;
         if (start_pos < s2) {
-          var is_last = i_end <= s2;
-          var end_pos = is_last ? i_end : s2;
+          var is_last = end <= s2;
+          var end_pos = is_last ? end : s2;
           if (Math.abs(end_pos - start_pos) > MIN_STROKE_LENGTH) {
-            this._get_position_on_arc_line(start_pos, i_left, p);
+            this._get_position_on_arc_line(start_pos, left, p);
             var start_phi = p.phi;
-            i_transform.transform(p.x, p.y, p);
+            transform.transform(p.x, p.y, p);
             var x1 = p.x;
             var y1 = p.y;
-            i_context.beginPath();
-            this._get_position_on_arc_line(end_pos, i_left, p);
+            context.beginPath();
+            this._get_position_on_arc_line(end_pos, left, p);
             var end_phi = p.phi;
-            i_transform.transform(p.x, p.y, p);
+            transform.transform(p.x, p.y, p);
             var arc = part.arc;
             if (arc === false) {
-              i_context.moveTo(x1, y1);
-              i_context.lineTo(p.x, p.y);
+              context.moveTo(x1, y1);
+              context.lineTo(p.x, p.y);
             }
             else {
-              fn_prepare_arc(i_context, i_transform, p, part, start_pos, end_pos, i_left, this._tf);
+              fn_prepare_arc(context, transform, p, part, start_pos, end_pos, left, this._tf);
             }
-            i_context.stroke();
+            context.stroke();
           }
           start_pos = end_pos;
           if (is_last) {
@@ -1449,11 +1449,11 @@
         }
       }
     },
-    stroke: function (i_context, i_transform, i_start, i_end, i_left) {
+    stroke: function (context, transform, start, end, left) {
       // get the stroke start and end position in curve coordinates
       var adjuster = this._adjuster;
-      var stroke_start = adjuster.adjust(Math.min(i_start, i_end));
-      var stroke_end = adjuster.adjust(Math.max(i_start, i_end));
+      var stroke_start = adjuster.adjust(Math.min(start, end));
+      var stroke_end = adjuster.adjust(Math.max(start, end));
       // if too short
       if (stroke_end - stroke_start < MIN_STROKE_LENGTH) {
         // nothing more to do
@@ -1484,12 +1484,12 @@
         var stroke_end_is_behind_curve_end = stroke_end > curve_end;
         var se = stroke_end_is_behind_curve_end ? curve_end : stroke_end;
         if (se - stroke_start > MIN_STROKE_LENGTH) {
-          this._stroke_arc_line(i_context, i_transform, stroke_start, se, i_left);
+          this._stroke_arc_line(context, transform, stroke_start, se, left);
         }
         if (stroke_end_is_behind_curve_end) {
           se = stroke_end - length;
           if (se - curve_start > MIN_STROKE_LENGTH) {
-            this._stroke_arc_line(i_context, i_transform, curve_start, se, i_left);
+            this._stroke_arc_line(context, transform, curve_start, se, left);
           }
         }
         return;
@@ -1502,14 +1502,14 @@
         var stroke_end_is_before_curve_start = stroke_end <= curve_start;
         var se = stroke_end_is_before_curve_start ? stroke_end : curve_start;
         if (se - stroke_start > MIN_STROKE_LENGTH) {
-          i_context.beginPath();
-          this._transform(stroke_start, i_left, p);
-          i_transform.transform(p.x, p.y, p);
-          i_context.moveTo(p.x, p.y);
-          this._transform(se, i_left, p);
-          i_transform.transform(p.x, p.y, p);
-          i_context.lineTo(p.x, p.y);
-          i_context.stroke();
+          context.beginPath();
+          this._transform(stroke_start, left, p);
+          transform.transform(p.x, p.y, p);
+          context.moveTo(p.x, p.y);
+          this._transform(se, left, p);
+          transform.transform(p.x, p.y, p);
+          context.lineTo(p.x, p.y);
+          context.stroke();
         }
         if (stroke_end_is_before_curve_start) {
           // nothing more to do
@@ -1522,7 +1522,7 @@
         var stroke_end_is_before_curve_end = stroke_end <= curve_end;
         var se = stroke_end_is_before_curve_end ? stroke_end : curve_end;
         if (se - stroke_start > MIN_STROKE_LENGTH) {
-          this._stroke_arc_line(i_context, i_transform, stroke_start, se, i_left);
+          this._stroke_arc_line(context, transform, stroke_start, se, left);
         }
         if (stroke_end_is_before_curve_end) {
           // nothing more to do
@@ -1532,26 +1532,26 @@
       }
       // last handle stroke parts behind actual curve
       if (stroke_end - stroke_start > MIN_STROKE_LENGTH) {
-        i_context.beginPath();
-        this._transform(stroke_start, i_left, p);
-        i_transform.transform(p.x, p.y, p);
-        i_context.moveTo(p.x, p.y);
-        this._transform(stroke_end, i_left, p);
-        i_transform.transform(p.x, p.y, p);
-        i_context.lineTo(p.x, p.y);
-        i_context.stroke();
+        context.beginPath();
+        this._transform(stroke_start, left, p);
+        transform.transform(p.x, p.y, p);
+        context.moveTo(p.x, p.y);
+        this._transform(stroke_end, left, p);
+        transform.transform(p.x, p.y, p);
+        context.lineTo(p.x, p.y);
+        context.stroke();
       }
     }
   };
 
-  function fn_get_from_array(i_array, i_selector) {
-    if (typeof i_selector === 'number') {
-      return i_array[i_selector];
+  function fn_get_from_array(array, selector) {
+    if (typeof selector === 'number') {
+      return array[selector];
     }
     else {
-      for (var i = 0; i < i_array.length; i++) {
-        var obj = i_array[i];
-        if (obj.child === i_selector) {
+      for (var i = 0; i < array.length; i++) {
+        var obj = array[i];
+        if (obj.child === selector) {
           return obj;
         }
       }
@@ -1573,14 +1573,14 @@
    * has to be 100m long an item at position 50m on the section will be at 40m
    * on the curve)
    */
-  var CurveSection = function (i_curve, i_id, i_curveStart, i_curveEnd, i_elements) {
-    var cu_start = typeof i_curveStart === 'number' ? i_curveStart : 0.0;
-    var cu_end = typeof i_curveEnd === 'number' ? i_curveEnd : i_curve.getLength();
+  var CurveSection = function (curve, id, curveStart, curveEnd, elements) {
+    var cu_start = typeof curveStart === 'number' ? curveStart : 0.0;
+    var cu_end = typeof curveEnd === 'number' ? curveEnd : curve.getLength();
     // compute the length of all elements
     var sec_len = 0.0;
-    if ($.isArray(i_elements)) {
-      for (var i = 0; i < i_elements.length; i++) {
-        var child = i_elements[i];
+    if ($.isArray(elements)) {
+      for (var i = 0; i < elements.length; i++) {
+        var child = elements[i];
         var sec_zone_length = child.length;
         if (typeof sec_zone_length === 'number' && sec_zone_length > 0.0) {
           sec_len += sec_zone_length;
@@ -1588,7 +1588,7 @@
       }
     }
     if (sec_len === 0.0) {
-      console.error('Exception! CurveSection �' + i_id + '� has no element with valid length!');
+      console.error('Exception! CurveSection �' + id + '� has no element with valid length!');
     }
     var elementsWithLength = [];
     var elementsWithoutLength = [];
@@ -1599,8 +1599,8 @@
       sec_to_cu_factor = cu_len / sec_len;
       var cu_offset = cu_start;
       var sec_offset = 0.0;
-      for (var i = 0; i < i_elements.length; i++) {
-        var child = i_elements[i];
+      for (var i = 0; i < elements.length; i++) {
+        var child = elements[i];
         var sec_zone_length = child.length;
         if (typeof sec_zone_length === 'number' && sec_zone_length > 0.0) {
           // update the positions
@@ -1652,7 +1652,7 @@
     this._inc_pos = cu_len >= 0;
     this._cu_offset = cu_start;
     this._sec_to_cu_factor = sec_to_cu_factor;
-    this._curve = i_curve;
+    this._curve = curve;
   };
 
   CurveSection.prototype = {
@@ -1662,27 +1662,27 @@
     getZoneCount: function () {
       return this._elementsWithLength.length;
     },
-    getZoneObject: function (i_zone) {
-      var zone = this._elementsWithLength[i_zone];
-      return zone ? zone.child : undefined;
+    getZoneObject: function (zone) {
+      var z = this._elementsWithLength[zone];
+      return z ? z.child : undefined;
     },
-    getZoneStart: function (i_zone) {
-      var zone = fn_get_from_array(this._elementsWithLength, i_zone);
-      return zone ? zone.start : undefined;
+    getZoneStart: function (zone) {
+      var z = fn_get_from_array(this._elementsWithLength, zone);
+      return z ? z.start : undefined;
     },
-    getZoneEnd: function (i_zone) {
-      var zone = fn_get_from_array(this._elementsWithLength, i_zone);
-      return zone ? zone.end : undefined;
+    getZoneEnd: function (zone) {
+      var z = fn_get_from_array(this._elementsWithLength, zone);
+      return z ? z.end : undefined;
     },
     getItemCount: function () {
       return this._elementsWithoutLength.length;
     },
-    getItem: function (i_item) {
-      return fn_get_from_array(this._elementsWithoutLength, i_item);
+    getItem: function (item) {
+      return fn_get_from_array(this._elementsWithoutLength, item);
     },
-    getItemPosition: function (i_item) {
-      var item = fn_get_from_array(this._elementsWithoutLength, i_item);
-      return item ? item.position : undefined;
+    getItemPosition: function (item) {
+      var i = fn_get_from_array(this._elementsWithoutLength, item);
+      return i ? i.position : undefined;
     },
     /**
      * Transforms position on curve to point containing x/y location, rotation
@@ -1703,39 +1703,39 @@
      *          moves on the curve while an object with left or right will move
      *          beside the curve (bad english).
      * @param {Object}
-     *          i_point Optional object for the result
+     *          point Optional object for the result
      * @returns {Object} If i_point is defined i_point will be returned.
      *          Otherwise a new object will be returned
      */
-    transform: function (i_section_position, i_offset, i_point) {
-      var position = i_section_position;
-      if (typeof i_offset === 'number') {
-        position += i_offset;
+    transform: function (section_position, offset, point) {
+      var position = section_position;
+      if (typeof offset === 'number') {
+        position += offset;
       }
-      else if (i_offset !== null && typeof i_offset === 'object' && typeof i_offset.offset === 'number') {
-        position += i_offset.offset;
+      else if (offset !== null && typeof offset === 'object' && typeof offset.offset === 'number') {
+        position += offset.offset;
       }
       var left = 0.0;
-      if (i_offset !== null && typeof i_offset === 'object') {
-        var l = i_offset.left;
+      if (offset !== null && typeof offset === 'object') {
+        var l = offset.left;
         if (typeof l === 'number') {
           left = l;
         }
         else {
-          var r = i_offset.right;
+          var r = offset.right;
           if (typeof r === 'number') {
             left = -r;
           }
         }
       }
-      return this._curve.transform(this._cu_offset + position * this._sec_to_cu_factor, left, i_point);
+      return this._curve.transform(this._cu_offset + position * this._sec_to_cu_factor, left, point);
     },
     /**
      * This transforms from curve section coordinates (our real metric system)
      * to curve coordinates (pure mathematical position on curve geometry).
      */
-    fromSectionToCurve: function (i_position) {
-      return this._cu_offset + i_position * this._sec_to_cu_factor;
+    fromSectionToCurve: function (position) {
+      return this._cu_offset + position * this._sec_to_cu_factor;
     }
   };
 
@@ -1752,16 +1752,16 @@
   var POINT_SITUATION_INVALID_DOUBLE_END = 3;
   var POINT_SITUATION_INVALID_TRIPLE_POINT = 4;
 
-  function is_zero_infinit_or_invalid(i_value) {
-    return i_value === 0.0 || isNaN(i_value) || isFinite(i_value) !== true;
+  function is_zero_infinit_or_invalid(value) {
+    return value === 0.0 || isNaN(value) || isFinite(value) !== true;
   }
 
-  function compare_with_tolerance(i_value1, i_value2, i_tolerance) {
-    var t = i_tolerance > 0.0 ? i_tolerance : 0.0;
-    if (i_value1 > i_value2 + t) {
+  function compare_with_tolerance(value1, value2, tolerance) {
+    var t = tolerance > 0.0 ? tolerance : 0.0;
+    if (value1 > value2 + t) {
       return 1;
     }
-    else if (i_value1 < i_value2 - t) {
+    else if (value1 < value2 - t) {
       return -1;
     }
     else {
@@ -1769,220 +1769,220 @@
     }
   }
 
-  function init_tupel(i_tuple, i_x1, i_y1, i_x2, i_y2, i_tolerance) {
-    var res = compare_with_tolerance(i_x1, i_x2, i_tolerance);
+  function init_tupel(tuple, x1, y1, x2, y2, tolerance) {
+    var res = compare_with_tolerance(x1, x2, tolerance);
     if (res > 0) {
-      i_tuple.x1 = i_x2;
-      i_tuple.y1 = i_y2;
-      i_tuple.x2 = i_x1;
-      i_tuple.y2 = i_y1;
-      i_tuple.state = POINT_SITUATION_VALID;
+      tuple.x1 = x2;
+      tuple.y1 = y2;
+      tuple.x2 = x1;
+      tuple.y2 = y1;
+      tuple.state = POINT_SITUATION_VALID;
     }
     else if (res === 0) {
-      i_tuple.x1 = i_x1;
-      i_tuple.y1 = i_y1;
-      i_tuple.x2 = i_x1;
-      i_tuple.y2 = i_y1;
-      i_tuple.state = POINT_SITUATION_INVALID_DOUBLE_POINT;
+      tuple.x1 = x1;
+      tuple.y1 = y1;
+      tuple.x2 = x1;
+      tuple.y2 = y1;
+      tuple.state = POINT_SITUATION_INVALID_DOUBLE_POINT;
     }
     else {
-      i_tuple.x1 = i_x1;
-      i_tuple.y1 = i_y1;
-      i_tuple.x2 = i_x2;
-      i_tuple.y2 = i_y2;
-      i_tuple.state = POINT_SITUATION_VALID;
+      tuple.x1 = x1;
+      tuple.y1 = y1;
+      tuple.x2 = x2;
+      tuple.y2 = y2;
+      tuple.state = POINT_SITUATION_VALID;
     }
   }
 
-  function init_triplet(i_triplet, i_x1, i_y1, i_x2, i_y2, i_x3, i_y3, i_tolerance) {
-    var res = compare_with_tolerance(i_x1, i_x2, i_tolerance);
+  function init_triplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
+    var res = compare_with_tolerance(x1, x2, tolerance);
     if (res > 0) {
       // #1-5
-      res = compare_with_tolerance(i_x2, i_x3, i_tolerance);
+      res = compare_with_tolerance(x2, x3, tolerance);
       if (res > 0) {
         // #1
-        i_triplet.x1 = i_x3;
-        i_triplet.y1 = i_y3;
-        i_triplet.x2 = i_x2;
-        i_triplet.y2 = i_y2;
-        i_triplet.x3 = i_x1;
-        i_triplet.y3 = i_y1;
-        i_triplet.state = POINT_SITUATION_VALID;
+        triplet.x1 = x3;
+        triplet.y1 = y3;
+        triplet.x2 = x2;
+        triplet.y2 = y2;
+        triplet.x3 = x1;
+        triplet.y3 = y1;
+        triplet.state = POINT_SITUATION_VALID;
       }
       else if (res === 0) {
         // #2
-        i_triplet.x1 = i_x2;
-        i_triplet.y1 = i_y2;
-        i_triplet.x2 = i_x2;
-        i_triplet.y2 = i_y2;
-        i_triplet.x3 = i_x1;
-        i_triplet.y3 = i_y1;
-        i_triplet.state = POINT_SITUATION_INVALID_DOUBLE_START;
+        triplet.x1 = x2;
+        triplet.y1 = y2;
+        triplet.x2 = x2;
+        triplet.y2 = y2;
+        triplet.x3 = x1;
+        triplet.y3 = y1;
+        triplet.state = POINT_SITUATION_INVALID_DOUBLE_START;
       }
       else {
         // #3-5
-        res = compare_with_tolerance(i_x1, i_x3, i_tolerance);
+        res = compare_with_tolerance(x1, x3, tolerance);
         if (res > 0) {
           // #3
-          i_triplet.x1 = i_x2;
-          i_triplet.y1 = i_y2;
-          i_triplet.x2 = i_x3;
-          i_triplet.y2 = i_y3;
-          i_triplet.x3 = i_x1;
-          i_triplet.y3 = i_y1;
-          i_triplet.state = POINT_SITUATION_VALID;
+          triplet.x1 = x2;
+          triplet.y1 = y2;
+          triplet.x2 = x3;
+          triplet.y2 = y3;
+          triplet.x3 = x1;
+          triplet.y3 = y1;
+          triplet.state = POINT_SITUATION_VALID;
         }
         else if (res === 0) {
           // #4
-          i_triplet.x1 = i_x2;
-          i_triplet.y1 = i_y2;
-          i_triplet.x2 = i_x1;
-          i_triplet.y2 = i_y1;
-          i_triplet.x3 = i_x1;
-          i_triplet.y3 = i_y1;
-          i_triplet.state = POINT_SITUATION_INVALID_DOUBLE_END;
+          triplet.x1 = x2;
+          triplet.y1 = y2;
+          triplet.x2 = x1;
+          triplet.y2 = y1;
+          triplet.x3 = x1;
+          triplet.y3 = y1;
+          triplet.state = POINT_SITUATION_INVALID_DOUBLE_END;
         }
         else {
           // #5
-          i_triplet.x1 = i_x2;
-          i_triplet.y1 = i_y2;
-          i_triplet.x2 = i_x1;
-          i_triplet.y2 = i_y1;
-          i_triplet.x3 = i_x3;
-          i_triplet.y3 = i_y3;
-          i_triplet.state = POINT_SITUATION_VALID;
+          triplet.x1 = x2;
+          triplet.y1 = y2;
+          triplet.x2 = x1;
+          triplet.y2 = y1;
+          triplet.x3 = x3;
+          triplet.y3 = y3;
+          triplet.state = POINT_SITUATION_VALID;
         }
       }
     }
     else if (res === 0) {
       // #6-8
-      res = compare_with_tolerance(i_x2, i_x3, i_tolerance);
+      res = compare_with_tolerance(x2, x3, tolerance);
       if (res > 0) {
         // #6
-        i_triplet.x1 = i_x3;
-        i_triplet.y1 = i_y3;
-        i_triplet.x2 = i_x1;
-        i_triplet.y2 = i_y1;
-        i_triplet.x3 = i_x1;
-        i_triplet.y3 = i_y1;
-        i_triplet.state = POINT_SITUATION_INVALID_DOUBLE_END;
+        triplet.x1 = x3;
+        triplet.y1 = y3;
+        triplet.x2 = x1;
+        triplet.y2 = y1;
+        triplet.x3 = x1;
+        triplet.y3 = y1;
+        triplet.state = POINT_SITUATION_INVALID_DOUBLE_END;
       }
       else if (res === 0) {
         // #7
-        i_triplet.x1 = i_x1;
-        i_triplet.y1 = i_y1;
-        i_triplet.x2 = i_x1;
-        i_triplet.y2 = i_y1;
-        i_triplet.x3 = i_x1;
-        i_triplet.y3 = i_y1;
-        i_triplet.state = POINT_SITUATION_INVALID_TRIPLE_POINT;
+        triplet.x1 = x1;
+        triplet.y1 = y1;
+        triplet.x2 = x1;
+        triplet.y2 = y1;
+        triplet.x3 = x1;
+        triplet.y3 = y1;
+        triplet.state = POINT_SITUATION_INVALID_TRIPLE_POINT;
       }
       else {
         // #8
-        i_triplet.x1 = i_x1;
-        i_triplet.y1 = i_y1;
-        i_triplet.x2 = i_x1;
-        i_triplet.y2 = i_y1;
-        i_triplet.x3 = i_x3;
-        i_triplet.y3 = i_y3;
-        i_triplet.state = POINT_SITUATION_INVALID_DOUBLE_START;
+        triplet.x1 = x1;
+        triplet.y1 = y1;
+        triplet.x2 = x1;
+        triplet.y2 = y1;
+        triplet.x3 = x3;
+        triplet.y3 = y3;
+        triplet.state = POINT_SITUATION_INVALID_DOUBLE_START;
       }
     }
     else {
       // #9-13
-      res = compare_with_tolerance(i_x2, i_x3, i_tolerance);
+      res = compare_with_tolerance(x2, x3, tolerance);
       if (res > 0) {
         // #9-11
-        res = compare_with_tolerance(i_x1, i_x3, i_tolerance);
+        res = compare_with_tolerance(x1, x3, tolerance);
         if (res > 0) {
           // #9
-          i_triplet.x1 = i_x3;
-          i_triplet.y1 = i_y3;
-          i_triplet.x2 = i_x1;
-          i_triplet.y2 = i_y1;
-          i_triplet.x3 = i_x2;
-          i_triplet.y3 = i_y2;
-          i_triplet.state = POINT_SITUATION_VALID;
+          triplet.x1 = x3;
+          triplet.y1 = y3;
+          triplet.x2 = x1;
+          triplet.y2 = y1;
+          triplet.x3 = x2;
+          triplet.y3 = y2;
+          triplet.state = POINT_SITUATION_VALID;
         }
         else if (res === 0) {
           // #10
-          i_triplet.x1 = i_x1;
-          i_triplet.y1 = i_y1;
-          i_triplet.x2 = i_x1;
-          i_triplet.y2 = i_y1;
-          i_triplet.x3 = i_x2;
-          i_triplet.y3 = i_y2;
-          i_triplet.state = POINT_SITUATION_INVALID_DOUBLE_START;
+          triplet.x1 = x1;
+          triplet.y1 = y1;
+          triplet.x2 = x1;
+          triplet.y2 = y1;
+          triplet.x3 = x2;
+          triplet.y3 = y2;
+          triplet.state = POINT_SITUATION_INVALID_DOUBLE_START;
         }
         else {
           // #11
-          i_triplet.x1 = i_x1;
-          i_triplet.y1 = i_y1;
-          i_triplet.x2 = i_x3;
-          i_triplet.y2 = i_y3;
-          i_triplet.x3 = i_x2;
-          i_triplet.y3 = i_y2;
-          i_triplet.state = POINT_SITUATION_VALID;
+          triplet.x1 = x1;
+          triplet.y1 = y1;
+          triplet.x2 = x3;
+          triplet.y2 = y3;
+          triplet.x3 = x2;
+          triplet.y3 = y2;
+          triplet.state = POINT_SITUATION_VALID;
         }
       }
       else if (res === 0) {
         // #12
-        i_triplet.x1 = i_x1;
-        i_triplet.y1 = i_y1;
-        i_triplet.x2 = i_x2;
-        i_triplet.y2 = i_y2;
-        i_triplet.x3 = i_x2;
-        i_triplet.y3 = i_y2;
-        i_triplet.state = POINT_SITUATION_INVALID_DOUBLE_END;
+        triplet.x1 = x1;
+        triplet.y1 = y1;
+        triplet.x2 = x2;
+        triplet.y2 = y2;
+        triplet.x3 = x2;
+        triplet.y3 = y2;
+        triplet.state = POINT_SITUATION_INVALID_DOUBLE_END;
       }
       else {
         // #13
-        i_triplet.x1 = i_x1;
-        i_triplet.y1 = i_y1;
-        i_triplet.x2 = i_x2;
-        i_triplet.y2 = i_y2;
-        i_triplet.x3 = i_x3;
-        i_triplet.y3 = i_y3;
-        i_triplet.state = POINT_SITUATION_VALID;
+        triplet.x1 = x1;
+        triplet.y1 = y1;
+        triplet.x2 = x2;
+        triplet.y2 = y2;
+        triplet.x3 = x3;
+        triplet.y3 = y3;
+        triplet.state = POINT_SITUATION_VALID;
       }
     }
   }
 
-  function init_parabola_for_three_points(i_parabola, i_x1, i_y1, i_x2, i_y2, i_x3, i_y3) {
+  function init_parabola_for_three_points(parabola, x1, y1, x2, y2, x3, y3) {
     // compute some help values
-    var dx12 = i_x1 - i_x2;
-    var dx23 = i_x2 - i_x3;
-    var dx31 = i_x3 - i_x1;
-    var dy12 = i_y1 - i_y2;
-    var dy23 = i_y2 - i_y3;
-    var dy31 = i_y3 - i_y1;
-    var x1Sq = i_x1 * i_x1;
-    var x2Sq = i_x2 * i_x2;
-    var x3Sq = i_x3 * i_x3;
+    var dx12 = x1 - x2;
+    var dx23 = x2 - x3;
+    var dx31 = x3 - x1;
+    var dy12 = y1 - y2;
+    var dy23 = y2 - y3;
+    var dy31 = y3 - y1;
+    var x1Sq = x1 * x1;
+    var x2Sq = x2 * x2;
+    var x3Sq = x3 * x3;
     var r = (dx12 * dx23 * dx31);
 
     // compute the parameters for the equation
-    i_parabola.a = (i_x1 * dy23 + i_x2 * dy31 + i_x3 * dy12) / r;
-    i_parabola.b = -(x1Sq * dy23 + x2Sq * dy31 + x3Sq * dy12) / r;
-    i_parabola.c = -(x1Sq * (i_x2 * i_y3 - i_x3 * i_y2) + i_x1 * (x3Sq * i_y2 - x2Sq * i_y3) + i_x2 * i_x3 * i_y1 * dx23) / r;
+    parabola.a = (x1 * dy23 + x2 * dy31 + x3 * dy12) / r;
+    parabola.b = -(x1Sq * dy23 + x2Sq * dy31 + x3Sq * dy12) / r;
+    parabola.c = -(x1Sq * (x2 * y3 - x3 * y2) + x1 * (x3Sq * y2 - x2Sq * y3) + x2 * x3 * y1 * dx23) / r;
   }
 
-  function init_parabola_for_two_points(i_parabola, i_x1, i_y1, i_x2, i_y2) {
-    var r = i_x1 - i_x2;
-    i_parabola.a = 0.0;
-    i_parabola.b = (i_y1 - i_y2) / r;
-    i_parabola.c = (i_x1 * i_y2 - i_x2 * i_y1) / r;
+  function init_parabola_for_two_points(parabola, x1, y1, x2, y2) {
+    var r = x1 - x2;
+    parabola.a = 0.0;
+    parabola.b = (y1 - y2) / r;
+    parabola.c = (x1 * y2 - x2 * y1) / r;
   }
 
-  function get_parabola_value(i_parabola, i_x) {
-    return i_x * (i_parabola.a * i_x + i_parabola.b) + i_parabola.c;
+  function get_parabola_value(parabola, x) {
+    return x * (parabola.a * x + parabola.b) + parabola.c;
   }
 
-  var ChainFunction = function (i_maxIterations, i_distanceTolerance, i_lengthTolerance) {
+  var ChainFunction = function (maxIterations, distanceTolerance, lengthTolerance) {
     // internal parameters
-    this._maxIterations = typeof i_maxIterations === 'number' && i_maxIterations > 0 ? i_maxIterations : DEFAULT_MAX_ITERATIONS;
-    this._distanceTolerance = typeof i_distanceTolerance === 'number' && i_distanceTolerance > 0 ? i_distanceTolerance : DEFAULT_DISTANCE_TOLERANCE;
-    this._lengthTolerance = typeof i_lengthTolerance === 'number' && i_lengthTolerance > 0 ? i_lengthTolerance : DEFAULT_LENGTH_TOLERANCE;
+    this._maxIterations = typeof maxIterations === 'number' && maxIterations > 0 ? maxIterations : DEFAULT_MAX_ITERATIONS;
+    this._distanceTolerance = typeof distanceTolerance === 'number' && distanceTolerance > 0 ? distanceTolerance : DEFAULT_DISTANCE_TOLERANCE;
+    this._lengthTolerance = typeof lengthTolerance === 'number' && lengthTolerance > 0 ? lengthTolerance : DEFAULT_LENGTH_TOLERANCE;
     this._parabola = {
       a: 0.0,
       b: 0.0,
@@ -2017,47 +2017,47 @@
       this._transXOffset = 0.0;
       this._transYOffset = 0.0;
     },
-    _init_transform: function (i_x1, i_y1, i_x2, i_y2) {
-      var transScaleInv = (i_x2 - i_x1) * 0.5;
+    _init_transform: function (x1, y1, x2, y2) {
+      var transScaleInv = (x2 - x1) * 0.5;
       var transScale = 1.0 / transScaleInv;
-      this._transXOffset = -(i_x1 + i_x2) * transScale * 0.5;
-      this._transYOffset = -(i_y1 + i_y2) * 0.5;
+      this._transXOffset = -(x1 + x2) * transScale * 0.5;
+      this._transYOffset = -(y1 + y2) * 0.5;
       this._transScale = transScale;
       this._transScaleInv = transScaleInv;
     },
-    _to_normalized: function (i_value) {
-      return this._transScale * i_value;
+    _to_normalized: function (value) {
+      return this._transScale * value;
     },
-    _from_normalized: function (i_value) {
-      return this._transScaleInv * i_value;
+    _from_normalized: function (value) {
+      return this._transScaleInv * value;
     },
-    _to_normalized_location: function (i_x) {
-      return this._transScale * i_x + this._transXOffset;
+    _to_normalized_location: function (x) {
+      return this._transScale * x + this._transXOffset;
     },
-    _from_normalized_location: function (i_x) {
-      return this._transScaleInv * (i_x - this._transXOffset);
+    _from_normalized_location: function (x) {
+      return this._transScaleInv * (x - this._transXOffset);
     },
-    _to_normalized_height: function (i_y) {
-      return this._transScale * (i_y + this._transYOffset);
+    _to_normalized_height: function (y) {
+      return this._transScale * (y + this._transYOffset);
     },
-    _from_normalized_height: function (i_y) {
-      return this._transScaleInv * i_y - this._transYOffset;
+    _from_normalized_height: function (y) {
+      return this._transScaleInv * y - this._transYOffset;
     },
-    _get_normalized_height: function (i_normX) {
-      return cosh(this._normA * i_normX + this._normB) / this._normA + this._normC;
+    _get_normalized_height: function (normX) {
+      return cosh(this._normA * normX + this._normB) / this._normA + this._normC;
     },
-    _get_normalized_distance: function (i_normX1, i_normX2) {
+    _get_normalized_distance: function (normX1, normX2) {
       var normB = this._normB;
-      return (sinh(this._normA * i_normX2 + normB) - sinh(this._normA * i_normX1 + normB)) / this._normA;
+      return (sinh(this._normA * normX2 + normB) - sinh(this._normA * normX1 + normB)) / this._normA;
     },
-    _get_normalized_force: function (i_normX) {
-      return cosh(this._normA * i_normX + this._normB) / this._normA;
+    _get_normalized_force: function (normX) {
+      return cosh(this._normA * normX + this._normB) / this._normA;
     },
-    _init_for_three_normalized_points: function (i_nx1, i_ny1, i_nx2, i_ny2, i_nx3, i_ny3) {
+    _init_for_three_normalized_points: function (nx1, ny1, nx2, ny2, nx3, ny3) {
       this._normA = 1.0;
       // some help values
-      var dy12 = i_ny1 - i_ny2;
-      var dy32 = i_ny3 - i_ny2;
+      var dy12 = ny1 - ny2;
+      var dy32 = ny3 - ny2;
 
       // First we compute a parabola through our three points. If we approximate
       // our cosh function as a Taylor polynomial function of second order we
@@ -2065,7 +2065,7 @@
       // a parabola as well. We use the polynomial parameters from our computed
       // parabola as start values for the following 2-D-Newton iteration.
       var parabola = this._parabola;
-      init_parabola_for_three_points(parabola, i_nx1, i_ny1, i_nx2, i_ny2, i_nx3, i_ny3);
+      init_parabola_for_three_points(parabola, nx1, ny1, nx2, ny2, nx3, ny3);
       var normA = 2.0 * parabola.a;
       var normB = parabola.b;
       var maxIter = this._maxIterations;
@@ -2073,9 +2073,9 @@
       for (var i = 0; i < maxIter; i++) {
         // the following calculations are done because of performance
         // reasons
-        var ax1b = normA * i_nx1 + normB;
-        var ax2b = normA * i_nx2 + normB;
-        var ax3b = normA * i_nx3 + normB;
+        var ax1b = normA * nx1 + normB;
+        var ax2b = normA * nx2 + normB;
+        var ax3b = normA * nx3 + normB;
         var eax1bp = Math.exp(ax1b);
         var eax2bp = Math.exp(ax2b);
         var eax3bp = Math.exp(ax3b);
@@ -2095,7 +2095,7 @@
           // compute the other parameters
           this._normA = normA;
           this._normB = normB;
-          this._normC = (i_ny1 + i_ny2 + i_ny3 - (cax1b + cax2b + cax3b) / normA) * THIRD_PART;
+          this._normC = (ny1 + ny2 + ny3 - (cax1b + cax2b + cax3b) / normA) * THIRD_PART;
           this._cosinusHyperbolicus = true;
           return true;
         }
@@ -2104,9 +2104,9 @@
         var sax1b = (eax1bp - eax1bm) * 0.5;
         var sax2b = (eax2bp - eax2bm) * 0.5;
         var sax3b = (eax3bp - eax3bm) * 0.5;
-        var df1da = dy12 - sax1b * i_nx1 + sax2b * i_nx2;
+        var df1da = dy12 - sax1b * nx1 + sax2b * nx2;
         var df1db = -sax1b + sax2b;
-        var df2da = dy32 - sax3b * i_nx3 + sax2b * i_nx2;
+        var df2da = dy32 - sax3b * nx3 + sax2b * nx2;
         var df2db = -sax3b + sax2b;
         var det = df1da * df2db - df1db * df2da;
 
