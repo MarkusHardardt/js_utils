@@ -1,4 +1,4 @@
-(function(root) {
+(function (root) {
   "use strict";
 
   var BIGGER = 1;
@@ -10,137 +10,138 @@
   var utilities = typeof module !== "undefined" && module.exports ? require('./utilities') : root.utilities;
   var get_first_index_of_identical = utilities.getFirstIndexOfIdentical;
 
-  var compare_objects = function(i_object1, i_object2, i_compare) {
-    if (i_object1 === i_object2) {
+  var compare_objects = function (object1, object2, compare) {
+    if (object1 === object2) {
       return EQUAL;
     }
-    else if (typeof i_compare === 'function') {
-      return i_compare(i_object1, i_object2);
+    else if (typeof compare === 'function') {
+      return compare(object1, object2);
     }
-    else if (typeof i_object1.compareTo === 'function') {
-      return i_object1.compareTo(i_object2);
+    else if (typeof object1.compareTo === 'function') {
+      return object1.compareTo(object2);
     }
-    else if (typeof i_object2.compareTo === 'function') {
-      return -i_object2.compareTo(i_object1);
+    else if (typeof object2.compareTo === 'function') {
+      return -object2.compareTo(object1);
     }
     else {
       return EQUAL;
     }
   };
+
   /**
    * This method returns the insertion index for the given object. The array
    * must be sorted!
    * 
    * @param {Object}
-   *          i_object The object to insert
+   *          value The object to insert
    * @param {Object}
-   *          i_array The sorted array
+   *          array The sorted array
    * @param {Object}
-   *          i_negativeOnEqual If this flag is true the index will be the
+   *          negativeOnEqual If this flag is true the index will be the
    *          actual index minus the length of the array. To get the index as it
    *          should be calculate index + array.length.
    * @param {Object}
-   *          i_compare The compare function for objects.
+   *          compare The compare function for objects.
    */
-  var get_insertion_index = function(i_object, i_array, i_negativeOnEqual, i_compare) {
-    var size = i_array.length, negativeOnEqual = i_negativeOnEqual === true;
+  var get_insertion_index = function (value, array, negativeOnEqual, compare) {
+    var size = array.length, negativeOnEqual = negativeOnEqual === true;
     switch (size) {
-    case 0:
-      return 0;
-    case 1:
-      var result = compare_objects(i_object, i_array[0], i_compare);
-      if (negativeOnEqual && result === 0) {
-        return -size;
-      }
-      return result < 0 ? 0 : 1;
-    default:
-      var result = compare_objects(i_object, i_array[0], i_compare);
-      if (negativeOnEqual && result === 0) {
-        return -size;
-      }
-      else if (result < 0) {
+      case 0:
         return 0;
-      }
-      result = compare_objects(i_object, i_array[size - 1], i_compare);
-      if (negativeOnEqual && result === 0) {
-        return -1;
-      }
-      else if (result >= 0) {
-        return size;
-      }
-      // the following is a simple implementation of a bisection algorithm
-      var next2p = 1;
-      while (next2p < size) {
-        next2p += next2p;
-      }
-      var half = Math.floor(next2p / 2);
-      result = compare_objects(i_object, i_array[Math.floor(half)], i_compare);
-      if (negativeOnEqual && result === 0) {
-        return half - size;
-      }
-      var idx = result < 0 ? 0 : size - half;
-      half = Math.floor(half / 2);
-      while (half > 0) {
-        result = compare_objects(i_object, i_array[Math.floor(idx + half)], i_compare);
+      case 1:
+        var result = compare_objects(value, array[0], compare);
         if (negativeOnEqual && result === 0) {
-          return idx + half - size;
+          return -size;
+        }
+        return result < 0 ? 0 : 1;
+      default:
+        var result = compare_objects(value, array[0], compare);
+        if (negativeOnEqual && result === 0) {
+          return -size;
+        }
+        else if (result < 0) {
+          return 0;
+        }
+        result = compare_objects(value, array[size - 1], compare);
+        if (negativeOnEqual && result === 0) {
+          return -1;
         }
         else if (result >= 0) {
-          idx += half;
+          return size;
         }
+        // the following is a simple implementation of a bisection algorithm
+        var next2p = 1;
+        while (next2p < size) {
+          next2p += next2p;
+        }
+        var half = Math.floor(next2p / 2);
+        result = compare_objects(value, array[Math.floor(half)], compare);
+        if (negativeOnEqual && result === 0) {
+          return half - size;
+        }
+        var idx = result < 0 ? 0 : size - half;
         half = Math.floor(half / 2);
-      }
-      if (negativeOnEqual && compare_objects(i_object, i_array[Math.floor(idx)], i_compare) === 0) {
-        return idx - size;
-      }
-      idx++;
-      if (negativeOnEqual && compare_objects(i_object, i_array[Math.floor(idx)], i_compare) === 0) {
-        return idx - size;
-      }
-      return idx;
+        while (half > 0) {
+          result = compare_objects(value, array[Math.floor(idx + half)], compare);
+          if (negativeOnEqual && result === 0) {
+            return idx + half - size;
+          }
+          else if (result >= 0) {
+            idx += half;
+          }
+          half = Math.floor(half / 2);
+        }
+        if (negativeOnEqual && compare_objects(value, array[Math.floor(idx)], compare) === 0) {
+          return idx - size;
+        }
+        idx++;
+        if (negativeOnEqual && compare_objects(value, array[Math.floor(idx)], compare) === 0) {
+          return idx - size;
+        }
+        return idx;
     }
   };
 
-  var _quicksort = function(i_array, i_compare, i_low, i_high) {
-    var i = i_low;
-    var j = i_high;
-    var middle = i_array[Math.floor((i_low + i_high) / 2)];
+  var quicksort_recursion = function (array, compare, low, high) {
+    var i = low;
+    var j = high;
+    var middle = array[Math.floor((low + high) / 2)];
     do {
-      while (compare_objects(middle, i_array[i], i_compare) > 0) {
+      while (compare_objects(middle, array[i], compare) > 0) {
         i++;
       }
-      while (compare_objects(middle, i_array[j], i_compare) < 0) {
+      while (compare_objects(middle, array[j], compare) < 0) {
         j--;
       }
       if (i <= j) {
-        var help = i_array[i];
-        i_array[i] = i_array[j];
-        i_array[j] = help;
+        var help = array[i];
+        array[i] = array[j];
+        array[j] = help;
         i++;
         j--;
       }
     } while (i <= j);
-    if (i_low < j) {
-      _quicksort(i_array, i_compare, i_low, j);
+    if (low < j) {
+      quicksort_recursion(array, compare, low, j);
     }
-    if (i < i_high) {
-      _quicksort(i_array, i_compare, i, i_high);
+    if (i < high) {
+      quicksort_recursion(array, compare, i, high);
     }
   };
 
-  var quicksort = function(i_array, i_compare) {
-    if (i_array.length > 1) {
-      _quicksort(i_array, i_compare, 0, i_array.length - 1);
+  var quicksort = function (array, compare) {
+    if (array.length > 1) {
+      quicksort_recursion(array, compare, 0, array.length - 1);
     }
-    return i_array;
+    return array;
   };
 
-  var compare_strings_ignorecase = function(i_string1, i_string2) {
-    var idx = 0, l1 = i_string1.length, l2 = i_string2.length, c1, c2;
+  var compare_strings_ignorecase = function (string1, string2) {
+    var idx = 0, l1 = string1.length, l2 = string2.length, c1, c2;
     var len = l1 <= l2 ? l1 : l2;
     while (idx < len) {
-      c1 = i_string1.charAt(idx).toLowerCase();
-      c2 = i_string2.charAt(idx).toLowerCase();
+      c1 = string1.charAt(idx).toLowerCase();
+      c2 = string2.charAt(idx).toLowerCase();
       if (c1 > c2) {
         return BIGGER;
       }
@@ -157,26 +158,26 @@
   var ZERO = 48;
   var NINE = 57;
 
-  var compare_texts_and_numbers = function(i_string1, i_string2, i_ignoreCase, i_signed) {
-    var ic = i_ignoreCase === true, sg = i_signed == true;
-    var o1 = 0, l1 = i_string1.length, c1, nc1, m1, e1, nl1, ni1;
-    var o2 = 0, l2 = i_string2.length, c2, nc2, m2, e2, nl2, ni2;
+  var compare_texts_and_numbers = function (string1, string2, ignoreCase, signed) {
+    var ic = ignoreCase === true, sg = signed == true;
+    var o1 = 0, l1 = string1.length, c1, nc1, m1, e1, nl1, ni1;
+    var o2 = 0, l2 = string2.length, c2, nc2, m2, e2, nl2, ni2;
     while (o1 < l1 && o2 < l2) {
       // get next character codes, check for minus and move index if required
-      c1 = i_string1.charCodeAt(o1);
+      c1 = string1.charCodeAt(o1);
       m1 = sg && c1 === MINUS && o1 + 1 < l1;
       if (m1) {
-        nc1 = i_string1.charCodeAt(o1 + 1);
+        nc1 = string1.charCodeAt(o1 + 1);
         m1 = nc1 >= ZERO && nc1 <= NINE;
         if (m1) {
           o1++;
           c1 = nc1;
         }
       }
-      c2 = i_string2.charCodeAt(o2);
+      c2 = string2.charCodeAt(o2);
       m2 = sg && c2 === MINUS && o2 + 1 < l2;
       if (m2) {
-        nc2 = i_string2.charCodeAt(o2 + 1);
+        nc2 = string2.charCodeAt(o2 + 1);
         m2 = nc2 >= ZERO && nc2 <= NINE;
         if (m2) {
           o2++;
@@ -190,7 +191,7 @@
           // skip leading zeros and step to end of number of first string
           if (c1 === ZERO) {
             while (o1 + 1 < l1) {
-              c1 = i_string1.charCodeAt(o1 + 1);
+              c1 = string1.charCodeAt(o1 + 1);
               if (c1 === ZERO) {
                 o1++;
               }
@@ -205,7 +206,7 @@
           }
           e1 = o1 + 1;
           while (e1 < l1) {
-            c1 = i_string1.charCodeAt(e1);
+            c1 = string1.charCodeAt(e1);
             if (c1 >= ZERO && c1 <= NINE) {
               e1++;
             }
@@ -217,7 +218,7 @@
           // well
           if (c2 === ZERO) {
             while (o2 + 1 < l2) {
-              c2 = i_string2.charCodeAt(o2 + 1);
+              c2 = string2.charCodeAt(o2 + 1);
               if (c2 === ZERO) {
                 o2++;
               }
@@ -232,7 +233,7 @@
           }
           e2 = o2 + 1;
           while (e2 < l2) {
-            c2 = i_string2.charCodeAt(e2);
+            c2 = string2.charCodeAt(e2);
             if (c2 >= ZERO && c2 <= NINE) {
               e2++;
             }
@@ -256,8 +257,8 @@
           ni1 = o1;
           ni2 = o2;
           while (ni1 < e1) {
-            c1 = m1 ? -i_string1.charCodeAt(ni1) : i_string1.charCodeAt(ni1);
-            c2 = m2 ? -i_string2.charCodeAt(ni2) : i_string2.charCodeAt(ni2);
+            c1 = m1 ? -string1.charCodeAt(ni1) : string1.charCodeAt(ni1);
+            c2 = m2 ? -string2.charCodeAt(ni2) : string2.charCodeAt(ni2);
             if (c1 > c2) {
               return BIGGER;
             }
@@ -284,8 +285,8 @@
         else {
           // second is not a number too
           if (ic) {
-            c1 = i_string1.charAt(o1).toLowerCase();
-            c2 = i_string2.charAt(o2).toLowerCase();
+            c1 = string1.charAt(o1).toLowerCase();
+            c2 = string2.charAt(o2).toLowerCase();
           }
           if (c1 > c2) {
             return BIGGER;
@@ -302,103 +303,103 @@
     return dl > 0 ? BIGGER : (dl < 0 ? SMALLER : EQUAL);
   };
 
-  var SortedSet = function(i_noEqualObjectsAllowed, i_compare) {
-    this._noEqualObjectsAllowed = i_noEqualObjectsAllowed === true;
-    this._compare = i_compare;
+  var SortedSet = function (noEqualObjectsAllowed, compare) {
+    this._noEqualObjectsAllowed = noEqualObjectsAllowed === true;
+    this._compare = compare;
     this._array = [];
   };
 
   SortedSet.prototype = {
-      resort : function() {
-        quicksort(this._array, this._compare);
-      },
-      setCompareFunction : function(i_compare) {
-        this._compare = i_compare;
-        this.resort();
-      },
-      insert : function(i_object) {
-        var array = this._array;
-        var idx = get_insertion_index(i_object, array, this._noEqualObjectsAllowed, this._compare);
-        if (idx >= 0) {
-          array.splice(idx, 0, i_object);
-        }
-        return idx;
-      },
-      remove : function(i_value) {
-        var array = this._array;
-        if (typeof i_value === 'number') {
-          return array.splice(i_value, 1);
-        }
-        else {
-          var idx = get_first_index_of_identical(array, i_value);
-          if (idx !== -1) {
-            return array.splice(idx, 1);
-          }
-        }
-        return null;
-      },
-      size : function() {
-        return this._array.length;
-      },
-      get : function(i_index) {
-        return this._array[i_index];
-      },
-      clear : function(i_offset, i_length) {
-        var array = this._array;
-        var offset = typeof i_offset === 'number' ? Math.max(i_offset, 0) : 0;
-        var length = typeof i_length === 'number' ? Math.min(i_length, array.length - offset) : array.length;
-        array.splice(offset, length);
+    resort: function () {
+      quicksort(this._array, this._compare);
+    },
+    setCompareFunction: function (compare) {
+      this._compare = compare;
+      this.resort();
+    },
+    insert: function (value) {
+      var array = this._array;
+      var idx = get_insertion_index(value, array, this._noEqualObjectsAllowed, this._compare);
+      if (idx >= 0) {
+        array.splice(idx, 0, value);
       }
+      return idx;
+    },
+    remove: function (value) {
+      var array = this._array;
+      if (typeof value === 'number') {
+        return array.splice(value, 1);
+      }
+      else {
+        var idx = get_first_index_of_identical(array, value);
+        if (idx !== -1) {
+          return array.splice(idx, 1);
+        }
+      }
+      return null;
+    },
+    size: function () {
+      return this._array.length;
+    },
+    get: function (index) {
+      return this._array[index];
+    },
+    clear: function (offset, length) {
+      var array = this._array;
+      var offset = typeof offset === 'number' ? Math.max(offset, 0) : 0;
+      var length = typeof length === 'number' ? Math.min(length, array.length - offset) : array.length;
+      array.splice(offset, length);
+    }
   };
 
   var exp = {
-      BIGGER : BIGGER,
-      SMALLER : SMALLER,
-      EQUAL : EQUAL,
-      compareNumber : function(i_number1, i_number2) {
-        if (i_number1 > i_number2) {
-          return BIGGER;
-        }
-        else if (i_number1 < i_number2) {
-          return SMALLER;
-        }
-        else {
-          return EQUAL;
-        }
-      },
-      // get the insertion index
-      getInsertionIndex : get_insertion_index,
-      // first equal
-      getIndexOfFirstEqual : function(i_object, i_array, i_compare) {
-        var idx = get_insertion_index(i_object, i_array, true, i_compare);
-        return idx < 0 ? idx + i_array.length : -1;
-      },
-      // perform a quick sort
-      quicksort : quicksort,
-      // texts and numbers comparison
-      compareStringsIgnorecase : compare_strings_ignorecase,
-      compareTextsAndNumbers : compare_texts_and_numbers,
-      getTextsAndNumbersCompareFunction : function(i_ignoreCase, i_signed, i_upward) {
-        return function(i_string1, i_string2) {
-          var res = compare_texts_and_numbers(i_string1, i_string2, i_ignoreCase, i_signed);
-          return i_upward !== false ? res : -res;
-        };
-      },
-      compareDates : function(i_date1, i_date2) {
-        var time1 = i_date1.getTime();
-        var time2 = i_date2.getTime();
-        if (time1 < time2) {
-          return SMALLER;
-        }
-        else if (time1 > time2) {
-          return BIGGER;
-        }
-        else {
-          return EQUAL;
-        }
-      },
-      // create sorted set
-      SortedSet : SortedSet
+    BIGGER: BIGGER,
+    SMALLER: SMALLER,
+    EQUAL: EQUAL,
+    compareNumber: function (i_number1, i_number2) {
+      if (i_number1 > i_number2) {
+        return BIGGER;
+      }
+      else if (i_number1 < i_number2) {
+        return SMALLER;
+      }
+      else {
+        return EQUAL;
+      }
+    },
+    // get the insertion index
+    getInsertionIndex: get_insertion_index,
+    // first equal
+    getIndexOfFirstEqual: function (value, array, compare) {
+      var idx = get_insertion_index(value, array, true, compare);
+      return idx < 0 ? idx + array.length : -1;
+    },
+    // perform a quick sort
+    quicksort: quicksort,
+    // texts and numbers comparison
+    compareStringsIgnorecase: compare_strings_ignorecase,
+    compareTextsAndNumbers: compare_texts_and_numbers,
+    getTextsAndNumbersCompareFunction: function (ignoreCase, signed, upward) {
+      return function (i_string1, i_string2) {
+        var res = compare_texts_and_numbers(i_string1, i_string2, ignoreCase, signed);
+        return upward !== false ? res : -res;
+      };
+    },
+    compareDates: function (date1, date2) {
+      var time1 = date1.getTime();
+      var time2 = date2.getTime();
+      if (time1 < time2) {
+        return SMALLER;
+      }
+      else if (time1 > time2) {
+        return BIGGER;
+      }
+      else {
+        return EQUAL;
+      }
+    },
+    // create sorted set
+    SortedSet: SortedSet
   };
 
   if (typeof module !== "undefined" && module.exports) {
