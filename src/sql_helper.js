@@ -3,7 +3,7 @@
 
   const isNodeJS = typeof require === 'function';
 
-  var Executor = isNodeJS ? require('./src/tasks') : root.tasks;
+  var Executor = isNodeJS ? require('./tasks') : root.tasks;
   var mysql = isNodeJS ? require('mysql') : false;
 
   var sql_helper = function(i_config, i_verbose) {
