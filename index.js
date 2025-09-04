@@ -1,5 +1,3 @@
-const { js } = require('js-beautify');
-
 (function (root) {
     "use strict";
 
