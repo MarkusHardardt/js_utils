@@ -5,13 +5,13 @@
 
     var exp = {
         jsonfx: isNodeJS ? require('./src/jsonfx') : root.jsonfx,
-        sql_helper: isNodeJS ? require('./src/sql_helper') : root.sql_helper,
-        tasks: isNodeJS ? require('./src/tasks') : root.tasks,
-        sorting: isNodeJS ? require('./src/sorting') : root.sorting,
-        regex: isNodeJS ? require('./src/regex') : root.regex,
+        SqlHelper: isNodeJS ? require('./src/SqlHelper') : root.SqlHelper,
+        Executor: isNodeJS ? require('./src/Executor') : root.Executor,
+        Sorting: isNodeJS ? require('./src/Sorting') : root.Sorting,
+        Regex: isNodeJS ? require('./src/Regex') : root.Regex,
         math: isNodeJS ? require('./src/math') : root.math,
-        hashlists: isNodeJS ? require('./src/hashlists') : root.hashlists,
-        utilities: isNodeJS ? require('./src/utilities') : root.utilities
+        HashLists: isNodeJS ? require('./src/HashLists') : root.HashLists,
+        Utilities: isNodeJS ? require('./src/Utilities') : root.Utilities
     };
 
     Object.seal(exp);

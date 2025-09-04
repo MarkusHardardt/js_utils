@@ -16,7 +16,7 @@
   const isNodeJS = typeof require === 'function';
 
   // store for performance reasons
-  var utilities = isNodeJS ? require('./utilities') : root.utilities;
+  var utilities = isNodeJS ? require('./Utilities') : root.Utilities;
 
   var get_object_properties = utilities.getObjectProperties;
   
@@ -365,6 +365,6 @@
     module.exports = exp;
   }
   else {
-    window.hashlists = exp;
+    window.HashLists = exp;
   }
 }(globalThis));

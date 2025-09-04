@@ -265,6 +265,6 @@
   if (isNodeJS) {
     module.exports = exp;
   } else {
-    root.regex = exp;
+    root.Regex = exp;
   }
 }(globalThis));

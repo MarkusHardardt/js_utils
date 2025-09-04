@@ -3,10 +3,10 @@
 
   const isNodeJS = typeof require === 'function';
 
-  var Executor = isNodeJS ? require('./tasks') : root.tasks;
+  var Executor = isNodeJS ? require('./Executor') : root.Executor;
   var mysql = isNodeJS ? require('mysql') : false;
 
-  var sql_helper = function(i_config, i_verbose) {
+  var SqlHelper = function(i_config, i_verbose) {
     var that = this;
     if (mysql) {
       var helper = mysql.createPool(i_config);
@@ -44,7 +44,7 @@
     }
   };
 
-  sql_helper.escape = function(i_value) {
+  SqlHelper.escape = function(i_value) {
     return mysql ? mysql.escape(i_value) : window.SqlString.escape(i_value);
   };
 
@@ -472,7 +472,7 @@
        * </code>
        */
       getChildNodes : function(i_table, i_column, i_delimiter, i_path, i_success, i_error) {
-        var delim = sql_helper.escape(i_delimiter);
+        var delim = SqlHelper.escape(i_delimiter);
         var col = 'DISTINCT IF(LOCATE(';
         col += delim;
         col += ', ';
@@ -509,7 +509,7 @@
         col += i_column;
         col += '))) AS child';
         this.addColumn(col);
-        this.addWhere('LOCATE(' + sql_helper.escape(i_path) + ', ' + i_table + '.' + i_column + ') = 1');
+        this.addWhere('LOCATE(' + SqlHelper.escape(i_path) + ', ' + i_table + '.' + i_column + ') = 1');
         this.performSelect(i_table, undefined, undefined, undefined, function(i_results, i_fields) {
           var nodes = [], i, l, child, pos, hasChildren;
           for (i = 0, l = i_results.length; i < l; i++) {
@@ -531,10 +531,10 @@
   };
 
   if (isNodeJS) {
-    module.exports = sql_helper;
+    module.exports = SqlHelper;
   }
   else {
-    root.sql_helper = sql_helper;
+    root.SqlHelper = SqlHelper;
   }
 
 }(globalThis));

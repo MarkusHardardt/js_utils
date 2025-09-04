@@ -449,6 +449,6 @@
     module.exports = exp;
   }
   else {
-    root.utilities = exp;
+    root.Utilities = exp;
   }
 }(globalThis));

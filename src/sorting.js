@@ -9,7 +9,7 @@
 
   // store for performance reasons
 
-  var utilities = isNodeJS ? require('./utilities') : root.utilities;
+  var utilities = isNodeJS ? require('./Utilities') : root.Utilities;
   var get_first_index_of_identical = utilities.getFirstIndexOfIdentical;
 
   var compare_objects = function (i_object1, i_object2, i_compare) {
@@ -406,6 +406,6 @@
   if (isNodeJS) {
     module.exports = exp;
   } else {
-    root.sorting = exp;
+    root.Sorting = exp;
   }
 }(globalThis));

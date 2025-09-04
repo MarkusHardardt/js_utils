@@ -453,6 +453,6 @@
   if (isNodeJS) {
     module.exports = exp;
   } else {
-    root.tasks = exp;
+    root.Executor = exp;
   }
 }(globalThis));
