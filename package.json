@@ -17,6 +17,8 @@
   },
   "homepage": "https://github.com/MarkusHardardt/js_utils#readme",
   "dependencies": {
-    "md5": "^2.3.0"
+    "js-beautify": "^1.15.4",
+    "md5": "^2.3.0",
+    "mysql": "^2.18.1"
   }
 }
