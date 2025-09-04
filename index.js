@@ -8,6 +8,7 @@
         sorting: isNodeJS ? require('./src/sorting') : root.sorting,
         regex: isNodeJS ? require('./src/regex') : root.regex,
         math: isNodeJS ? require('./src/math') : root.math,
+        hashlists: isNodeJS ? require('./src/hashlists') : root.hashlists,
         utilities: isNodeJS ? require('./src/utilities') : root.utilities
     };
 
