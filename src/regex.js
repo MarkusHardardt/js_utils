@@ -4,6 +4,9 @@
  */
 (function (root) {
   "use strict";
+
+  const isNodeJS = typeof require === 'function';
+
   var each = function (i_regex, i_text, i_callback, i_matches) {
     var res, off = 0, idx, len;
     i_regex.lastIndex = 0;
@@ -259,7 +262,7 @@
     escape: escape
   };
 
-  if (typeof module !== "undefined" && module.exports) {
+  if (isNodeJS) {
     module.exports = exp;
   } else {
     root.regex = exp;

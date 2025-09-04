@@ -1,18 +1,20 @@
 (function (root) {
     "use strict";
 
+    const isNodeJS = typeof require === 'function';
+
     var exp = {
-        tasks: typeof module !== "undefined" && module.exports ? require('./src/tasks') : root.tasks,
-        sorting: typeof module !== "undefined" && module.exports ? require('./src/sorting') : root.sorting,
-        regex: typeof module !== "undefined" && module.exports ? require('./src/regex') : root.regex,
-        math: typeof module !== "undefined" && module.exports ? require('./src/math') : root.math,
-        utilities: typeof module !== "undefined" && module.exports ? require('./src/utilities') : root.utilities
+        tasks: isNodeJS ? require('./src/tasks') : root.tasks,
+        sorting: isNodeJS ? require('./src/sorting') : root.sorting,
+        regex: isNodeJS ? require('./src/regex') : root.regex,
+        math: isNodeJS ? require('./src/math') : root.math,
+        utilities: isNodeJS ? require('./src/utilities') : root.utilities
     };
 
     Object.seal(exp);
 
     // export
-    if (typeof module !== "undefined" && module.exports) {
+    if (isNodeJS) {
         module.exports = exp;
     } else {
         root.utils = exp;

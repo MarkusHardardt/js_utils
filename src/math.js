@@ -9,6 +9,8 @@
 (function (root) {
   "use strict";
 
+  const isNodeJS = typeof require === 'function';
+
   var PI = Math.PI;
   var TWO_PI = PI + PI;
   var HALF_PI = PI * 0.5;
@@ -5064,7 +5066,7 @@
     },
   };
 
-  if (typeof module !== "undefined" && module.exports) {
+  if (isNodeJS) {
     module.exports = exp;
   } else {
     root.math = exp;

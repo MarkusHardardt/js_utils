@@ -1,6 +1,8 @@
 (function (root) {
   "use strict";
 
+  const isNodeJS = typeof require === 'function';
+
   var exec = function (i_object, i_success, i_error, i_timeout, i_millis) {
     if (typeof i_object === 'function') {
       var done = false, timeout = false;
@@ -448,7 +450,7 @@
   Object.seal(exp);
 
   // export
-  if (typeof module !== "undefined" && module.exports) {
+  if (isNodeJS) {
     module.exports = exp;
   } else {
     root.tasks = exp;

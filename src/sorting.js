@@ -1,5 +1,7 @@
-(function(root) {
+(function (root) {
   "use strict";
+
+  const isNodeJS = typeof require === 'function';
 
   var BIGGER = 1;
   var EQUAL = 0;
@@ -7,10 +9,10 @@
 
   // store for performance reasons
 
-  var utilities = typeof module !== "undefined" && module.exports ? require('./utilities') : root.utilities;
+  var utilities = isNodeJS ? require('./utilities') : root.utilities;
   var get_first_index_of_identical = utilities.getFirstIndexOfIdentical;
 
-  var compare_objects = function(i_object1, i_object2, i_compare) {
+  var compare_objects = function (i_object1, i_object2, i_compare) {
     if (i_object1 === i_object2) {
       return EQUAL;
     }
@@ -42,66 +44,66 @@
    * @param {Object}
    *          i_compare The compare function for objects.
    */
-  var get_insertion_index = function(i_object, i_array, i_negativeOnEqual, i_compare) {
+  var get_insertion_index = function (i_object, i_array, i_negativeOnEqual, i_compare) {
     var size = i_array.length, negativeOnEqual = i_negativeOnEqual === true;
     switch (size) {
-    case 0:
-      return 0;
-    case 1:
-      var result = compare_objects(i_object, i_array[0], i_compare);
-      if (negativeOnEqual && result === 0) {
-        return -size;
-      }
-      return result < 0 ? 0 : 1;
-    default:
-      var result = compare_objects(i_object, i_array[0], i_compare);
-      if (negativeOnEqual && result === 0) {
-        return -size;
-      }
-      else if (result < 0) {
+      case 0:
         return 0;
-      }
-      result = compare_objects(i_object, i_array[size - 1], i_compare);
-      if (negativeOnEqual && result === 0) {
-        return -1;
-      }
-      else if (result >= 0) {
-        return size;
-      }
-      // the following is a simple implementation of a bisection algorithm
-      var next2p = 1;
-      while (next2p < size) {
-        next2p += next2p;
-      }
-      var half = Math.floor(next2p / 2);
-      result = compare_objects(i_object, i_array[Math.floor(half)], i_compare);
-      if (negativeOnEqual && result === 0) {
-        return half - size;
-      }
-      var idx = result < 0 ? 0 : size - half;
-      half = Math.floor(half / 2);
-      while (half > 0) {
-        result = compare_objects(i_object, i_array[Math.floor(idx + half)], i_compare);
+      case 1:
+        var result = compare_objects(i_object, i_array[0], i_compare);
         if (negativeOnEqual && result === 0) {
-          return idx + half - size;
+          return -size;
+        }
+        return result < 0 ? 0 : 1;
+      default:
+        var result = compare_objects(i_object, i_array[0], i_compare);
+        if (negativeOnEqual && result === 0) {
+          return -size;
+        }
+        else if (result < 0) {
+          return 0;
+        }
+        result = compare_objects(i_object, i_array[size - 1], i_compare);
+        if (negativeOnEqual && result === 0) {
+          return -1;
         }
         else if (result >= 0) {
-          idx += half;
+          return size;
         }
+        // the following is a simple implementation of a bisection algorithm
+        var next2p = 1;
+        while (next2p < size) {
+          next2p += next2p;
+        }
+        var half = Math.floor(next2p / 2);
+        result = compare_objects(i_object, i_array[Math.floor(half)], i_compare);
+        if (negativeOnEqual && result === 0) {
+          return half - size;
+        }
+        var idx = result < 0 ? 0 : size - half;
         half = Math.floor(half / 2);
-      }
-      if (negativeOnEqual && compare_objects(i_object, i_array[Math.floor(idx)], i_compare) === 0) {
-        return idx - size;
-      }
-      idx++;
-      if (negativeOnEqual && compare_objects(i_object, i_array[Math.floor(idx)], i_compare) === 0) {
-        return idx - size;
-      }
-      return idx;
+        while (half > 0) {
+          result = compare_objects(i_object, i_array[Math.floor(idx + half)], i_compare);
+          if (negativeOnEqual && result === 0) {
+            return idx + half - size;
+          }
+          else if (result >= 0) {
+            idx += half;
+          }
+          half = Math.floor(half / 2);
+        }
+        if (negativeOnEqual && compare_objects(i_object, i_array[Math.floor(idx)], i_compare) === 0) {
+          return idx - size;
+        }
+        idx++;
+        if (negativeOnEqual && compare_objects(i_object, i_array[Math.floor(idx)], i_compare) === 0) {
+          return idx - size;
+        }
+        return idx;
     }
   };
 
-  var _quicksort = function(i_array, i_compare, i_low, i_high) {
+  var _quicksort = function (i_array, i_compare, i_low, i_high) {
     var i = i_low;
     var j = i_high;
     var middle = i_array[Math.floor((i_low + i_high) / 2)];
@@ -128,14 +130,14 @@
     }
   };
 
-  var quicksort = function(i_array, i_compare) {
+  var quicksort = function (i_array, i_compare) {
     if (i_array.length > 1) {
       _quicksort(i_array, i_compare, 0, i_array.length - 1);
     }
     return i_array;
   };
 
-  var compare_strings_ignorecase = function(i_string1, i_string2) {
+  var compare_strings_ignorecase = function (i_string1, i_string2) {
     var idx = 0, l1 = i_string1.length, l2 = i_string2.length, c1, c2;
     var len = l1 <= l2 ? l1 : l2;
     while (idx < len) {
@@ -157,7 +159,7 @@
   var ZERO = 48;
   var NINE = 57;
 
-  var compare_texts_and_numbers = function(i_string1, i_string2, i_ignoreCase, i_signed) {
+  var compare_texts_and_numbers = function (i_string1, i_string2, i_ignoreCase, i_signed) {
     var ic = i_ignoreCase === true, sg = i_signed == true;
     var o1 = 0, l1 = i_string1.length, c1, nc1, m1, e1, nl1, ni1;
     var o2 = 0, l2 = i_string2.length, c2, nc2, m2, e2, nl2, ni2;
@@ -302,106 +304,106 @@
     return dl > 0 ? BIGGER : (dl < 0 ? SMALLER : EQUAL);
   };
 
-  var SortedSet = function(i_noEqualObjectsAllowed, i_compare) {
+  var SortedSet = function (i_noEqualObjectsAllowed, i_compare) {
     this._noEqualObjectsAllowed = i_noEqualObjectsAllowed === true;
     this._compare = i_compare;
     this._array = [];
   };
 
   SortedSet.prototype = {
-      resort : function() {
-        quicksort(this._array, this._compare);
-      },
-      setCompareFunction : function(i_compare) {
-        this._compare = i_compare;
-        this.resort();
-      },
-      insert : function(i_object) {
-        var array = this._array;
-        var idx = get_insertion_index(i_object, array, this._noEqualObjectsAllowed, this._compare);
-        if (idx >= 0) {
-          array.splice(idx, 0, i_object);
-        }
-        return idx;
-      },
-      remove : function(i_value) {
-        var array = this._array;
-        if (typeof i_value === 'number') {
-          return array.splice(i_value, 1);
-        }
-        else {
-          var idx = get_first_index_of_identical(array, i_value);
-          if (idx !== -1) {
-            return array.splice(idx, 1);
-          }
-        }
-        return null;
-      },
-      size : function() {
-        return this._array.length;
-      },
-      get : function(i_index) {
-        return this._array[i_index];
-      },
-      clear : function(i_offset, i_length) {
-        var array = this._array;
-        var offset = typeof i_offset === 'number' ? Math.max(i_offset, 0) : 0;
-        var length = typeof i_length === 'number' ? Math.min(i_length, array.length - offset) : array.length;
-        array.splice(offset, length);
+    resort: function () {
+      quicksort(this._array, this._compare);
+    },
+    setCompareFunction: function (i_compare) {
+      this._compare = i_compare;
+      this.resort();
+    },
+    insert: function (i_object) {
+      var array = this._array;
+      var idx = get_insertion_index(i_object, array, this._noEqualObjectsAllowed, this._compare);
+      if (idx >= 0) {
+        array.splice(idx, 0, i_object);
       }
+      return idx;
+    },
+    remove: function (i_value) {
+      var array = this._array;
+      if (typeof i_value === 'number') {
+        return array.splice(i_value, 1);
+      }
+      else {
+        var idx = get_first_index_of_identical(array, i_value);
+        if (idx !== -1) {
+          return array.splice(idx, 1);
+        }
+      }
+      return null;
+    },
+    size: function () {
+      return this._array.length;
+    },
+    get: function (i_index) {
+      return this._array[i_index];
+    },
+    clear: function (i_offset, i_length) {
+      var array = this._array;
+      var offset = typeof i_offset === 'number' ? Math.max(i_offset, 0) : 0;
+      var length = typeof i_length === 'number' ? Math.min(i_length, array.length - offset) : array.length;
+      array.splice(offset, length);
+    }
   };
 
   var exp = {
-      BIGGER : BIGGER,
-      SMALLER : SMALLER,
-      EQUAL : EQUAL,
-      compareNumber : function(i_number1, i_number2) {
-        if (i_number1 > i_number2) {
-          return BIGGER;
-        }
-        else if (i_number1 < i_number2) {
-          return SMALLER;
-        }
-        else {
-          return EQUAL;
-        }
-      },
-      // get the insertion index
-      getInsertionIndex : get_insertion_index,
-      // first equal
-      getIndexOfFirstEqual : function(i_object, i_array, i_compare) {
-        var idx = get_insertion_index(i_object, i_array, true, i_compare);
-        return idx < 0 ? idx + i_array.length : -1;
-      },
-      // perform a quick sort
-      quicksort : quicksort,
-      // texts and numbers comparison
-      compareStringsIgnorecase : compare_strings_ignorecase,
-      compareTextsAndNumbers : compare_texts_and_numbers,
-      getTextsAndNumbersCompareFunction : function(i_ignoreCase, i_signed, i_upward) {
-        return function(i_string1, i_string2) {
-          var res = compare_texts_and_numbers(i_string1, i_string2, i_ignoreCase, i_signed);
-          return i_upward !== false ? res : -res;
-        };
-      },
-      compareDates : function(i_date1, i_date2) {
-        var time1 = i_date1.getTime();
-        var time2 = i_date2.getTime();
-        if (time1 < time2) {
-          return SMALLER;
-        }
-        else if (time1 > time2) {
-          return BIGGER;
-        }
-        else {
-          return EQUAL;
-        }
-      },
-      // create sorted set
-      SortedSet : SortedSet
+    BIGGER: BIGGER,
+    SMALLER: SMALLER,
+    EQUAL: EQUAL,
+    compareNumber: function (i_number1, i_number2) {
+      if (i_number1 > i_number2) {
+        return BIGGER;
+      }
+      else if (i_number1 < i_number2) {
+        return SMALLER;
+      }
+      else {
+        return EQUAL;
+      }
+    },
+    // get the insertion index
+    getInsertionIndex: get_insertion_index,
+    // first equal
+    getIndexOfFirstEqual: function (i_object, i_array, i_compare) {
+      var idx = get_insertion_index(i_object, i_array, true, i_compare);
+      return idx < 0 ? idx + i_array.length : -1;
+    },
+    // perform a quick sort
+    quicksort: quicksort,
+    // texts and numbers comparison
+    compareStringsIgnorecase: compare_strings_ignorecase,
+    compareTextsAndNumbers: compare_texts_and_numbers,
+    getTextsAndNumbersCompareFunction: function (i_ignoreCase, i_signed, i_upward) {
+      return function (i_string1, i_string2) {
+        var res = compare_texts_and_numbers(i_string1, i_string2, i_ignoreCase, i_signed);
+        return i_upward !== false ? res : -res;
+      };
+    },
+    compareDates: function (i_date1, i_date2) {
+      var time1 = i_date1.getTime();
+      var time2 = i_date2.getTime();
+      if (time1 < time2) {
+        return SMALLER;
+      }
+      else if (time1 > time2) {
+        return BIGGER;
+      }
+      else {
+        return EQUAL;
+      }
+    },
+    // create sorted set
+    SortedSet: SortedSet
   };
 
-  if (typeof module !== "undefined" && module.exports) {
+  if (isNodeJS) {
     module.exports = exp;
   } else {
     root.sorting = exp;
