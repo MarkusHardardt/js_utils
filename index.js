@@ -20,6 +20,6 @@
     if (isNodeJS) {
         module.exports = exp;
     } else {
-        root.utils = exp;
+        root.js_utils = exp;
     }
 }(globalThis));
