@@ -323,6 +323,25 @@
     return coor;
   };
 
+  const utf8Symbols = {
+    ok: '✅',
+    error: '❌',
+    check: '✔️',
+    cancel: '❌',
+    info: 'ℹ️',
+    warning: '⚠️',
+    exclamation: '❗️',
+    question: '❓',
+    star: '⭐',
+    starBlack: '★',
+    heart: '♥',
+    sun: '☀️',
+    cloud: '☁️',
+    phone: '☎️',
+    checkboxOn: '☑️',
+    checkboxOff: '☐'
+  };
+
   // export
   var exp = {
     getFirstIndexOfIdentical: get_first_index_of_identical,
@@ -442,7 +461,8 @@
         reader.readAsText(i_change.target.files[0]);
       });
       input.trigger("click");
-    }
+    },
+    utf8Symbols: utf8Symbols
   };
 
   if (isNodeJS) {
