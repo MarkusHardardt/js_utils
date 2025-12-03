@@ -11,7 +11,8 @@
         Regex: isNodeJS ? require('./src/Regex') : root.Regex,
         math: isNodeJS ? require('./src/math') : root.math,
         HashLists: isNodeJS ? require('./src/HashLists') : root.HashLists,
-        Utilities: isNodeJS ? require('./src/Utilities') : root.Utilities
+        Utilities: isNodeJS ? require('./src/Utilities') : root.Utilities,
+        WebServer: isNodeJS ? require('./src/WebServer') : root.WebServer
     };
 
     Object.seal(exp);
