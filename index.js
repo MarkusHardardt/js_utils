@@ -12,7 +12,10 @@
         math: isNodeJS ? require('./src/math') : root.math,
         HashLists: isNodeJS ? require('./src/HashLists') : root.HashLists,
         Utilities: isNodeJS ? require('./src/Utilities') : root.Utilities,
-        WebServer: isNodeJS ? require('./src/WebServer') : root.WebServer
+        WebServer: isNodeJS ? require('./src/WebServer') : root.WebServer,
+        hmi_object: isNodeJS ? require('./src/hmi_object') : root.hmi_object,
+        ContentManager: isNodeJS ? require('./src/ContentManager') : root.ContentManager,
+        ObjectPositionSystem: isNodeJS ? require('./src/ObjectPositionSystem') : root.ObjectPositionSystem
     };
 
     Object.seal(exp);

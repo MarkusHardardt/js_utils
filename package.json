@@ -1,6 +1,6 @@
 {
   "name": "@markus.hardardt/js_utils",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -19,6 +19,7 @@
   "dependencies": {
     "body-parser": "^2.2.1",
     "express": "^5.2.1",
+    "jquery": "^3.7.1",
     "js-beautify": "^1.15.4",
     "md5": "^2.3.0",
     "mysql": "^2.18.1",
