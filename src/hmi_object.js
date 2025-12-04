@@ -35,9 +35,9 @@
   // load math library
   // var jsonfx = typeof require === 'function' ? require('./jsonfx.js') :
   // window.jsonfx;
-  var Regex = isNodeJS ? require('@markus.hardardt/js_utils/src/Regex.js') : root.Regex;
-  var Executor = isNodeJS ? require('@markus.hardardt/js_utils/src/Executor.js') : root.Executor;
-  var math = isNodeJS ? require('@markus.hardardt/js_utils/src/math.js') : root.math;
+  var Regex = isNodeJS ? require('./Regex.js') : root.Regex;
+  var Executor = isNodeJS ? require('./Executor.js') : root.Executor;
+  var math = isNodeJS ? require('./math.js') : root.math;
   var ObjectPositionSystem = isNodeJS ? require('./ObjectPositionSystem.js') : root.ObjectPositionSystem;
   var $ = isNodeJS ? require('jquery') : root.$;
 

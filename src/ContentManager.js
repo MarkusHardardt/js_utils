@@ -3,12 +3,12 @@
 
   const isNodeJS = typeof require === 'function';
 
-  var Utilities = isNodeJS ? require('@markus.hardardt/js_utils/src/Utilities.js') : root.Utilities;
-  var jsonfx = isNodeJS ? require('@markus.hardardt/js_utils/src/jsonfx.js') : root.jsonfx;
-  var Regex = isNodeJS ? require('@markus.hardardt/js_utils/src/Regex.js') : root.Regex;
-  var Executor = isNodeJS ? require('@markus.hardardt/js_utils/src/Executor.js') : root.Executor;
-  var Sorting = isNodeJS ? require('@markus.hardardt/js_utils/src/Sorting.js') : root.Sorting;
-  var SqlHelper = isNodeJS ? require('@markus.hardardt/js_utils/src/SqlHelper.js') : root.SqlHelper;
+  var Utilities = isNodeJS ? require('./Utilities.js') : root.Utilities;
+  var jsonfx = isNodeJS ? require('./jsonfx.js') : root.jsonfx;
+  var Regex = isNodeJS ? require('./Regex.js') : root.Regex;
+  var Executor = isNodeJS ? require('./Executor.js') : root.Executor;
+  var Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
+  var SqlHelper = isNodeJS ? require('./SqlHelper.js') : root.SqlHelper;
 
   var compare_keys = Sorting.getTextsAndNumbersCompareFunction(false, false, true);
 
