@@ -2443,6 +2443,15 @@
     this.hmi_dataTable = function() {
       return _dataTable;
     };
+    this.hmi_value = function(i_row, i_column, i_value) {
+      var cell = _dataTable.cell(i_row, i_column);
+      if (typeof i_value === 'string') {
+        cell.data(i_value).draw(false);
+      }
+      else {
+        return cell.data();
+      }
+    };
     this.hmi_reload = function() {
       if (_dataTable) {
         // we got to store some params to get adjust the scrolling after
@@ -2508,6 +2517,7 @@
         _dataTable = undefined;
       }
       _table.remove();
+      delete that.hmi_value;
       delete that.hmi_dataTable;
       delete that.hmi_reload;
       _tableId = undefined;
