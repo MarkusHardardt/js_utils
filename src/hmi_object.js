@@ -2440,6 +2440,9 @@
     _table.appendTo(_cont);
     var _dataTable = undefined;
     var _languageListener = undefined;
+    this.hmi_dataTable = function() {
+      return _dataTable;
+    };
     this.hmi_reload = function() {
       if (_dataTable) {
         // we got to store some params to get adjust the scrolling after
@@ -2505,6 +2508,7 @@
         _dataTable = undefined;
       }
       _table.remove();
+      delete that.hmi_dataTable;
       delete that.hmi_reload;
       _tableId = undefined;
       _table = undefined;
@@ -2540,6 +2544,7 @@
           that.hmi_reload();
         }
       };
+
     }
     catch (exc) {
       console.error('EXCEPTION! Initializing data table: ' + exc);
