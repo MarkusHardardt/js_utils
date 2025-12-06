@@ -87,7 +87,7 @@
 
   var s_extensions = [];
 
-  var attach_hmi_object = function(i_object) {
+  var attach_hmi_object = function (i_object) {
     // If we got a valid object we iterate to the actual visualization object
     // first. [1]
     // Then we iterate again and connect all objects to the visualization
@@ -124,7 +124,7 @@
     }
   };
 
-  var detach_hmi_object = function(i_object) {
+  var detach_hmi_object = function (i_object) {
     if (i_object !== null && typeof i_object === 'object') {
       // detach children
       var children = i_object._hmi_object.children;
@@ -147,7 +147,7 @@
     }
   };
 
-  var process_object_branch = function(i_hmiObject, i_fromRootToLeaf, i_is_valid, i_callback) {
+  var process_object_branch = function (i_hmiObject, i_fromRootToLeaf, i_is_valid, i_callback) {
     if (i_is_valid === undefined || i_is_valid(i_hmiObject) === true) {
       // perform callback if from root to leaf
       if (i_fromRootToLeaf === true) {
@@ -174,14 +174,14 @@
     }
   };
 
-  var set_bounds = function(i_element, i_bounds) {
+  var set_bounds = function (i_element, i_bounds) {
     i_element.css('left', i_bounds.x.toString() + 'px');
     i_element.css('top', i_bounds.y.toString() + 'px');
     i_element.css('width', i_bounds.width.toString() + 'px');
     i_element.css('height', i_bounds.height.toString() + 'px');
   };
 
-  var get_pixel_value = function(i_value) {
+  var get_pixel_value = function (i_value) {
     if (typeof i_value !== 'string') {
       return undefined;
     }
@@ -196,7 +196,7 @@
     return parseFloat(px);
   };
 
-  var is_number_or_pixel_value = function(i_value) {
+  var is_number_or_pixel_value = function (i_value) {
     if (typeof i_value === 'string') {
       var idx = i_value.indexOf('px');
       return idx > 0 && isNaN(i_value.substr(0, idx)) === false;
@@ -206,7 +206,7 @@
     }
   };
 
-  var get_alignment = function(i_align, i_result, i_mirrorX, i_mirrorY) {
+  var get_alignment = function (i_align, i_result, i_mirrorX, i_mirrorY) {
     var res = i_result || {};
     if (typeof i_align === 'string') {
       if (i_align.indexOf('left') !== -1) {
@@ -241,7 +241,7 @@
     return res;
   };
 
-  var get_floating_bounds = function(i_child, i_containerWidth, i_containerHeight) {
+  var get_floating_bounds = function (i_child, i_containerWidth, i_containerHeight) {
     // get the alignment
     var align = get_alignment(i_child.align, undefined, false, true);
     // get pixel values as number if available (returns undefined if not
@@ -257,14 +257,14 @@
     var pixH = typeof parH === 'number' ? parH : (typeof i_child.height === 'number' ? i_child.height * i_containerHeight : 0.1);
     // return the bounds
     return {
-        x : Math.floor(pixX - pixW * align.x),
-        y : Math.floor(pixY - pixH * align.y),
-        width : Math.floor(pixW),
-        height : Math.floor(pixH)
+      x: Math.floor(pixX - pixW * align.x),
+      y: Math.floor(pixY - pixH * align.y),
+      width: Math.floor(pixW),
+      height: Math.floor(pixH)
     };
   };
 
-  var update_coordinates = function(i_element, i_x, i_y, i_width, i_height, i_containerWidth, i_containerHeight, i_align) {
+  var update_coordinates = function (i_element, i_x, i_y, i_width, i_height, i_containerWidth, i_containerHeight, i_align) {
     // get the alignment
     var align = get_alignment(i_align, undefined, false, true);
     // get pixel values as number if available (returns undefined if not
@@ -287,10 +287,10 @@
     i_element.css('height', Math.floor(pixH).toString() + 'px');
   };
 
-  var ListenerSupport = function() {
+  var ListenerSupport = function () {
     var that = this;
     var _listeners = [];
-    this._hmi_addEditListener = function(i_listener) {
+    this._hmi_addEditListener = function (i_listener) {
       for (var i = 0, l = _listeners.length; i < l; i++) {
         if (_listeners[i] === i_listener) {
           return false;
@@ -299,7 +299,7 @@
       _listeners.push(i_listener);
       return true;
     };
-    this._hmi_removeEditListener = function(i_listener) {
+    this._hmi_removeEditListener = function (i_listener) {
       for (var i = 0, l = _listeners.length; i < l; i++) {
         if (_listeners[i] === i_listener) {
           _listeners.splice(i, 1);
@@ -308,12 +308,12 @@
       }
       return false;
     };
-    this._hmi_forAllEditListeners = function(i_callback) {
+    this._hmi_forAllEditListeners = function (i_callback) {
       for (var i = 0, l = _listeners.length; i < l; i++) {
         i_callback(_listeners[i]);
       }
     };
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       delete that._hmi_forAllEditListeners;
       delete that._hmi_addEditListener;
       delete that._hmi_removeEditListener;
@@ -325,7 +325,7 @@
 
   var _lastUserActionDate = undefined;
 
-  var prevent_default_and_stop_propagation = function(i_event) {
+  var prevent_default_and_stop_propagation = function (i_event) {
     // do not perform default browser actions
     if (typeof i_event.preventDefault === 'function') {
       i_event.preventDefault();
@@ -337,7 +337,7 @@
     _lastUserActionDate = new Date().getTime();
   };
 
-  var get_last_user_action_date = function() {
+  var get_last_user_action_date = function () {
     return _lastUserActionDate;
   };
 
@@ -364,7 +364,7 @@
 
   var s_event_listeners = [];
 
-  var init_object = function(i_object, i_data) {
+  var init_object = function (i_object, i_data) {
     if (typeof i_object.init === 'function') {
       try {
         i_object.init(i_data);
@@ -375,91 +375,91 @@
     }
   };
 
-  var update_event_listeners_state = function(i_enabled) {
+  var update_event_listeners_state = function (i_enabled) {
     for (var i = 0, l = s_event_listeners.length; i < l; i++) {
       s_event_listeners[i][i_enabled ? '_hmi_addEventListeners' : '_hmi_removeEventListeners']();
     }
   };
 
-  var EventListener = function(i_context, i_callback) {
+  var EventListener = function (i_context, i_callback) {
     var that = this;
     var _cont = i_context.container;
     var _listening = false;
     // callbacks for mouse events
-    var mouseevent_click = function(i_event) {
+    var mouseevent_click = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, MOUSEEVENT_CLICK);
     };
-    var mouseevent_dblclick = function(i_event) {
+    var mouseevent_dblclick = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, MOUSEEVENT_DBLCLICK);
     };
-    var mouseevent_hover = function(i_event) {
+    var mouseevent_hover = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, MOUSEEVENT_HOVER);
     };
-    var mouseevent_mousedown = function(i_event) {
+    var mouseevent_mousedown = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, MOUSEEVENT_MOUSEDOWN);
     };
-    var mouseevent_mouseenter = function(i_event) {
+    var mouseevent_mouseenter = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, MOUSEEVENT_MOUSEENTER);
     };
-    var mouseevent_mouseleave = function(i_event) {
+    var mouseevent_mouseleave = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, MOUSEEVENT_MOUSELEAVE);
     };
-    var mouseevent_mousemove = function(i_event) {
+    var mouseevent_mousemove = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, MOUSEEVENT_MOUSEMOVE);
     };
-    var mouseevent_mouseout = function(i_event) {
+    var mouseevent_mouseout = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, MOUSEEVENT_MOUSEOUT);
     };
-    var mouseevent_mouseover = function(i_event) {
+    var mouseevent_mouseover = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, MOUSEEVENT_MOUSEOVER);
     };
-    var mouseevent_mouseup = function(i_event) {
+    var mouseevent_mouseup = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, MOUSEEVENT_MOUSEUP);
     };
-    var mouseevent_contextmenu = function(i_event) {
+    var mouseevent_contextmenu = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, MOUSEEVENT_CONTEXTMENU);
     };
-    var mouseevent_mousewheel = function(i_event) {
+    var mouseevent_mousewheel = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, MOUSEEVENT_MOUSEWHEEL);
     };
     // callbacks for touch events
-    var touchevent_touchstart = function(i_event) {
+    var touchevent_touchstart = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, TOUCHEVENT_TOUCHSTART);
     };
-    var touchevent_touchenter = function(i_event) {
+    var touchevent_touchenter = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, TOUCHEVENT_TOUCHENTER);
     };
-    var touchevent_touchmove = function(i_event) {
+    var touchevent_touchmove = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, TOUCHEVENT_TOUCHMOVE);
     };
-    var touchevent_touchend = function(i_event) {
+    var touchevent_touchend = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, TOUCHEVENT_TOUCHEND);
     };
-    var touchevent_touchleave = function(i_event) {
+    var touchevent_touchleave = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, TOUCHEVENT_TOUCHLEAVE);
     };
-    var touchevent_touchcancel = function(i_event) {
+    var touchevent_touchcancel = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       i_callback(i_event, TOUCHEVENT_TOUCHCANCEL);
     };
-    this._hmi_addEventListeners = function() {
+    this._hmi_addEventListeners = function () {
       if (_listening === false) {
         _listening = true;
         if (typeof i_callback === 'function') {
@@ -484,7 +484,7 @@
         }
       }
     };
-    this._hmi_removeEventListeners = function() {
+    this._hmi_removeEventListeners = function () {
       if (_listening === true) {
         _listening = false;
         if (typeof i_callback === 'function') {
@@ -509,7 +509,7 @@
         }
       }
     };
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       for (var i = 0; i < s_event_listeners.length; i++) {
         if (s_event_listeners[i] === that) {
           s_event_listeners.splice(i, 1);
@@ -545,14 +545,14 @@
     s_event_listeners.push(this);
   };
 
-  var DivButtonImpl = function(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
+  var DivButtonImpl = function (i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
     var that = this;
     var _timeout = undefined;
     var _pressed = false;
     var _minimumTimeout = undefined;
     var _enabled = true;
     var _cont = i_context.container;
-    var updateState = function(i_pressed, i_longClickTimeoutExpired) {
+    var updateState = function (i_pressed, i_longClickTimeoutExpired) {
       // only if the pressed state has changed
       if (_pressed !== i_pressed) {
         // update for the next call
@@ -568,7 +568,7 @@
             _minimumTimeout = undefined;
           }
           if (typeof that.minimumTimeout === 'number' && that.minimumTimeout > 0) {
-            _minimumTimeout = setTimeout(function() {
+            _minimumTimeout = setTimeout(function () {
               _minimumTimeout = undefined;
               if (_pressed !== true) {
                 _pressed = true;
@@ -579,7 +579,7 @@
           // if a timeout is required and has not already been started we start
           // a timeout
           if (typeof that.timeout === 'number' && that.timeout > 0 && _timeout === undefined) {
-            _timeout = setTimeout(function() {
+            _timeout = setTimeout(function () {
               _timeout = undefined;
               updateState(false, true);
             }, that.timeout);
@@ -651,17 +651,17 @@
         }
       }
     };
-    var pressed = function(i_event) {
+    var pressed = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       // handle the event
       updateState(true, false);
     };
-    var released = function(i_event) {
+    var released = function (i_event) {
       prevent_default_and_stop_propagation(i_event);
       // handle the event
       updateState(false, false);
     };
-    var updateEnabled = function() {
+    var updateEnabled = function () {
       if (that._hmi_graphics !== true) {
         _cont[_enabled ? 'addClass' : 'removeClass']('hmi-cursor-pointer');
         _cont[_enabled ? 'removeClass' : 'addClass']('hmi-button-disabled');
@@ -680,13 +680,13 @@
         }
       }
     };
-    this.hmi_setEnabled = function(i_enabled) {
+    this.hmi_setEnabled = function (i_enabled) {
       if (_enabled !== i_enabled) {
         _enabled = i_enabled === true;
         updateEnabled();
       }
     };
-    this.hmi_isEnabled = function(i_enabled) {
+    this.hmi_isEnabled = function (i_enabled) {
       return _enabled === true;
     };
     if (that.hmi_updateBorder) {
@@ -696,7 +696,7 @@
       that.hmi_setEnabled(false);
     }
     updateEnabled();
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       _enabled = false;
       if (_minimumTimeout !== undefined) {
         clearTimeout(_minimumTimeout);
@@ -721,44 +721,44 @@
     });
     i_success();
   };
-  DivButtonImpl.isRequired = function(i_object, i_context, i_disableVisuEvents) {
+  DivButtonImpl.isRequired = function (i_object, i_context, i_disableVisuEvents) {
     if (i_disableVisuEvents === true) {
       return false;
     }
     return typeof i_object.pressed === 'function' || typeof i_object.released === 'function' || typeof i_object.clicked === 'function' || typeof i_object.longClicked === 'function';
   };
 
-  s_types['container'] = function(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
+  s_types['container'] = function (i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
     var that = this;
     var _cont = that._hmi_context.container;
     _cont.addClass('overflow-hidden');
     var _div = $(DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
     _div.appendTo(_cont);
     var _object = undefined;
-    this.hmi_getContent = function() {
+    this.hmi_getContent = function () {
       return _object;
     };
-    this.hmi_setContent = function(i_object, i_success, i_error, i_initData, i_disableVisuEvents, i_enableEditorEvents) {
+    this.hmi_setContent = function (i_object, i_success, i_error, i_initData, i_disableVisuEvents, i_enableEditorEvents) {
       if (_object === undefined && i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
-        create_hmi_object_branch(i_object, _div, function() {
+        create_hmi_object_branch(i_object, _div, function () {
           _object = i_object;
           i_success();
-        }, function(i_exception) {
+        }, function (i_exception) {
           _div.empty();
           i_error(i_exception);
         }, that.hmi, i_initData, that, i_object.id, that.hmi_node(), i_disableVisuEvents, i_enableEditorEvents);
       }
     };
-    this.hmi_removeContent = function(i_success, i_error) {
+    this.hmi_removeContent = function (i_success, i_error) {
       if (_object !== undefined) {
         var obj = _object;
         _object = undefined;
-        destroy_hmi_object_branch(obj, function() {
+        destroy_hmi_object_branch(obj, function () {
           _div.empty();
           if (typeof i_success === 'function') {
             i_success();
           }
-        }, function(i_exception) {
+        }, function (i_exception) {
           if (typeof i_error === 'function') {
             i_error(i_exception);
           }
@@ -771,7 +771,7 @@
         i_success();
       }
     };
-    this._hmi_resizes.push(function() {
+    this._hmi_resizes.push(function () {
       if (_object) {
         var hmiobj = _object._hmi_object;
         if (hmiobj._hmi_resize) {
@@ -779,7 +779,7 @@
         }
       }
     });
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       _div.remove();
       _div = undefined;
       delete that.hmi_getContent;
@@ -792,7 +792,7 @@
     i_success();
   };
 
-  var create_grid_coordinates = function(i_param) {
+  var create_grid_coordinates = function (i_param) {
     // here we store the resulting coordinates
     var coordinates = [];
     // if our parameter is just a simple number we create an array containing
@@ -802,7 +802,7 @@
       var part = 1.0 / len;
       for (var i = 0; i < len; i++) {
         coordinates.push({
-          part : part
+          part: part
         });
       }
     }
@@ -851,13 +851,13 @@
     }
     else {
       coordinates.push({
-        part : 1.0
+        part: 1.0
       });
     }
     return coordinates;
   };
 
-  var compute_grid_axis_pixel = function(i_coordinates, i_size, i_separator, i_startMargin, i_endMargin) {
+  var compute_grid_axis_pixel = function (i_coordinates, i_size, i_separator, i_startMargin, i_endMargin) {
     var marginCount = i_coordinates.length - 1;
     var offset = i_startMargin;
     var sizeForRelativeParts = i_size - i_startMargin - i_separator * (i_coordinates.length - 1) - i_endMargin;
@@ -877,7 +877,7 @@
     }
   };
 
-  var get_grid_coordinate = function(i_coordinates, i_index, i_param) {
+  var get_grid_coordinate = function (i_coordinates, i_index, i_param) {
     var coor = i_index >= 0 ? (i_index < i_coordinates.length ? i_coordinates[i_index] : i_coordinates[i_coordinates.length - 1]) : i_coordinates[0];
     return coor[i_param];
   };
@@ -894,7 +894,7 @@
    * @return <code>true</code> if the rectangles are equal; <code>false</code>
    *         otherwise.
    */
-  var is_equal_rectangle = function(i_rect1, i_rect2) {
+  var is_equal_rectangle = function (i_rect1, i_rect2) {
     // the rectangles are equal if identical
     if (i_rect1 === i_rect2) {
       return true;
@@ -922,7 +922,7 @@
    * @return <code>true</code> if the rectangles intersect; <code>false</code>
    *         otherwise.
    */
-  var rectangles_intersect = function(i_x1, i_y1, i_width1, i_height1, i_x2, i_y2, i_width2, i_height2) {
+  var rectangles_intersect = function (i_x1, i_y1, i_width1, i_height1, i_x2, i_y2, i_width2, i_height2) {
     var w1 = i_width1;
     var h1 = i_height1;
     var w2 = i_width2;
@@ -939,14 +939,14 @@
     return ((w2 < i_x2 || w2 > i_x1) && (h2 < i_y2 || h2 > i_y1) && (w1 < i_x1 || w1 > i_x2) && (h1 < i_y1 || h1 > i_y2));
   };
 
-  var RectangleHandler = function(i_columns, i_rows, i_maxStackSize, i_loadRectangle, i_reloadRectangle, i_unloadRectangle) {
+  var RectangleHandler = function (i_columns, i_rows, i_maxStackSize, i_loadRectangle, i_reloadRectangle, i_unloadRectangle) {
     var that = this;
     var _maxStackSize = i_maxStackSize ? i_maxStackSize : DEFAULT_MAX_STACK_SIZE;
     var _stack = [];
     var _currentLevel = -1;
     var _set = null;
 
-    var perform_modification = function(i_rectanglesToHandle, i_rectanglesToIgnore, i_method, i_success, i_error) {
+    var perform_modification = function (i_rectanglesToHandle, i_rectanglesToIgnore, i_method, i_success, i_error) {
       var cnt = 0;
       if (Array.isArray(i_rectanglesToHandle)) {
         var tasks = [], i, hl = i_rectanglesToHandle.length, j, il;
@@ -963,9 +963,9 @@
           }
           // if not found we perform the given method
           if (rect) {
-            (function() {
+            (function () {
               var r = rect;
-              tasks.push(function(i_suc, i_err) {
+              tasks.push(function (i_suc, i_err) {
                 try {
                   i_method(r.x, r.y, r.width, r.height, r.id, i_suc, i_err, r.init);
                 }
@@ -978,7 +978,7 @@
           }
         }
         tasks.parallel = true;
-        Executor.run(tasks, function() {
+        Executor.run(tasks, function () {
           i_success(cnt);
         }, i_error);
       }
@@ -987,17 +987,17 @@
       }
     };
 
-    var change_constellation = function(i_source, i_target, i_success, i_error) {
+    var change_constellation = function (i_source, i_target, i_success, i_error) {
       // first we iterate over all sources and check if they still exist in the
       // targets
-      perform_modification(i_source, i_target, i_unloadRectangle, function(i_removedCount) {
-        perform_modification(i_target, i_source, i_loadRectangle, function(i_addedCount) {
+      perform_modification(i_source, i_target, i_unloadRectangle, function (i_removedCount) {
+        perform_modification(i_target, i_source, i_loadRectangle, function (i_addedCount) {
           i_success(i_removedCount + i_addedCount);
         }, i_error);
       }, i_error);
     };
 
-    this.prepareNextSet = function(i_empty) {
+    this.prepareNextSet = function (i_empty) {
       if (_set === null) {
         _set = [];
       }
@@ -1014,7 +1014,7 @@
       return true;
     };
 
-    this.addRectangleForNextSetToDefinedLocation = function(i_x, i_y, i_width, i_height, i_id, i_init) {
+    this.addRectangleForNextSetToDefinedLocation = function (i_x, i_y, i_width, i_height, i_id, i_init) {
       // if not valid we do not proceed
       if (_set === null) {
         return false;
@@ -1065,17 +1065,17 @@
       }
       // finally we got to add and load the new rectangle
       _set.push({
-          x : x,
-          y : y,
-          width : i_width,
-          height : i_height,
-          id : i_id,
-          init : i_init
+        x: x,
+        y: y,
+        width: i_width,
+        height: i_height,
+        id: i_id,
+        init: i_init
       });
       return true;
     };
 
-    this.addRectangleForNextSetToDefaultLocation = function(i_width, i_height, i_id, i_init) {
+    this.addRectangleForNextSetToDefaultLocation = function (i_width, i_height, i_id, i_init) {
       if (_set === null) {
         return false;
       }
@@ -1117,11 +1117,11 @@
       return that.addRectangleForNextSetToDefinedLocation(0, 0, i_width, i_height, i_id, i_init);
     };
 
-    this.activateNextSet = function(i_success, i_error) {
+    this.activateNextSet = function (i_success, i_error) {
       if (_set !== null) {
         // get the current constellation if available
         var prevCon = _currentLevel !== -1 ? _stack[_currentLevel] : null;
-        change_constellation(prevCon, _set, function(i_count) {
+        change_constellation(prevCon, _set, function (i_count) {
           if (i_count > 0) {
             // if the stack stores something after the current index we remove
             // this
@@ -1148,17 +1148,17 @@
       }
     };
 
-    this.isBackAvailable = function() {
+    this.isBackAvailable = function () {
       return _currentLevel > -1;
     };
 
-    this.isForwardAvailable = function() {
+    this.isForwardAvailable = function () {
       return _currentLevel < _stack.length - 1;
     };
 
-    this.goBack = function(i_success, i_error) {
+    this.goBack = function (i_success, i_error) {
       if (_currentLevel > 0) {
-        change_constellation(_stack[_currentLevel], _stack[_currentLevel - 1], function() {
+        change_constellation(_stack[_currentLevel], _stack[_currentLevel - 1], function () {
           _currentLevel--;
           if (typeof i_success === 'function') {
             i_success();
@@ -1166,7 +1166,7 @@
         }, i_error);
       }
       else if (_currentLevel === 0) {
-        change_constellation(_stack[_currentLevel], null, function() {
+        change_constellation(_stack[_currentLevel], null, function () {
           _currentLevel--;
           if (typeof i_success === 'function') {
             i_success();
@@ -1178,9 +1178,9 @@
       }
     };
 
-    this.goForward = function(i_success, i_error) {
+    this.goForward = function (i_success, i_error) {
       if (_currentLevel === -1) {
-        change_constellation(null, _stack[_currentLevel + 1], function() {
+        change_constellation(null, _stack[_currentLevel + 1], function () {
           _currentLevel++;
           if (typeof i_success === 'function') {
             i_success();
@@ -1188,7 +1188,7 @@
         }, i_error);
       }
       else if (_currentLevel < _stack.length - 1) {
-        change_constellation(_stack[_currentLevel], _stack[_currentLevel + 1], function() {
+        change_constellation(_stack[_currentLevel], _stack[_currentLevel + 1], function () {
           _currentLevel++;
           if (typeof i_success === 'function') {
             i_success();
@@ -1200,9 +1200,9 @@
       }
     };
 
-    this.goToStart = function(i_success, i_error) {
+    this.goToStart = function (i_success, i_error) {
       if (_currentLevel !== -1) {
-        change_constellation(_stack[_currentLevel], null, function() {
+        change_constellation(_stack[_currentLevel], null, function () {
           _currentLevel = -1;
           if (typeof i_success === 'function') {
             i_success();
@@ -1214,9 +1214,9 @@
       }
     };
 
-    this.clear = function(i_success, i_error) {
+    this.clear = function (i_success, i_error) {
       if (_currentLevel !== -1) {
-        change_constellation(_stack[_currentLevel], null, function() {
+        change_constellation(_stack[_currentLevel], null, function () {
           _stack.splice(0, _stack.length);
           _currentLevel = -1;
           if (typeof i_success === 'function') {
@@ -1229,11 +1229,11 @@
       }
     };
 
-    this.getCurrentSituation = function() {
+    this.getCurrentSituation = function () {
       return _currentLevel !== -1 ? _stack[_currentLevel] : [];
     };
     // TODO i_error
-    this.setCurrentSituation = function(i_rectangles, i_success, i_error) {
+    this.setCurrentSituation = function (i_rectangles, i_success, i_error) {
       // if we don't have a loader we do not proceed
       if (Array.isArray(i_rectangles)) {
         // try to read new constellation
@@ -1249,69 +1249,69 @@
     };
   };
 
-  var Grid = function(i_config) {
+  var Grid = function (i_config) {
     // init coordinates
     this._columnCoordinates = create_grid_coordinates(i_config.columns);
     this._rowCoordinates = create_grid_coordinates(i_config.rows);
     this._margin = i_config.margin;
   };
   Grid.prototype = {
-      getColumns : function() {
-        return this._columnCoordinates.length;
-      },
+    getColumns: function () {
+      return this._columnCoordinates.length;
+    },
 
-      getRows : function() {
-        return this._rowCoordinates.length;
-      },
+    getRows: function () {
+      return this._rowCoordinates.length;
+    },
 
-      calculateGrid : function(i_widthPixels, i_heightPixels, i_separatorPixels) {
-        var width = typeof i_widthPixels === 'number' && i_widthPixels > 0 ? i_widthPixels : 100;
-        var height = typeof i_heightPixels === 'number' && i_heightPixels > 0 ? i_heightPixels : 100;
-        var separator = typeof i_separatorPixels === 'number' && i_separatorPixels >= 0 ? i_separatorPixels : 0;
-        var margin = this._margin;
-        var leftMargin = get_dimension_parameter(margin, 'left', separator);
-        var rightMargin = get_dimension_parameter(margin, 'right', separator);
-        var topMargin = get_dimension_parameter(margin, 'top', separator);
-        var bottomMargin = get_dimension_parameter(margin, 'bottom', separator);
-        compute_grid_axis_pixel(this._columnCoordinates, width, separator, leftMargin, rightMargin);
-        compute_grid_axis_pixel(this._rowCoordinates, height, separator, topMargin, bottomMargin);
-      },
+    calculateGrid: function (i_widthPixels, i_heightPixels, i_separatorPixels) {
+      var width = typeof i_widthPixels === 'number' && i_widthPixels > 0 ? i_widthPixels : 100;
+      var height = typeof i_heightPixels === 'number' && i_heightPixels > 0 ? i_heightPixels : 100;
+      var separator = typeof i_separatorPixels === 'number' && i_separatorPixels >= 0 ? i_separatorPixels : 0;
+      var margin = this._margin;
+      var leftMargin = get_dimension_parameter(margin, 'left', separator);
+      var rightMargin = get_dimension_parameter(margin, 'right', separator);
+      var topMargin = get_dimension_parameter(margin, 'top', separator);
+      var bottomMargin = get_dimension_parameter(margin, 'bottom', separator);
+      compute_grid_axis_pixel(this._columnCoordinates, width, separator, leftMargin, rightMargin);
+      compute_grid_axis_pixel(this._rowCoordinates, height, separator, topMargin, bottomMargin);
+    },
 
-      getStartX : function(i_columnIndex) {
-        return get_grid_coordinate(this._columnCoordinates, i_columnIndex, 'start');
-      },
+    getStartX: function (i_columnIndex) {
+      return get_grid_coordinate(this._columnCoordinates, i_columnIndex, 'start');
+    },
 
-      getEndX : function(i_columnIndex) {
-        return get_grid_coordinate(this._columnCoordinates, i_columnIndex, 'end');
-      },
+    getEndX: function (i_columnIndex) {
+      return get_grid_coordinate(this._columnCoordinates, i_columnIndex, 'end');
+    },
 
-      getStartY : function(i_rowIndex) {
-        return get_grid_coordinate(this._rowCoordinates, i_rowIndex, 'start');
-      },
+    getStartY: function (i_rowIndex) {
+      return get_grid_coordinate(this._rowCoordinates, i_rowIndex, 'start');
+    },
 
-      getEndY : function(i_rowIndex) {
-        return get_grid_coordinate(this._rowCoordinates, i_rowIndex, 'end');
-      },
+    getEndY: function (i_rowIndex) {
+      return get_grid_coordinate(this._rowCoordinates, i_rowIndex, 'end');
+    },
 
-      getBounds : function(i_rectangle) {
-        var x = typeof i_rectangle.x === 'number' ? i_rectangle.x : 0;
-        var y = typeof i_rectangle.y === 'number' ? i_rectangle.y : 0;
-        var width = typeof i_rectangle.width === 'number' ? i_rectangle.width : 1;
-        var height = typeof i_rectangle.height === 'number' ? i_rectangle.height : 1;
-        var colCoorStart = this.getStartX(x);
-        var colCoorEnd = this.getEndX(x + width - 1);
-        var rowCoorStart = this.getStartY(y);
-        var rowCoorEnd = this.getEndY(y + height - 1);
-        return {
-            x : Math.floor(colCoorStart),
-            y : Math.floor(rowCoorStart),
-            width : Math.floor(colCoorEnd - colCoorStart),
-            height : Math.floor(rowCoorEnd - rowCoorStart)
-        };
-      }
+    getBounds: function (i_rectangle) {
+      var x = typeof i_rectangle.x === 'number' ? i_rectangle.x : 0;
+      var y = typeof i_rectangle.y === 'number' ? i_rectangle.y : 0;
+      var width = typeof i_rectangle.width === 'number' ? i_rectangle.width : 1;
+      var height = typeof i_rectangle.height === 'number' ? i_rectangle.height : 1;
+      var colCoorStart = this.getStartX(x);
+      var colCoorEnd = this.getEndX(x + width - 1);
+      var rowCoorStart = this.getStartY(y);
+      var rowCoorEnd = this.getEndY(y + height - 1);
+      return {
+        x: Math.floor(colCoorStart),
+        y: Math.floor(rowCoorStart),
+        width: Math.floor(colCoorEnd - colCoorStart),
+        height: Math.floor(rowCoorEnd - rowCoorStart)
+      };
+    }
   };
 
-  s_types['grid'] = function(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
+  s_types['grid'] = function (i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
     var that = this;
     var _cont = that._hmi_context.container;
     var _scope = i_enableEditorEvents === true ? Utilities.getUniqueId() : undefined;
@@ -1335,9 +1335,9 @@
       }
     }
     var _grid = new Grid({
-        columns : that.columns !== undefined && that.columns !== null ? that.columns : columns,
-        rows : that.rows !== undefined && that.rows !== null ? that.rows : rows,
-        margin : that.margin
+      columns: that.columns !== undefined && that.columns !== null ? that.columns : columns,
+      rows: that.rows !== undefined && that.rows !== null ? that.rows : rows,
+      margin: that.margin
     });
     rows = undefined;
     columns = undefined;
@@ -1349,7 +1349,7 @@
       for (var col = _grid.getColumns() - 1; col >= 0; col--) {
         for (var row = _grid.getRows() - 1; row >= 0; row--) {
           // closure
-          (function() {
+          (function () {
             var placeholder = {};
             placeholder.x = col;
             placeholder.y = row;
@@ -1365,33 +1365,33 @@
             set_bounds(placeholder._hmi_gridElement, _grid.getBounds(placeholder));
             _placeholders.push(placeholder);
             placeholder._hmi_gridElement.droppable({
-                scope : _scope,
-                tolerance : 'pointer',
-                hoverClass : 'default-background-hover',
-                // this method will be called when dragged element has been
-                // dropped
-                drop : function(i_event, i_ui) {
-                  prevent_default_and_stop_propagation(i_event);
-                  // get the source object and data
-                  var source = i_ui.draggable.data('hmi_object');
-                  for (var i = 0; i < _children.length; i++) {
-                    var child = _children[i];
-                    if (child._hmi_gridElement && child._hmi_object === source) {
-                      child.x = placeholder.x;
-                      child.y = placeholder.y;
-                      set_bounds(child._hmi_gridElement, _grid.getBounds(child));
-                      var hmiobj = child._hmi_object;
-                      if (hmiobj && hmiobj._hmi_resize) {
-                        hmiobj._hmi_resize();
-                      }
-                      that._hmi_forAllEditListeners(function(i_listener) {
-                        if (typeof i_listener.notifyEdited === 'function') {
-                          i_listener.notifyEdited();
-                        }
-                      });
+              scope: _scope,
+              tolerance: 'pointer',
+              hoverClass: 'default-background-hover',
+              // this method will be called when dragged element has been
+              // dropped
+              drop: function (i_event, i_ui) {
+                prevent_default_and_stop_propagation(i_event);
+                // get the source object and data
+                var source = i_ui.draggable.data('hmi_object');
+                for (var i = 0; i < _children.length; i++) {
+                  var child = _children[i];
+                  if (child._hmi_gridElement && child._hmi_object === source) {
+                    child.x = placeholder.x;
+                    child.y = placeholder.y;
+                    set_bounds(child._hmi_gridElement, _grid.getBounds(child));
+                    var hmiobj = child._hmi_object;
+                    if (hmiobj && hmiobj._hmi_resize) {
+                      hmiobj._hmi_resize();
                     }
+                    that._hmi_forAllEditListeners(function (i_listener) {
+                      if (typeof i_listener.notifyEdited === 'function') {
+                        i_listener.notifyEdited();
+                      }
+                    });
                   }
                 }
+              }
             });
             var intersects = false;
             for (var i = 0; intersects === false && i < _children.length; i++) {
@@ -1408,14 +1408,14 @@
               }
             }
             if (intersects === false) {
-              placeholder._hmi_gridElement.hover(function(i_event) {
+              placeholder._hmi_gridElement.hover(function (i_event) {
                 placeholder._hmi_gridElement.addClass('default-background-hover');
-              }, function(i_event) {
+              }, function (i_event) {
                 placeholder._hmi_gridElement.removeClass('default-background-hover');
               });
-              placeholder._hmi_clickedForEdit = function(i_event) {
+              placeholder._hmi_clickedForEdit = function (i_event) {
                 prevent_default_and_stop_propagation(i_event);
-                that._hmi_forAllEditListeners(function(i_listener) {
+                that._hmi_forAllEditListeners(function (i_listener) {
                   if (typeof i_listener.showChildObjectEditor === 'function') {
                     i_listener.showChildObjectEditor(-1, placeholder);
                   }
@@ -1438,36 +1438,36 @@
     var tasks = [];
     if (typeof this.droppable === 'string') {
       if (i_enableEditorEvents !== true) {
-        droppableCellAdded = function(i_child) {
+        droppableCellAdded = function (i_child) {
           i_child._hmi_gridElement.droppable({
-              // set the drag and drop scope
-              scope : that.droppable,
-              // only mouse pointer is relevant
-              tolerance : 'pointer',
-              // If specified, the class will be added to the droppable while an
-              // acceptable iconConfig is being hovered over the droppable.
-              hoverClass : typeof that.hoverClass === 'string' ? that.hoverClass : 'default-background-hover',
-              // this method will be called when dragged element has been
-              // dropped
-              drop : function(i_event, i_ui) {
-                prevent_default_and_stop_propagation(i_event);
-                // get the source object and data
-                var source = i_ui.draggable.data('hmi_object');
-                var data = source && source.data !== null && typeof source.data === 'object' ? source.data : undefined;
-                if (data && typeof data.object === 'string' && data.object.length > 0) {
-                  var width = typeof data.width === 'number' ? data.width : 1;
-                  var height = typeof data.height === 'number' ? data.height : 1;
-                  _rectHandlerPipe(function(i_rectHandlerSuccess, i_rectHandlerError) {
-                    _rectHandler.prepareNextSet();
-                    _rectHandler.addRectangleForNextSetToDefinedLocation(i_child.x, i_child.y, width, height, data.object, data.init);
-                    _rectHandler.activateNextSet(i_rectHandlerSuccess, i_rectHandlerError);
-                  });
-                }
+            // set the drag and drop scope
+            scope: that.droppable,
+            // only mouse pointer is relevant
+            tolerance: 'pointer',
+            // If specified, the class will be added to the droppable while an
+            // acceptable iconConfig is being hovered over the droppable.
+            hoverClass: typeof that.hoverClass === 'string' ? that.hoverClass : 'default-background-hover',
+            // this method will be called when dragged element has been
+            // dropped
+            drop: function (i_event, i_ui) {
+              prevent_default_and_stop_propagation(i_event);
+              // get the source object and data
+              var source = i_ui.draggable.data('hmi_object');
+              var data = source && source.data !== null && typeof source.data === 'object' ? source.data : undefined;
+              if (data && typeof data.object === 'string' && data.object.length > 0) {
+                var width = typeof data.width === 'number' ? data.width : 1;
+                var height = typeof data.height === 'number' ? data.height : 1;
+                _rectHandlerPipe(function (i_rectHandlerSuccess, i_rectHandlerError) {
+                  _rectHandler.prepareNextSet();
+                  _rectHandler.addRectangleForNextSetToDefinedLocation(i_child.x, i_child.y, width, height, data.object, data.init);
+                  _rectHandler.activateNextSet(i_rectHandlerSuccess, i_rectHandlerError);
+                });
               }
+            }
           });
         };
 
-        addPlaceholders = function(i_x, i_y, i_width, i_height) {
+        addPlaceholders = function (i_x, i_y, i_width, i_height) {
           // CLASSES
           var classes = typeof that.dropClasses === 'string' ? that.dropClasses.split(' ') : that.dropClasses;
           for (var col = i_x + i_width - 1; col >= i_x; col--) {
@@ -1501,8 +1501,8 @@
 
         // this method will be called from inside of the rectangle handler in
         // case a new rectangle must be loaded
-        loadRectangle = function(i_x, i_y, i_width, i_height, i_objectReference, i_suc, i_err, i_initData) {
-          that.hmi.cms.getObject(i_objectReference, that.hmi.language, ContentManager.PARSE, function(i_object) {
+        loadRectangle = function (i_x, i_y, i_width, i_height, i_objectReference, i_suc, i_err, i_initData) {
+          that.hmi.cms.getObject(i_objectReference, that.hmi.language, ContentManager.PARSE, function (i_object) {
             if (i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
               // first we got to remove all place holders
               for (var col = i_x + i_width - 1; col >= i_x; col--) {
@@ -1533,7 +1533,7 @@
               set_bounds(child._hmi_gridElement, _grid.getBounds(child));
               _children.push(child);
               droppableCellAdded(child);
-              create_hmi_object_branch(i_object, child._hmi_gridElement, function() {
+              create_hmi_object_branch(i_object, child._hmi_gridElement, function () {
                 child._hmi_object = i_object._hmi_object;
                 child.hmi_object = i_object._hmi_object;
                 i_suc();
@@ -1549,7 +1549,7 @@
 
         // this method will be called from inside of the rectangle handler in
         // case a new rectangle must be reloaded
-        reloadRectangle = function(i_objectReference, i_initData) {
+        reloadRectangle = function (i_objectReference, i_initData) {
           for (var i = 0; i < _children.length; i++) {
             var child = _children[i];
             if (child.objectReference === i_objectReference && child.object) {
@@ -1559,13 +1559,13 @@
         };
         // this method will be called from inside of the rectangle handler in
         // case an existing rectangle must be unloaded
-        unloadRectangle = function(i_x, i_y, i_width, i_height, i_objectReference, i_suc, i_err) {
+        unloadRectangle = function (i_x, i_y, i_width, i_height, i_objectReference, i_suc, i_err) {
           for (var i = 0; i < _children.length; i++) {
             var child = _children[i];
             if (child.objectReference === i_objectReference) {
               // here we use .object because we placed our object there (see
               // code above)
-              destroy_hmi_object_branch(child.object, function() {
+              destroy_hmi_object_branch(child.object, function () {
                 delete child._hmi_object;
                 delete child.hmi_object;
                 delete child.object;
@@ -1585,71 +1585,71 @@
           }
         };
         _rectHandler = new RectangleHandler(_grid.getColumns(), _grid.getRows(), typeof this.maxStackSize === 'number' ? this.maxStackSize : 64, loadRectangle, reloadRectangle, unloadRectangle);
-        _rectHandlerPipe = new Executor.pipe(function(i_exception) {
+        _rectHandlerPipe = new Executor.pipe(function (i_exception) {
           console.error('TODO: handle errors!\nEXCEPTION: ' + i_exception);
         });
         addPlaceholders(0, 0, _grid.getColumns(), _grid.getRows());
         if (that.hmi.droppables[that.droppable] === undefined || that.hmi.droppables[that.droppable] === null) {
           _dropable = {
-              add : function(i_path, i_width, i_height, i_init, i_callback) {
-                var width = typeof i_width === 'number' ? i_width : 1;
-                var height = typeof i_height === 'number' ? i_height : 1;
-                _rectHandlerPipe(function(i_rectHandlerSuccess, i_rectHandlerError) {
-                  _rectHandler.prepareNextSet();
-                  _rectHandler.addRectangleForNextSetToDefaultLocation(width, height, i_path, i_init);
-                  _rectHandler.activateNextSet(function() {
-                    i_rectHandlerSuccess();
-                    if (typeof i_callback === 'function') {
-                      i_callback();
-                    }
-                  }, i_rectHandlerError);
-                });
-              },
-              home : function(i_callback) {
-                _rectHandlerPipe(function(i_rectHandlerSuccess, i_rectHandlerError) {
-                  _rectHandler.goToStart(function() {
-                    i_rectHandlerSuccess();
-                    if (typeof i_callback === 'function') {
-                      i_callback();
-                    }
-                  }, i_rectHandlerError);
-                });
-              },
-              undo : function(i_callback) {
-                _rectHandlerPipe(function(i_rectHandlerSuccess, i_rectHandlerError) {
-                  _rectHandler.goBack(function() {
-                    i_rectHandlerSuccess();
-                    if (typeof i_callback === 'function') {
-                      i_callback();
-                    }
-                  }, i_rectHandlerError);
-                });
-              },
-              redo : function(i_callback) {
-                _rectHandlerPipe(function(i_rectHandlerSuccess, i_rectHandlerError) {
-                  _rectHandler.goForward(function() {
-                    i_rectHandlerSuccess();
-                    if (typeof i_callback === 'function') {
-                      i_callback();
-                    }
-                  }, i_rectHandlerError);
-                });
-              },
-              getCurrentSituation : function() {
-                return _rectHandler.getCurrentSituation();
-              },
-              setCurrentSituation : function(i_rectangles, i_callback) {
-                _rectHandlerPipe(function(i_rectHandlerSuccess, i_rectHandlerError) {
-                  _rectHandler.setCurrentSituation(i_rectangles, function() {
-                    i_rectHandlerSuccess();
-                    if (typeof i_callback === 'function') {
-                      i_callback();
-                    }
-                  });
+            add: function (i_path, i_width, i_height, i_init, i_callback) {
+              var width = typeof i_width === 'number' ? i_width : 1;
+              var height = typeof i_height === 'number' ? i_height : 1;
+              _rectHandlerPipe(function (i_rectHandlerSuccess, i_rectHandlerError) {
+                _rectHandler.prepareNextSet();
+                _rectHandler.addRectangleForNextSetToDefaultLocation(width, height, i_path, i_init);
+                _rectHandler.activateNextSet(function () {
+                  i_rectHandlerSuccess();
+                  if (typeof i_callback === 'function') {
+                    i_callback();
+                  }
                 }, i_rectHandlerError);
-              }
+              });
+            },
+            home: function (i_callback) {
+              _rectHandlerPipe(function (i_rectHandlerSuccess, i_rectHandlerError) {
+                _rectHandler.goToStart(function () {
+                  i_rectHandlerSuccess();
+                  if (typeof i_callback === 'function') {
+                    i_callback();
+                  }
+                }, i_rectHandlerError);
+              });
+            },
+            undo: function (i_callback) {
+              _rectHandlerPipe(function (i_rectHandlerSuccess, i_rectHandlerError) {
+                _rectHandler.goBack(function () {
+                  i_rectHandlerSuccess();
+                  if (typeof i_callback === 'function') {
+                    i_callback();
+                  }
+                }, i_rectHandlerError);
+              });
+            },
+            redo: function (i_callback) {
+              _rectHandlerPipe(function (i_rectHandlerSuccess, i_rectHandlerError) {
+                _rectHandler.goForward(function () {
+                  i_rectHandlerSuccess();
+                  if (typeof i_callback === 'function') {
+                    i_callback();
+                  }
+                }, i_rectHandlerError);
+              });
+            },
+            getCurrentSituation: function () {
+              return _rectHandler.getCurrentSituation();
+            },
+            setCurrentSituation: function (i_rectangles, i_callback) {
+              _rectHandlerPipe(function (i_rectHandlerSuccess, i_rectHandlerError) {
+                _rectHandler.setCurrentSituation(i_rectangles, function () {
+                  i_rectHandlerSuccess();
+                  if (typeof i_callback === 'function') {
+                    i_callback();
+                  }
+                });
+              }, i_rectHandlerError);
+            }
           };
-          this.hmi_dropable = function() {
+          this.hmi_dropable = function () {
             return _dropable;
           };
           that.hmi.droppables[that.droppable] = _dropable;
@@ -1659,17 +1659,17 @@
     else {
       for (var i = 0, l = _children.length; i < l; i++) {
         // closure
-        (function() {
+        (function () {
           var idx = i;
           var child = _children[idx];
           var hmiobj = child._hmi_object;
           if (hmiobj) {
             if (hmiobj.type === 'handler') {
               if (hmiobj._hmi_init_dom) {
-                tasks.push(function(i_suc, i_err) {
+                tasks.push(function (i_suc, i_err) {
                   // #grid: 1
                   hmiobj._hmi_init_dom({
-                    container : _cont
+                    container: _cont
                   }, i_suc, i_err);
                 });
               }
@@ -1679,30 +1679,30 @@
               child._hmi_gridElement.appendTo(_mainDiv);
               set_bounds(child._hmi_gridElement, _grid.getBounds(child));
               if (hmiobj._hmi_init_dom) {
-                tasks.push(function(i_suc, i_err) {
+                tasks.push(function (i_suc, i_err) {
                   // #grid: 2
                   hmiobj._hmi_init_dom({
-                    container : child._hmi_gridElement
+                    container: child._hmi_gridElement
                   }, i_suc, i_err);
                 });
               }
               if (i_enableEditorEvents === true) {
                 child._hmi_gridElement.draggable({
-                    scope : _scope,
-                    // helper : 'clone',
-                    revert : 'invalid',
-                    revertDuration : 777,
-                    appendTo : 'body',
-                    // opacity : 0.7,
-                    distance : 20,
-                    iframeFix : true,
-                    scroll : false
+                  scope: _scope,
+                  // helper : 'clone',
+                  revert: 'invalid',
+                  revertDuration: 777,
+                  appendTo: 'body',
+                  // opacity : 0.7,
+                  distance: 20,
+                  iframeFix: true,
+                  scroll: false
                 });
               }
               if (i_enableEditorEvents === true) {
-                child._hmi_clickedForEdit = function(i_event) {
+                child._hmi_clickedForEdit = function (i_event) {
                   prevent_default_and_stop_propagation(i_event);
-                  that._hmi_forAllEditListeners(function(i_listener) {
+                  that._hmi_forAllEditListeners(function (i_listener) {
                     if (typeof i_listener.showChildObjectEditor === 'function') {
                       i_listener.showChildObjectEditor(idx, child);
                     }
@@ -1715,7 +1715,7 @@
         }());
       }
     }
-    this._hmi_resizes.push(function() {
+    this._hmi_resizes.push(function () {
       _grid.calculateGrid(_mainDiv.width(), _mainDiv.height(), typeof that.separator === 'number' ? that.separator : 0);
       if (Array.isArray(_placeholders)) {
         for (var i = 0; i < _placeholders.length; i++) {
@@ -1734,7 +1734,7 @@
         }
       }
     });
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       if (i_enableEditorEvents !== true && typeof that.droppable === 'string') {
         // clean up drop grid elements first ...
         var rect = that.hmi.droppables[that.droppable];
@@ -1805,7 +1805,7 @@
     Executor.run(tasks, i_success, i_error);
   };
 
-  s_types['float'] = function(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
+  s_types['float'] = function (i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
     var that = this, tasks = [];
     var _cont = that._hmi_context.container;
     _cont.addClass('overflow-hidden');
@@ -1817,65 +1817,65 @@
       ListenerSupport.call(that);
       _scope = Utilities.getUniqueId();
       _mainDiv.droppable({
-          scope : _scope,
-          tolerance : 'pointer',
-          hoverClass : 'default-background-hover',
-          drop : function(i_event, i_ui) {
-            prevent_default_and_stop_propagation(i_event);
-            var source = i_ui.draggable.data('hmi_object');
-            for (var i = 0; i < _children.length; i++) {
-              var child = _children[i];
-              if (child._hmi_floatElement && child._hmi_object === source) {
-                var width = _mainDiv.width();
-                var height = _mainDiv.height();
-                // get the alignment
-                var align = get_alignment(child.align, undefined, false, true);
-                // get pixel values as number if available (returns undefined if
-                // not something like "42px")
-                var parX = get_pixel_value(child.x);
-                var parY = get_pixel_value(child.y);
-                var parW = get_pixel_value(child.width);
-                var parH = get_pixel_value(child.height);
-                // get the current views location and dimension
-                var pixW = get_pixel_value(child._hmi_floatElement.css('width'));
-                var pixH = get_pixel_value(child._hmi_floatElement.css('height'));
-                var pixX = get_pixel_value(child._hmi_floatElement.css('left')) + pixW * align.x;
-                var pixY = get_pixel_value(child._hmi_floatElement.css('top')) + pixH * align.y;
-                // update the rectangle attributes
-                child.x = typeof parX === 'number' ? pixX + 'px' : pixX / width;
-                child.y = typeof parY === 'number' ? pixY + 'px' : pixY / height;
-                child.width = typeof parW === 'number' ? pixW + 'px' : pixW / width;
-                child.height = typeof parH === 'number' ? pixH + 'px' : pixH / height;
-                var hmiobj = child._hmi_object;
-                if (hmiobj && hmiobj._hmi_resize) {
-                  hmiobj._hmi_resize();
-                }
-                that._hmi_forAllEditListeners(function(i_listener) {
-                  if (typeof i_listener.notifyEdited === 'function') {
-                    i_listener.notifyEdited();
-                  }
-                });
-                break;
+        scope: _scope,
+        tolerance: 'pointer',
+        hoverClass: 'default-background-hover',
+        drop: function (i_event, i_ui) {
+          prevent_default_and_stop_propagation(i_event);
+          var source = i_ui.draggable.data('hmi_object');
+          for (var i = 0; i < _children.length; i++) {
+            var child = _children[i];
+            if (child._hmi_floatElement && child._hmi_object === source) {
+              var width = _mainDiv.width();
+              var height = _mainDiv.height();
+              // get the alignment
+              var align = get_alignment(child.align, undefined, false, true);
+              // get pixel values as number if available (returns undefined if
+              // not something like "42px")
+              var parX = get_pixel_value(child.x);
+              var parY = get_pixel_value(child.y);
+              var parW = get_pixel_value(child.width);
+              var parH = get_pixel_value(child.height);
+              // get the current views location and dimension
+              var pixW = get_pixel_value(child._hmi_floatElement.css('width'));
+              var pixH = get_pixel_value(child._hmi_floatElement.css('height'));
+              var pixX = get_pixel_value(child._hmi_floatElement.css('left')) + pixW * align.x;
+              var pixY = get_pixel_value(child._hmi_floatElement.css('top')) + pixH * align.y;
+              // update the rectangle attributes
+              child.x = typeof parX === 'number' ? pixX + 'px' : pixX / width;
+              child.y = typeof parY === 'number' ? pixY + 'px' : pixY / height;
+              child.width = typeof parW === 'number' ? pixW + 'px' : pixW / width;
+              child.height = typeof parH === 'number' ? pixH + 'px' : pixH / height;
+              var hmiobj = child._hmi_object;
+              if (hmiobj && hmiobj._hmi_resize) {
+                hmiobj._hmi_resize();
               }
+              that._hmi_forAllEditListeners(function (i_listener) {
+                if (typeof i_listener.notifyEdited === 'function') {
+                  i_listener.notifyEdited();
+                }
+              });
+              break;
             }
           }
+        }
       });
     }
     var width = _mainDiv.width();
     var height = _mainDiv.height();
     for (var i = 0; i < _children.length; i++) {
       // closure
-      (function() {
+      (function () {
         var idx = i;
         var child = _children[i];
         var hmiobj = child._hmi_object;
         if (hmiobj) {
           if (hmiobj.type === 'handler') {
             if (hmiobj._hmi_init_dom) {
-              tasks.push(function(i_suc, i_err) {
+              tasks.push(function (i_suc, i_err) {
                 // #float: 1
                 hmiobj._hmi_init_dom({
-                  container : _cont
+                  container: _cont
                 }, i_suc, i_err);
               });
             }
@@ -1885,30 +1885,30 @@
             child._hmi_floatElement.appendTo(_mainDiv);
             set_bounds(child._hmi_floatElement, get_floating_bounds(child, width, height));
             if (hmiobj._hmi_init_dom) {
-              tasks.push(function(i_suc, i_err) {
+              tasks.push(function (i_suc, i_err) {
                 // #float: 2
                 hmiobj._hmi_init_dom({
-                  container : child._hmi_floatElement
+                  container: child._hmi_floatElement
                 }, i_suc, i_err);
               });
             }
             if (i_enableEditorEvents === true) {
               child._hmi_floatElement.draggable({
-                  scope : _scope,
-                  // helper : 'clone',
-                  revert : 'invalid',
-                  revertDuration : 777,
-                  appendTo : 'body',
-                  // opacity : 0.7,
-                  distance : 20,
-                  iframeFix : true,
-                  scroll : false
+                scope: _scope,
+                // helper : 'clone',
+                revert: 'invalid',
+                revertDuration: 777,
+                appendTo: 'body',
+                // opacity : 0.7,
+                distance: 20,
+                iframeFix: true,
+                scroll: false
               });
             }
             if (i_enableEditorEvents === true) {
-              child._hmi_clickedForEdit = function(i_event) {
+              child._hmi_clickedForEdit = function (i_event) {
                 prevent_default_and_stop_propagation(i_event);
-                that._hmi_forAllEditListeners(function(i_listener) {
+                that._hmi_forAllEditListeners(function (i_listener) {
                   if (typeof i_listener.showChildObjectEditor === 'function') {
                     i_listener.showChildObjectEditor(idx, child);
                   }
@@ -1921,9 +1921,9 @@
       }());
     }
     if (i_enableEditorEvents === true) {
-      this._hmi_clickedForEdit = function(i_event) {
+      this._hmi_clickedForEdit = function (i_event) {
         prevent_default_and_stop_propagation(i_event);
-        that._hmi_forAllEditListeners(function(i_listener) {
+        that._hmi_forAllEditListeners(function (i_listener) {
           if (typeof i_listener.showChildObjectEditor === 'function') {
             var w = _cont.width();
             var h = _cont.height();
@@ -1931,17 +1931,17 @@
             var x = offset === undefined ? i_event.offsetX : i_event.pageX - offset.left;
             var y = offset === undefined ? i_event.offsetY : i_event.pageY - offset.top;
             i_listener.showChildObjectEditor(-1, {
-                x : x / w,
-                y : y / h,
-                width : 0.5,
-                height : 0.5
+              x: x / w,
+              y: y / h,
+              width: 0.5,
+              height: 0.5
             });
           }
         });
       };
       _cont.on('click', that._hmi_clickedForEdit);
     }
-    this._hmi_resizes.push(function() {
+    this._hmi_resizes.push(function () {
       var width = _mainDiv.width();
       var height = _mainDiv.height();
       for (var i = 0; i < _children.length; i++) {
@@ -1955,7 +1955,7 @@
         }
       }
     });
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       if (i_enableEditorEvents === true) {
         _cont.off('click', that._hmi_clickedForEdit);
         delete that._hmi_clickedForEdit;
@@ -1999,22 +1999,22 @@
   var SPLIT_BOTTOM = 0x02;
   var SPLIT_CENTER = 0x01;
 
-  s_types['split'] = function(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
+  s_types['split'] = function (i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
     var that = this, tasks = [];
     var _cont = that._hmi_context.container;
-    var init_hmi_object_dom = function(i_split) {
+    var init_hmi_object_dom = function (i_split) {
       var hmiobj = i_split._hmi_object;
       if (hmiobj && hmiobj._hmi_init_dom) {
-        tasks.push(function(i_suc, i_err) {
+        tasks.push(function (i_suc, i_err) {
           // #split: 1
           hmiobj._hmi_init_dom({
-            container : i_split._hmi_splitElement
+            container: i_split._hmi_splitElement
           }, i_suc, i_err);
         });
       }
     };
     var _instance = undefined;
-    var prepare_panes_and_init_hmi_object_dom = function(i_north, i_south, i_west, i_east, i_center) {
+    var prepare_panes_and_init_hmi_object_dom = function (i_north, i_south, i_west, i_east, i_center) {
       var layout = {};
       var width = _cont.width();
       var height = _cont.height();
@@ -2047,7 +2047,7 @@
         i_north._hmi_splitContainer.appendTo(_cont);
         i_north._hmi_splitElement = $(DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
         i_north._hmi_splitElement.appendTo(i_north._hmi_splitContainer);
-        layout.north__onresize_end = function(i_paneName, i_paneElement, i_paneState, i_paneOptions, i_layoutName) {
+        layout.north__onresize_end = function (i_paneName, i_paneElement, i_paneState, i_paneOptions, i_layoutName) {
           var hmiobj = i_north._hmi_object;
           if (hmiobj && hmiobj._hmi_resize) {
             hmiobj._hmi_resize();
@@ -2059,7 +2059,7 @@
         i_south._hmi_splitContainer.appendTo(_cont);
         i_south._hmi_splitElement = $(DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
         i_south._hmi_splitElement.appendTo(i_south._hmi_splitContainer);
-        layout.south__onresize_end = function(i_paneName, i_paneElement, i_paneState, i_paneOptions, i_layoutName) {
+        layout.south__onresize_end = function (i_paneName, i_paneElement, i_paneState, i_paneOptions, i_layoutName) {
           var hmiobj = i_south._hmi_object;
           if (hmiobj && hmiobj._hmi_resize) {
             hmiobj._hmi_resize();
@@ -2071,7 +2071,7 @@
         i_west._hmi_splitContainer.appendTo(_cont);
         i_west._hmi_splitElement = $(DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
         i_west._hmi_splitElement.appendTo(i_west._hmi_splitContainer);
-        layout.west__onresize_end = function(i_paneName, i_paneElement, i_paneState, i_paneOptions, i_layoutName) {
+        layout.west__onresize_end = function (i_paneName, i_paneElement, i_paneState, i_paneOptions, i_layoutName) {
           var hmiobj = i_west._hmi_object;
           if (hmiobj && hmiobj._hmi_resize) {
             hmiobj._hmi_resize();
@@ -2083,7 +2083,7 @@
         i_east._hmi_splitContainer.appendTo(_cont);
         i_east._hmi_splitElement = $(DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
         i_east._hmi_splitElement.appendTo(i_east._hmi_splitContainer);
-        layout.east__onresize_end = function(i_paneName, i_paneElement, i_paneState, i_paneOptions, i_layoutName) {
+        layout.east__onresize_end = function (i_paneName, i_paneElement, i_paneState, i_paneOptions, i_layoutName) {
           var hmiobj = i_east._hmi_object;
           if (hmiobj && hmiobj._hmi_resize) {
             hmiobj._hmi_resize();
@@ -2095,7 +2095,7 @@
         i_center._hmi_splitContainer.appendTo(_cont);
         i_center._hmi_splitElement = $(DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
         i_center._hmi_splitElement.appendTo(i_center._hmi_splitContainer);
-        layout.center__onresize_end = function(i_paneName, i_paneElement, i_paneState, i_paneOptions, i_layoutName) {
+        layout.center__onresize_end = function (i_paneName, i_paneElement, i_paneState, i_paneOptions, i_layoutName) {
           var hmiobj = i_center._hmi_object;
           if (hmiobj && hmiobj._hmi_resize) {
             hmiobj._hmi_resize();
@@ -2120,10 +2120,10 @@
         if (hmiobj) {
           if (hmiobj.type === 'handler') {
             if (hmiobj._hmi_init_dom) {
-              tasks.push(function(i_suc, i_err) {
+              tasks.push(function (i_suc, i_err) {
                 // #split: 2
                 hmiobj._hmi_init_dom({
-                  container : _cont
+                  container: _cont
                 }, i_suc, i_err);
               });
             }
@@ -2154,132 +2154,132 @@
     // PREPARE
     _cont.addClass('overflow-hidden');
     switch (_mask) {
-    // 00001 center
-    case 0x01:
-      _center._hmi_splitElement = _cont;
-      break;
-    // 00010 bottom
-    case 0x02:
-      _bottom._hmi_splitElement = _cont;
-      break;
-    // 00011 bottom center
-    case 0x03:
-      prepare_panes_and_init_hmi_object_dom(undefined, _bottom, undefined, undefined, _center);
-      break;
-    // 00100 top
-    case 0x04:
-      _top._hmi_splitElement = _cont;
-      break;
-    // 00101 top center
-    case 0x05:
-      prepare_panes_and_init_hmi_object_dom(_top, undefined, undefined, undefined, _center);
-      break;
-    // 00110 top bottom
-    case 0x06:
-      prepare_panes_and_init_hmi_object_dom(_top, undefined, undefined, undefined, _bottom);
-      break;
-    // 00111 top bottom center
-    case 0x07:
-      prepare_panes_and_init_hmi_object_dom(_top, _bottom, undefined, undefined, _center);
-      break;
-    // 01000 right
-    case 0x08:
-      _right._hmi_splitElement = _cont;
-      break;
-    // 01001 right center
-    case 0x09:
-      prepare_panes_and_init_hmi_object_dom(undefined, undefined, undefined, _right, _center);
-      break;
-    // 01010 right bottom
-    case 0x0a:
-      prepare_panes_and_init_hmi_object_dom(undefined, _bottom, undefined, undefined, _right);
-      break;
-    // 01011 right bottom center
-    case 0x0b:
-      prepare_panes_and_init_hmi_object_dom(undefined, _bottom, undefined, _right, _center);
-      break;
-    // 01100 right top
-    case 0x0c:
-      prepare_panes_and_init_hmi_object_dom(_top, undefined, undefined, undefined, _right);
-      break;
-    // 01101 right top center
-    case 0x0d:
-      prepare_panes_and_init_hmi_object_dom(_top, undefined, undefined, _right, _center);
-      break;
-    // 01110 right top bottom
-    case 0x0e:
-      prepare_panes_and_init_hmi_object_dom(_top, _bottom, undefined, undefined, _right);
-      break;
-    // 01111 right top bottom center
-    case 0x0f:
-      prepare_panes_and_init_hmi_object_dom(_top, _bottom, undefined, _right, _center);
-      break;
-    // 10000 left
-    case 0x10:
-      _left._hmi_splitElement = _cont;
-      break;
-    // 10001 left center
-    case 0x11:
-      prepare_panes_and_init_hmi_object_dom(undefined, undefined, _left, undefined, _center);
-      break;
-    // 10010 left bottom
-    case 0x12:
-      prepare_panes_and_init_hmi_object_dom(undefined, _bottom, undefined, undefined, _left);
-      break;
-    // 10011 left bottom center
-    case 0x13:
-      prepare_panes_and_init_hmi_object_dom(undefined, _bottom, _left, undefined, _center);
-      break;
-    // 10100 left top
-    case 0x14:
-      prepare_panes_and_init_hmi_object_dom(_top, undefined, undefined, undefined, _left);
-      break;
-    // 10101 left top center
-    case 0x15:
-      prepare_panes_and_init_hmi_object_dom(_top, undefined, _left, undefined, _center);
-      break;
-    // 10110 left top bottom
-    case 0x16:
-      prepare_panes_and_init_hmi_object_dom(_top, _bottom, undefined, undefined, _left);
-      break;
-    // 10111 left top bottom center
-    case 0x17:
-      prepare_panes_and_init_hmi_object_dom(_top, _bottom, _left, undefined, _center);
-      break;
-    // 11000 left right
-    case 0x18:
-      prepare_panes_and_init_hmi_object_dom(undefined, undefined, _left, undefined, _right);
-      break;
-    // 11001 left right center
-    case 0x19:
-      prepare_panes_and_init_hmi_object_dom(undefined, undefined, _left, _right, _center);
-      break;
-    // 11010 left right bottom
-    case 0x1a:
-      prepare_panes_and_init_hmi_object_dom(undefined, _bottom, undefined, _right, _left);
-      break;
-    // 11011 left right bottom center
-    case 0x1b:
-      prepare_panes_and_init_hmi_object_dom(undefined, _bottom, _left, _right, _center);
-      break;
-    // 11100 left right top
-    case 0x1c:
-      prepare_panes_and_init_hmi_object_dom(_top, undefined, _left, undefined, _right);
-      break;
-    // 11101 left right top center
-    case 0x1d:
-      prepare_panes_and_init_hmi_object_dom(_top, undefined, _left, _right, _center);
-      break;
-    // 11110 left right top bottom
-    case 0x1e:
-      prepare_panes_and_init_hmi_object_dom(_top, _bottom, _left, undefined, _right);
-      break;
-    // 11111 left right top bottom center
-    case 0x1f:
-      prepare_panes_and_init_hmi_object_dom(_top, _bottom, _left, _right, _center);
-      break;
-    default:
-      break;
+      // 00001 center
+      case 0x01:
+        _center._hmi_splitElement = _cont;
+        break;
+      // 00010 bottom
+      case 0x02:
+        _bottom._hmi_splitElement = _cont;
+        break;
+      // 00011 bottom center
+      case 0x03:
+        prepare_panes_and_init_hmi_object_dom(undefined, _bottom, undefined, undefined, _center);
+        break;
+      // 00100 top
+      case 0x04:
+        _top._hmi_splitElement = _cont;
+        break;
+      // 00101 top center
+      case 0x05:
+        prepare_panes_and_init_hmi_object_dom(_top, undefined, undefined, undefined, _center);
+        break;
+      // 00110 top bottom
+      case 0x06:
+        prepare_panes_and_init_hmi_object_dom(_top, undefined, undefined, undefined, _bottom);
+        break;
+      // 00111 top bottom center
+      case 0x07:
+        prepare_panes_and_init_hmi_object_dom(_top, _bottom, undefined, undefined, _center);
+        break;
+      // 01000 right
+      case 0x08:
+        _right._hmi_splitElement = _cont;
+        break;
+      // 01001 right center
+      case 0x09:
+        prepare_panes_and_init_hmi_object_dom(undefined, undefined, undefined, _right, _center);
+        break;
+      // 01010 right bottom
+      case 0x0a:
+        prepare_panes_and_init_hmi_object_dom(undefined, _bottom, undefined, undefined, _right);
+        break;
+      // 01011 right bottom center
+      case 0x0b:
+        prepare_panes_and_init_hmi_object_dom(undefined, _bottom, undefined, _right, _center);
+        break;
+      // 01100 right top
+      case 0x0c:
+        prepare_panes_and_init_hmi_object_dom(_top, undefined, undefined, undefined, _right);
+        break;
+      // 01101 right top center
+      case 0x0d:
+        prepare_panes_and_init_hmi_object_dom(_top, undefined, undefined, _right, _center);
+        break;
+      // 01110 right top bottom
+      case 0x0e:
+        prepare_panes_and_init_hmi_object_dom(_top, _bottom, undefined, undefined, _right);
+        break;
+      // 01111 right top bottom center
+      case 0x0f:
+        prepare_panes_and_init_hmi_object_dom(_top, _bottom, undefined, _right, _center);
+        break;
+      // 10000 left
+      case 0x10:
+        _left._hmi_splitElement = _cont;
+        break;
+      // 10001 left center
+      case 0x11:
+        prepare_panes_and_init_hmi_object_dom(undefined, undefined, _left, undefined, _center);
+        break;
+      // 10010 left bottom
+      case 0x12:
+        prepare_panes_and_init_hmi_object_dom(undefined, _bottom, undefined, undefined, _left);
+        break;
+      // 10011 left bottom center
+      case 0x13:
+        prepare_panes_and_init_hmi_object_dom(undefined, _bottom, _left, undefined, _center);
+        break;
+      // 10100 left top
+      case 0x14:
+        prepare_panes_and_init_hmi_object_dom(_top, undefined, undefined, undefined, _left);
+        break;
+      // 10101 left top center
+      case 0x15:
+        prepare_panes_and_init_hmi_object_dom(_top, undefined, _left, undefined, _center);
+        break;
+      // 10110 left top bottom
+      case 0x16:
+        prepare_panes_and_init_hmi_object_dom(_top, _bottom, undefined, undefined, _left);
+        break;
+      // 10111 left top bottom center
+      case 0x17:
+        prepare_panes_and_init_hmi_object_dom(_top, _bottom, _left, undefined, _center);
+        break;
+      // 11000 left right
+      case 0x18:
+        prepare_panes_and_init_hmi_object_dom(undefined, undefined, _left, undefined, _right);
+        break;
+      // 11001 left right center
+      case 0x19:
+        prepare_panes_and_init_hmi_object_dom(undefined, undefined, _left, _right, _center);
+        break;
+      // 11010 left right bottom
+      case 0x1a:
+        prepare_panes_and_init_hmi_object_dom(undefined, _bottom, undefined, _right, _left);
+        break;
+      // 11011 left right bottom center
+      case 0x1b:
+        prepare_panes_and_init_hmi_object_dom(undefined, _bottom, _left, _right, _center);
+        break;
+      // 11100 left right top
+      case 0x1c:
+        prepare_panes_and_init_hmi_object_dom(_top, undefined, _left, undefined, _right);
+        break;
+      // 11101 left right top center
+      case 0x1d:
+        prepare_panes_and_init_hmi_object_dom(_top, undefined, _left, _right, _center);
+        break;
+      // 11110 left right top bottom
+      case 0x1e:
+        prepare_panes_and_init_hmi_object_dom(_top, _bottom, _left, undefined, _right);
+        break;
+      // 11111 left right top bottom center
+      case 0x1f:
+        prepare_panes_and_init_hmi_object_dom(_top, _bottom, _left, _right, _center);
+        break;
+      default:
+        break;
     }
     // INIT DOM
     if (_left) {
@@ -2297,12 +2297,12 @@
     if (_center) {
       init_hmi_object_dom(_center);
     }
-    this._hmi_resizes.push(function() {
+    this._hmi_resizes.push(function () {
       if (_instance) {
         _instance.resizeAll();
       }
     });
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       if (Array.isArray(that.children)) {
         for (var i = that.children.length - 1; i >= 0; i--) {
           var child = that.children[i];
@@ -2348,7 +2348,7 @@
     $.fn.DataTable.ext.oSort['timestamp-desc'] = Sorting.getTextsAndNumbersCompareFunction(true, false, true);
   }
 
-  s_types['table'] = function(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
+  s_types['table'] = function (i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
     var that = this;
     var _cont = that._hmi_context.container;
     _cont.addClass('overflow-hidden');
@@ -2370,8 +2370,8 @@
       for (var i = 0; i < _columnCount; i++) {
         var column = that.columns[i];
         var cfg = {
-            width : (Math.floor(parts[i] * 10000) * 0.01).toString() + '%',
-            _id : Utilities.getUniqueId()
+          width: (Math.floor(parts[i] * 10000) * 0.01).toString() + '%',
+          _id: Utilities.getUniqueId()
         };
         if (column.textsAndNumbers === true) {
           cfg.type = 'texts-and-numbers';
@@ -2387,7 +2387,7 @@
         _columns.push(cfg);
       }
     }
-    var header_callback = function(i_header, i_data, i_start, i_end, i_display) {
+    var header_callback = function (i_header, i_data, i_start, i_end, i_display) {
       for (var i = 0, l = _columns.length; i < l; i++) {
         var column = that.columns[i];
         var cell = $('#' + _columns[i]._id);
@@ -2399,7 +2399,7 @@
         }
       }
     };
-    var row_callback = function(i_row, i_data, i_displayIndex, i_displayIndexFull) {
+    var row_callback = function (i_row, i_data, i_displayIndex, i_displayIndexFull) {
       if (typeof that.prepareTableRow === 'function') {
         that.prepareTableRow(i_row, i_row._DT_RowIndex);
       }
@@ -2439,11 +2439,12 @@
     var _table = $(txt);
     _table.appendTo(_cont);
     var _dataTable = undefined;
+    var _scrollBody = undefined;
     var _languageListener = undefined;
-    this.hmi_dataTable = function() {
+    this.hmi_dataTable = function () {
       return _dataTable;
     };
-    this.hmi_value = function(i_row, i_column, i_value) {
+    this.hmi_value = function (i_row, i_column, i_value) {
       var cell = _dataTable.cell(i_row, i_column);
       if (typeof i_value === 'string') {
         cell.data(i_value).draw(false);
@@ -2452,7 +2453,12 @@
         return cell.data();
       }
     };
-    this.hmi_reload = function() {
+    this.hmi_isRowVisible = function (i_row) {
+      let scrollBody = _scrollBody[0].getBoundingClientRect();
+      let row = _dataTable.row(i_row).node().getBoundingClientRect();
+      return row.bottom >= scrollBody.top && row.top <= scrollBody.bottom;
+    };
+    this.hmi_reload = function () {
       if (_dataTable) {
         // we got to store some params to get adjust the scrolling after
         // reloading the table
@@ -2482,7 +2488,7 @@
           // TODO???: _scroller.restore(_dataTable.parent(), _dataTable);
           // if we have a click handler for table rows
           if (typeof that.handleTableRowClicked === 'function') {
-            $('#' + _tableId + ' tbody').on('click', 'tr', function(i_event) {
+            $('#' + _tableId + ' tbody').on('click', 'tr', function (i_event) {
               if (that.highlightSelectedRow === true) {
                 _dataTable.$('tr.row_selected').removeClass('row_selected');
                 $(this).addClass('row_selected');
@@ -2494,7 +2500,7 @@
           }
           // if we have a click handler for table row cells
           if (typeof that.handleTableCellClicked === 'function') {
-            $('#' + _tableId + ' tbody').on('click', 'td', function(i_event) {
+            $('#' + _tableId + ' tbody').on('click', 'td', function (i_event) {
               var rowIndex = i_event.currentTarget && i_event.currentTarget.parentNode ? i_event.currentTarget.parentNode._DT_RowIndex : undefined;
               var columnIndex = i_event.currentTarget ? i_event.currentTarget.cellIndex : undefined;
               that.handleTableCellClicked(rowIndex, columnIndex);
@@ -2504,13 +2510,13 @@
         _dataTable.draw();
       }
     };
-    this._hmi_listenerAdds.push(function() {
+    this._hmi_listenerAdds.push(function () {
       // TODO: S4.env.languageSupport.addLanguageListener(_languageListener);
     });
-    this._hmi_listenerRemoves.push(function() {
+    this._hmi_listenerRemoves.push(function () {
       // TODO: S4.env.languageSupport.removeLanguageListener(_languageListener);
     });
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       if (_dataTable) {
         _dataTable.clear();
         _dataTable.destroy();
@@ -2518,10 +2524,12 @@
       }
       _table.remove();
       delete that.hmi_value;
+      delete that.hmi_isRowVisible;
       delete that.hmi_dataTable;
       delete that.hmi_reload;
       _tableId = undefined;
       _table = undefined;
+      _scrollBody = undefined;
       // TODO???: _scroller = undefined;
       _columnCount = undefined;
       _columns = undefined;
@@ -2531,23 +2539,24 @@
     try {
       var paging = that.paging === true;
       _dataTable = _table.DataTable({
-          ordering : true,
-          autoWidth : false,
-          lengthChange : false,
-          scrollY : !paging ? _cont.height().toString() + 'px' : undefined,
-          scrollCollapse : true,
-          scroller : !paging,
-          scrollResize : !paging,
-          paging : paging,
-          pageResize : paging,
-          columns : _columns,
-          headerCallback : header_callback,
-          rowCallback : typeof that.prepareTableRow === 'function' ? row_callback : undefined,
-          searching : that.searching === true,
-          deferRender : true,
+        ordering: true,
+        autoWidth: false,
+        lengthChange: false,
+        scrollY: !paging ? _cont.height().toString() + 'px' : undefined,
+        scrollCollapse: true,
+        scroller: !paging,
+        scrollResize: !paging,
+        paging: paging,
+        pageResize: paging,
+        columns: _columns,
+        headerCallback: header_callback,
+        rowCallback: typeof that.prepareTableRow === 'function' ? row_callback : undefined,
+        searching: that.searching === true,
+        deferRender: true,
       });
+      _scrollBody = _cont.find('.dataTables_scrollBody');
       _languageListener = {
-        handleLanguageChanged : function(i_language) {
+        handleLanguageChanged: function (i_language) {
           // _dataTable.fnDraw(); ==> does not update cells with direct query
           // to
           // labels
@@ -2562,37 +2571,37 @@
     i_success();
   };
 
-  s_types['textarea'] = function(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
+  s_types['textarea'] = function (i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
     var that = this;
     var _cont = that._hmi_context.container;
     _cont.addClass('overflow-hidden');
     var _textarea = undefined;
     var _code = undefined;
-    this.hmi_editor = function() {
+    this.hmi_editor = function () {
       return _code ? _code : _textarea;
     };
-    this.hmi_value = function(i_value) {
+    this.hmi_value = function (i_value) {
       if (typeof i_value === 'string') {
         if (_code) {
           var source = i_value, opts = undefined;
           if (that.beautify === true) {
             opts = {
-                indent_size : 2,
-                indent_char : ' ',
-                max_preserve_newlines : 1,
-                preserve_newlines : true,
-                keep_array_indentation : false,
-                break_chained_methods : false,
-                indent_scripts : 'normal',
-                brace_style : 'collapse', // 'expand',
-                space_before_conditional : true,
-                unescape_strings : false,
-                jslint_happy : false,
-                end_with_newline : false,
-                wrap_line_length : 0,
-                indent_inner_html : false,
-                comma_first : false,
-                e4x : false,
+              indent_size: 2,
+              indent_char: ' ',
+              max_preserve_newlines: 1,
+              preserve_newlines: true,
+              keep_array_indentation: false,
+              break_chained_methods: false,
+              indent_scripts: 'normal',
+              brace_style: 'collapse', // 'expand',
+              space_before_conditional: true,
+              unescape_strings: false,
+              jslint_happy: false,
+              end_with_newline: false,
+              wrap_line_length: 0,
+              indent_inner_html: false,
+              comma_first: false,
+              e4x: false,
             };
           }
           else if (that.beautify !== null && typeof that.beautify === 'object') {
@@ -2617,17 +2626,17 @@
         return _code ? _code.doc.getValue() : _textarea.val();
       }
     };
-    this._hmi_resizes.push(function() {
+    this._hmi_resizes.push(function () {
       if (_code) {
         _code.setSize(_cont.width(), _cont.height());
       }
     });
-    this.hmi_setReadOnly = function(i_readOnly) {
+    this.hmi_setReadOnly = function (i_readOnly) {
       if (_code) {
         _code.setOption('readOnly', i_readOnly === true);
       }
     };
-    this.hmi_handleScrollParams = function(i_params, i_restore) {
+    this.hmi_handleScrollParams = function (i_params, i_restore) {
       if (_code) {
         var params = i_params || {};
         var scroll_info = _code.getScrollInfo();
@@ -2674,7 +2683,7 @@
     };
     if (false) {
       // TODO try to implement search and mark
-      this.hmi_search = function(i_query, i_start, i_caseFold) {
+      this.hmi_search = function (i_query, i_start, i_caseFold) {
         if (_code) {
           var searchCursor = _code.getSearchCursor(i_query, i_start, i_caseFold);
           console.log('');
@@ -2696,37 +2705,37 @@
       var mode = undefined;
       if (that.code === 'javascript') {
         mode = {
-            name : 'javascript',
-            globalVars : true
+          name: 'javascript',
+          globalVars: true
         };
       }
       else if (that.code === 'html') {
         mode = {
-            name : 'xml',
-            htmlMode : true
+          name: 'xml',
+          htmlMode: true
         };
       }
       _code = CodeMirror.fromTextArea(document.getElementById(id), {
-          mode : mode,
-          readOnly : that.readonly === true || that.editable === false,
-          lineNumbers : true,
-          lineWrapping : true,
-          extraKeys : {
-            'Ctrl-Space' : 'autocomplete'
-          },
-          matchBrackets : true,
-          autoCloseBrackets : true,
-          highlightSelectionMatches : {
-              showToken : /\w/,
-              annotateScrollbar : true
-          }
+        mode: mode,
+        readOnly: that.readonly === true || that.editable === false,
+        lineNumbers: true,
+        lineWrapping: true,
+        extraKeys: {
+          'Ctrl-Space': 'autocomplete'
+        },
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        highlightSelectionMatches: {
+          showToken: /\w/,
+          annotateScrollbar: true
+        }
       });
       _code.setSize(_cont.width(), _cont.height());
-      that.hmi_getSearchCursor = function(i_query, i_start, i_caseFold) {
+      that.hmi_getSearchCursor = function (i_query, i_start, i_caseFold) {
         _code.getSearchCursor(i_query, i_start, i_caseFold);
       };
     }
-    this.hmi_addChangeListener = function(i_listener) {
+    this.hmi_addChangeListener = function (i_listener) {
       if (_code) {
         _code.doc.on('change', i_listener);
       }
@@ -2734,7 +2743,7 @@
         _textarea.bind('input propertychange', i_listener);
       }
     };
-    this.hmi_removeChangeListener = function(i_listener) {
+    this.hmi_removeChangeListener = function (i_listener) {
       if (_code) {
         _code.doc.on('change', i_listener);
       }
@@ -2742,7 +2751,7 @@
         _textarea.unbind('input propertychange', i_listener);
       }
     };
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       _cont.empty();
       delete that.hmi_getSearchCursor;
       delete that.hmi_editor;
@@ -2762,15 +2771,15 @@
     i_success();
   };
 
-  s_types['textfield'] = function(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
+  s_types['textfield'] = function (i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
     var that = this;
     var _cont = that._hmi_context.container;
     _cont.addClass('overflow-hidden');
     var _textfield = undefined;
-    this.hmi_getTextField = function() {
+    this.hmi_getTextField = function () {
       return _textfield;
     };
-    this.hmi_value = function(i_value) {
+    this.hmi_value = function (i_value) {
       if (typeof i_value === 'string') {
         _textfield.val(i_value);
       }
@@ -2787,13 +2796,13 @@
     txt += '" style="font-family:Courier New;width: 100%;box-sizing: border-box;"></input>';
     _textfield = $(txt);
     _textfield.appendTo(_cont);
-    this.hmi_addChangeListener = function(i_listener) {
+    this.hmi_addChangeListener = function (i_listener) {
       _textfield.bind('input propertychange', i_listener);
     };
-    this.hmi_removeChangeListener = function(i_listener) {
+    this.hmi_removeChangeListener = function (i_listener) {
       _textfield.unbind('input propertychange', i_listener);
     };
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       _cont.empty();
       delete that.hmi_getTextField;
       delete that.hmi_value;
@@ -2809,7 +2818,7 @@
     i_success();
   };
 
-  var equal_tree_nodes = function(i_node1, i_node2) {
+  var equal_tree_nodes = function (i_node1, i_node2) {
     return i_node1.data && i_node2.data && i_node1.data.path === i_node2.data.path;
   };
 
@@ -2818,58 +2827,58 @@
    * on the response the given node will be updated - meaning the nodes children
    * will be added or removed.
    */
-  var update_child_tree_nodes = function(i_url, i_request, i_node, i_compare, i_success, i_error) {
+  var update_child_tree_nodes = function (i_url, i_request, i_node, i_compare, i_success, i_error) {
     $.ajax({
-        type : 'GET',
-        url : i_url,
-        data : {
-            path : i_node.data.path,
-            request : i_request
-        },
-        success : function(i_result, i_textStatus, i_jqXHR) {
-          var loaded = jsonfx.parse(i_result, false, true);
-          var current = i_node.getChildren();
-          // if we received an array of nodes from the database
-          if (Array.isArray(loaded)) {
-            // if we got children in our tree
-            if (Array.isArray(current)) {
-              // collect all nodes not longer exists
-              var removed = [];
-              Utilities.handleNotFound(current, loaded, equal_tree_nodes, function(i_removed) {
-                removed.push(i_removed);
-              });
-              // collect all nodes newly added
-              var added = [];
-              Utilities.handleNotFound(loaded, current, equal_tree_nodes, function(i_added) {
-                added.push(i_added);
-              });
-              // remove tree nodes no longer exists
-              for (var i = 0, l = removed.length; i < l; i++) {
-                i_node.removeChild(removed[i]);
-              }
-              // add new children
-              if (added.length > 0) {
-                i_node.addChildren(added);
-              }
+      type: 'GET',
+      url: i_url,
+      data: {
+        path: i_node.data.path,
+        request: i_request
+      },
+      success: function (i_result, i_textStatus, i_jqXHR) {
+        var loaded = jsonfx.parse(i_result, false, true);
+        var current = i_node.getChildren();
+        // if we received an array of nodes from the database
+        if (Array.isArray(loaded)) {
+          // if we got children in our tree
+          if (Array.isArray(current)) {
+            // collect all nodes not longer exists
+            var removed = [];
+            Utilities.handleNotFound(current, loaded, equal_tree_nodes, function (i_removed) {
+              removed.push(i_removed);
+            });
+            // collect all nodes newly added
+            var added = [];
+            Utilities.handleNotFound(loaded, current, equal_tree_nodes, function (i_added) {
+              added.push(i_added);
+            });
+            // remove tree nodes no longer exists
+            for (var i = 0, l = removed.length; i < l; i++) {
+              i_node.removeChild(removed[i]);
             }
-            // if we do not have children we add all
-            else if (loaded.length > 0) {
-              i_node.addChildren(loaded);
-            }
-            if (typeof i_compare === 'function') {
-              i_node.sortChildren(i_compare, false);
+            // add new children
+            if (added.length > 0) {
+              i_node.addChildren(added);
             }
           }
-          // if no children available in the database we remove all from the
-          // tree node
-          else if (Array.isArray(current)) {
-            i_node.removeChildren();
+          // if we do not have children we add all
+          else if (loaded.length > 0) {
+            i_node.addChildren(loaded);
           }
-          // notify
-          i_success();
-        },
-        error : i_error,
-        timeout : 10000
+          if (typeof i_compare === 'function') {
+            i_node.sortChildren(i_compare, false);
+          }
+        }
+        // if no children available in the database we remove all from the
+        // tree node
+        else if (Array.isArray(current)) {
+          i_node.removeChildren();
+        }
+        // notify
+        i_success();
+      },
+      error: i_error,
+      timeout: 10000
     });
   };
 
@@ -2878,17 +2887,17 @@
    * children have been loaded before. In case of available children after
    * update this function will be called recursively on every child.
    */
-  var update_loaded_tree_nodes = function(i_url, i_request, i_node, i_compare, i_success, i_error) {
+  var update_loaded_tree_nodes = function (i_url, i_request, i_node, i_compare, i_success, i_error) {
     // we only do this on folders and if not lazy anymore
     if ((i_node.isFolder() === true || i_node.isRoot() === true) && i_node.hasChildren() === true) {
-      update_child_tree_nodes(i_url, i_request, i_node, i_compare, function() {
+      update_child_tree_nodes(i_url, i_request, i_node, i_compare, function () {
         var children = i_node.getChildren();
         if (Array.isArray(children)) {
           var tasks = [];
           for (var i = 0, l = children.length; i < l; i++) {
-            (function() {
+            (function () {
               var child = children[i];
-              tasks.push(function(i_suc, i_err) {
+              tasks.push(function (i_suc, i_err) {
                 update_loaded_tree_nodes(child.data.url, child.data.request, child, i_compare, i_suc, i_err);
               });
             }());
@@ -2907,8 +2916,8 @@
     }
   };
 
-  var expand_tree_path = function(i_url, i_request, i_node, i_path, i_compare, i_success, i_error) {
-    update_child_tree_nodes(i_url, i_request, i_node, i_compare, function() {
+  var expand_tree_path = function (i_url, i_request, i_node, i_path, i_compare, i_success, i_error) {
+    update_child_tree_nodes(i_url, i_request, i_node, i_compare, function () {
       var children = i_node.getChildren();
       if (Array.isArray(children)) {
         var i, l = children.length, child, path;
@@ -2919,7 +2928,7 @@
             if (i_path.length > path.length) {
               if (child.isFolder()) {
                 child.makeVisible({
-                  scrollIntoView : false
+                  scrollIntoView: false
                 });
                 expand_tree_path(i_url, i_request, child, i_path, i_compare, i_success, i_error);
               }
@@ -2968,109 +2977,109 @@
   // object as 'node.data.PROPERTY' (e.g. 'node.data.myOwnAttr').
   // @formatter:on
 
-  s_types['tree'] = function(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
+  s_types['tree'] = function (i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
     var that = this;
     var _cont = that._hmi_context.container;
     _cont.addClass('default-scroll-container');
-    this.hmi_setRootPath = function(i_path, i_success, i_error) {
+    this.hmi_setRootPath = function (i_path, i_success, i_error) {
       // this call returns a promise and by calling "then" on the promise we
       // catch success or error
       $.ui.fancytree.getTree(_cont).reload({
-        url : that.rootURL,
-        cache : false,
-        data : {
-            path : i_path,
-            request : that.rootRequest
+        url: that.rootURL,
+        cache: false,
+        data: {
+          path: i_path,
+          request: that.rootRequest
         }
       }).then(i_success, i_error);
     };
-    this.hmi_getRootNode = function() {
+    this.hmi_getRootNode = function () {
       return $.ui.fancytree.getTree(_cont).getRootNode();
     };
     var _setEnabled = this.hmi_setEnabled;
-    this.hmi_setEnabled = function(i_enabled) {
+    this.hmi_setEnabled = function (i_enabled) {
       if (typeof _setEnabled === 'function') {
         _setEnabled(i_enabled);
       }
       _cont.fancytree(i_enabled === true ? 'enable' : 'disable');
     };
-    this.hmi_updateLoadedNodes = function(i_success, i_error) {
+    this.hmi_updateLoadedNodes = function (i_success, i_error) {
       var root = that.hmi_getRootNode();
-      update_loaded_tree_nodes(that.rootURL, that.rootRequest, root, that.compareNodes, i_success || function() {
+      update_loaded_tree_nodes(that.rootURL, that.rootRequest, root, that.compareNodes, i_success || function () {
         // nothing to do
-      }, i_error || function(i_exception) {
+      }, i_error || function (i_exception) {
         console.error(i_exception);
       });
     };
-    this.hmi_setActivePath = function(i_path, i_success, i_error) {
+    this.hmi_setActivePath = function (i_path, i_success, i_error) {
       var root = that.hmi_getRootNode();
-      expand_tree_path(that.rootURL, that.rootRequest, root, i_path, that.compareNodes, function(i_node) {
+      expand_tree_path(that.rootURL, that.rootRequest, root, i_path, that.compareNodes, function (i_node) {
         i_node.makeVisible({
-          scrollIntoView : true
+          scrollIntoView: true
         });
         i_node.setActive(true);
         if (typeof i_success === 'function') {
           i_success(i_node);
         }
         // nothing to do
-      }, i_error || function(i_exception) {
+      }, i_error || function (i_exception) {
         console.error(i_exception);
       });
     };
     // build tree source
     var source = Array.isArray(that.data) ? that.data : {
-      url : that.rootURL,
-      cache : false,
-      data : {
-          path : '',
-          request : that.rootRequest
+      url: that.rootURL,
+      cache: false,
+      data: {
+        path: '',
+        request: that.rootRequest
       }
     };
     // initialize tree
     _cont.fancytree({
-        autoScroll : true,
-        // selectMode: 2, // multi-select
-        scrollParent : _cont,
-        // this will be used for loading root nodes
-        source : source,
-        lazyLoad : function(i_event, i_data) {
-          // this will be called on node expansion and used for child loading
-          i_data.result = {
-              url : i_data.node.data.url,
-              cache : false,
-              data : {
-                  path : i_data.node.data.path,
-                  request : i_data.node.data.request
-              }
-          };
-        },
-        // This will be called in the following situations:
-        // - on hmi_setActivePath(...)
-        // - after a node has been selected by mouse click but only if already
-        // selected before
-        // - after a node has been selected by keybord arrow switches
-        activate : function(i_event, i_data) {
-          if (typeof that.nodeActivated === 'function') {
-            that.nodeActivated(i_data.node);
+      autoScroll: true,
+      // selectMode: 2, // multi-select
+      scrollParent: _cont,
+      // this will be used for loading root nodes
+      source: source,
+      lazyLoad: function (i_event, i_data) {
+        // this will be called on node expansion and used for child loading
+        i_data.result = {
+          url: i_data.node.data.url,
+          cache: false,
+          data: {
+            path: i_data.node.data.path,
+            request: i_data.node.data.request
           }
-        },
-        focus : function(i_event, i_data) {
-          if (typeof that.selectedNodeHasFocus === 'function') {
-            that.selectedNodeHasFocus(i_data.node);
-          }
-        },
-        blur : function(i_event, i_data) {
-          if (typeof that.selectedNodeLostFocus === 'function') {
-            that.selectedNodeLostFocus(i_data.node);
-          }
-        },
-        click : function(i_event, i_data) {
-          if (typeof that.nodeClicked === 'function') {
-            that.nodeClicked(i_data.node);
-          }
+        };
+      },
+      // This will be called in the following situations:
+      // - on hmi_setActivePath(...)
+      // - after a node has been selected by mouse click but only if already
+      // selected before
+      // - after a node has been selected by keybord arrow switches
+      activate: function (i_event, i_data) {
+        if (typeof that.nodeActivated === 'function') {
+          that.nodeActivated(i_data.node);
         }
+      },
+      focus: function (i_event, i_data) {
+        if (typeof that.selectedNodeHasFocus === 'function') {
+          that.selectedNodeHasFocus(i_data.node);
+        }
+      },
+      blur: function (i_event, i_data) {
+        if (typeof that.selectedNodeLostFocus === 'function') {
+          that.selectedNodeLostFocus(i_data.node);
+        }
+      },
+      click: function (i_event, i_data) {
+        if (typeof that.nodeClicked === 'function') {
+          that.nodeClicked(i_data.node);
+        }
+      }
     });
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       try {
         _cont.fancytree('destroy');
       }
@@ -3091,7 +3100,7 @@
     i_success();
   };
 
-  var TimeRangeSelectorImpl = function() {
+  var TimeRangeSelectorImpl = function () {
     var that = this;
     var _min = undefined;
     var _max = undefined;
@@ -3105,7 +3114,7 @@
     var _zoomInv = 1.0 / _zoom;
     var _shiftFactor = typeof that.shiftFactor === 'number' && that.shiftFactor > 0.0 && that.shiftFactor < 1.0 ? that.shiftFactor : 0.2;
 
-    var update = function() {
+    var update = function () {
       if (_from < _min) {
         _from = _min;
       }
@@ -3125,7 +3134,7 @@
         }
       }
     };
-    this.hmi_setAbsoluteRange = function(i_min, i_max) {
+    this.hmi_setAbsoluteRange = function (i_min, i_max) {
       if (typeof i_min === 'number') {
         _min = that.onlyInteger === true ? Math.floor(i_min) : i_min;
       }
@@ -3133,7 +3142,7 @@
         _max = that.onlyInteger === true ? Math.ceil(i_max) : i_max;
       }
     };
-    this.hmi_setCurrentRange = function(i_from, i_to) {
+    this.hmi_setCurrentRange = function (i_from, i_to) {
       if (typeof i_from === 'number') {
         _from = that.onlyInteger === true ? Math.floor(i_from) : i_from;
       }
@@ -3147,33 +3156,33 @@
         _to = _max;
       }
     };
-    this.hmi_maximizeRange = function() {
+    this.hmi_maximizeRange = function () {
       _from = _min;
       _to = _max;
       update();
     };
-    this.hmi_zoomOut = function() {
+    this.hmi_zoomOut = function () {
       var val = ((_to - _from) * (_zoom - 1.0)) * 0.5;
       _from -= val;
       _to += val;
       update();
     };
-    this.hmi_zoomIn = function() {
+    this.hmi_zoomIn = function () {
       var val = ((_to - _from) * (1.0 - _zoomInv)) * 0.5;
       _from += val;
       _to -= val;
       update();
     };
-    var shift = function(i_up) {
+    var shift = function (i_up) {
       var diff = i_up === true ? Math.min(_shiftFactor * (_to - _from), _max - _to) : -Math.min(_shiftFactor * (_to - _from), _from - _min);
       _from += diff;
       _to += diff;
       update();
     };
-    this.hmi_shiftDown = function(i_pressed) {
+    this.hmi_shiftDown = function (i_pressed) {
       if (i_pressed === true) {
         if (_shiftDownInterval === undefined) {
-          _shiftDownInterval = setInterval(function() {
+          _shiftDownInterval = setInterval(function () {
             shift(false);
           }, typeof that.shiftMillis === 'number' && that.shiftMillis > 0 ? that.shiftMillis : 1000);
         }
@@ -3186,10 +3195,10 @@
         }
       }
     };
-    this.hmi_shiftUp = function(i_pressed) {
+    this.hmi_shiftUp = function (i_pressed) {
       if (i_pressed === true) {
         if (_shiftUpInterval === undefined) {
-          _shiftUpInterval = setInterval(function() {
+          _shiftUpInterval = setInterval(function () {
             shift(true);
           }, typeof that.shiftMillis === 'number' && that.shiftMillis > 0 ? that.shiftMillis : 1000);
         }
@@ -3202,7 +3211,7 @@
         }
       }
     };
-    this.hmi_synchronize = function(i_enable) {
+    this.hmi_synchronize = function (i_enable) {
       if (i_enable === true) {
         if (_syncInterval === undefined) {
           _syncInterval = setInterval(update, typeof that.syncMillis === 'number' && that.syncMillis > 0 ? that.syncMillis : 1000);
@@ -3216,25 +3225,25 @@
         }
       }
     };
-    this.hmi_isSynchronized = function() {
+    this.hmi_isSynchronized = function () {
       return _syncInterval !== undefined;
     };
-    this.hmi_isShiftingUp = function() {
+    this.hmi_isShiftingUp = function () {
       return _shiftUpInterval !== undefined;
     };
-    this.hmi_isShiftingDown = function() {
+    this.hmi_isShiftingDown = function () {
       return _shiftDownInterval !== undefined;
     };
-    this.hmi_getFrom = function() {
+    this.hmi_getFrom = function () {
       return _from;
     };
-    this.hmi_getTo = function() {
+    this.hmi_getTo = function () {
       return _to;
     };
-    this.hmi_getRange = function() {
+    this.hmi_getRange = function () {
       return _to - _from;
     };
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       if (_syncInterval !== undefined) {
         clearInterval(_syncInterval);
         _syncInterval = undefined;
@@ -3257,10 +3266,10 @@
     });
   };
 
-  TimeRangeSelectorImpl.isRequired = function(i_object) {
+  TimeRangeSelectorImpl.isRequired = function (i_object) {
     return typeof i_object.handleRangeUpdate === 'function';
   };
-  var is_visible = function(i_visible) {
+  var is_visible = function (i_visible) {
     if (i_visible === false) {
       return false;
     }
@@ -3304,7 +3313,7 @@
    * @param {Object}
    *          i_separator The separator value
    */
-  var get_dimension_parameter = function(i_object, i_attributeName, i_separator) {
+  var get_dimension_parameter = function (i_object, i_attributeName, i_separator) {
     if (i_object === true) {
       return i_separator;
     }
@@ -3327,7 +3336,7 @@
       return 0;
     }
   };
-  var compute_central_rectangle = function(i_sourceWidth, i_sourceHeight, i_targetWidth, i_targetHeight, i_targetMargin, i_targetBorder, i_relativeX, i_relativeY) {
+  var compute_central_rectangle = function (i_sourceWidth, i_sourceHeight, i_targetWidth, i_targetHeight, i_targetMargin, i_targetBorder, i_relativeX, i_relativeY) {
     // first we compute the maximum dimension we have for our image
     var marginLeft = get_dimension_parameter(i_targetMargin, 'left', i_targetBorder);
     var marginRight = get_dimension_parameter(i_targetMargin, 'right', i_targetBorder);
@@ -3351,16 +3360,16 @@
     var offsetY = (targetHeight - height) * rely;
     // return the resulting values
     return {
-        x : marginLeft + border + offsetX,
-        y : marginTop + border + offsetY,
-        width : width,
-        height : height,
-        scale : scale
+      x: marginLeft + border + offsetX,
+      y: marginTop + border + offsetY,
+      width: width,
+      height: height,
+      scale: scale
     };
   };
 
   var _dummyText = undefined;
-  var get_text_size = function(i_text, i_font) {
+  var get_text_size = function (i_text, i_font) {
     if (_dummyText === undefined) {
       _dummyText = $('<span></span>').hide().appendTo(document.body);
     }
@@ -3369,20 +3378,20 @@
       _dummyText.css('font', i_font);
     }
     var dimension = {
-        width : _dummyText.width(),
-        height : _dummyText.height(),
+      width: _dummyText.width(),
+      height: _dummyText.height(),
     };
     _dummyText.text('');
     return dimension;
   };
 
-  var DefaultHtmlObjectImpl = function() {
+  var DefaultHtmlObjectImpl = function () {
     var that = this;
     var _cont = that._hmi_context.container;
     _cont.data('hmi_object', that);
     this._hmi_resizes = [];
     // RESIZE
-    this._hmi_resize = function() {
+    this._hmi_resize = function () {
       if (_cont !== undefined) {
         var width = _cont.width();
         var height = _cont.height();
@@ -3412,10 +3421,10 @@
         }
       }
     };
-    this.hmi_fireResized = function() {
+    this.hmi_fireResized = function () {
       this._hmi_resize();
     };
-    this.hmi_updateBorder = function(i_engraved) {
+    this.hmi_updateBorder = function (i_engraved) {
       var width = _cont.width();
       var height = _cont.height();
       if (that.border === true) {
@@ -3430,7 +3439,7 @@
         that._hmi_resize();
       }
     };
-    this.hmi_setVisible = function(i_visible) {
+    this.hmi_setVisible = function (i_visible) {
       var visible = i_visible === true;
       if (that._hmi_visible !== visible) {
         that._hmi_visible = visible;
@@ -3440,26 +3449,26 @@
         }
       }
     };
-    this.hmi_isVisible = function() {
+    this.hmi_isVisible = function () {
       return that._hmi_visible;
     };
     // JQUERY ELEMENT
-    this.hmi_element = function() {
+    this.hmi_element = function () {
       return _cont;
     };
-    this.hmi_addClass = function(i_class) {
+    this.hmi_addClass = function (i_class) {
       _cont.addClass(i_class);
       if (that._hmi_updateAlignment) {
         that._hmi_updateAlignment();
       }
     };
-    this.hmi_removeClass = function(i_class) {
+    this.hmi_removeClass = function (i_class) {
       _cont.removeClass(i_class);
       if (that._hmi_updateAlignment) {
         that._hmi_updateAlignment();
       }
     };
-    this.hmi_css = function(i_key, i_value) {
+    this.hmi_css = function (i_key, i_value) {
       if (i_value === null || i_value === '') {
         _cont.css(i_key, '');
       }
@@ -3473,7 +3482,7 @@
         return _cont.css(i_key);
       }
     };
-    this.hmi_attr = function(i_key, i_value) {
+    this.hmi_attr = function (i_key, i_value) {
       if (typeof i_value === 'string') {
         _cont.attr(i_key, i_value);
         if (that._hmi_updateAlignment) {
@@ -3484,7 +3493,7 @@
         return _cont.attr(i_key);
       }
     };
-    this.hmi_setSelected = function(i_selected, i_cssClass) {
+    this.hmi_setSelected = function (i_selected, i_cssClass) {
       var width = _cont.width();
       var height = _cont.height();
       _cont[i_selected === true ? 'addClass' : 'removeClass'](typeof i_cssClass === 'string' ? i_cssClass : 'hmi-selected');
@@ -3521,7 +3530,7 @@
     if (that._hmi_nodeParent === null || typeof that._hmi_nodeParent !== 'object') {
       $(window).bind('resize', that._hmi_resize);
     }
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       if (that._hmi_nodeParent === null || typeof that._hmi_nodeParent !== 'object') {
         $(window).unbind('resize', that._hmi_resize);
       }
@@ -3551,7 +3560,7 @@
     });
   };
 
-  var get_watch = function(i_watch) {
+  var get_watch = function (i_watch) {
     if (Array.isArray(i_watch)) {
       var found = false;
       for (var i = 0; i < i_watch.length; i++) {
@@ -3575,21 +3584,21 @@
       }
     }
     else if (typeof i_watch === 'string') {
-      return [ i_watch ];
+      return [i_watch];
     }
     else {
       return undefined;
     }
   };
 
-  var SimpleHtmlObjectImpl = function() {
+  var SimpleHtmlObjectImpl = function () {
     var that = this;
     var _cont = that._hmi_context.container;
     var _image = undefined;
     var _text = undefined;
     var _html = undefined;
     // ADD STANDARD METHODS
-    that.hmi_setImageSource = function(i_source) {
+    that.hmi_setImageSource = function (i_source) {
       if (_text !== undefined) {
         _text.remove();
         _text = undefined;
@@ -3628,7 +3637,7 @@
       _image.attr('src', src);
       _image[src.length > 0 ? 'show' : 'hide']();
     };
-    this.hmi_getImageWidth = function() {
+    this.hmi_getImageWidth = function () {
       if (_image !== undefined) {
         var img = _image[0];
         return img !== undefined ? img.naturalWidth : undefined;
@@ -3637,7 +3646,7 @@
         return undefined;
       }
     };
-    this.hmi_getImageHeight = function() {
+    this.hmi_getImageHeight = function () {
       if (_image !== undefined) {
         var img = _image[0];
         return img !== undefined ? img.naturalHeight : undefined;
@@ -3646,7 +3655,7 @@
         return undefined;
       }
     };
-    that.hmi_text = function(i_text) {
+    that.hmi_text = function (i_text) {
       if (_image !== undefined) {
         _image.off('load', that._hmi_updateAlignment);
         _image.remove();
@@ -3682,7 +3691,7 @@
         return _text.text();
       }
     };
-    that.hmi_html = function(i_html) {
+    that.hmi_html = function (i_html) {
       if (_text !== undefined) {
         _text.remove();
         _text = undefined;
@@ -3701,7 +3710,7 @@
         return _cont.html();
       }
     };
-    this._hmi_updateAlignment = function() {
+    this._hmi_updateAlignment = function () {
       if (_text !== undefined) {
         if (_text._hmi_marginLeft !== undefined) {
           _text._hmi_marginLeft = undefined;
@@ -3792,7 +3801,7 @@
     else {
       _cont.addClass(that.scrollable === true ? 'default-scroll-container' : 'overflow-hidden');
     }
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       if (_image !== undefined) {
         _image.off('load', that._hmi_updateAlignment);
         _image.remove();
@@ -3810,11 +3819,11 @@
     });
   };
 
-  var HandlerObjectImpl = function(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
+  var HandlerObjectImpl = function (i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
     var that = this;
     var tasks = [];
     var _cont = that._hmi_context.container;
-    that.hmi_text = function(i_text) {
+    that.hmi_text = function (i_text) {
       if (i_text !== undefined && i_text !== null) {
         that.text = typeof i_text === 'string' ? i_text : i_text.toString();
       }
@@ -3827,29 +3836,29 @@
       _children = this.children;
       for (var i = 0, l = _children.length; i < l; i++) {
         // closure
-        (function() {
+        (function () {
           var child = _children[i];
           var hmiobj = child._hmi_object;
           if (hmiobj && hmiobj.type === 'handler' && hmiobj._hmi_init_dom) {
-            tasks.push(function(i_suc, i_err) {
+            tasks.push(function (i_suc, i_err) {
               // #handler: 1
               hmiobj._hmi_init_dom({
-                container : _cont
+                container: _cont
               }, i_suc, i_err);
             });
           }
         }());
       }
     }
-    this._hmi_destroys.push(function(i_suc, i_err) {
+    this._hmi_destroys.push(function (i_suc, i_err) {
       var tasks = [];
       if (_children) {
         for (var i = _children.length - 1; i >= 0; i--) {
           var child = _children[i];
           var hmiobj = child._hmi_object;
           if (hmiobj && hmiobj.type === 'handler' && hmiobj._hmi_destroy_dom) {
-            (function() {
-              tasks.push(function(i_s, i_e) {
+            (function () {
+              tasks.push(function (i_s, i_e) {
                 // #handler: 1
                 hmiobj._hmi_destroy_dom(i_s, i_e);
               })
@@ -3865,7 +3874,7 @@
     });
     Executor.run(tasks, i_success, i_error);
   };
-  var get_canvas_attribute = function(i_hmiObject, i_attr) {
+  var get_canvas_attribute = function (i_hmiObject, i_attr) {
     var object = i_hmiObject;
     while (object !== null && typeof object === 'object') {
       var val = object[i_attr];
@@ -3887,17 +3896,17 @@
     }
     return undefined;
   };
-  var get_canvas_pixel = function(i_object, i_attribute, i_scale, i_default) {
+  var get_canvas_pixel = function (i_object, i_attribute, i_scale, i_default) {
     var val = get_canvas_attribute(i_object, i_attribute);
     var pix = get_pixel_value(val);
     return typeof pix === 'number' ? pix : (typeof val === 'number' ? val * i_scale : i_default);
   };
-  var get_pixel_size = function(i_value, i_scale, i_default) {
+  var get_pixel_size = function (i_value, i_scale, i_default) {
     var pix = get_pixel_value(i_value);
     return typeof pix === 'number' ? pix : (typeof i_value === 'number' ? i_value * i_scale : i_default);
   };
 
-  var ZoomImpl = function(i_disableVisuEvents, i_enableEditorEvents) {
+  var ZoomImpl = function (i_disableVisuEvents, i_enableEditorEvents) {
     var that = this;
     var _p = {};
     var _cont = this._hmi_context.container;
@@ -3905,287 +3914,287 @@
     var _tf = this._hmi_context.transform;
     var _bounds = this.bounds;
     var _mouse = false, _id1, _x1, _y1, _ix1, _iy1, _id2, _x2, _y2, _ix2, _iy2, _di = undefined;
-    this._hmi_handleZoomEvent = function(i_event, i_type) {
+    this._hmi_handleZoomEvent = function (i_event, i_type) {
       var offs = _cont.offset();
       var tt = i_event.originalEvent ? i_event.originalEvent.targetTouches : undefined;
       switch (i_type) {
-      case MOUSEEVENT_MOUSEDOWN:
-        that._hmi_event = i_event;
-        _mouse = true;
-        _ix1 = i_event.clientX - offs.left;
-        _iy1 = i_event.clientY - offs.top;
-        _tf.transformInverse(_ix1, _iy1, _p);
-        _x1 = _p.x;
-        _y1 = _p.y;
-        if (i_enableEditorEvents === true && i_event.button === 2) {
-          console.log('x: ' + _x1 + ', y: ' + _y1);
-        }
-        break;
-      case MOUSEEVENT_MOUSEMOVE:
-        if (_mouse && _bounds) {
-          delete _bounds.x;
-          delete _bounds.y;
-          delete _bounds.width;
-          delete _bounds.height;
+        case MOUSEEVENT_MOUSEDOWN:
+          that._hmi_event = i_event;
+          _mouse = true;
           _ix1 = i_event.clientX - offs.left;
           _iy1 = i_event.clientY - offs.top;
-          _tf.initForPoint(_x1, _y1, _ix1, _iy1);
-          _tf.transformInverse(0, 0, _p);
-          _bounds.x1 = _p.x;
-          _bounds.y1 = _p.y;
-          _tf.transformInverse(_cont.width(), _cont.height(), _p);
-          _bounds.x2 = _p.x;
-          _bounds.y2 = _p.y;
-          that._hmi_event = i_event;
-        }
-        break;
-      case MOUSEEVENT_MOUSEUP:
-        if (_mouse && _bounds) {
-          delete _bounds.x;
-          delete _bounds.y;
-          delete _bounds.width;
-          delete _bounds.height;
-          _tf.initForPoint(_x1, _y1, i_event.clientX - offs.left, i_event.clientY - offs.top);
-          _tf.transformInverse(0, 0, _p);
-          _bounds.x1 = _p.x;
-          _bounds.y1 = _p.y;
-          _tf.transformInverse(_cont.width(), _cont.height(), _p);
-          _bounds.x2 = _p.x;
-          _bounds.y2 = _p.y;
-          _x1 = undefined;
-          _y1 = undefined;
-          _ix1 = undefined;
-          _iy1 = undefined;
-          delete that._hmi_event;
-        }
-        _mouse = false;
-        break;
-      case MOUSEEVENT_MOUSELEAVE:
-      case MOUSEEVENT_MOUSEOUT:
-        _x1 = undefined;
-        _y1 = undefined;
-        _ix1 = undefined;
-        _iy1 = undefined;
-        _mouse = false;
-        delete that._hmi_event;
-        break;
-      case MOUSEEVENT_CLICK:
-      case MOUSEEVENT_DBLCLICK:
-      case MOUSEEVENT_HOVER:
-      case MOUSEEVENT_MOUSEENTER:
-      case MOUSEEVENT_MOUSEOVER:
-      case MOUSEEVENT_CONTEXTMENU:
-        break;
-      case MOUSEEVENT_MOUSEWHEEL:
-        if (_bounds) {
-          if (i_event.originalEvent && typeof i_event.originalEvent.wheelDelta === 'number' && i_event.originalEvent.wheelDelta !== 0) {
-            var wd = i_event.originalEvent.wheelDelta / 120;
-            // scrolling without shift down (scrolling up: wd > 0)
+          _tf.transformInverse(_ix1, _iy1, _p);
+          _x1 = _p.x;
+          _y1 = _p.y;
+          if (i_enableEditorEvents === true && i_event.button === 2) {
+            console.log('x: ' + _x1 + ', y: ' + _y1);
+          }
+          break;
+        case MOUSEEVENT_MOUSEMOVE:
+          if (_mouse && _bounds) {
             delete _bounds.x;
             delete _bounds.y;
             delete _bounds.width;
             delete _bounds.height;
-            // first get the current metric scroll location
-            _tf.transformInverse(i_event.clientX - offs.left, i_event.clientY - offs.top, _p);
-            var x = _p.x;
-            var y = _p.y;
-            // next get the current metric bound locations
-            _tf.transformInverse(0, 0, _p);
-            var x1 = _p.x;
-            var y1 = _p.y;
-            _tf.transformInverse(_cont.width(), _cont.height(), _p);
-            var x2 = _p.x;
-            var y2 = _p.y;
-            // finally adjust the bounds
-            var zoom = wd > 0 ? wd / ZOOM_FACTOR : -wd * ZOOM_FACTOR;
-            _bounds.x1 = x + (x1 - x) * zoom;
-            _bounds.y1 = y + (y1 - y) * zoom;
-            _bounds.x2 = x + (x2 - x) * zoom;
-            _bounds.y2 = y + (y2 - y) * zoom;
-          }
-        }
-        break;
-      case TOUCHEVENT_TOUCHSTART:
-        _mouse = false;
-        if (tt) {
-          switch (tt.length) {
-          case 1:
-            that._hmi_event = i_event;
-            var t = tt[0];
-            _id1 = t.identifier;
-            _ix1 = t.clientX - offs.left;
-            _iy1 = t.clientY - offs.top;
-            _tf.transformInverse(_ix1, _iy1, _p);
-            _x1 = _p.x;
-            _y1 = _p.y;
-            break;
-          case 2:
-            if (that.multitouch === true) {
-              that._hmi_event = i_event;
-              var t = tt[1];
-              if (t.identifier === _id1) {
-                t = tt[0];
-              }
-              _id2 = t.identifier;
-              _ix2 = t.clientX - offs.left;
-              _iy2 = t.clientY - offs.top;
-              _tf.transformInverse(_ix2, _iy2, _p);
-              _x2 = _p.x;
-              _y2 = _p.y;
-
-              var dix = (_ix2 - _ix1);
-              var diy = (_iy2 - _iy1);
-              _di = Math.sqrt(dix * dix + diy * diy);
-            }
-            break;
-          default:
-            _id1 = undefined;
-            _x1 = undefined;
-            _y1 = undefined;
-            _ix1 = undefined;
-            _iy1 = undefined;
-            _id2 = undefined;
-            _x2 = undefined;
-            _y2 = undefined;
-            _ix2 = undefined;
-            _iy2 = undefined;
-            _di = undefined;
-            delete that._hmi_event;
-            break;
-          }
-        }
-        break;
-      case TOUCHEVENT_TOUCHMOVE:
-        _mouse = false;
-        if (tt && _bounds) {
-          switch (tt.length) {
-          case 1:
-            delete _bounds.x;
-            delete _bounds.y;
-            delete _bounds.width;
-            delete _bounds.height;
-            that._hmi_event = i_event;
-            var t = tt[0];
-            _tf.initForPoint(_x1, _y1, t.clientX - offs.left, t.clientY - offs.top);
+            _ix1 = i_event.clientX - offs.left;
+            _iy1 = i_event.clientY - offs.top;
+            _tf.initForPoint(_x1, _y1, _ix1, _iy1);
             _tf.transformInverse(0, 0, _p);
             _bounds.x1 = _p.x;
             _bounds.y1 = _p.y;
             _tf.transformInverse(_cont.width(), _cont.height(), _p);
             _bounds.x2 = _p.x;
             _bounds.y2 = _p.y;
-            break;
-          case 2:
-            if (that.multitouch === true) {
-              that._hmi_event = i_event;
-              var t1 = tt[0];
-              var t2 = tt[1];
-              if (t2.identifier === _id1) {
-                var t = t1;
-                t1 = t2;
-                t2 = t;
-              }
-              var ix1 = t1.clientX - offs.left;
-              var iy1 = t1.clientY - offs.top;
-              var ix2 = t2.clientX - offs.left;
-              var iy2 = t2.clientY - offs.top;
-              if (that.zoom_rotation === true) {
-                _tf.initForPoints(_x1, _y1, _x2, _y2, ix1, iy1, ix2, iy2);
-                // we got to set this flag because the standard
-                // initForBounds()
-                // method does not handle rotation
-                that._hmi_rotated = true;
-              }
-              else {
+            that._hmi_event = i_event;
+          }
+          break;
+        case MOUSEEVENT_MOUSEUP:
+          if (_mouse && _bounds) {
+            delete _bounds.x;
+            delete _bounds.y;
+            delete _bounds.width;
+            delete _bounds.height;
+            _tf.initForPoint(_x1, _y1, i_event.clientX - offs.left, i_event.clientY - offs.top);
+            _tf.transformInverse(0, 0, _p);
+            _bounds.x1 = _p.x;
+            _bounds.y1 = _p.y;
+            _tf.transformInverse(_cont.width(), _cont.height(), _p);
+            _bounds.x2 = _p.x;
+            _bounds.y2 = _p.y;
+            _x1 = undefined;
+            _y1 = undefined;
+            _ix1 = undefined;
+            _iy1 = undefined;
+            delete that._hmi_event;
+          }
+          _mouse = false;
+          break;
+        case MOUSEEVENT_MOUSELEAVE:
+        case MOUSEEVENT_MOUSEOUT:
+          _x1 = undefined;
+          _y1 = undefined;
+          _ix1 = undefined;
+          _iy1 = undefined;
+          _mouse = false;
+          delete that._hmi_event;
+          break;
+        case MOUSEEVENT_CLICK:
+        case MOUSEEVENT_DBLCLICK:
+        case MOUSEEVENT_HOVER:
+        case MOUSEEVENT_MOUSEENTER:
+        case MOUSEEVENT_MOUSEOVER:
+        case MOUSEEVENT_CONTEXTMENU:
+          break;
+        case MOUSEEVENT_MOUSEWHEEL:
+          if (_bounds) {
+            if (i_event.originalEvent && typeof i_event.originalEvent.wheelDelta === 'number' && i_event.originalEvent.wheelDelta !== 0) {
+              var wd = i_event.originalEvent.wheelDelta / 120;
+              // scrolling without shift down (scrolling up: wd > 0)
+              delete _bounds.x;
+              delete _bounds.y;
+              delete _bounds.width;
+              delete _bounds.height;
+              // first get the current metric scroll location
+              _tf.transformInverse(i_event.clientX - offs.left, i_event.clientY - offs.top, _p);
+              var x = _p.x;
+              var y = _p.y;
+              // next get the current metric bound locations
+              _tf.transformInverse(0, 0, _p);
+              var x1 = _p.x;
+              var y1 = _p.y;
+              _tf.transformInverse(_cont.width(), _cont.height(), _p);
+              var x2 = _p.x;
+              var y2 = _p.y;
+              // finally adjust the bounds
+              var zoom = wd > 0 ? wd / ZOOM_FACTOR : -wd * ZOOM_FACTOR;
+              _bounds.x1 = x + (x1 - x) * zoom;
+              _bounds.y1 = y + (y1 - y) * zoom;
+              _bounds.x2 = x + (x2 - x) * zoom;
+              _bounds.y2 = y + (y2 - y) * zoom;
+            }
+          }
+          break;
+        case TOUCHEVENT_TOUCHSTART:
+          _mouse = false;
+          if (tt) {
+            switch (tt.length) {
+              case 1:
+                that._hmi_event = i_event;
+                var t = tt[0];
+                _id1 = t.identifier;
+                _ix1 = t.clientX - offs.left;
+                _iy1 = t.clientY - offs.top;
+                _tf.transformInverse(_ix1, _iy1, _p);
+                _x1 = _p.x;
+                _y1 = _p.y;
+                break;
+              case 2:
+                if (that.multitouch === true) {
+                  that._hmi_event = i_event;
+                  var t = tt[1];
+                  if (t.identifier === _id1) {
+                    t = tt[0];
+                  }
+                  _id2 = t.identifier;
+                  _ix2 = t.clientX - offs.left;
+                  _iy2 = t.clientY - offs.top;
+                  _tf.transformInverse(_ix2, _iy2, _p);
+                  _x2 = _p.x;
+                  _y2 = _p.y;
+
+                  var dix = (_ix2 - _ix1);
+                  var diy = (_iy2 - _iy1);
+                  _di = Math.sqrt(dix * dix + diy * diy);
+                }
+                break;
+              default:
+                _id1 = undefined;
+                _x1 = undefined;
+                _y1 = undefined;
+                _ix1 = undefined;
+                _iy1 = undefined;
+                _id2 = undefined;
+                _x2 = undefined;
+                _y2 = undefined;
+                _ix2 = undefined;
+                _iy2 = undefined;
+                _di = undefined;
+                delete that._hmi_event;
+                break;
+            }
+          }
+          break;
+        case TOUCHEVENT_TOUCHMOVE:
+          _mouse = false;
+          if (tt && _bounds) {
+            switch (tt.length) {
+              case 1:
                 delete _bounds.x;
                 delete _bounds.y;
                 delete _bounds.width;
                 delete _bounds.height;
-                var dix = (ix2 - ix1);
-                var diy = (iy2 - iy1);
-                var di = Math.sqrt(dix * dix + diy * diy);
-                var s = di / _di;
-                var ix = (ix1 + ix2) / 2;
-                var iy = (iy1 + iy2) / 2;
-                var dx2 = (_ix2 - _ix1) / 2 * s;
-                var dy2 = (_iy2 - _iy1) / 2 * s;
-                _tf.initForPoints(_x1, _y1, _x2, _y2, ix - dx2, iy - dy2, ix + dx2, iy + dy2);
+                that._hmi_event = i_event;
+                var t = tt[0];
+                _tf.initForPoint(_x1, _y1, t.clientX - offs.left, t.clientY - offs.top);
                 _tf.transformInverse(0, 0, _p);
                 _bounds.x1 = _p.x;
                 _bounds.y1 = _p.y;
                 _tf.transformInverse(_cont.width(), _cont.height(), _p);
                 _bounds.x2 = _p.x;
                 _bounds.y2 = _p.y;
-              }
+                break;
+              case 2:
+                if (that.multitouch === true) {
+                  that._hmi_event = i_event;
+                  var t1 = tt[0];
+                  var t2 = tt[1];
+                  if (t2.identifier === _id1) {
+                    var t = t1;
+                    t1 = t2;
+                    t2 = t;
+                  }
+                  var ix1 = t1.clientX - offs.left;
+                  var iy1 = t1.clientY - offs.top;
+                  var ix2 = t2.clientX - offs.left;
+                  var iy2 = t2.clientY - offs.top;
+                  if (that.zoom_rotation === true) {
+                    _tf.initForPoints(_x1, _y1, _x2, _y2, ix1, iy1, ix2, iy2);
+                    // we got to set this flag because the standard
+                    // initForBounds()
+                    // method does not handle rotation
+                    that._hmi_rotated = true;
+                  }
+                  else {
+                    delete _bounds.x;
+                    delete _bounds.y;
+                    delete _bounds.width;
+                    delete _bounds.height;
+                    var dix = (ix2 - ix1);
+                    var diy = (iy2 - iy1);
+                    var di = Math.sqrt(dix * dix + diy * diy);
+                    var s = di / _di;
+                    var ix = (ix1 + ix2) / 2;
+                    var iy = (iy1 + iy2) / 2;
+                    var dx2 = (_ix2 - _ix1) / 2 * s;
+                    var dy2 = (_iy2 - _iy1) / 2 * s;
+                    _tf.initForPoints(_x1, _y1, _x2, _y2, ix - dx2, iy - dy2, ix + dx2, iy + dy2);
+                    _tf.transformInverse(0, 0, _p);
+                    _bounds.x1 = _p.x;
+                    _bounds.y1 = _p.y;
+                    _tf.transformInverse(_cont.width(), _cont.height(), _p);
+                    _bounds.x2 = _p.x;
+                    _bounds.y2 = _p.y;
+                  }
+                }
+                break;
+              default:
+                _id1 = undefined;
+                _x1 = undefined;
+                _y1 = undefined;
+                _ix1 = undefined;
+                _iy1 = undefined;
+                _id2 = undefined;
+                _x2 = undefined;
+                _y2 = undefined;
+                _ix2 = undefined;
+                _iy2 = undefined;
+                delete that._hmi_event;
+                break;
             }
-            break;
-          default:
-            _id1 = undefined;
-            _x1 = undefined;
-            _y1 = undefined;
-            _ix1 = undefined;
-            _iy1 = undefined;
+          }
+          break;
+        case TOUCHEVENT_TOUCHEND:
+          _mouse = false;
+          if (tt) {
+            switch (tt.length) {
+              case 1:
+                that._hmi_event = i_event;
+                var t = tt[0];
+                _id1 = t.identifier;
+                _ix1 = t.clientX - offs.left;
+                _iy1 = t.clientY - offs.top;
+                _tf.transformInverse(_ix1, _iy1, _p);
+                _x1 = _p.x;
+                _y1 = _p.y;
+                break;
+              default:
+                _id1 = undefined;
+                _x1 = undefined;
+                _y1 = undefined;
+                _ix1 = undefined;
+                _iy1 = undefined;
+                delete that._hmi_event;
+                break;
+            }
             _id2 = undefined;
             _x2 = undefined;
             _y2 = undefined;
-            _ix2 = undefined;
-            _iy2 = undefined;
-            delete that._hmi_event;
-            break;
           }
-        }
-        break;
-      case TOUCHEVENT_TOUCHEND:
-        _mouse = false;
-        if (tt) {
-          switch (tt.length) {
-          case 1:
-            that._hmi_event = i_event;
-            var t = tt[0];
-            _id1 = t.identifier;
-            _ix1 = t.clientX - offs.left;
-            _iy1 = t.clientY - offs.top;
-            _tf.transformInverse(_ix1, _iy1, _p);
-            _x1 = _p.x;
-            _y1 = _p.y;
-            break;
-          default:
-            _id1 = undefined;
-            _x1 = undefined;
-            _y1 = undefined;
-            _ix1 = undefined;
-            _iy1 = undefined;
-            delete that._hmi_event;
-            break;
-          }
+          break;
+        case TOUCHEVENT_TOUCHENTER:
+          _mouse = false;
+          break;
+        case TOUCHEVENT_TOUCHLEAVE:
+        case TOUCHEVENT_TOUCHCANCEL:
+          _mouse = false;
+          _id1 = undefined;
+          _x1 = undefined;
+          _y1 = undefined;
+          _ix1 = undefined;
+          _iy1 = undefined;
           _id2 = undefined;
           _x2 = undefined;
           _y2 = undefined;
-        }
-        break;
-      case TOUCHEVENT_TOUCHENTER:
-        _mouse = false;
-        break;
-      case TOUCHEVENT_TOUCHLEAVE:
-      case TOUCHEVENT_TOUCHCANCEL:
-        _mouse = false;
-        _id1 = undefined;
-        _x1 = undefined;
-        _y1 = undefined;
-        _ix1 = undefined;
-        _iy1 = undefined;
-        _id2 = undefined;
-        _x2 = undefined;
-        _y2 = undefined;
-        _ix2 = undefined;
-        _iy2 = undefined;
-        delete that._hmi_event;
-        break;
-      default:
-        _mouse = false;
-        break;
+          _ix2 = undefined;
+          _iy2 = undefined;
+          delete that._hmi_event;
+          break;
+        default:
+          _mouse = false;
+          break;
       }
     };
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       delete that._hmi_handleZoomEvent;
       delete that._hmi_event;
       delete that._hmi_rotated;
@@ -4210,8 +4219,8 @@
     });
   };
 
-  var REQUIRED_CONTEXT2D_METHODS = [ 'save', 'restore', 'setTransform', 'clearRect', 'fillRect', 'strokeRect', 'beginPath', 'closePath', 'moveTo', 'lineTo', 'arcTo', 'stroke', 'fill', 'translate', 'rotate', 'scale', 'arc', 'rect', 'fillText', 'strokeText', 'drawImage' ];
-  var is_valid_context2d = function(i_context) {
+  var REQUIRED_CONTEXT2D_METHODS = ['save', 'restore', 'setTransform', 'clearRect', 'fillRect', 'strokeRect', 'beginPath', 'closePath', 'moveTo', 'lineTo', 'arcTo', 'stroke', 'fill', 'translate', 'rotate', 'scale', 'arc', 'rect', 'fillText', 'strokeText', 'drawImage'];
+  var is_valid_context2d = function (i_context) {
     for (var i = 0; i < REQUIRED_CONTEXT2D_METHODS.length; i++) {
       if (typeof i_context[REQUIRED_CONTEXT2D_METHODS[i]] !== 'function') {
         return REQUIRED_CONTEXT2D_METHODS[i];
@@ -4229,7 +4238,7 @@
    *     b | 1 #3| 1 #6| 0 #9
    * </code>
    */
-  var compare_graphic_object_layer = function(i_object1, i_object2, i_mirror) {
+  var compare_graphic_object_layer = function (i_object1, i_object2, i_mirror) {
     var z1 = i_object1._hmi_z;
     var z2 = i_object2._hmi_z;
     if (z1 === 'foreground') {
@@ -4275,7 +4284,7 @@
   var CURVE = 6;
 
   var EVENT_CROSS_SIZE = 20;
-  var stroke_cross = function(i_context, i_x, i_y) {
+  var stroke_cross = function (i_context, i_x, i_y) {
     i_context.beginPath();
     i_context.moveTo(i_x - EVENT_CROSS_SIZE, i_y - EVENT_CROSS_SIZE);
     i_context.lineTo(i_x + EVENT_CROSS_SIZE, i_y + EVENT_CROSS_SIZE);
@@ -4284,7 +4293,7 @@
     i_context.stroke();
   };
 
-  var update_bounds = function(i_bounds, i_x, i_y) {
+  var update_bounds = function (i_bounds, i_x, i_y) {
     // get the current bound values
     var x1 = i_bounds.x1, y1 = i_bounds.y1, x2 = i_bounds.x2, y2 = i_bounds.y2;
     if (x1 === undefined || i_x < x1) {
@@ -4304,21 +4313,21 @@
   var s_bounds_transform = new Transform();
 
   var s_layouts_regex = {
-      finalNullRequired : false,
-      first : /\b(?:top|bottom|left|right)\b/g,
-      next : {
-          'top' : /\b(?:left|right)\b/g,
-          'bottom' : /\b(?:left|right)\b/g,
-          'left' : /\b(?:top|bottom)\b/g,
-          'right' : /\b(?:top|bottom)\b/g,
-      },
-      convertMatchToId : function(i_id) {
-        return i_id;
-      }
+    finalNullRequired: false,
+    first: /\b(?:top|bottom|left|right)\b/g,
+    next: {
+      'top': /\b(?:left|right)\b/g,
+      'bottom': /\b(?:left|right)\b/g,
+      'left': /\b(?:top|bottom)\b/g,
+      'right': /\b(?:top|bottom)\b/g,
+    },
+    convertMatchToId: function (i_id) {
+      return i_id;
+    }
   };
   var s_layout_parts = [];
 
-  var layout_children = function(i_children, i_layout, i_separator) {
+  var layout_children = function (i_children, i_layout, i_separator) {
     // check for layout rules
     var layout = i_layout && typeof i_layout === 'string' && i_layout.length > 0 ? i_layout : '';
     s_layout_parts.splice(0, s_layout_parts.length);
@@ -4472,7 +4481,7 @@
     }
   };
 
-  var GraphicObjectImpl = function(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
+  var GraphicObjectImpl = function (i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
     var that = this;
     this._hmi_graphics = true;
     this._hmi_isButton = typeof this.pressed === 'function';
@@ -4513,7 +4522,7 @@
         // here we store our visible and paintable objects during repaint
         this._hmi_canvasElements = [];
         // handle resize
-        this._hmi_resizes.push(function() {
+        this._hmi_resizes.push(function () {
           // just resize the canvas (the repaint will be performed anyway at
           // refresh calls)
           var width = _cont.width();
@@ -4526,7 +4535,7 @@
         });
         var _white = true;
         // handle refresh
-        this._hmi_refreshs.push(function(i_date) {
+        this._hmi_refreshs.push(function (i_date) {
           /*
            * This is the repaint function for the whole canvas object tree.
            * 
@@ -4565,10 +4574,10 @@
               }
             }
             // moving vehicles [2]
-            process_object_branch(that, true, function(i_hmiObject) {
+            process_object_branch(that, true, function (i_hmiObject) {
               // this is our valid? call
               return _ctx === i_hmiObject._hmi_context.context2d;
-            }, function(i_hmiObject) {
+            }, function (i_hmiObject) {
               var vps = i_hmiObject._hmi_vps;
               var segments = i_hmiObject._hmi_segments;
               var id = i_hmiObject.id;
@@ -4619,10 +4628,10 @@
             // collect and update [3]
             var elems = that._hmi_canvasElements;
             elems.splice(0, elems.length);
-            process_object_branch(that, true, function(i_hmiObject) {
+            process_object_branch(that, true, function (i_hmiObject) {
               // this is our valid? call
               return _ctx === i_hmiObject._hmi_context.context2d;
-            }, function(i_hmiObject) {
+            }, function (i_hmiObject) {
               if (i_hmiObject._hmi_updateChildrenTransforms) {
                 i_hmiObject._hmi_updateChildrenTransforms();
               }
@@ -4635,7 +4644,7 @@
                 }
                 if (visible) {
                   i_hmiObject._hmi_z = get_canvas_attribute(i_hmiObject, 'z');
-                  var idx = Sorting.getInsertionIndex(i_hmiObject, elems, false, function(i_object1, i_object2) {
+                  var idx = Sorting.getInsertionIndex(i_hmiObject, elems, false, function (i_object1, i_object2) {
                     return compare_graphic_object_layer(i_object1, i_object2, that.mirrorZ === true);
                   });
                   elems.splice(idx, 0, i_hmiObject);
@@ -4697,26 +4706,26 @@
         if (false && i_disableVisuEvents === true) {
           // TODO why do we have to copy this reference???
           var container = _cont;
-          var on_mouse_move = function(i_event) {
+          var on_mouse_move = function (i_event) {
             // var rect = that._hmi_canvas.getBoundingClientRect();
             var rect = container.offset();
             that._hmi_mouseMoveX = i_event.clientX - rect.left;
             that._hmi_mouseMoveY = i_event.clientY - rect.top;
           };
           container.on('mousemove', on_mouse_move);
-          this._hmi_destroys.push(function() {
+          this._hmi_destroys.push(function () {
             container.off('mousemove', on_mouse_move);
             on_mouse_move = undefined;
           });
         }
-        clicked = function(i_event, i_x, i_y) {
+        clicked = function (i_event, i_x, i_y) {
           var search = true;
           _ctx.setTransform(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
           _ctx.save();
-          process_object_branch(that, true, function(i_hmiObject) {
+          process_object_branch(that, true, function (i_hmiObject) {
             // this is our valid? call
             return search && _ctx === i_hmiObject._hmi_context.context2d;
-          }, function(i_hmiObject) {
+          }, function (i_hmiObject) {
             if (search && i_hmiObject._hmi_isButton && _ctx === i_hmiObject._hmi_context.context2d && i_hmiObject._hmi_isPointOnObject) {
               var obj = i_hmiObject;
               var visible = obj._hmi_visible;
@@ -4739,37 +4748,37 @@
           });
           _ctx.restore();
         };
-        event = function(i_event, i_type) {
+        event = function (i_event, i_type) {
           switch (i_type) {
-          case MOUSEEVENT_MOUSEDOWN:
-            var offs = _cont.offset();
-            clicked(i_event, i_event.clientX - offs.left, i_event.clientY - offs.top);
-            break;
-          case TOUCHEVENT_TOUCHSTART:
-            var offs = _cont.offset();
-            var tt = i_event.originalEvent ? i_event.originalEvent.targetTouches : undefined;
-            if (tt && tt[0]) {
-              clicked(i_event, tt[0].clientX - offs.left, tt[0].clientY - offs.top);
-            }
-            break;
-          case MOUSEEVENT_CLICK:
-          case MOUSEEVENT_DBLCLICK:
-          case MOUSEEVENT_HOVER:
-          case MOUSEEVENT_MOUSEENTER:
-          case MOUSEEVENT_MOUSELEAVE:
-          case MOUSEEVENT_MOUSEMOVE:
-          case MOUSEEVENT_MOUSEOUT:
-          case MOUSEEVENT_MOUSEOVER:
-          case MOUSEEVENT_MOUSEUP:
-          case MOUSEEVENT_CONTEXTMENU:
-          case MOUSEEVENT_MOUSEWHEEL:
-          case TOUCHEVENT_TOUCHENTER:
-          case TOUCHEVENT_TOUCHMOVE:
-          case TOUCHEVENT_TOUCHEND:
-          case TOUCHEVENT_TOUCHLEAVE:
-          case TOUCHEVENT_TOUCHCANCEL:
-          default:
-            break;
+            case MOUSEEVENT_MOUSEDOWN:
+              var offs = _cont.offset();
+              clicked(i_event, i_event.clientX - offs.left, i_event.clientY - offs.top);
+              break;
+            case TOUCHEVENT_TOUCHSTART:
+              var offs = _cont.offset();
+              var tt = i_event.originalEvent ? i_event.originalEvent.targetTouches : undefined;
+              if (tt && tt[0]) {
+                clicked(i_event, tt[0].clientX - offs.left, tt[0].clientY - offs.top);
+              }
+              break;
+            case MOUSEEVENT_CLICK:
+            case MOUSEEVENT_DBLCLICK:
+            case MOUSEEVENT_HOVER:
+            case MOUSEEVENT_MOUSEENTER:
+            case MOUSEEVENT_MOUSELEAVE:
+            case MOUSEEVENT_MOUSEMOVE:
+            case MOUSEEVENT_MOUSEOUT:
+            case MOUSEEVENT_MOUSEOVER:
+            case MOUSEEVENT_MOUSEUP:
+            case MOUSEEVENT_CONTEXTMENU:
+            case MOUSEEVENT_MOUSEWHEEL:
+            case TOUCHEVENT_TOUCHENTER:
+            case TOUCHEVENT_TOUCHMOVE:
+            case TOUCHEVENT_TOUCHEND:
+            case TOUCHEVENT_TOUCHLEAVE:
+            case TOUCHEVENT_TOUCHCANCEL:
+            default:
+              break;
           }
           if (that._hmi_handleZoomEvent) {
             that._hmi_handleZoomEvent(i_event, i_type);
@@ -4790,14 +4799,14 @@
       }
     }
     else {
-      this.hmi_setVisible = function(i_visible) {
+      this.hmi_setVisible = function (i_visible) {
         that._hmi_visible = i_visible === true;
       };
-      this.hmi_isVisible = function() {
+      this.hmi_isVisible = function () {
         return that._hmi_visible;
       };
     }
-    this.hmi_setImageSource = function(i_source, i_callback) {
+    this.hmi_setImageSource = function (i_source, i_callback) {
       that.image = i_source;
       if (that._hmi_image === undefined) {
         that._hmi_image = new Image();
@@ -4805,21 +4814,21 @@
       that._hmi_image.onload = i_callback;
       that._hmi_image.src = i_source;
     };
-    this.hmi_getImageWidth = function() {
+    this.hmi_getImageWidth = function () {
       var img = that._hmi_image;
       return img !== undefined ? img.naturalWidth : undefined;
     };
-    this.hmi_getImageHeight = function() {
+    this.hmi_getImageHeight = function () {
       var img = that._hmi_image;
       return img !== undefined ? img.naturalHeight : undefined;
     };
     var tasks = [];
     if (typeof that.image === 'string') {
-      tasks.push(function(i_suc, i_err) {
+      tasks.push(function (i_suc, i_err) {
         that.hmi_setImageSource(that.image, i_suc, i_err);
       });
     }
-    this.hmi_text = function(i_text) {
+    this.hmi_text = function (i_text) {
       if (i_text !== undefined && i_text !== null) {
         that.text = typeof i_text === 'string' ? i_text : i_text.toString();
       }
@@ -4827,7 +4836,7 @@
         return that.text;
       }
     };
-    this.hmi_getGraphTextSize = function(i_config, i_text, i_result) {
+    this.hmi_getGraphTextSize = function (i_config, i_text, i_result) {
       var result = i_result || {};
       _ctx.save();
       var scale = _tf.scale;
@@ -4865,7 +4874,7 @@
       return result;
     };
 
-    this._hmi_repaint = function(i_date) {
+    this._hmi_repaint = function (i_date) {
       // The following function paints the current object on our
       // canvas using our coordinate system transform.
       // To perform fast we try to find out if anything must be
@@ -4982,279 +4991,294 @@
       var tfrot = _tf.rotation;
       _ctx.save();
       switch (type) {
-      case IMAGE:
-      case RECT:
-      case TEXT:
-        var sc = that.scale;
-        if (typeof sc !== 'number') {
-          sc = 1.0;
-        }
-        var phi = that.phi;
-        var angle = that.angle;
-        if (typeof phi === 'number') {
-          _ctx.translate(ox, oy);
-          var theta = mx === my ? phi : -phi;
-          if (that.upright !== true) {
-            theta += tfrot;
+        case IMAGE:
+        case RECT:
+        case TEXT:
+          var sc = that.scale;
+          if (typeof sc !== 'number') {
+            sc = 1.0;
           }
-          _ctx.rotate(theta);
-          _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
-          _ctx.translate(-ox, -oy);
-        }
-        else if (typeof angle === 'number') {
-          _ctx.translate(ox, oy);
-          var theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
-          if (that.upright !== true) {
-            theta += tfrot;
+          var phi = that.phi;
+          var angle = that.angle;
+          if (typeof phi === 'number') {
+            _ctx.translate(ox, oy);
+            var theta = mx === my ? phi : -phi;
+            if (that.upright !== true) {
+              theta += tfrot;
+            }
+            _ctx.rotate(theta);
+            _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
+            _ctx.translate(-ox, -oy);
           }
-          _ctx.rotate(theta);
-          _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
-          _ctx.translate(-ox, -oy);
-        }
-        else if (that.upright !== true) {
-          _ctx.translate(ox, oy);
-          _ctx.rotate(tfrot);
-          _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
-          _ctx.translate(-ox, -oy);
-        }
-        break;
-      case ARC:
-      case PATH:
-      case CURVE:
-      default:
-        break;
+          else if (typeof angle === 'number') {
+            _ctx.translate(ox, oy);
+            var theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
+            if (that.upright !== true) {
+              theta += tfrot;
+            }
+            _ctx.rotate(theta);
+            _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
+            _ctx.translate(-ox, -oy);
+          }
+          else if (that.upright !== true) {
+            _ctx.translate(ox, oy);
+            _ctx.rotate(tfrot);
+            _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
+            _ctx.translate(-ox, -oy);
+          }
+          break;
+        case ARC:
+        case PATH:
+        case CURVE:
+        default:
+          break;
       }
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       // create path and check dimension
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       var closed = that.closed === true;
       switch (type) {
-      case ARC:
-        // try to get the angles
-        var phi1 = 0;
-        var phi2 = TWO_PI;
-        if (typeof that.phi1 === 'number' && typeof that.phi2 === 'number') {
-          phi1 = that.phi1;
-          phi2 = that.phi2;
-        }
-        else if (typeof that.angle1 === 'number' && typeof that.angle2 === 'number') {
-          phi1 = that.angle1 * DEG2RAD;
-          phi2 = that.angle2 * DEG2RAD;
-        }
-        if (mx) {
-          phi1 = PI - phi1;
-          phi2 = PI - phi2;
-        }
-        if (my) {
-          phi1 = -phi1;
-          phi2 = -phi2;
-        }
-        // normalize
-        while (phi1 > PI) {
-          phi1 -= TWO_PI;
-          phi2 -= TWO_PI;
-        }
-        while (phi1 <= -PI) {
-          phi1 += TWO_PI;
-          phi2 += TWO_PI;
-        }
-        // create path
-        _ctx.beginPath();
-        _ctx.arc(ox, oy, r, phi1 + tfrot, phi2 + tfrot, mx !== my);
-        break;
-      case RECT:
-        _ctx.beginPath();
-        get_alignment(that.align, _p, mx, my);
-        var x = ox - _p.x * w;
-        var y = oy - _p.y * h;
-        var rb = get_canvas_pixel(that, 'roundBorder', scale);
-        if (typeof rb === 'number' && rb > 1.0) {
-          // start 1. round edge
-          var xw = x + w;
-          var xr = xw - rb;
-          _ctx.moveTo(xr, y);
-          var yh = y + h;
-          _ctx.arcTo(xw, y, xw, yh, rb);
-          // 2. round edge
-          _ctx.arcTo(xw, yh, x, yh, rb);
-          // 3. round edge
-          _ctx.arcTo(x, yh, x, y, rb);
-          // 4. round edge
-          _ctx.arcTo(x, y, xr, y, rb);
-          _ctx.closePath();
-        }
-        else {
-          _ctx.rect(x, y, w, h);
-        }
-        break;
-      case PATH:
-        _ctx.beginPath();
-        var len = points.length;
-        for (var i = 0; i < len; i++) {
-          var p = points[i];
-          var rad = p.r;
-          _tf.transform(p.x, p.y, _p);
-          var x1 = _p.x;
-          var y1 = _p.y;
-          if (i === 0 || p.move === true) {
-            _ctx.moveTo(x1, y1);
+        case ARC:
+          // try to get the angles
+          var phi1 = 0;
+          var phi2 = TWO_PI;
+          if (typeof that.phi1 === 'number' && typeof that.phi2 === 'number') {
+            phi1 = that.phi1;
+            phi2 = that.phi2;
           }
-          else if (typeof rad === 'number' && rad > 0.0 && (closed ? i < len : i < len - 1)) {
-            var p = points[(i + 1) % len];
-            _tf.transform(p.x, p.y, _p);
-            var x2 = _p.x;
-            var y2 = _p.y;
-            _ctx.arcTo(x1, y1, x2, y2, rad * scale);
+          else if (typeof that.angle1 === 'number' && typeof that.angle2 === 'number') {
+            phi1 = that.angle1 * DEG2RAD;
+            phi2 = that.angle2 * DEG2RAD;
+          }
+          if (mx) {
+            phi1 = PI - phi1;
+            phi2 = PI - phi2;
+          }
+          if (my) {
+            phi1 = -phi1;
+            phi2 = -phi2;
+          }
+          // normalize
+          while (phi1 > PI) {
+            phi1 -= TWO_PI;
+            phi2 -= TWO_PI;
+          }
+          while (phi1 <= -PI) {
+            phi1 += TWO_PI;
+            phi2 += TWO_PI;
+          }
+          // create path
+          _ctx.beginPath();
+          _ctx.arc(ox, oy, r, phi1 + tfrot, phi2 + tfrot, mx !== my);
+          break;
+        case RECT:
+          _ctx.beginPath();
+          get_alignment(that.align, _p, mx, my);
+          var x = ox - _p.x * w;
+          var y = oy - _p.y * h;
+          var rb = get_canvas_pixel(that, 'roundBorder', scale);
+          if (typeof rb === 'number' && rb > 1.0) {
+            // start 1. round edge
+            var xw = x + w;
+            var xr = xw - rb;
+            _ctx.moveTo(xr, y);
+            var yh = y + h;
+            _ctx.arcTo(xw, y, xw, yh, rb);
+            // 2. round edge
+            _ctx.arcTo(xw, yh, x, yh, rb);
+            // 3. round edge
+            _ctx.arcTo(x, yh, x, y, rb);
+            // 4. round edge
+            _ctx.arcTo(x, y, xr, y, rb);
+            _ctx.closePath();
           }
           else {
-            _ctx.lineTo(x1, y1);
+            _ctx.rect(x, y, w, h);
           }
-        }
-        break;
-      case CURVE:
-      case TEXT:
-      case IMAGE:
-      default:
-        break;
+          break;
+        case PATH:
+          _ctx.beginPath();
+          var len = points.length;
+          for (var i = 0; i < len; i++) {
+            var p = points[i];
+            var rad = p.r;
+            _tf.transform(p.x, p.y, _p);
+            var x1 = _p.x;
+            var y1 = _p.y;
+            if (i === 0 || p.move === true) {
+              _ctx.moveTo(x1, y1);
+            }
+            else if (typeof rad === 'number' && rad > 0.0 && (closed ? i < len : i < len - 1)) {
+              var p = points[(i + 1) % len];
+              _tf.transform(p.x, p.y, _p);
+              var x2 = _p.x;
+              var y2 = _p.y;
+              _ctx.arcTo(x1, y1, x2, y2, rad * scale);
+            }
+            else {
+              _ctx.lineTo(x1, y1);
+            }
+          }
+          break;
+        case CURVE:
+        case TEXT:
+        case IMAGE:
+        default:
+          break;
       }
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       // check if stroke is required
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       var stroke = false;
       switch (type) {
-      case PATH:
-      case CURVE:
-        if (typeof that.lineCap === 'string' || typeof that.lineJoin === 'string') {
-          stroke = true;
+        case PATH:
+        case CURVE:
+          if (typeof that.lineCap === 'string' || typeof that.lineJoin === 'string') {
+            stroke = true;
+            break;
+          }
+        case ARC:
+        case RECT:
+        case TEXT:
+          if (that.stroke === true || is_number_or_pixel_value(that.lineWidth) || typeof that.strokeStyle === 'string') {
+            stroke = true;
+          }
           break;
-        }
-      case ARC:
-      case RECT:
-      case TEXT:
-        if (that.stroke === true || is_number_or_pixel_value(that.lineWidth) || typeof that.strokeStyle === 'string') {
-          stroke = true;
-        }
-        break;
-      case IMAGE:
-      default:
-        break;
+        case IMAGE:
+        default:
+          break;
       }
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       // check if fill is required
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       var fill = false;
       switch (type) {
-      case PATH:
-      case CURVE:
-      case ARC:
-      case RECT:
-      case TEXT:
-        if (that.fill === true || typeof that.fillStyle === 'string') {
-          fill = true;
-        }
-        break;
-      case IMAGE:
-      default:
-        break;
+        case PATH:
+        case CURVE:
+        case ARC:
+        case RECT:
+        case TEXT:
+          if (that.fill === true || typeof that.fillStyle === 'string') {
+            fill = true;
+          }
+          break;
+        case IMAGE:
+        default:
+          break;
       }
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       // apply context parameters
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       switch (type) {
-      case PATH:
-      case CURVE:
-        if (stroke) {
-          var lineCap = get_canvas_attribute(that, 'lineCap');
-          if (typeof lineCap === 'string') {
-            _ctx.lineCap = lineCap;
+        case PATH:
+        case CURVE:
+          if (stroke) {
+            var lineCap = get_canvas_attribute(that, 'lineCap');
+            if (typeof lineCap === 'string') {
+              _ctx.lineCap = lineCap;
+            }
+            var lineJoin = get_canvas_attribute(that, 'lineJoin');
+            if (typeof lineJoin === 'string') {
+              _ctx.lineJoin = lineJoin;
+            }
           }
-          var lineJoin = get_canvas_attribute(that, 'lineJoin');
-          if (typeof lineJoin === 'string') {
-            _ctx.lineJoin = lineJoin;
+          if (fill || closed) {
+            _ctx.closePath();
           }
-        }
-        if (fill || closed) {
-          _ctx.closePath();
-        }
-      case ARC:
-      case RECT:
-      case TEXT:
-        if (fill) {
-          var fillStyle = get_canvas_attribute(that, 'fillStyle');
-          if (typeof fillStyle === 'string') {
-            _ctx.fillStyle = fillStyle;
+        case ARC:
+        case RECT:
+        case TEXT:
+          if (fill) {
+            var fillStyle = get_canvas_attribute(that, 'fillStyle');
+            if (typeof fillStyle === 'string') {
+              _ctx.fillStyle = fillStyle;
+            }
           }
-        }
-        if (stroke) {
-          var lineWidth = get_canvas_pixel(that, 'lineWidth', scale);
-          if (typeof lineWidth === 'number') {
-            _ctx.lineWidth = lineWidth;
+          if (stroke) {
+            var lineWidth = get_canvas_pixel(that, 'lineWidth', scale);
+            if (typeof lineWidth === 'number') {
+              _ctx.lineWidth = lineWidth;
+            }
+            var strokeStyle = get_canvas_attribute(that, 'strokeStyle');
+            if (typeof strokeStyle === 'string') {
+              _ctx.strokeStyle = strokeStyle;
+            }
           }
-          var strokeStyle = get_canvas_attribute(that, 'strokeStyle');
-          if (typeof strokeStyle === 'string') {
-            _ctx.strokeStyle = strokeStyle;
-          }
-        }
-        break;
-      case IMAGE:
-      default:
-        break;
+          break;
+        case IMAGE:
+        default:
+          break;
       }
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       // perform actual painting
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       switch (type) {
-      case CURVE:
-        if (stroke) {
-          var cs = that._hmi_curveSection;
-          var left = 0.0;
-          var l = that.left;
-          if (typeof l === 'number') {
-            left = l;
-          }
-          else {
-            var r = that.right;
-            if (typeof r === 'number') {
-              left = -r;
+        case CURVE:
+          if (stroke) {
+            var cs = that._hmi_curveSection;
+            var left = 0.0;
+            var l = that.left;
+            if (typeof l === 'number') {
+              left = l;
             }
+            else {
+              var r = that.right;
+              if (typeof r === 'number') {
+                left = -r;
+              }
+            }
+            curve.stroke(_ctx, _tf, cs.fromSectionToCurve(from), cs.fromSectionToCurve(to), left);
           }
-          curve.stroke(_ctx, _tf, cs.fromSectionToCurve(from), cs.fromSectionToCurve(to), left);
-        }
-        break;
-      case PATH:
-      case ARC:
-      case RECT:
-        if (fill) {
-          _ctx.fill();
-        }
-        if (stroke) {
-          _ctx.stroke();
-        }
-        break;
-      case TEXT:
-        if (fill || stroke) {
-          var fontSize = get_canvas_pixel(that, 'fontSize', scale);
-          if (typeof fontSize !== 'number') {
-            fontSize = 10;
+          break;
+        case PATH:
+        case ARC:
+        case RECT:
+          if (fill) {
+            _ctx.fill();
           }
-          var font = that.bold === true ? 'bold ' : '';
-          font += Math.floor(fontSize);
-          font += 'px';
-          var fontFamily = get_canvas_attribute(that, 'fontFamily');
-          font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
-          _ctx.font = font;
-          get_alignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
-          _ctx.textAlign = 'center';
-          _ctx.textBaseline = 'middle';
-          if (Array.isArray(text)) {
-            var y0 = oy - (_p.y * text.length - 0.5) * fontSize;
-            for (var i = 0; i < text.length; i++) {
-              var txt = text[i];
+          if (stroke) {
+            _ctx.stroke();
+          }
+          break;
+        case TEXT:
+          if (fill || stroke) {
+            var fontSize = get_canvas_pixel(that, 'fontSize', scale);
+            if (typeof fontSize !== 'number') {
+              fontSize = 10;
+            }
+            var font = that.bold === true ? 'bold ' : '';
+            font += Math.floor(fontSize);
+            font += 'px';
+            var fontFamily = get_canvas_attribute(that, 'fontFamily');
+            font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
+            _ctx.font = font;
+            get_alignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
+            _ctx.textAlign = 'center';
+            _ctx.textBaseline = 'middle';
+            if (Array.isArray(text)) {
+              var y0 = oy - (_p.y * text.length - 0.5) * fontSize;
+              for (var i = 0; i < text.length; i++) {
+                var txt = text[i];
+                if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
+                  txt = txt.toString();
+                }
+                var x = ox - (_p.x - 0.5) * _ctx.measureText(txt).width;
+                var y = y0 + i * fontSize;
+                if (fill) {
+                  _ctx.fillText(txt, x, y);
+                }
+                if (stroke) {
+                  _ctx.strokeText(txt, x, y);
+                }
+              }
+            }
+            else {
+              var txt = text;
               if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                 txt = txt.toString();
               }
               var x = ox - (_p.x - 0.5) * _ctx.measureText(txt).width;
-              var y = y0 + i * fontSize;
+              var y = oy - (_p.y - 0.5) * fontSize;
               if (fill) {
                 _ctx.fillText(txt, x, y);
               }
@@ -5263,38 +5287,23 @@
               }
             }
           }
-          else {
-            var txt = text;
-            if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
-              txt = txt.toString();
-            }
-            var x = ox - (_p.x - 0.5) * _ctx.measureText(txt).width;
-            var y = oy - (_p.y - 0.5) * fontSize;
-            if (fill) {
-              _ctx.fillText(txt, x, y);
-            }
-            if (stroke) {
-              _ctx.strokeText(txt, x, y);
-            }
-          }
-        }
-        break;
-      case IMAGE:
-        get_alignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
-        var x = ox - _p.x * w;
-        var y = oy - _p.y * h;
-        _ctx.globalAlpha = typeof that.alpha === 'number' ? Math.max(Math.min(that.alpha, 1.0), 0.0) : 1.0; // 0 == transparent .. 1 == full
-        _ctx.drawImage(img, x, y, w, h);
-        break;
-      default:
-        break;
+          break;
+        case IMAGE:
+          get_alignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
+          var x = ox - _p.x * w;
+          var y = oy - _p.y * h;
+          _ctx.globalAlpha = typeof that.alpha === 'number' ? Math.max(Math.min(that.alpha, 1.0), 0.0) : 1.0; // 0 == transparent .. 1 == full
+          _ctx.drawImage(img, x, y, w, h);
+          break;
+        default:
+          break;
       }
       // done
       _ctx.restore();
       return true;
     };
 
-    this._hmi_isPointOnObject = function(i_pixelX, i_pixelY) {
+    this._hmi_isPointOnObject = function (i_pixelX, i_pixelY) {
       var paint = that.paint;
       if (typeof paint === 'function') {
         return false;
@@ -5398,234 +5407,234 @@
       var tfrot = _tf.rotation;
       _ctx.save();
       switch (type) {
-      case TEXT:
-      case IMAGE:
-      case RECT:
-        var sc = that.scale;
-        if (typeof sc !== 'number') {
-          sc = 1.0;
-        }
-        var phi = that.phi;
-        var angle = that.angle;
-        if (typeof phi === 'number') {
-          _ctx.translate(ox, oy);
-          var theta = mx === my ? phi : -phi;
-          if (that.upright !== true) {
-            theta += tfrot;
+        case TEXT:
+        case IMAGE:
+        case RECT:
+          var sc = that.scale;
+          if (typeof sc !== 'number') {
+            sc = 1.0;
           }
-          _ctx.rotate(theta);
-          _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
-          _ctx.translate(-ox, -oy);
-        }
-        else if (typeof angle === 'number') {
-          _ctx.translate(ox, oy);
-          var theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
-          if (that.upright !== true) {
-            theta += tfrot;
+          var phi = that.phi;
+          var angle = that.angle;
+          if (typeof phi === 'number') {
+            _ctx.translate(ox, oy);
+            var theta = mx === my ? phi : -phi;
+            if (that.upright !== true) {
+              theta += tfrot;
+            }
+            _ctx.rotate(theta);
+            _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
+            _ctx.translate(-ox, -oy);
           }
-          _ctx.rotate(theta);
-          _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
-          _ctx.translate(-ox, -oy);
-        }
-        else if (that.upright !== true) {
-          _ctx.translate(ox, oy);
-          _ctx.rotate(tfrot);
-          _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
-          _ctx.translate(-ox, -oy);
-        }
-        break;
-      case PATH:
-      case CURVE:
-      case ARC:
-      default:
-        break;
+          else if (typeof angle === 'number') {
+            _ctx.translate(ox, oy);
+            var theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
+            if (that.upright !== true) {
+              theta += tfrot;
+            }
+            _ctx.rotate(theta);
+            _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
+            _ctx.translate(-ox, -oy);
+          }
+          else if (that.upright !== true) {
+            _ctx.translate(ox, oy);
+            _ctx.rotate(tfrot);
+            _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
+            _ctx.translate(-ox, -oy);
+          }
+          break;
+        case PATH:
+        case CURVE:
+        case ARC:
+        default:
+          break;
       }
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       // create path and check dimension
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       var closed = that.closed === true;
       switch (type) {
-      case ARC:
-        // try to get the angles
-        var phi1 = 0;
-        var phi2 = TWO_PI;
-        if (typeof that.phi1 === 'number' && typeof that.phi2 === 'number') {
-          phi1 = that.phi1;
-          phi2 = that.phi2;
-        }
-        else if (typeof that.angle1 === 'number' && typeof that.angle2 === 'number') {
-          phi1 = that.angle1 * DEG2RAD;
-          phi2 = that.angle2 * DEG2RAD;
-        }
-        if (mx) {
-          phi1 = PI - phi1;
-          phi2 = PI - phi2;
-        }
-        if (my) {
-          phi1 = -phi1;
-          phi2 = -phi2;
-        }
-        // normalize
-        while (phi1 > PI) {
-          phi1 -= TWO_PI;
-          phi2 -= TWO_PI;
-        }
-        while (phi1 <= -PI) {
-          phi1 += TWO_PI;
-          phi2 += TWO_PI;
-        }
-        // create path
-        _ctx.beginPath();
-        _ctx.arc(ox, oy, r, phi1 + tfrot, phi2 + tfrot, mx !== my);
-        break;
-      case RECT:
-        _ctx.beginPath();
-        get_alignment(that.align, _p, mx, my);
-        var x = ox - _p.x * w;
-        var y = oy - _p.y * h;
-        var rb = get_canvas_pixel(that, 'roundBorder', scale);
-        if (typeof rb === 'number' && rb > 1.0) {
-          // start 1. round edge
-          var xw = x + w;
-          var xr = xw - rb;
-          _ctx.moveTo(xr, y);
-          var yh = y + h;
-          _ctx.arcTo(xw, y, xw, yh, rb);
-          // 2. round edge
-          _ctx.arcTo(xw, yh, x, yh, rb);
-          // 3. round edge
-          _ctx.arcTo(x, yh, x, y, rb);
-          // 4. round edge
-          _ctx.arcTo(x, y, xr, y, rb);
-          _ctx.closePath();
-        }
-        else {
-          _ctx.rect(x, y, w, h);
-        }
-        break;
-      case PATH:
-        _ctx.beginPath();
-        var len = points.length;
-        for (var i = 0; i < len; i++) {
-          var p = points[i];
-          _tf.transform(p.x, p.y, _p);
-          var x1 = _p.x;
-          var y1 = _p.y;
-          if (i === 0 || p.move === true) {
-            _ctx.moveTo(x1, y1);
+        case ARC:
+          // try to get the angles
+          var phi1 = 0;
+          var phi2 = TWO_PI;
+          if (typeof that.phi1 === 'number' && typeof that.phi2 === 'number') {
+            phi1 = that.phi1;
+            phi2 = that.phi2;
           }
-          else if (typeof rad === 'number' && rad > 0.0 && (closed ? i < len : i < len - 1)) {
-            var p = points[i + 1];
-            _tf.transform(p.x, p.y, _p);
-            var x2 = _p.x;
-            var y2 = _p.y;
-            _ctx.arcTo(x1, y1, x2, y2, p.r * scale);
+          else if (typeof that.angle1 === 'number' && typeof that.angle2 === 'number') {
+            phi1 = that.angle1 * DEG2RAD;
+            phi2 = that.angle2 * DEG2RAD;
+          }
+          if (mx) {
+            phi1 = PI - phi1;
+            phi2 = PI - phi2;
+          }
+          if (my) {
+            phi1 = -phi1;
+            phi2 = -phi2;
+          }
+          // normalize
+          while (phi1 > PI) {
+            phi1 -= TWO_PI;
+            phi2 -= TWO_PI;
+          }
+          while (phi1 <= -PI) {
+            phi1 += TWO_PI;
+            phi2 += TWO_PI;
+          }
+          // create path
+          _ctx.beginPath();
+          _ctx.arc(ox, oy, r, phi1 + tfrot, phi2 + tfrot, mx !== my);
+          break;
+        case RECT:
+          _ctx.beginPath();
+          get_alignment(that.align, _p, mx, my);
+          var x = ox - _p.x * w;
+          var y = oy - _p.y * h;
+          var rb = get_canvas_pixel(that, 'roundBorder', scale);
+          if (typeof rb === 'number' && rb > 1.0) {
+            // start 1. round edge
+            var xw = x + w;
+            var xr = xw - rb;
+            _ctx.moveTo(xr, y);
+            var yh = y + h;
+            _ctx.arcTo(xw, y, xw, yh, rb);
+            // 2. round edge
+            _ctx.arcTo(xw, yh, x, yh, rb);
+            // 3. round edge
+            _ctx.arcTo(x, yh, x, y, rb);
+            // 4. round edge
+            _ctx.arcTo(x, y, xr, y, rb);
+            _ctx.closePath();
           }
           else {
-            _ctx.lineTo(x1, y1);
+            _ctx.rect(x, y, w, h);
           }
-        }
-        break;
-      case CURVE:
-        if (stroke) {
-          // TODO implement
-        }
-        break;
-      case TEXT:
-        var fontSize = get_canvas_pixel(that, 'fontSize', scale);
-        if (typeof fontSize !== 'number') {
-          fontSize = 10;
-        }
-        var font = that.bold === true ? 'bold ' : '';
-        font += Math.ceil(fontSize);
-        font += 'px';
-        var fontFamily = get_canvas_attribute(that, 'fontFamily');
-        font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
-        _ctx.font = font;
-        _ctx.beginPath();
-        get_alignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
-        // Bugfix #text_click (2016-09-09, Hm)
-        if (Array.isArray(text)) {
-          // #text_click: var y0 = oy - (_p.y * text.length - 0.5) * fontSize;
-          var y0 = oy - _p.y * text.length * fontSize;
-          var x0 = undefined;
-          var x1 = undefined;
-          for (var i = 0; i < text.length; i++) {
-            var txt = text[i];
+          break;
+        case PATH:
+          _ctx.beginPath();
+          var len = points.length;
+          for (var i = 0; i < len; i++) {
+            var p = points[i];
+            _tf.transform(p.x, p.y, _p);
+            var x1 = _p.x;
+            var y1 = _p.y;
+            if (i === 0 || p.move === true) {
+              _ctx.moveTo(x1, y1);
+            }
+            else if (typeof rad === 'number' && rad > 0.0 && (closed ? i < len : i < len - 1)) {
+              var p = points[i + 1];
+              _tf.transform(p.x, p.y, _p);
+              var x2 = _p.x;
+              var y2 = _p.y;
+              _ctx.arcTo(x1, y1, x2, y2, p.r * scale);
+            }
+            else {
+              _ctx.lineTo(x1, y1);
+            }
+          }
+          break;
+        case CURVE:
+          if (stroke) {
+            // TODO implement
+          }
+          break;
+        case TEXT:
+          var fontSize = get_canvas_pixel(that, 'fontSize', scale);
+          if (typeof fontSize !== 'number') {
+            fontSize = 10;
+          }
+          var font = that.bold === true ? 'bold ' : '';
+          font += Math.ceil(fontSize);
+          font += 'px';
+          var fontFamily = get_canvas_attribute(that, 'fontFamily');
+          font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
+          _ctx.font = font;
+          _ctx.beginPath();
+          get_alignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
+          // Bugfix #text_click (2016-09-09, Hm)
+          if (Array.isArray(text)) {
+            // #text_click: var y0 = oy - (_p.y * text.length - 0.5) * fontSize;
+            var y0 = oy - _p.y * text.length * fontSize;
+            var x0 = undefined;
+            var x1 = undefined;
+            for (var i = 0; i < text.length; i++) {
+              var txt = text[i];
+              if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
+                txt = txt.toString();
+              }
+              var tw = _ctx.measureText(txt).width;
+              // #text_click: var x = ox - (_p.x - 0.5) * tw;
+              var x = ox - _p.x * tw;
+              if (x0 === undefined || x < x0) {
+                x0 = x;
+              }
+              x += tw;
+              if (x1 === undefined || x > x1) {
+                x1 = x;
+              }
+            }
+            _ctx.rect(x0, y0, x1 - x0, fontSize * text.length);
+          }
+          else {
+            var txt = text;
             if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
               txt = txt.toString();
             }
-            var tw = _ctx.measureText(txt).width;
-            // #text_click: var x = ox - (_p.x - 0.5) * tw;
-            var x = ox - _p.x * tw;
-            if (x0 === undefined || x < x0) {
-              x0 = x;
-            }
-            x += tw;
-            if (x1 === undefined || x > x1) {
-              x1 = x;
-            }
+            var w = _ctx.measureText(text).width;
+            // #text_click: var x = ox - (_p.x - 0.5) * w;
+            var x = ox - _p.x * w;
+            // #text_click: var y = oy - (_p.y - 0.5) * fontSize;
+            var y = oy - _p.y * fontSize;
+            _ctx.rect(x, y, w, fontSize);
           }
-          _ctx.rect(x0, y0, x1 - x0, fontSize * text.length);
-        }
-        else {
-          var txt = text;
-          if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
-            txt = txt.toString();
-          }
-          var w = _ctx.measureText(text).width;
-          // #text_click: var x = ox - (_p.x - 0.5) * w;
+          break;
+        case IMAGE:
+          _ctx.beginPath();
+          get_alignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
           var x = ox - _p.x * w;
-          // #text_click: var y = oy - (_p.y - 0.5) * fontSize;
-          var y = oy - _p.y * fontSize;
-          _ctx.rect(x, y, w, fontSize);
-        }
-        break;
-      case IMAGE:
-        _ctx.beginPath();
-        get_alignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
-        var x = ox - _p.x * w;
-        var y = oy - _p.y * h;
-        _ctx.rect(x, y, w, h);
-        break;
-      default:
-        break;
+          var y = oy - _p.y * h;
+          _ctx.rect(x, y, w, h);
+          break;
+        default:
+          break;
       }
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       // check if fill is required
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       var fill = false;
       switch (type) {
-      case PATH:
-      case CURVE:
-      case ARC:
-      case RECT:
-      case TEXT:
-        if (that.fill === true || typeof that.fillStyle === 'string') {
-          fill = true;
+        case PATH:
+        case CURVE:
+        case ARC:
+        case RECT:
+        case TEXT:
+          if (that.fill === true || typeof that.fillStyle === 'string') {
+            fill = true;
+            break;
+          }
           break;
-        }
-        break;
-      case IMAGE:
-      default:
-        break;
+        case IMAGE:
+        default:
+          break;
       }
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       // apply context parameters
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       switch (type) {
-      case PATH:
-      case CURVE:
-        if (fill || closed) {
-          _ctx.closePath();
-        }
-        break;
-      case ARC:
-      case RECT:
-      case TEXT:
-      case IMAGE:
-      default:
-        break;
+        case PATH:
+        case CURVE:
+          if (fill || closed) {
+            _ctx.closePath();
+          }
+          break;
+        case ARC:
+        case RECT:
+        case TEXT:
+        case IMAGE:
+        default:
+          break;
       }
       // check
       var result = _ctx.isPointInPath(i_pixelX, i_pixelY);
@@ -5633,7 +5642,7 @@
       return result;
     };
 
-    this.hmi_getBounds = function() {
+    this.hmi_getBounds = function () {
       var recursive, bounds, arg;
       // try to read from arguments
       for (var i = 0, l = arguments.length; i < l; i++) {
@@ -5655,7 +5664,7 @@
       return bounds;
     };
 
-    this.hmi_updateBounds = function() {
+    this.hmi_updateBounds = function () {
       var bounds = this.bounds;
       if (bounds === null || typeof bounds !== 'object') {
         bounds = {};
@@ -5664,7 +5673,7 @@
       this.hmi_getBounds(bounds, true);
     };
 
-    this._hmi_getBounds = function(i_transform, i_bounds, i_recursive) {
+    this._hmi_getBounds = function (i_transform, i_bounds, i_recursive) {
       // delete bounds
       delete i_bounds.x1;
       delete i_bounds.y1;
@@ -5784,151 +5793,151 @@
         oy = 0.0;
       }
       switch (type) {
-      case TEXT:
-      case IMAGE:
-      case RECT:
-        var sc = that.scale;
-        if (typeof sc !== 'number') {
-          sc = 1.0;
-        }
-        var phi = that.phi;
-        var angle = that.angle;
-        if (typeof phi === 'number') {
-          i_transform.translate(ox, oy);
-          i_transform.rotate(phi);
-          i_transform.setScale(sc);
-          i_transform.translate(-ox, -oy);
-        }
-        else if (typeof angle === 'number') {
-          i_transform.translate(ox, oy);
-          i_transform.rotate(angle * DEG2RAD);
-          i_transform.setScale(sc);
-          i_transform.translate(-ox, -oy);
-        }
-        else if (that.upright !== true) {
-          i_transform.translate(ox, oy);
-          i_transform.setScale(sc);
-          i_transform.translate(-ox, -oy);
-        }
-        break;
-      case PATH:
-      case CURVE:
-      case ARC:
-      default:
-        break;
+        case TEXT:
+        case IMAGE:
+        case RECT:
+          var sc = that.scale;
+          if (typeof sc !== 'number') {
+            sc = 1.0;
+          }
+          var phi = that.phi;
+          var angle = that.angle;
+          if (typeof phi === 'number') {
+            i_transform.translate(ox, oy);
+            i_transform.rotate(phi);
+            i_transform.setScale(sc);
+            i_transform.translate(-ox, -oy);
+          }
+          else if (typeof angle === 'number') {
+            i_transform.translate(ox, oy);
+            i_transform.rotate(angle * DEG2RAD);
+            i_transform.setScale(sc);
+            i_transform.translate(-ox, -oy);
+          }
+          else if (that.upright !== true) {
+            i_transform.translate(ox, oy);
+            i_transform.setScale(sc);
+            i_transform.translate(-ox, -oy);
+          }
+          break;
+        case PATH:
+        case CURVE:
+        case ARC:
+        default:
+          break;
       }
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       // create path and check dimension
       // ///////////////////////////////////////////////////////////////////////////////////////////////
       var closed = that.closed === true;
       switch (type) {
-      case ARC:
-        update_bounds(i_bounds, ox - r, oy - r);
-        update_bounds(i_bounds, ox - r, oy + r);
-        update_bounds(i_bounds, ox + r, oy + r);
-        update_bounds(i_bounds, ox + r, oy - r);
-        break;
-      case RECT:
-        get_alignment(that.align, _p, false, false);
-        var x = ox - _p.x * w;
-        var y = oy - _p.y * h;
-        i_transform.transform(x, y, _p);
-        update_bounds(i_bounds, _p.x, _p.y);
-        i_transform.transform(x + w, y, _p);
-        update_bounds(i_bounds, _p.x, _p.y);
-        i_transform.transform(x, y + h, _p);
-        update_bounds(i_bounds, _p.x, _p.y);
-        i_transform.transform(x + w, y + h, _p);
-        update_bounds(i_bounds, _p.x, _p.y);
-        break;
-      case PATH:
-        var len = points.length;
-        for (var i = 0; i < len; i++) {
-          var p = points[i];
-          i_transform.transform(p.x, p.y, _p);
-          update_bounds(i_bounds, _p.x, _p.y);
-        }
-        break;
-      case CURVE:
-        if (stroke) {
-          // TODO implement
-        }
-        break;
-      case TEXT:
-        _ctx.save();
-        var fontSize = get_canvas_pixel(that, 'fontSize', 1.0);
-        if (typeof fontSize !== 'number') {
-          fontSize = 10;
-        }
-        var font = that.bold === true ? 'bold ' : '';
-        font += '100px';
-        var fontFamily = get_canvas_attribute(that, 'fontFamily');
-        font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
-        _ctx.font = font;
-        get_alignment(that.align, _p, false, false);
-        if (Array.isArray(text)) {
-          var y0 = oy - _p.y * text.length * fontSize;
-          var x0 = undefined;
-          var x1 = undefined;
-          for (var i = 0; i < text.length; i++) {
-            var txt = text[i];
-            if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
-              txt = txt.toString();
-            }
-            var tw = _ctx.measureText(txt).width / 100 * fontSize;
-            var x = ox - _p.x * tw;
-            if (x0 === undefined || x < x0) {
-              x0 = x;
-            }
-            x += tw;
-            if (x1 === undefined || x > x1) {
-              x1 = x;
-            }
-          }
-          var h = fontSize * text.length;
-          i_transform.transform(x0, y0, _p);
-          update_bounds(i_bounds, _p.x, _p.y);
-          i_transform.transform(x1, y0, _p);
-          update_bounds(i_bounds, _p.x, _p.y);
-          i_transform.transform(x0, y0 + h, _p);
-          update_bounds(i_bounds, _p.x, _p.y);
-          i_transform.transform(x1, y0 + h, _p);
-          update_bounds(i_bounds, _p.x, _p.y);
-        }
-        else {
-          var txt = text;
-          if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
-            txt = txt.toString();
-          }
-          var w = _ctx.measureText(text).width / 100 * fontSize;
+        case ARC:
+          update_bounds(i_bounds, ox - r, oy - r);
+          update_bounds(i_bounds, ox - r, oy + r);
+          update_bounds(i_bounds, ox + r, oy + r);
+          update_bounds(i_bounds, ox + r, oy - r);
+          break;
+        case RECT:
+          get_alignment(that.align, _p, false, false);
           var x = ox - _p.x * w;
-          var y = oy - _p.y * fontSize;
+          var y = oy - _p.y * h;
           i_transform.transform(x, y, _p);
           update_bounds(i_bounds, _p.x, _p.y);
           i_transform.transform(x + w, y, _p);
           update_bounds(i_bounds, _p.x, _p.y);
-          i_transform.transform(x, y + fontSize, _p);
+          i_transform.transform(x, y + h, _p);
           update_bounds(i_bounds, _p.x, _p.y);
-          i_transform.transform(x + w, y + fontSize, _p);
+          i_transform.transform(x + w, y + h, _p);
           update_bounds(i_bounds, _p.x, _p.y);
-        }
-        _ctx.restore();
-        break;
-      case IMAGE:
-        get_alignment(that.align, _p, false, false);
-        var x = ox - _p.x * w;
-        var y = oy - _p.y * h;
-        i_transform.transform(x, y, _p);
-        update_bounds(i_bounds, _p.x, _p.y);
-        i_transform.transform(x + w, y, _p);
-        update_bounds(i_bounds, _p.x, _p.y);
-        i_transform.transform(x, y + h, _p);
-        update_bounds(i_bounds, _p.x, _p.y);
-        i_transform.transform(x + w, y + h, _p);
-        update_bounds(i_bounds, _p.x, _p.y);
-        break;
-      default:
-        break;
+          break;
+        case PATH:
+          var len = points.length;
+          for (var i = 0; i < len; i++) {
+            var p = points[i];
+            i_transform.transform(p.x, p.y, _p);
+            update_bounds(i_bounds, _p.x, _p.y);
+          }
+          break;
+        case CURVE:
+          if (stroke) {
+            // TODO implement
+          }
+          break;
+        case TEXT:
+          _ctx.save();
+          var fontSize = get_canvas_pixel(that, 'fontSize', 1.0);
+          if (typeof fontSize !== 'number') {
+            fontSize = 10;
+          }
+          var font = that.bold === true ? 'bold ' : '';
+          font += '100px';
+          var fontFamily = get_canvas_attribute(that, 'fontFamily');
+          font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
+          _ctx.font = font;
+          get_alignment(that.align, _p, false, false);
+          if (Array.isArray(text)) {
+            var y0 = oy - _p.y * text.length * fontSize;
+            var x0 = undefined;
+            var x1 = undefined;
+            for (var i = 0; i < text.length; i++) {
+              var txt = text[i];
+              if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
+                txt = txt.toString();
+              }
+              var tw = _ctx.measureText(txt).width / 100 * fontSize;
+              var x = ox - _p.x * tw;
+              if (x0 === undefined || x < x0) {
+                x0 = x;
+              }
+              x += tw;
+              if (x1 === undefined || x > x1) {
+                x1 = x;
+              }
+            }
+            var h = fontSize * text.length;
+            i_transform.transform(x0, y0, _p);
+            update_bounds(i_bounds, _p.x, _p.y);
+            i_transform.transform(x1, y0, _p);
+            update_bounds(i_bounds, _p.x, _p.y);
+            i_transform.transform(x0, y0 + h, _p);
+            update_bounds(i_bounds, _p.x, _p.y);
+            i_transform.transform(x1, y0 + h, _p);
+            update_bounds(i_bounds, _p.x, _p.y);
+          }
+          else {
+            var txt = text;
+            if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
+              txt = txt.toString();
+            }
+            var w = _ctx.measureText(text).width / 100 * fontSize;
+            var x = ox - _p.x * w;
+            var y = oy - _p.y * fontSize;
+            i_transform.transform(x, y, _p);
+            update_bounds(i_bounds, _p.x, _p.y);
+            i_transform.transform(x + w, y, _p);
+            update_bounds(i_bounds, _p.x, _p.y);
+            i_transform.transform(x, y + fontSize, _p);
+            update_bounds(i_bounds, _p.x, _p.y);
+            i_transform.transform(x + w, y + fontSize, _p);
+            update_bounds(i_bounds, _p.x, _p.y);
+          }
+          _ctx.restore();
+          break;
+        case IMAGE:
+          get_alignment(that.align, _p, false, false);
+          var x = ox - _p.x * w;
+          var y = oy - _p.y * h;
+          i_transform.transform(x, y, _p);
+          update_bounds(i_bounds, _p.x, _p.y);
+          i_transform.transform(x + w, y, _p);
+          update_bounds(i_bounds, _p.x, _p.y);
+          i_transform.transform(x, y + h, _p);
+          update_bounds(i_bounds, _p.x, _p.y);
+          i_transform.transform(x + w, y + h, _p);
+          update_bounds(i_bounds, _p.x, _p.y);
+          break;
+        default:
+          break;
       }
       i_transform.restore();
     };
@@ -5936,15 +5945,15 @@
     // only if we got a paint method we add the paint functions
     if (typeof this.paint === 'function') {
       this.hmi_context2d = _ctx;
-      this.hmi_save = function() {
+      this.hmi_save = function () {
         return _ctx.save();
       };
 
-      this.hmi_restore = function() {
+      this.hmi_restore = function () {
         return _ctx.restore();
       };
 
-      this.hmi_transform = function(i_config) {
+      this.hmi_transform = function (i_config) {
         var x = i_config.x;
         if (typeof x !== 'number') {
           x = 0.0;
@@ -5993,7 +6002,7 @@
         }
       };
 
-      this.hmi_prepareRect = function(i_config) {
+      this.hmi_prepareRect = function (i_config) {
         _ctx.beginPath();
         var scale = _tf.scale;
         var w = i_config.width;
@@ -6076,7 +6085,7 @@
         }
       };
 
-      this.hmi_prepareArc = function(i_config) {
+      this.hmi_prepareArc = function (i_config) {
         _ctx.beginPath();
         var scale = _tf.scale;
         var r = i_config.r;
@@ -6129,7 +6138,7 @@
         _ctx.arc(_p.x, _p.y, r, phi1 + tfrot, phi2 + tfrot, mx !== my);
       };
 
-      this.hmi_preparePath = function(i_config) {
+      this.hmi_preparePath = function (i_config) {
         _ctx.beginPath();
         var points = i_config.points;
         if (Array.isArray(points) === false || points.length < 2) {
@@ -6162,7 +6171,7 @@
         }
       };
 
-      this.hmi_setFont = function(i_config) {
+      this.hmi_setFont = function (i_config) {
         var fontSize = get_pixel_size(i_config.fontSize, _tf.scale);
         if (typeof fontSize !== 'number') {
           fontSize = 10;
@@ -6175,15 +6184,15 @@
         _ctx.font = font;
       };
       // TODO this is shit
-      this.hmi_getTextHeight = function(i_config) {
+      this.hmi_getTextHeight = function (i_config) {
         return get_pixel_size(i_config.fontSize, _tf.scale);
       };
 
-      this.hmi_getTextWidth = function(i_text) {
+      this.hmi_getTextWidth = function (i_text) {
         return _ctx.measureText(i_text).width;
       };
 
-      this.hmi_paintText = function(i_config, i_text) {
+      this.hmi_paintText = function (i_config, i_text) {
         // context.textAlign="center|end|left|right|start";
         // context.textBaseline="alphabetic|top|hanging|middle|ideographic|bottom";
         var scale = _tf.scale;
@@ -6312,7 +6321,7 @@
         }
       };
 
-      this.hmi_paintImage = function(i_config, i_image) {
+      this.hmi_paintImage = function (i_config, i_image) {
         if (i_image === undefined || typeof i_image.naturalWidth !== 'number' || i_image.naturalWidth <= 1 || typeof i_image.naturalHeight !== 'number' || i_image.naturalHeight <= 1) {
           return;
         }
@@ -6397,21 +6406,21 @@
         var y = oy - _p.y * h;
         _ctx.drawImage(i_image, x, y, w, h);
       };
-      this.hmi_beginPath = function() {
+      this.hmi_beginPath = function () {
         _ctx.beginPath();
       };
 
-      this.hmi_moveTo = function(i_x, i_y) {
+      this.hmi_moveTo = function (i_x, i_y) {
         _tf.transform(i_x, i_y, _p);
         _ctx.moveTo(_p.x, _p.y);
       };
 
-      this.hmi_lineTo = function(i_x, i_y) {
+      this.hmi_lineTo = function (i_x, i_y) {
         _tf.transform(i_x, i_y, _p);
         _ctx.lineTo(_p.x, _p.y);
       };
 
-      this.hmi_arcTo = function(i_x1, i_y1, i_x2, i_y2, i_radius) {
+      this.hmi_arcTo = function (i_x1, i_y1, i_x2, i_y2, i_radius) {
         _tf.transform(i_x1, i_y1, _p);
         var x1 = _p.x;
         var y1 = _p.y;
@@ -6419,7 +6428,7 @@
         _ctx.arcTo(x1, y1, _p.x, _p.y, i_radius * _tf.scale);
       };
 
-      this.hmi_quadraticCurveTo = function(i_x1, i_y1, i_x2, i_y2) {
+      this.hmi_quadraticCurveTo = function (i_x1, i_y1, i_x2, i_y2) {
         _tf.transform(i_x1, i_y1, _p);
         var x1 = _p.x;
         var y1 = _p.y;
@@ -6427,7 +6436,7 @@
         _ctx.quadraticCurveTo(x1, y1, _p.x, _p.y);
       };
 
-      this.hmi_bezierCurveTo = function(i_x1, i_y1, i_x2, i_y2, i_x2, i_y2) {
+      this.hmi_bezierCurveTo = function (i_x1, i_y1, i_x2, i_y2, i_x2, i_y2) {
         _tf.transform(i_x1, i_y1, _p);
         var x1 = _p.x;
         var y1 = _p.y;
@@ -6438,11 +6447,11 @@
         _ctx.bezierCurveTo(x1, y1, x2, y2, _p.x, _p.y);
       };
 
-      this.hmi_closePath = function() {
+      this.hmi_closePath = function () {
         _ctx.closePath();
       };
 
-      this.hmi_fill = function(i_config) {
+      this.hmi_fill = function (i_config) {
         if (i_config) {
           var fillStyle = i_config.fillStyle;
           if (typeof fillStyle === 'string') {
@@ -6452,7 +6461,7 @@
         _ctx.fill();
       };
 
-      this.hmi_stroke = function(i_config) {
+      this.hmi_stroke = function (i_config) {
         if (i_config) {
           var lineCap = i_config.lineCap;
           if (typeof lineCap === 'string') {
@@ -6486,7 +6495,7 @@
        * In the next lines we iterate over all children and those which are
        * graphical objects will be handled recursively.
        */
-      var updateHtmlChildPosition = function(i_hmiObject, i_child, i_width, i_height, i_callResize) {
+      var updateHtmlChildPosition = function (i_hmiObject, i_child, i_width, i_height, i_callResize) {
         var elem = i_child._hmi_graphHtmlElement;
         // update size and resize object if required
         var resized = false;
@@ -6589,7 +6598,7 @@
       /*
        * Update children transforms.
        */
-      this._hmi_updateChildrenTransforms = function() {
+      this._hmi_updateChildrenTransforms = function () {
         for (var i = 0; i < _children.length; i++) {
           var child = _children[i];
           var hmiobj = child._hmi_object;
@@ -6643,7 +6652,7 @@
       }
       for (var i = 0; i < _children.length; i++) {
         // closure
-        (function() {
+        (function () {
           var child = _children[i];
           var hmiobj = child._hmi_object;
           if (hmiobj) {
@@ -6664,7 +6673,7 @@
                     hmiobj._hmi_segments[c.segment] = c;
                   }
                 }
-                hmiobj.hmi_getPointOnCurveSection = function(i_position, i_offset, i_point, i_adjusted) {
+                hmiobj.hmi_getPointOnCurveSection = function (i_position, i_offset, i_point, i_adjusted) {
                   var cursec = this._hmi_vehicleCurveSection;
                   var posadj = this._hmi_vehiclePositionAdjuster;
                   var pos = i_adjusted === true && posadj ? posadj.adjust(i_position) : i_position;
@@ -6689,7 +6698,7 @@
                   hmiobj._hmi_curveSection = cs;
                   hmiobj._hmi_curve = cu;
                   hmiobj._hmi_positionAdjuster = pa;
-                  hmiobj.hmi_getPointOnCurveSection = function(i_position, i_offset, i_point, i_adjusted) {
+                  hmiobj.hmi_getPointOnCurveSection = function (i_position, i_offset, i_point, i_adjusted) {
                     var pos = i_adjusted === true ? this._hmi_positionAdjuster.adjust(i_position) : i_position;
                     return this._hmi_curveSection.transform(pos, i_offset, i_point);
                   };
@@ -6719,20 +6728,20 @@
                   ctf = new Transform();
                   ctf.setToCoordinateTransform(child, _tf);
                 }
-                tasks.push(function(i_suc, i_err) {
+                tasks.push(function (i_suc, i_err) {
                   // #graph: 1
                   hmiobj._hmi_init_dom({
-                      container : _cont,
-                      transform : ctf,
-                      context2d : _ctx
+                    container: _cont,
+                    transform: ctf,
+                    context2d: _ctx
                   }, i_suc, i_err);
                 });
               }
               else if (hmiobj.type === 'handler') {
-                tasks.push(function(i_suc, i_err) {
+                tasks.push(function (i_suc, i_err) {
                   // #graph: 2
                   hmiobj._hmi_init_dom({
-                    container : _cont
+                    container: _cont
                   }, i_suc, i_err);
                 });
               }
@@ -6744,10 +6753,10 @@
                 if (typeof width === 'number' && typeof height === 'number') {
                   updateHtmlChildPosition(hmiobj, child, width, height, false);
                 }
-                tasks.push(function(i_suc, i_err) {
+                tasks.push(function (i_suc, i_err) {
                   // #graph: 3
                   hmiobj._hmi_init_dom({
-                    container : child._hmi_graphHtmlElement
+                    container: child._hmi_graphHtmlElement
                   }, i_suc, i_err);
                 });
               }
@@ -6756,12 +6765,12 @@
         }());
       }
       // layout
-      this.hmi_layout = function(i_layout, i_separator) {
+      this.hmi_layout = function (i_layout, i_separator) {
         layout_children(_children, i_layout, i_separator);
       };
     }
     // finally we remove all we created
-    this._hmi_destroys.push(function() {
+    this._hmi_destroys.push(function () {
       if (that._hmi_graphicsRoot === true) {
         clicked = undefined;
         event = undefined;
@@ -6899,7 +6908,7 @@
    * This is our actual hmi object implementation
    */
   var s_objectId = 0;
-  var ObjectImpl = function(i_disableVisuEvents, i_enableEditorEvents) {
+  var ObjectImpl = function (i_disableVisuEvents, i_enableEditorEvents) {
     var that = this;
     var _cont = undefined;
     this._hmi_objectId = s_objectId++;
@@ -6918,10 +6927,10 @@
     this._hmi_destroys = [];
 
     // CONTEXT
-    this.hmi_context = function() {
+    this.hmi_context = function () {
       return that._hmi_context;
     };
-    this.hmi_getHtmlTextSize = function(i_text) {
+    this.hmi_getHtmlTextSize = function (i_text) {
       return _cont ? get_text_size(i_text, _cont.css('font')) : undefined;
     };
     // objects are visible as default
@@ -6933,24 +6942,24 @@
 
     // INITIALIZE THE DOCUMENT
     // TODO use: i_success, i_error
-    this._hmi_init_dom = function(i_context, i_success, i_error) {
+    this._hmi_init_dom = function (i_context, i_success, i_error) {
       var tasks = [];
       that._hmi_context = i_context;
       _cont = i_context.container;
       if (that.type === 'handler') {
-        tasks.push(function(i_suc, i_err) {
+        tasks.push(function (i_suc, i_err) {
           HandlerObjectImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
         });
       }
       else {
         if (that.type === 'graph') {
           // if a graphics object apply graphic functionality
-          tasks.push(function(i_suc, i_err) {
+          tasks.push(function (i_suc, i_err) {
             GraphicObjectImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
           });
         }
         else {
-          tasks.push(function(i_suc, i_err) {
+          tasks.push(function (i_suc, i_err) {
             DefaultHtmlObjectImpl.call(that);
             i_suc();
           });
@@ -6958,63 +6967,63 @@
           var type = typeof that.type === 'string' ? s_types[that.type] : false;
           // if type is available
           if (typeof type === 'function') {
-            tasks.push(function(i_suc, i_err) {
+            tasks.push(function (i_suc, i_err) {
               // apply type specific functionality
               type.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
             });
           }
           // no type
           else {
-            tasks.push(function(i_suc, i_err) {
+            tasks.push(function (i_suc, i_err) {
               SimpleHtmlObjectImpl.call(that);
               i_suc();
             });
           }
           // EXTENSIONS
           if (DivButtonImpl.isRequired(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents)) {
-            tasks.push(function(i_suc, i_err) {
+            tasks.push(function (i_suc, i_err) {
               DivButtonImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
             });
           }
           if (TimeRangeSelectorImpl.isRequired(that)) {
-            tasks.push(function(i_suc, i_err) {
+            tasks.push(function (i_suc, i_err) {
               TimeRangeSelectorImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
             });
           }
-          tasks.push(function(i_suc, i_err) {
+          tasks.push(function (i_suc, i_err) {
             // used for editor only! move somewhere?
             if (typeof that.draggable === 'string' && i_enableEditorEvents !== true) {
               if (_cont) {
                 _cont.draggable({
-                    // set the drag and drop scope
-                    scope : that.draggable,
-                    // helper : 'clone' means we just clone the original
-                    /*
-                     * helper : function() { var clone = _cont.clone();
-                     * clone.appendTo(document.body); return clone; },
-                     */
-                    helper : 'clone',
-                    revert : 'invalid',
-                    revertDuration : 777,
-                    appendTo : 'body',
-                    // the transparency value (alpha)
-                    opacity : 0.7,
-                    // the distance that must be dragged before the actual drag
-                    // starts
-                    distance : 20,
-                    // ignore iframes
-                    iframeFix : true,
-                    // do not scroll if we reach edge of browser frame
-                    scroll : false,
-                    start : function(event, ui) {
-                      update_event_listeners_state(false);
-                    },
-                    stop : function(event, ui) {
-                      update_event_listeners_state(true);
-                    }
+                  // set the drag and drop scope
+                  scope: that.draggable,
+                  // helper : 'clone' means we just clone the original
+                  /*
+                   * helper : function() { var clone = _cont.clone();
+                   * clone.appendTo(document.body); return clone; },
+                   */
+                  helper: 'clone',
+                  revert: 'invalid',
+                  revertDuration: 777,
+                  appendTo: 'body',
+                  // the transparency value (alpha)
+                  opacity: 0.7,
+                  // the distance that must be dragged before the actual drag
+                  // starts
+                  distance: 20,
+                  // ignore iframes
+                  iframeFix: true,
+                  // do not scroll if we reach edge of browser frame
+                  scroll: false,
+                  start: function (event, ui) {
+                    update_event_listeners_state(false);
+                  },
+                  stop: function (event, ui) {
+                    update_event_listeners_state(true);
+                  }
                 });
                 if (that.clickable !== false) {
-                  _fClickedDraggable = function(i_event) {
+                  _fClickedDraggable = function (i_event) {
                     if ($(this).is('.ui-draggable-dragging')) {
                       return;
                     }
@@ -7033,7 +7042,7 @@
             i_suc();
           });
         }
-        tasks.push(function(i_suc, i_err) {
+        tasks.push(function (i_suc, i_err) {
           try {
             // VISIBILITY (default is true)
             if (is_visible(that.visible) === false) {
@@ -7062,13 +7071,13 @@
       for (var i = 0; i < s_extensions.length; i++) {
         var impl = s_extensions[i];
         if (impl.isExtension(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents)) {
-          tasks.push(function(i_suc, i_err) {
+          tasks.push(function (i_suc, i_err) {
             impl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
           });
         }
       }
       tasks.parallel = false;
-      Executor.run(tasks, function() {
+      Executor.run(tasks, function () {
         // delete method to prevent other calls
         delete that._hmi_init_dom;
         i_success();
@@ -7076,12 +7085,12 @@
     };
 
     // ADD LISTENERS
-    this._hmi_addListeners = function(i_hmiObject, i_success, i_error) {
+    this._hmi_addListeners = function (i_hmiObject, i_success, i_error) {
       // WATCH / TEXT
       _watch = get_watch(that.watch);
       if (Array.isArray(_watch)) {
         _dataListener = {
-          handleDataUpdate : function(i_id, i_value, i_type) {
+          handleDataUpdate: function (i_id, i_value, i_type) {
             try {
               if (typeof that.handleDataUpdate === 'function') {
                 that.handleDataUpdate(i_id, i_value, i_type);
@@ -7135,7 +7144,7 @@
     };
 
     // REMOVE LISTENERS
-    this._hmi_removeListeners = function(i_hmiObject, i_success, i_error) {
+    this._hmi_removeListeners = function (i_hmiObject, i_success, i_error) {
       // remove listeners
       for (var i = that._hmi_listenerRemoves.length - 1; i >= 0; i--) {
         var func = that._hmi_listenerRemoves[i];
@@ -7165,7 +7174,7 @@
     };
 
     // CLEAN UP
-    this._hmi_destroy_dom = function() {
+    this._hmi_destroy_dom = function () {
       that._hmi_refreshs.splice(0, that._hmi_refreshs.length);
       // perform all destroys and remove all
       for (var i = that._hmi_destroys.length - 1; i >= 0; i--) {
@@ -7194,7 +7203,7 @@
     };
 
     // DESTROY VISU OBJECT
-    this._hmi_destroy = function() {
+    this._hmi_destroy = function () {
       // remove listener adds and removes
       that._hmi_listenerAdds.splice(0, that._hmi_listenerAdds.length);
       delete that._hmi_listenerAdds;
@@ -7225,39 +7234,39 @@
     };
   };
 
-  var show_popup = function(i_hmi, i_config, i_success, i_error) {
+  var show_popup = function (i_hmi, i_config, i_success, i_error) {
     // dialog opacity: search for "ui-widget-overlay" in CSS and modify:
     // opacity: .0;
     var _popup = $('<div class="hmi-light" />');
     var _buttons = undefined;
-    var fnClose = function() {
+    var fnClose = function () {
       _popup.dialog('close');
     };
     var options = {
-        // configure
-        autoOpen : true,
-        modal : true,
-        close : function(i_event, i_ui) {
-          if (i_config.object !== null && typeof i_config.object === 'object') {
-            delete i_config.object.hmi_close;
-          }
-          if (Array.isArray(_buttons)) {
-            for (var i = _buttons.length - 1; i >= 0; i--) {
-              var button = _buttons[i];
-              if (i_config.object && i_config.object._hmi_object) {
-                destroy_id_node_branch(button);
-              }
-              delete button.hmi_setVisible;
-              delete button._hmi_element;
+      // configure
+      autoOpen: true,
+      modal: true,
+      close: function (i_event, i_ui) {
+        if (i_config.object !== null && typeof i_config.object === 'object') {
+          delete i_config.object.hmi_close;
+        }
+        if (Array.isArray(_buttons)) {
+          for (var i = _buttons.length - 1; i >= 0; i--) {
+            var button = _buttons[i];
+            if (i_config.object && i_config.object._hmi_object) {
+              destroy_id_node_branch(button);
             }
-          }
-          destroy_hmi_object_branch(i_config.object);
-          _popup.dialog('destroy');
-          _popup.remove();
-          if (typeof i_config.closed === 'function') {
-            i_config.closed(i_event, i_ui);
+            delete button.hmi_setVisible;
+            delete button._hmi_element;
           }
         }
+        destroy_hmi_object_branch(i_config.object);
+        _popup.dialog('destroy');
+        _popup.remove();
+        if (typeof i_config.closed === 'function') {
+          i_config.closed(i_event, i_ui);
+        }
+      }
     };
     if (i_config.object !== null && typeof i_config.object === 'object') {
       i_config.object.hmi_close = fnClose;
@@ -7287,7 +7296,7 @@
       options.closeOnEscape = true;
     }
     _popup.dialog(options);
-    create_hmi_object_branch(i_config.object, _popup, function() {
+    create_hmi_object_branch(i_config.object, _popup, function () {
       var hmiobj = i_config.object._hmi_object;
       if (hmiobj) {
         _buttons = Array.isArray(hmiobj.buttons) ? hmiobj.buttons : (Array.isArray(i_config.buttons) ? i_config.buttons : undefined);
@@ -7295,21 +7304,21 @@
           var buttons = [];
           for (var i = 0; i < _buttons.length; i++) {
             // closure
-            (function() {
+            (function () {
               var button = _buttons[i];
               if (typeof button.click === 'function') {
                 create_id_node_branch(button, hmiobj, button.id, hmiobj);
                 button._hmi_buttonId = Utilities.getUniqueId();
                 buttons.push({
-                    text : typeof button.text === 'string' ? button.text : '?',
-                    id : button._hmi_buttonId,
-                    click : function() {
-                      if (typeof button.click === 'function') {
-                        button.click(fnClose, button);
-                      }
+                  text: typeof button.text === 'string' ? button.text : '?',
+                  id: button._hmi_buttonId,
+                  click: function () {
+                    if (typeof button.click === 'function') {
+                      button.click(fnClose, button);
                     }
+                  }
                 });
-                button.hmi_setVisible = function(i_visible) {
+                button.hmi_setVisible = function (i_visible) {
                   button._hmi_element[i_visible === true ? 'show' : 'hide']();
                 };
               }
@@ -7344,8 +7353,8 @@
     return fnClose;
   };
 
-  var show_confirmation_popup = function(i_hmi, i_config, i_success, i_error) {
-    var perform = function(i_callback, i_close) {
+  var show_confirmation_popup = function (i_hmi, i_config, i_success, i_error) {
+    var perform = function (i_callback, i_close) {
       try {
         i_callback();
       }
@@ -7357,34 +7366,34 @@
     var buttons = [];
     if (typeof i_config.ok === 'function') {
       buttons.push({
-          text : typeof i_config.okLabelId === 'string' ? S4.env.data.getDataValue(i_config.okLabelId) : 'OK',
-          click : function(i_close) {
-            perform(i_config.ok, i_close);
-          }
+        text: typeof i_config.okLabelId === 'string' ? S4.env.data.getDataValue(i_config.okLabelId) : 'OK',
+        click: function (i_close) {
+          perform(i_config.ok, i_close);
+        }
       });
     }
     if (typeof i_config.yes === 'function') {
       buttons.push({
-          text : typeof i_config.yesLabelId === 'string' ? S4.env.data.getDataValue(i_config.yesLabelId) : 'Yes',
-          click : function(i_close) {
-            perform(i_config.yes, i_close);
-          }
+        text: typeof i_config.yesLabelId === 'string' ? S4.env.data.getDataValue(i_config.yesLabelId) : 'Yes',
+        click: function (i_close) {
+          perform(i_config.yes, i_close);
+        }
       });
     }
     if (typeof i_config.no === 'function') {
       buttons.push({
-          text : typeof i_config.noLabelId === 'string' ? S4.env.data.getDataValue(i_config.noLabelId) : 'No',
-          click : function(i_close) {
-            perform(i_config.no, i_close);
-          }
+        text: typeof i_config.noLabelId === 'string' ? S4.env.data.getDataValue(i_config.noLabelId) : 'No',
+        click: function (i_close) {
+          perform(i_config.no, i_close);
+        }
       });
     }
     if (typeof i_config.cancel === 'function') {
       buttons.push({
-          text : typeof i_config.cancelLabelId === 'string' ? S4.env.data.getDataValue(i_config.cancelLabelId) : 'Cancel',
-          click : function(i_close) {
-            perform(i_config.cancel, i_close);
-          }
+        text: typeof i_config.cancelLabelId === 'string' ? S4.env.data.getDataValue(i_config.cancelLabelId) : 'Cancel',
+        click: function (i_close) {
+          perform(i_config.cancel, i_close);
+        }
       });
     }
     var object = undefined;
@@ -7393,22 +7402,22 @@
     }
     else if (i_config.text !== undefined) {
       object = {
-        text : i_config.text
+        text: i_config.text
       };
     }
     else if (i_config.html !== undefined) {
       object = {
-        html : i_config.html
+        html: i_config.html
       };
     }
     var config = {
-        title : i_config.title,
-        width : i_config.width,
-        height : i_config.height,
-        object : object,
-        noClose : true,
-        // the buttons
-        buttons : buttons
+      title: i_config.title,
+      width: i_config.width,
+      height: i_config.height,
+      object: object,
+      noClose: true,
+      // the buttons
+      buttons: buttons
     };
     if (typeof i_config.closed === 'function') {
       config.closed = i_config.closed;
@@ -7430,7 +7439,7 @@
    * @param {Object}
    *          i_attribute The attribute name.
    */
-  var transfer_attribute = function(i_source, i_target, i_attribute) {
+  var transfer_attribute = function (i_source, i_target, i_attribute) {
     var sourceAttribute = i_source[i_attribute];
     var targetAttribute = i_target[i_attribute];
     if (Array.isArray(sourceAttribute)) {
@@ -7469,14 +7478,14 @@
    * @param {boolean}
    *          i_ignoreAttribute If true attributes named 'id' will be ignored
    */
-  var transfer_attributes = function(i_source, i_target, i_ignoreAttribute) {
+  var transfer_attributes = function (i_source, i_target, i_ignoreAttribute) {
     if (Array.isArray(i_source)) {
       for (var i = 0; i < i_source.length; i++) {
         transfer_attribute(i_source, i_target, i);
       }
     }
     else {
-      for ( var attr in i_source) {
+      for (var attr in i_source) {
         if (i_source.hasOwnProperty(attr) && (i_ignoreAttribute === undefined || i_ignoreAttribute !== attr)) {
           transfer_attribute(i_source, i_target, attr);
         }
@@ -7493,7 +7502,7 @@
    *          i_path The path (parts separated by slash)
    */
   var NODE_ID_PATH_DELIMITER = '/';
-  var get_id_node = function(i_node, i_path) {
+  var get_id_node = function (i_node, i_path) {
     if (typeof i_path !== 'string') {
       return undefined;
     }
@@ -7548,12 +7557,12 @@
     return node;
   };
 
-  var create_id_node_branch = function(i_hmiObject, i_parentObject, i_id, i_nodeParent) {
-    i_hmiObject.hmi_node = function(i_path) {
+  var create_id_node_branch = function (i_hmiObject, i_parentObject, i_id, i_nodeParent) {
+    i_hmiObject.hmi_node = function (i_path) {
       var node = typeof i_hmiObject._hmi_nodeId === 'string' || i_hmiObject._hmi_nodeParent === undefined || i_hmiObject._hmi_nodeParent === null ? i_hmiObject : i_hmiObject._hmi_nodeParent;
       return typeof i_path === 'string' ? get_id_node(node, i_path) : node;
     };
-    i_hmiObject.hmi_path = function() {
+    i_hmiObject.hmi_path = function () {
       var path = [];
       var node = i_hmiObject.hmi_node('.');
       while (node !== null && typeof node === 'object' && typeof node._hmi_nodeId === 'string') {
@@ -7607,7 +7616,7 @@
     }
   };
 
-  var destroy_id_node_branch = function(i_hmiObject) {
+  var destroy_id_node_branch = function (i_hmiObject) {
     var children = i_hmiObject.children;
     if (Array.isArray(children)) {
       for (var i = children.length - 1; i >= 0; i--) {
@@ -7658,7 +7667,7 @@
    *          i_success This method will be called if we have completely with
    *          our procedure.
    */
-  var perform_data_on_hmi_object = function(i_contextObject, i_hmiObject, i_data, i_success, i_error) {
+  var perform_data_on_hmi_object = function (i_contextObject, i_hmiObject, i_data, i_success, i_error) {
     if (typeof i_data === 'function') {
       try {
         // call the function as method of our context object (meaning inside our
@@ -7676,9 +7685,9 @@
         var tasks = [];
         for (var i = 0, l = i_data.length; i < l; i++) {
           // handle within closure for asynchronous callback access to the data
-          (function() {
+          (function () {
             var data = i_data[i];
-            tasks.push(function(i_suc, i_err) {
+            tasks.push(function (i_suc, i_err) {
               perform_data_on_hmi_object(i_contextObject, i_hmiObject, data, i_suc, i_err);
             });
           }());
@@ -7724,7 +7733,7 @@
    * @param {Object}
    *          i_success This function will be called when done.
    */
-  var perform_attribute_on_object_branch = function(i_object, i_attributeName, i_fromRootToLeaf, i_success, i_error, i_hmi) {
+  var perform_attribute_on_object_branch = function (i_object, i_attributeName, i_fromRootToLeaf, i_success, i_error, i_hmi) {
     // if we where called with i_object = object.children (in case of i_object
     // is grid, split, float, ...)
     if (Array.isArray(i_object)) {
@@ -7732,9 +7741,9 @@
         var children = i_object;
         var tasks = [];
         for (var i = 0; i < children.length; i++) {
-          (function() {
+          (function () {
             var idx = i;
-            tasks.push(function(i_suc, i_err) {
+            tasks.push(function (i_suc, i_err) {
               var child = children[i_fromRootToLeaf === true ? idx : children.length - 1 - idx];
               perform_attribute_on_object_branch(child, i_attributeName, i_fromRootToLeaf, i_suc, i_err, i_hmi);
             });
@@ -7751,7 +7760,7 @@
       if (i_hmi) {
         i_object.hmi = i_hmi;
       }
-      var success = i_hmi === false ? function() {
+      var success = i_hmi === false ? function () {
         delete i_object.hmi;
         i_success();
       } : i_success;
@@ -7771,12 +7780,12 @@
             hmiobj = obj;
           }
           if (i_fromRootToLeaf === true) {
-            perform_data_on_hmi_object(i_object, hmiobj, data, function() {
+            perform_data_on_hmi_object(i_object, hmiobj, data, function () {
               perform_attribute_on_object_branch(object, i_attributeName, i_fromRootToLeaf, success, i_error, i_hmi);
             }, i_error);
           }
           else {
-            perform_attribute_on_object_branch(object, i_attributeName, i_fromRootToLeaf, function() {
+            perform_attribute_on_object_branch(object, i_attributeName, i_fromRootToLeaf, function () {
               perform_data_on_hmi_object(i_object, hmiobj, data, success, i_error);
             }, i_error, i_hmi);
           }
@@ -7790,12 +7799,12 @@
         var data = i_object[i_attributeName];
         if (data !== undefined && data !== null) {
           if (i_fromRootToLeaf === true) {
-            perform_data_on_hmi_object(i_object, i_object, data, function() {
+            perform_data_on_hmi_object(i_object, i_object, data, function () {
               perform_attribute_on_object_branch(i_object.children, i_attributeName, i_fromRootToLeaf, success, i_error, i_hmi);
             }, i_error);
           }
           else {
-            perform_attribute_on_object_branch(i_object.children, i_attributeName, i_fromRootToLeaf, function() {
+            perform_attribute_on_object_branch(i_object.children, i_attributeName, i_fromRootToLeaf, function () {
               perform_data_on_hmi_object(i_object, i_object, data, success, i_error);
             }, i_error, i_hmi);
           }
@@ -7812,10 +7821,10 @@
 
   var s_root_objects = [];
 
-  var refresh_all = function(i_date) {
+  var refresh_all = function (i_date) {
     for (var i = 0, l = s_root_objects.length; i < l; i++) {
       // first we call all found user refresh functions
-      process_object_branch(s_root_objects[i], true, undefined, function(i_processObject) {
+      process_object_branch(s_root_objects[i], true, undefined, function (i_processObject) {
         if (i_processObject === undefined) {
           var cccccccccc = 0;
         }
@@ -7831,7 +7840,7 @@
         }
       });
       // next we call system _hmi_refreshs
-      process_object_branch(s_root_objects[i], true, undefined, function(i_processObject) {
+      process_object_branch(s_root_objects[i], true, undefined, function (i_processObject) {
         if (i_processObject._hmi_alive === true) {
           var refreshs = i_processObject._hmi_refreshs;
           if (refreshs !== undefined && Array.isArray(refreshs)) {
@@ -7855,31 +7864,31 @@
   // /////////////////////////////////////////////////////////////////////////////////////////
   // INITIALIZATION AND DESTROY
   // /////////////////////////////////////////////////////////////////////////////////////////
-  var create_hmi_object_branch = function(i_object, i_jqueryElement, i_success, i_error, i_hmi, i_initData, i_parentObject, i_nodeId, i_parentNode, i_disableVisuEvents, i_enableEditorEvents) {
+  var create_hmi_object_branch = function (i_object, i_jqueryElement, i_success, i_error, i_hmi, i_initData, i_parentObject, i_nodeId, i_parentNode, i_disableVisuEvents, i_enableEditorEvents) {
     if (i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
-      Executor.run(function(i_suc, i_err) {
+      Executor.run(function (i_suc, i_err) {
         init_object(i_object, i_initData);
-        perform_attribute_on_object_branch(i_object, 'build', true, function() {
+        perform_attribute_on_object_branch(i_object, 'build', true, function () {
           attach_hmi_object(i_object);
           var hmiobj = i_object._hmi_object;
           create_id_node_branch(hmiobj, i_parentObject, i_nodeId, i_parentNode);
-          process_object_branch(hmiobj, true, undefined, function(i_processObject) {
+          process_object_branch(hmiobj, true, undefined, function (i_processObject) {
             ObjectImpl.call(i_processObject, i_disableVisuEvents, hmiobj === i_processObject && i_enableEditorEvents);
           });
-          perform_attribute_on_object_branch(i_object, 'apply', false, function() {
+          perform_attribute_on_object_branch(i_object, 'apply', false, function () {
             if (hmiobj._hmi_init_dom) {
               hmiobj._hmi_init_dom({
                 // #create/destroy_hmi_object_branch: 2
-                container : i_jqueryElement
-              }, function() {
-                perform_attribute_on_object_branch(i_object, 'prepare', true, function() {
+                container: i_jqueryElement
+              }, function () {
+                perform_attribute_on_object_branch(i_object, 'prepare', true, function () {
                   // TODO: handle external sources here
-                  perform_attribute_on_object_branch(i_object, '_hmi_addListeners', true, function() {
+                  perform_attribute_on_object_branch(i_object, '_hmi_addListeners', true, function () {
                     // #bugfix: 'start' is reverse (from leaves to root) - fixed
                     // 2017-02-07
-                    perform_attribute_on_object_branch(i_object, 'start', false, function() {
+                    perform_attribute_on_object_branch(i_object, 'start', false, function () {
                       // set alive
-                      process_object_branch(hmiobj, true, undefined, function(i_processObject) {
+                      process_object_branch(hmiobj, true, undefined, function (i_processObject) {
                         i_processObject._hmi_alive = true;
                       });
                       // handle root objects
@@ -7902,7 +7911,7 @@
             }
           }, i_err);
         }, i_err, i_hmi);
-      }, i_success, i_error, function() {
+      }, i_success, i_error, function () {
         i_error('timeout');
       }, 5000);
     }
@@ -7911,7 +7920,7 @@
     }
   };
 
-  var destroy_hmi_object_branch = function(i_object, i_success, i_error) {
+  var destroy_hmi_object_branch = function (i_object, i_success, i_error) {
     if (i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
       var hmiobj = i_object._hmi_object;
       if (hmiobj !== null && typeof hmiobj === 'object') {
@@ -7922,19 +7931,19 @@
             break;
           }
         }
-        process_object_branch(hmiobj, false, undefined, function(i_processObject) {
+        process_object_branch(hmiobj, false, undefined, function (i_processObject) {
           delete i_processObject._hmi_alive;
         });
-        Executor.run(function(i_suc, i_err) {
-          perform_attribute_on_object_branch(i_object, 'stop', true, function() {
-            perform_attribute_on_object_branch(i_object, '_hmi_removeListeners', false, function() {
-              perform_attribute_on_object_branch(i_object, 'destroy', false, function() {
+        Executor.run(function (i_suc, i_err) {
+          perform_attribute_on_object_branch(i_object, 'stop', true, function () {
+            perform_attribute_on_object_branch(i_object, '_hmi_removeListeners', false, function () {
+              perform_attribute_on_object_branch(i_object, 'destroy', false, function () {
                 if (hmiobj._hmi_destroy_dom) {
                   // #create/destroy_hmi_object_branch: 1 + 2
                   hmiobj._hmi_destroy_dom();
                 }
-                perform_attribute_on_object_branch(i_object, 'remove', true, function() {
-                  process_object_branch(hmiobj, false, undefined, function(i_processObject) {
+                perform_attribute_on_object_branch(i_object, 'remove', true, function () {
+                  process_object_branch(hmiobj, false, undefined, function (i_processObject) {
                     if (i_processObject._hmi_destroy) {
                       i_processObject._hmi_destroy();
                     }
@@ -7946,7 +7955,7 @@
               }, i_err);
             }, i_err);
           }, i_err);
-        }, i_success, i_error, function() {
+        }, i_success, i_error, function () {
           i_error('timeout');
         }, 5000);
       }
@@ -7960,64 +7969,64 @@
   };
 
   var exp = {
-      /**
-       * Add a new type to the visualization object handler.
-       * 
-       * The type function may use the following standard object arrays to add
-       * functions that will be called by the framework.
-       * 
-       * Add/remove listeners: Push function() into the arrays
-       * this._hmi_listenerAdds and this._hmi_listenerRemoves to add and remove
-       * listeners
-       * 
-       * Resize: Push function(width, height) to the array this._hmi_resizes to
-       * handle resize events. "width" and "height" represent the dimension of
-       * the objects HTML container.
-       * 
-       * Refresh: Push function(time, repaint) to the array this._hmi_refreshs
-       * to handle refresh events. "time" will be the UTC time value in
-       * milliseconds and the "repaint" flag will be true if the refresh is
-       * called from the requestAnimationFrame mechanism on repaint events if
-       * the window is visible or false if called periodically if the window is
-       * invisible.
-       * 
-       * Destroy: Push function() to the array this._hmi_destroys to handle
-       * destroying your object.
-       * 
-       * @param {Object}
-       *          i_type Function as closure for type specific features.
-       */
-      _add_type : function(i_type, i_impl) {
-        if (typeof i_type !== 'string' || i_type.length === 0) {
-          throw new Error('Invalid type');
-        }
-        else if (s_types[i_type] !== undefined) {
-          throw new Error('Type "' + i_type + '" alreday exists');
-        }
-        else if (typeof i_impl !== 'function') {
-          throw new Error('Invalid type "' + i_type + '" implmentation');
-        }
-        else {
-          s_types[i_type] = i_impl;
-        }
-      },
-      _add_extension : function(i_impl) {
-        if (typeof i_impl === 'function' && typeof i_impl.isExtension === 'function') {
-          s_extensions.push(i_impl);
-        }
-      },
-      create : create_hmi_object_branch,
-      refresh : refresh_all,
-      destroy : destroy_hmi_object_branch,
-      // compareTreeNodes : compare_tree_nodes,
-      //NumberEditor : NumberEditorImpl,
-      showPopup : show_popup,
-      showDefaultConfirmationPopup : show_confirmation_popup,
-      setBounds : set_bounds,
-      updateCoordinates : update_coordinates,
-      getTextSize : get_text_size,
-      Grid : Grid,
-      getLastUserActionDate : get_last_user_action_date
+    /**
+     * Add a new type to the visualization object handler.
+     * 
+     * The type function may use the following standard object arrays to add
+     * functions that will be called by the framework.
+     * 
+     * Add/remove listeners: Push function() into the arrays
+     * this._hmi_listenerAdds and this._hmi_listenerRemoves to add and remove
+     * listeners
+     * 
+     * Resize: Push function(width, height) to the array this._hmi_resizes to
+     * handle resize events. "width" and "height" represent the dimension of
+     * the objects HTML container.
+     * 
+     * Refresh: Push function(time, repaint) to the array this._hmi_refreshs
+     * to handle refresh events. "time" will be the UTC time value in
+     * milliseconds and the "repaint" flag will be true if the refresh is
+     * called from the requestAnimationFrame mechanism on repaint events if
+     * the window is visible or false if called periodically if the window is
+     * invisible.
+     * 
+     * Destroy: Push function() to the array this._hmi_destroys to handle
+     * destroying your object.
+     * 
+     * @param {Object}
+     *          i_type Function as closure for type specific features.
+     */
+    _add_type: function (i_type, i_impl) {
+      if (typeof i_type !== 'string' || i_type.length === 0) {
+        throw new Error('Invalid type');
+      }
+      else if (s_types[i_type] !== undefined) {
+        throw new Error('Type "' + i_type + '" alreday exists');
+      }
+      else if (typeof i_impl !== 'function') {
+        throw new Error('Invalid type "' + i_type + '" implmentation');
+      }
+      else {
+        s_types[i_type] = i_impl;
+      }
+    },
+    _add_extension: function (i_impl) {
+      if (typeof i_impl === 'function' && typeof i_impl.isExtension === 'function') {
+        s_extensions.push(i_impl);
+      }
+    },
+    create: create_hmi_object_branch,
+    refresh: refresh_all,
+    destroy: destroy_hmi_object_branch,
+    // compareTreeNodes : compare_tree_nodes,
+    //NumberEditor : NumberEditorImpl,
+    showPopup: show_popup,
+    showDefaultConfirmationPopup: show_confirmation_popup,
+    setBounds: set_bounds,
+    updateCoordinates: update_coordinates,
+    getTextSize: get_text_size,
+    Grid: Grid,
+    getLastUserActionDate: get_last_user_action_date
   };
 
   Object.seal(exp);
