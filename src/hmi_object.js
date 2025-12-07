@@ -2456,7 +2456,13 @@
     this.hmi_isRowVisible = function (i_row) {
       let scrollBody = _scrollBody[0].getBoundingClientRect();
       let row = _dataTable.row(i_row).node().getBoundingClientRect();
-      return row.bottom >= scrollBody.top && row.top <= scrollBody.bottom;
+      return row.bottom > scrollBody.top && row.top < scrollBody.bottom;
+    };
+    this.hmi_isCellVisible = function (i_row, i_column) {
+      let scrollBody = _scrollBody[0].getBoundingClientRect();
+      let cell = _dataTable.cell(i_row, i_column).node().getBoundingClientRect();
+      return cell.bottom > scrollBody.top && cell.top < scrollBody.bottom && 
+        cell.right > scrollBody.left && cell.left < scrollBody.right;
     };
     this.hmi_reload = function () {
       if (_dataTable) {
@@ -2525,6 +2531,7 @@
       _table.remove();
       delete that.hmi_value;
       delete that.hmi_isRowVisible;
+      delete that.hmi_isCellVisible;
       delete that.hmi_dataTable;
       delete that.hmi_reload;
       _tableId = undefined;
