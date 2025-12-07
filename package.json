@@ -1,6 +1,6 @@
 {
   "name": "@markus.hardardt/js_utils",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -20,7 +20,6 @@
     "body-parser": "^2.2.1",
     "datatables.net": "^2.3.5",
     "datatables.net-dt": "^2.3.5",
-    "datatables.net-scroller": "^2.4.3",
     "express": "^5.2.1",
     "jquery": "^3.7.1",
     "js-beautify": "^1.15.4",
