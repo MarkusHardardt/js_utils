@@ -12,7 +12,7 @@
     WebSocketBaseBroker.prototype = Object.create(Object.prototype);
     WebSocketBaseBroker.prototype.constructor = WebSocketBaseBroker;
 
-    WebSocketBaseBroker.prototype.addService = function (i_name, i_service) {
+    WebSocketBaseBroker.prototype.registerService = function (i_name, i_service) {
         if (typeof i_name === 'string' && typeof i_service === 'function' && !this._services[i_name]) {
             this._services[i_name] = i_service;
             return true;
@@ -20,7 +20,7 @@
         return false;
     };
 
-    WebSocketBaseBroker.prototype.removeService = function (i_name) {
+    WebSocketBaseBroker.prototype.unregisterService = function (i_name) {
         if (typeof i_name === 'string' && this._services[i_name] !== undefined) {
             delete this._services[i_name];
             return true;
@@ -104,8 +104,8 @@
             port: i_port
         });
         this._socket.on('connection', function connection(i_socket) {
-            i_socket.on('message', function (i_string) {
-                that.received(i_string);
+            i_socket.on('message', function (i_buffer) {
+                that.received(i_buffer.toString('utf8'));
             });
             i_socket.on('close', function () {
                 console.log('Client beendet Verbindung');
@@ -122,18 +122,20 @@
 
     const WebSocketClientBroker = function (i_port) {
         WebSocketBaseBroker.call(this);
-        let url = 'ws://localhost:' + i_port;
+        let url = `ws://${document.location.hostname}:${i_port}`;
         this._socket = new WebSocket(url);
-        this._socket.onopen = function (i_event) {
-            console.log("opened, now send message");
-            //this._socket.send("hello server");
-            //console.log("send");
-        };
         let that = this;
+        this._socket.onopen = function (i_event) {
+            console.log('opened, now send message');
+            // TODO: Remove test message
+            that._socket.send(JSON.stringify({ 
+                name: 'debug',
+                data: 'Hello world' 
+            }));
+            console.log('send');
+        };
         this._socket.onmessage = function (i_string) {
             that.received(i_string);
-
-
             console.log("==>MESSAGE: " + i_message.data);
             let object = JSON.parse(i_message.data);
             let callback = that._callbacks[object.message_id];
