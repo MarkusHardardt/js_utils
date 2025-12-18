@@ -12,8 +12,9 @@
         ErrorResponse: 5
     });
 
-    class Connection {
-        constructor(onError) {
+    class BaseConnection {
+        constructor(sessionId, onError) {
+            this._sessionId = sessionId;
             this._onError = typeof onError === 'function' ? onError : (error) => console.error(`error: ${error}`);
             this._receiversHandler = {};
             this._callbacks = {};
@@ -23,18 +24,33 @@
         get sessionId() {
             return this._sessionId;
         }
+        get online() {
+            return false;
+        }
         // TODO: remove or reuse
         _setSocket(socket) {
             this._socket = socket;
             // TODO: 
         }
         ping(onResponse, onError) {
-            let telegram = { type: TelegramType.PingRequest };
-            this._callbacks[telegram.callback = this._nextId()] = { request: Date.now(), onResponse, onError };
-            this._socket.send(JSON.stringify(telegram));
+            if (this.online) {
+                let telegram = { type: TelegramType.PingRequest };
+                this._callbacks[telegram.callback = this._nextId()] = { request: Date.now(), onResponse, onError };
+                this._socket.send(JSON.stringify(telegram));
+                return true;
+            }
+            else {
+                this._onError('Cannot send ping request when disconnected');
+                return false;
+            }
         }
         _handlePingRequest(callback) {
-            this._socket.send(JSON.stringify({ type: TelegramType.PingResponse, callback }));
+            if (this.online) {
+                this._socket.send(JSON.stringify({ type: TelegramType.PingResponse, callback }));
+            }
+            else {
+                this._onError('Cannot send ping reponse when disconnected');
+            }
         }
         _handlePingResponse(callback) {
             let cb = this._callbacks[callback];
@@ -55,13 +71,13 @@
         }
         register(receiver, handler) {
             if (typeof receiver !== 'string') {
-                throw new Exception('Connection.register(receiver, handler): receiver must be a string!');
+                throw new Exception('BaseConnection.register(receiver, handler): receiver must be a string!');
             }
             else if (typeof handler !== 'function') {
-                throw new Exception('Connection.register(receiver, handler): handler must be a function!');
+                throw new Exception('BaseConnection.register(receiver, handler): handler must be a function!');
             }
             else if (this._receiversHandler[receiver]) {
-                throw new Exception(`Connection.register(receiver, handler): handler "${receiver}" already registered!`);
+                throw new Exception(`BaseConnection.register(receiver, handler): handler "${receiver}" already registered!`);
             }
             else {
                 this._receiversHandler[receiver] = handler;
@@ -69,21 +85,28 @@
         }
         unregister(receiver) {
             if (typeof receiver !== 'string') {
-                throw new Exception('Connection.unregister(receiver): receiver must be a string!');
+                throw new Exception('BaseConnection.unregister(receiver): receiver must be a string!');
             }
             else if (this._receiversHandler[receiver] === undefined) {
-                throw new Exception(`Connection.unregister(receiver): "${receiver}" not registered!`);
+                throw new Exception(`BaseConnection.unregister(receiver): "${receiver}" not registered!`);
             }
             else {
                 delete this._receiversHandler[receiver];
             }
         }
         send(receiver, data, onResponse, onError) {
-            let telegram = { type: TelegramType.DataRequest, receiver, data };
-            if (typeof onResponse === 'function' || typeof onError === 'function') {
-                this._callbacks[telegram.callback = this._nextId()] = { request: Date.now(), onResponse, onError };
+            if (this.online) {
+                let telegram = { type: TelegramType.DataRequest, receiver, data };
+                if (typeof onResponse === 'function' || typeof onError === 'function') {
+                    this._callbacks[telegram.callback = this._nextId()] = { request: Date.now(), onResponse, onError };
+                }
+                this._socket.send(JSON.stringify(telegram));
+                return true;
             }
-            this._socket.send(JSON.stringify(telegram));
+            else {
+                this._onError('Cannot send data request when disconnected');
+                return false;
+            }
         }
         _handleDataRequest(callback, data, receiver) {
             let that = this, handler = this._receiversHandler[receiver];
@@ -91,24 +114,49 @@
                 if (callback !== undefined) {
                     try {
                         handler(data, function onSuccess(data) {
-                            that._socket.send(JSON.stringify({ type: TelegramType.DataResponse, callback, data }));
+                            if (that.online) {
+                                that._socket.send(JSON.stringify({ type: TelegramType.DataResponse, callback, data }));
+                            }
+                            else {
+                                that._onError('Cannot send data response when disconnected');
+                            }
                         }, function onError(error) {
-                            that._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: error ? error : true }));
+                            if (that.online) {
+                                that._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: error ? error : true }));
+                            }
+                            else {
+                                that._onError('Cannot send error response when disconnected');
+                            }
                         });
                     } catch (exception) {
-                        this._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `error calling receivers ${receiver} handler: ${exception}` }));
+                        if (this.online) {
+                            this._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `error calling receivers ${receiver} handler: ${exception}` }));
+                        }
+                        else {
+                            this._onError('Cannot send error response when disconnected');
+                        }
                     }
                 }
                 else {
                     try {
                         handler(data);
                     } catch (exception) {
-                        this._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `error calling receivers ${receiver} handler: ${exception}` }));
+                        if (this.online) {
+                            this._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `error calling receivers ${receiver} handler: ${exception}` }));
+                        }
+                        else {
+                            this._onError('Cannot send error response when disconnected');
+                        }
                     }
                 }
             }
             else {
-                this._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `unknown receiver: ${receiver}` }));
+                if (this.online) {
+                    this._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `unknown receiver: ${receiver}` }));
+                }
+                else {
+                    this._onError('Cannot send error response when disconnected');
+                }
             }
         }
         _handleDataResponse(callback, data) {
@@ -180,10 +228,9 @@
         Disconnected: 4
     });
 
-    class ClientConnection extends Connection {
+    class WebSocketClientConnection extends BaseConnection {
         constructor(sessionId, hostname, port, options = {}) {
-            super(options.onError);
-            this._sessionId = sessionId;
+            super(sessionId, options.onError);
             this._url = `ws://${hostname}:${port}?sessionId=${sessionId}`;
 
             this._state = ClientState.Idle;
@@ -204,6 +251,9 @@
                 offline: () => { }
             };
             //ws.on("message", msg => handleMachineData(msg));
+        }
+        get online() {
+            return this._state === ClientState.Online;
         }
 
         on(event, fn) {
@@ -325,105 +375,63 @@
         return crypto.createHash('SHA-256').update(raw, 'utf8').digest('hex');
     }
 
+    class WebSocketServerConnection extends BaseConnection {
+        constructor(sessionId, options = {}) {
+            super(sessionId, options.onError);
+        }
+        get online() {
+            return true; // TODO: Implement logic
+        }
+    }
 
-    if (isNodeJS) {
-        class WebSocketServer {
-            constructor(port, onOpen, onClose, onError) {
-                let WebSocket = require('ws');
-                this._socket = new WebSocket.Server({ port });
-                this._socket.on('connection', function (socket, request) {
-                    const match = /\bsessionId=(.+)$/.exec(request.url);
-                    const sessionId = match ? match[1] : undefined;
-                    const connection = new Connection(onError);
-                    connection._sessionId = sessionId;
-                    connection._setSocket(socket);
-                    socket.on('message', function (buffer) {
-                        connection._handleTelegram(JSON.parse(buffer.toString('utf8')));
-                    });
-                    socket.on('close', function () {
-                        if (typeof onClose === 'function') {
-                            try {
-                                onClose(connection);
-                            } catch (error) {
-                                console.error(`failed calling onClose: ${error}`);
-                            }
-                        }
-                    });
-                    socket.on('error', function (event) {
-                        if (typeof onError === 'function') {
-                            try {
-                                onError(connection, event);
-                            } catch (error) {
-                                console.error(`failed calling onError: ${error}`);
-                            }
-                        }
-                        else {
-                            console.error('connection error');
-                        }
-                    });
-                    if (typeof onOpen === 'function') {
+    class WebSocketServer {
+        constructor(port, onOpen, onClose, onError) {
+            let WebSocket = require('ws');
+            this._socket = new WebSocket.Server({ port });
+            this._socket.on('connection', function (socket, request) {
+                const match = /\bsessionId=(.+)$/.exec(request.url);
+                const sessionId = match ? match[1] : undefined;
+                const connection = new WebSocketServerConnection(onError);
+                connection._sessionId = sessionId;
+                connection._setSocket(socket);
+                socket.on('message', function (buffer) {
+                    connection._handleTelegram(JSON.parse(buffer.toString('utf8')));
+                });
+                socket.on('close', function () {
+                    if (typeof onClose === 'function') {
                         try {
-                            onOpen(connection);
+                            onClose(connection);
                         } catch (error) {
-                            console.error(`failed calling onOpen: ${error}`);
+                            console.error(`failed calling onClose: ${error}`);
                         }
                     }
                 });
-            }
-        }
-        module.exports = { WebSocketServer, createSessionId };
-    } else {
-        function getWebSocketConnection(hostname, port, sessionId, onOpen, onClose, onSocketError, onConnectionError) {
-            let url = `ws://${hostname}:${port}`;
-            if (typeof sessionId === 'string') {
-                url += `?sessionId=${sessionId}`;
-            }
-            const socket = new WebSocket(url);
-            const connection = new Connection(onConnectionError);
-            connection._sessionId = sessionId;
-            connection._setSocket(socket);
-            socket.onopen = function (event) {
+                socket.on('error', function (event) {
+                    if (typeof onError === 'function') {
+                        try {
+                            onError(connection, event);
+                        } catch (error) {
+                            console.error(`failed calling onError: ${error}`);
+                        }
+                    }
+                    else {
+                        console.error('connection error');
+                    }
+                });
                 if (typeof onOpen === 'function') {
                     try {
-                        onOpen(event);
+                        onOpen(connection);
                     } catch (error) {
                         console.error(`failed calling onOpen: ${error}`);
                     }
                 }
-                else {
-                    console.log('opened connection');
-                }
-            };
-            socket.onclose = function (event) {
-                if (typeof onClose === 'function') {
-                    try {
-                        onClose(event);
-                    } catch (error) {
-                        console.error(`failed calling onClose: ${error}`);
-                    }
-                }
-                else {
-                    console.log('closed connection');
-                }
-            };
-            socket.onError = function (event) {
-                if (typeof onSocketError === 'function') {
-                    try {
-                        onSocketError(event);
-                    } catch (error) {
-                        console.error(`failed calling onError: ${error}`);
-                    }
-                }
-                else {
-                    console.error('connection error');
-                }
-            };
-            socket.onmessage = function (message) {
-                connection._handleTelegram(JSON.parse(message.data));
-            };
-            return connection;
+            });
         }
-        root.getWebSocketConnection = getWebSocketConnection;
-        root.ClientConnection = ClientConnection;
+    }
+
+    if (isNodeJS) {
+        module.exports = { createSessionId, WebSocketServer };
+    } else {
+        root.WebSocketClientConnection = WebSocketClientConnection;
     }
 }(globalThis));
