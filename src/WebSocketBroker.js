@@ -90,7 +90,7 @@
         }
     };
 
-    WebSocketBaseBroker.prototype.callService = function (i_socket, i_name, i_data, i_callback) {
+    WebSocketBaseBroker.prototype.send = function (i_socket, i_name, i_data, i_callback) {
         let request = { name: i_name, data: i_data };
         if (typeof i_callback === 'function') {
             let id = request.id = '#' + (this._unique_id_value++);
@@ -172,8 +172,8 @@
     WebSocketClientBroker.prototype = Object.create(WebSocketBaseBroker.prototype);
     WebSocketClientBroker.prototype.constructor = WebSocketClientBroker;
 
-    WebSocketClientBroker.prototype.callService = function (i_name, i_data, i_callback) {
-        WebSocketBaseBroker.prototype.callService.call(this, this._socket, i_name, i_data, i_callback);
+    WebSocketClientBroker.prototype.send = function (i_name, i_data, i_callback) {
+        WebSocketBaseBroker.prototype.send.call(this, this._socket, i_name, i_data, i_callback);
     };
 
     if (isNodeJS) {
