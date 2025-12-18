@@ -27,16 +27,14 @@
         get online() {
             return false;
         }
-        // TODO: remove or reuse
-        _setSocket(socket) {
-            this._socket = socket;
-            // TODO: 
+        get _webSocket() {
+            return null;
         }
         ping(onResponse, onError) {
             if (this.online) {
                 let telegram = { type: TelegramType.PingRequest };
                 this._callbacks[telegram.callback = this._nextId()] = { request: Date.now(), onResponse, onError };
-                this._socket.send(JSON.stringify(telegram));
+                this._webSocket.send(JSON.stringify(telegram));
                 return true;
             }
             else {
@@ -46,7 +44,7 @@
         }
         _handlePingRequest(callback) {
             if (this.online) {
-                this._socket.send(JSON.stringify({ type: TelegramType.PingResponse, callback }));
+                this._webSocket.send(JSON.stringify({ type: TelegramType.PingResponse, callback }));
             }
             else {
                 this._onError('Cannot send ping reponse when disconnected');
@@ -100,7 +98,7 @@
                 if (typeof onResponse === 'function' || typeof onError === 'function') {
                     this._callbacks[telegram.callback = this._nextId()] = { request: Date.now(), onResponse, onError };
                 }
-                this._socket.send(JSON.stringify(telegram));
+                this._webSocket.send(JSON.stringify(telegram));
                 return true;
             }
             else {
@@ -115,14 +113,14 @@
                     try {
                         handler(data, function onSuccess(data) {
                             if (that.online) {
-                                that._socket.send(JSON.stringify({ type: TelegramType.DataResponse, callback, data }));
+                                that._webSocket.send(JSON.stringify({ type: TelegramType.DataResponse, callback, data }));
                             }
                             else {
                                 that._onError('Cannot send data response when disconnected');
                             }
                         }, function onError(error) {
                             if (that.online) {
-                                that._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: error ? error : true }));
+                                that._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: error ? error : true }));
                             }
                             else {
                                 that._onError('Cannot send error response when disconnected');
@@ -130,7 +128,7 @@
                         });
                     } catch (exception) {
                         if (this.online) {
-                            this._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `error calling receivers ${receiver} handler: ${exception}` }));
+                            this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `error calling receivers ${receiver} handler: ${exception}` }));
                         }
                         else {
                             this._onError('Cannot send error response when disconnected');
@@ -142,7 +140,7 @@
                         handler(data);
                     } catch (exception) {
                         if (this.online) {
-                            this._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `error calling receivers ${receiver} handler: ${exception}` }));
+                            this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `error calling receivers ${receiver} handler: ${exception}` }));
                         }
                         else {
                             this._onError('Cannot send error response when disconnected');
@@ -152,7 +150,7 @@
             }
             else {
                 if (this.online) {
-                    this._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `unknown receiver: ${receiver}` }));
+                    this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `unknown receiver: ${receiver}` }));
                 }
                 else {
                     this._onError('Cannot send error response when disconnected');
@@ -256,6 +254,10 @@
             return this._state === ClientState.Online;
         }
 
+        get _webSocket() {
+            return this._socket;
+        }
+
         on(event, fn) {
             this._handlers[event] = fn;
         }
@@ -269,12 +271,6 @@
         stop() {
             this._cleanup();
             this._transition(ClientState.Idle);
-        }
-
-        ___send(data) {
-            if (this._state !== ClientState.Online) return false;
-            this._socket.send(data);
-            return true;
         }
 
         /* ---------------- FSM core ---------------- */
@@ -379,8 +375,13 @@
         constructor(sessionId, options = {}) {
             super(sessionId, options.onError);
         }
+        
         get online() {
             return true; // TODO: Implement logic
+        }
+
+        get _webSocket() {
+            return this._socket;
         }
     }
 
@@ -393,7 +394,7 @@
                 const sessionId = match ? match[1] : undefined;
                 const connection = new WebSocketServerConnection(onError);
                 connection._sessionId = sessionId;
-                connection._setSocket(socket);
+                connection._socket = socket;
                 socket.on('message', function (buffer) {
                     connection._handleTelegram(JSON.parse(buffer.toString('utf8')));
                 });
