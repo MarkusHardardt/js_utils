@@ -4,12 +4,13 @@
     const isNodeJS = typeof require === 'function';
     const crypto = isNodeJS ? require('crypto') : undefined;
 
-    // Telegram types
-    const PING_REQUEST = 1;
-    const PING_RESPONSE = 2;
-    const DATA_REQUEST = 3;
-    const DATA_RESPONSE = 4;
-    const ERROR_RESPONSE = 5;
+    const TelegramType = Object.freeze({
+        PingRequest: 1,
+        PingResponse: 2,
+        DataRequest: 3,
+        DataResponse: 4,
+        ErrorResponse: 5
+    });
 
     class Connection {
         constructor(onError) {
@@ -28,12 +29,12 @@
             // TODO: 
         }
         ping(onResponse, onError) {
-            let telegram = { type: PING_REQUEST };
+            let telegram = { type: TelegramType.PingRequest };
             this._callbacks[telegram.callback = this._nextId()] = { request: Date.now(), onResponse, onError };
             this._socket.send(JSON.stringify(telegram));
         }
         _handlePingRequest(callback) {
-            this._socket.send(JSON.stringify({ type: PING_RESPONSE, callback }));
+            this._socket.send(JSON.stringify({ type: TelegramType.PingResponse, callback }));
         }
         _handlePingResponse(callback) {
             let cb = this._callbacks[callback];
@@ -78,7 +79,7 @@
             }
         }
         send(receiver, data, onResponse, onError) {
-            let telegram = { type: DATA_REQUEST, receiver, data };
+            let telegram = { type: TelegramType.DataRequest, receiver, data };
             if (typeof onResponse === 'function' || typeof onError === 'function') {
                 this._callbacks[telegram.callback = this._nextId()] = { request: Date.now(), onResponse, onError };
             }
@@ -90,24 +91,24 @@
                 if (callback !== undefined) {
                     try {
                         handler(data, function onSuccess(data) {
-                            that._socket.send(JSON.stringify({ type: DATA_RESPONSE, callback, data }));
+                            that._socket.send(JSON.stringify({ type: TelegramType.DataResponse, callback, data }));
                         }, function onError(error) {
-                            that._socket.send(JSON.stringify({ type: ERROR_RESPONSE, callback, error: error ? error : true }));
+                            that._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: error ? error : true }));
                         });
                     } catch (exception) {
-                        this._socket.send(JSON.stringify({ type: ERROR_RESPONSE, callback, error: `error calling receivers ${receiver} handler: ${exception}` }));
+                        this._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `error calling receivers ${receiver} handler: ${exception}` }));
                     }
                 }
                 else {
                     try {
                         handler(data);
                     } catch (exception) {
-                        this._socket.send(JSON.stringify({ type: ERROR_RESPONSE, error: `error calling receivers ${receiver} handler: ${exception}` }));
+                        this._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `error calling receivers ${receiver} handler: ${exception}` }));
                     }
                 }
             }
             else {
-                this._socket.send(JSON.stringify({ type: ERROR_RESPONSE, callback, error: `unknown receiver: ${receiver}` }));
+                this._socket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `unknown receiver: ${receiver}` }));
             }
         }
         _handleDataResponse(callback, data) {
@@ -149,19 +150,19 @@
         }
         _handleTelegram(telegram) {
             switch (telegram.type) {
-                case PING_REQUEST:
+                case TelegramType.PingRequest:
                     this._handlePingRequest(telegram.callback);
                     break;
-                case PING_RESPONSE:
+                case TelegramType.PingResponse:
                     this._handlePingResponse(telegram.callback);
                     break;
-                case DATA_REQUEST:
+                case TelegramType.DataRequest:
                     this._handleDataRequest(telegram.callback, telegram.data, telegram.receiver);
                     break;
-                case DATA_RESPONSE:
+                case TelegramType.DataResponse:
                     this._handleDataResponse(telegram.callback, telegram.data);
                     break;
-                case ERROR_RESPONSE:
+                case TelegramType.ErrorResponse:
                     this._handleError(telegram.callback, telegram.error);
                     break;
                 default:
@@ -171,11 +172,13 @@
         }
     }
 
-    const CLIENT_STATE_IDLE = 0;
-    const CLIENT_STATE_CONNECTING = 1;
-    const CLIENT_STATE_RECONNECTING = 2;
-    const CLIENT_STATE_ONLINE = 3;
-    const CLIENT_STATE_DISCONNECTED = 4;
+    const ClientState = Object.freeze({
+        Idle: 0,
+        Connecting: 1,
+        Reconnecting: 2,
+        Online: 3,
+        Disconnected: 4
+    });
 
     class ClientConnection extends Connection {
         constructor(sessionId, hostname, port, options = {}) {
@@ -183,7 +186,7 @@
             this._sessionId = sessionId;
             this._url = `ws://${hostname}:${port}?sessionId=${sessionId}`;
 
-            this._state = CLIENT_STATE_IDLE;
+            this._state = ClientState.Idle;
             this._socket = null;
 
             this._heartbeatInterval = options.heartbeatInterval ?? 15000;
@@ -208,18 +211,18 @@
         }
 
         start() {
-            if (this._state === CLIENT_STATE_IDLE) {
-                this._transition(CLIENT_STATE_CONNECTING);
+            if (this._state === ClientState.Idle) {
+                this._transition(ClientState.Connecting);
             }
         }
 
         stop() {
             this._cleanup();
-            this._transition(CLIENT_STATE_IDLE);
+            this._transition(ClientState.Idle);
         }
 
         ___send(data) {
-            if (this._state !== CLIENT_STATE_ONLINE) return false;
+            if (this._state !== ClientState.Online) return false;
             this._socket.send(data);
             return true;
         }
@@ -231,18 +234,18 @@
             this._state = next;
 
             switch (next) {
-                case CLIENT_STATE_CONNECTING:
-                case CLIENT_STATE_RECONNECTING:
+                case ClientState.Connecting:
+                case ClientState.Reconnecting:
                     this._connect();
                     break;
 
-                case CLIENT_STATE_ONLINE:
+                case ClientState.Online:
                     this._handlers.online();
                     this._startHeartbeat();
                     this._retryDelay = 1000;
                     break;
 
-                case CLIENT_STATE_DISCONNECTED:
+                case ClientState.Disconnected:
                     this._handlers.offline();
                     this._scheduleReconnect();
                     break;
@@ -258,7 +261,7 @@
             }
             this._socket = new WebSocket(this._url);
 
-            this._socket.onopen = () => this._transition(CLIENT_STATE_ONLINE);
+            this._socket.onopen = () => this._transition(ClientState.Online);
             // this._socket.onmessage = e => this._handlers.message(e.data);
             this._socket.onmessage = message => this._handleTelegram(JSON.parse(message.data));
 
@@ -268,8 +271,8 @@
 
             this._socket.onerror = () => this._socket.close();
             this._socket.onclose = () => {
-                if (this._state !== CLIENT_STATE_IDLE) {
-                    this._transition(CLIENT_STATE_DISCONNECTED);
+                if (this._state !== ClientState.Idle) {
+                    this._transition(ClientState.Disconnected);
                 }
             };
         }
@@ -278,7 +281,7 @@
 
         _startHeartbeat() {
             this._heartbeatTimer = setInterval(() => {
-                if (this._state !== CLIENT_STATE_ONLINE) return;
+                if (this._state !== ClientState.Online) return;
 
                 // this._socket.send(JSON.stringify({ type: "ping" })); 
                 this.ping(millis => {
@@ -298,8 +301,8 @@
 
         _scheduleReconnect() {
             setTimeout(() => {
-                if (this._state === CLIENT_STATE_DISCONNECTED) {
-                    this._transition(CLIENT_STATE_RECONNECTING);
+                if (this._state === ClientState.Disconnected) {
+                    this._transition(ClientState.Reconnecting);
                 }
             }, this._retryDelay);
 
