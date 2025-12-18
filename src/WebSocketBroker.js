@@ -113,7 +113,7 @@
             i_socket.on('close', function () {
                 if (typeof that.connectionClosed === 'function') {
                     try {
-                        that.connectionClosed(i_socket);
+                        that.connectionClosed();
                     } catch (exception) {
                         console.error('EXCEPTION: ' + exception);
                     }
@@ -124,7 +124,9 @@
             });
             if (typeof that.connectionOpened === 'function') {
                 try {
-                    that.connectionOpened(i_socket);
+                    that.connectionOpened(function(i_name, i_data, i_callback) {
+                        that.send(i_socket, i_name, i_data, i_callback);
+                    });
                 } catch (exception) {
                     console.error('EXCEPTION: ' + exception);
                 }
