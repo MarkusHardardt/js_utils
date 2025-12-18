@@ -3,6 +3,7 @@
 
     const isNodeJS = typeof require === 'function';
     const crypto = isNodeJS ? require('crypto') : undefined;
+    const WebSocket = isNodeJS ? require('ws') : root.WebSocket;
 
     const TelegramType = Object.freeze({
         PingRequest: 1,
@@ -230,51 +231,39 @@
         constructor(sessionId, hostname, port, options = {}) {
             super(sessionId, options.onError);
             this._url = `ws://${hostname}:${port}?sessionId=${sessionId}`;
-
             this._state = ClientState.Idle;
             this._socket = null;
-
             this._heartbeatInterval = options.heartbeatInterval ?? 15000;
             this._heartbeatTimeout = options.heartbeatTimeout ?? 5000;
             this._reconnectMax = options.reconnectMax ?? 30000;
-
             this._retryDelay = 1000;
             this._heartbeatTimer = null;
             this._heartbeatTimeoutTimer = null;
-
             // TODO: use or remove
             this._handlers = {
                 message: () => { },
                 online: () => { },
                 offline: () => { }
             };
-            //ws.on("message", msg => handleMachineData(msg));
         }
         get online() {
             return this._state === ClientState.Online;
         }
-
         get _webSocket() {
             return this._socket;
         }
-
         on(event, fn) {
             this._handlers[event] = fn;
         }
-
         start() {
             if (this._state === ClientState.Idle) {
                 this._transition(ClientState.Connecting);
             }
         }
-
         stop() {
             this._cleanup();
             this._transition(ClientState.Idle);
         }
-
-        /* ---------------- FSM core ---------------- */
-
         _transition(next) {
             this._cleanup();
             this._state = next;
@@ -297,7 +286,6 @@
                     break;
             }
         }
-
         _connect() {
             if (this._socket) {
                 this._socket.onopen =
@@ -306,15 +294,8 @@
                     this._socket.onclose = null;
             }
             this._socket = new WebSocket(this._url);
-
             this._socket.onopen = () => this._transition(ClientState.Online);
-            // this._socket.onmessage = e => this._handlers.message(e.data);
             this._socket.onmessage = message => this._handleTelegram(JSON.parse(message.data));
-
-            // this._socket.onmessage = e => this._handleTelegram(JSON.parse(e.data.toString('utf8')));
-
-
-
             this._socket.onerror = () => this._socket.close();
             this._socket.onclose = () => {
                 if (this._state !== ClientState.Idle) {
@@ -322,44 +303,33 @@
                 }
             };
         }
-
-        /* ---------------- Heartbeat ---------------- */
-
         _startHeartbeat() {
             this._heartbeatTimer = setInterval(() => {
-                if (this._state !== ClientState.Online) return;
-
-                // this._socket.send(JSON.stringify({ type: "ping" })); 
-                this.ping(millis => {
-                    console.log(`heartbeat ping millis: ${millis}`);
-                    clearTimeout(this._heartbeatTimeoutTimer);
-                }, exception => {
-                    console.error(`heartbeat ping failed: ${exception}`);
-                });
-                this._heartbeatTimeoutTimer = setTimeout(() => {
-                    this._socket.close();
-                    console.error('heartbeat timeout expired');
-                }, this._heartbeatTimeout);
+                if (this._state === ClientState.Online) {
+                    this.ping(millis => {
+                        console.log(`heartbeat ping millis: ${millis}`);
+                        clearTimeout(this._heartbeatTimeoutTimer);
+                    }, exception => {
+                        console.error(`heartbeat ping failed: ${exception}`);
+                    });
+                    this._heartbeatTimeoutTimer = setTimeout(() => {
+                        this._socket.close();
+                        console.error('heartbeat timeout expired');
+                    }, this._heartbeatTimeout);
+                }
             }, this._heartbeatInterval);
         }
-
-        /* ---------------- Reconnect ---------------- */
-
         _scheduleReconnect() {
             setTimeout(() => {
                 if (this._state === ClientState.Disconnected) {
                     this._transition(ClientState.Reconnecting);
                 }
             }, this._retryDelay);
-
             this._retryDelay = Math.min(
                 this._retryDelay * 2,
                 this._reconnectMax
             );
         }
-
-        /* ---------------- Cleanup ---------------- */
-
         _cleanup() {
             clearInterval(this._heartbeatTimer);
             clearTimeout(this._heartbeatTimeoutTimer);
@@ -375,42 +345,39 @@
         constructor(sessionId, options = {}) {
             super(sessionId, options.onError);
         }
-        
         get online() {
             return true; // TODO: Implement logic
         }
-
         get _webSocket() {
             return this._socket;
         }
     }
 
     class WebSocketServer {
-        constructor(port, onOpen, onClose, onError) {
-            let WebSocket = require('ws');
-            this._socket = new WebSocket.Server({ port });
-            this._socket.on('connection', function (socket, request) {
+        constructor(port, options = {}) {
+            this._server = new WebSocket.Server({ port });
+            this._server.on('connection', function (socket, request) {
                 const match = /\bsessionId=(.+)$/.exec(request.url);
                 const sessionId = match ? match[1] : undefined;
-                const connection = new WebSocketServerConnection(onError);
+                const connection = new WebSocketServerConnection(options.onError);
                 connection._sessionId = sessionId;
                 connection._socket = socket;
                 socket.on('message', function (buffer) {
                     connection._handleTelegram(JSON.parse(buffer.toString('utf8')));
                 });
                 socket.on('close', function () {
-                    if (typeof onClose === 'function') {
+                    if (typeof options.onClose === 'function') {
                         try {
-                            onClose(connection);
+                            options.onClose(connection);
                         } catch (error) {
                             console.error(`failed calling onClose: ${error}`);
                         }
                     }
                 });
                 socket.on('error', function (event) {
-                    if (typeof onError === 'function') {
+                    if (typeof options.onError === 'function') {
                         try {
-                            onError(connection, event);
+                            options.onError(connection, event);
                         } catch (error) {
                             console.error(`failed calling onError: ${error}`);
                         }
@@ -419,9 +386,9 @@
                         console.error('connection error');
                     }
                 });
-                if (typeof onOpen === 'function') {
+                if (typeof options.onOpen === 'function') {
                     try {
-                        onOpen(connection);
+                        options.onOpen(connection);
                     } catch (error) {
                         console.error(`failed calling onOpen: ${error}`);
                     }
