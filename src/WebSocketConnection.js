@@ -262,6 +262,7 @@
         get _webSocket() {
             return this._socket;
         }
+        // TODO: start, stop, connect & disconnect are still provisional 
         start() {
             if (this._state === ClientState.Idle) {
                 this._transition(ClientState.Connecting);
@@ -270,6 +271,15 @@
         stop() {
             this._cleanup();
             this._transition(ClientState.Idle);
+        }
+        connect() {
+            if (this._state === ClientState.Idle) {
+                this._transition(ClientState.Connecting);
+            }
+        }
+        disconnect() {
+            this._cleanup();
+            this._socket.close()
         }
         _transition(next) {
             this._cleanup();
@@ -334,6 +344,7 @@
                 this._reconnectMax
             );
         }
+        // TODO: When should this be called? (ChatGPT added this to _transition(...))
         _cleanup() {
             clearInterval(this._heartbeatTimer);
             clearTimeout(this._heartbeatTimeoutTimer);
