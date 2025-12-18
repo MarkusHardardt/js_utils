@@ -2,6 +2,7 @@
     "use strict";
 
     const isNodeJS = typeof require === 'function';
+    const crypto = isNodeJS ? require('crypto') : undefined;
 
     // Telegram types
     const PING_REQUEST = 1;
@@ -19,10 +20,7 @@
             this._nextId = () => `#${(unique_id++).toString(36)}`;
         }
         get sessionId() {
-            return this._sid;
-        }
-        set _sessionId(value) {
-            this._sid = value;
+            return this._sessionId;
         }
         // TODO: remove or reuse
         _setSocket(socket) {
@@ -180,11 +178,10 @@
     const CLIENT_STATE_DISCONNECTED = 4;
 
     class ClientConnection extends Connection {
-        constructor(hostname, port, onError, options = {}) {
-            super(onError);
-            this._hostname = hostname;
-            this._port = port;
-            this._url = undefined;
+        constructor(sessionId, hostname, port, options = {}) {
+            super(options.onError);
+            this._sessionId = sessionId;
+            this._url = `ws://${hostname}:${port}?sessionId=${sessionId}`;
 
             this._state = CLIENT_STATE_IDLE;
             this._socket = null;
@@ -212,12 +209,7 @@
 
         start() {
             if (this._state === CLIENT_STATE_IDLE) {
-                Utilities.sha256(`#${Math.random()}&${Date.now()}%${Math.random()}@`, sessionId => {
-                    this._url = `ws://${this._hostname}:${this._port}?sessionId=${sessionId}`;
-                    this._transition(CLIENT_STATE_CONNECTING);
-                }, function onError(exception) {
-                    console.error(`Error creating session id: ${exception}`);
-                });
+                this._transition(CLIENT_STATE_CONNECTING);
             }
         }
 
@@ -325,6 +317,11 @@
         }
     }
 
+    function createSessionId() {
+        let raw = `#${Math.E * Math.random()}&${Date.now()}%${Math.PI * Math.random()}@`;
+        return crypto.createHash('SHA-256').update(raw, 'utf8').digest('hex');
+    }
+
 
     if (isNodeJS) {
         class WebSocketServer {
@@ -371,7 +368,7 @@
                 });
             }
         }
-        module.exports = WebSocketServer;
+        module.exports = { WebSocketServer, createSessionId };
     } else {
         function getWebSocketConnection(hostname, port, sessionId, onOpen, onClose, onSocketError, onConnectionError) {
             let url = `ws://${hostname}:${port}`;
