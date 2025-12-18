@@ -362,12 +362,15 @@
 
     class WebSocketServer {
         constructor(port, options = {}) {
+            let that = this;
+            this._connections = {};
             this._server = new WebSocket.Server({ port });
             this._server.on('connection', function (socket, request) {
-                const match = /\bsessionId=(.+)$/.exec(request.url);
-                const sessionId = match ? match[1] : undefined;
-                const connection = new WebSocketServerConnection(options.onError);
-                connection._sessionId = sessionId;
+                const sessionId = WebSocketServer.getSessionIdFromURL(request.url);
+                let connection = that._connections[sessionId];
+                if (!connection) {
+                    that._connections[sessionId] = connection = new WebSocketServerConnection(sessionId, options.onError);
+                }
                 connection._socket = socket;
                 socket.on('message', function (buffer) {
                     connection._handleTelegram(JSON.parse(buffer.toString('utf8')));
@@ -401,6 +404,10 @@
                     }
                 }
             });
+        }
+        static getSessionIdFromURL(url) {
+            const match = /\bsessionId=([0-9a-f]{64})$/.exec(url);
+            return match ? match[1] : '';
         }
     }
 
