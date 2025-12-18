@@ -99,6 +99,8 @@
         i_socket.send(JSON.stringify(request));
     };
 
+    const clientIdRegex = /\bclientId=(.+)$/;
+
     const WebSocketServerBroker = function (i_port) {
         WebSocketBaseBroker.call(this);
         let that = this;
@@ -106,14 +108,17 @@
         this._socket = new WebSocket.Server({
             port: i_port
         });
-        this._socket.on('connection', function connection(i_socket) {
+        this._socket.on('connection', function connection(i_socket, i_request) {
+            const match = clientIdRegex.exec(i_request.url);
+            const id = match ? match[1] : undefined;
+            //const url = new URL
             i_socket.on('message', function (i_buffer) {
                 that._received(i_socket, i_buffer.toString('utf8'));
             });
             i_socket.on('close', function () {
                 if (typeof that.connectionClosed === 'function') {
                     try {
-                        that.connectionClosed();
+                        that.connectionClosed(id);
                     } catch (exception) {
                         console.error('EXCEPTION: ' + exception);
                     }
@@ -124,7 +129,7 @@
             });
             if (typeof that.connectionOpened === 'function') {
                 try {
-                    that.connectionOpened(function(i_name, i_data, i_callback) {
+                    that.connectionOpened(id, function(i_name, i_data, i_callback) {
                         that.send(i_socket, i_name, i_data, i_callback);
                     });
                 } catch (exception) {
@@ -137,9 +142,9 @@
     WebSocketServerBroker.prototype = Object.create(WebSocketBaseBroker.prototype);
     WebSocketServerBroker.prototype.constructor = WebSocketServerBroker;
 
-    const WebSocketClientBroker = function (i_port) {
+    const WebSocketClientBroker = function (i_port, i_id) {
         WebSocketBaseBroker.call(this);
-        let url = `ws://${document.location.hostname}:${i_port}`;
+        let url = `ws://${document.location.hostname}:${i_port}?clientId=${(typeof i_id === 'string' ? i_id : 'unknown')}`;
         this._socket = new WebSocket(url);
         let that = this;
         this._socket.onopen = function (i_event) {
