@@ -345,13 +345,19 @@
         return crypto.createHash('SHA-256').update(raw, 'utf8').digest('hex');
     }
 
+    function getSessionIdFromURL(url) {
+        const match = /\bsessionId=([0-9a-f]{64})$/.exec(url);
+        return match ? match[1] : '';
+    }
+
     class WebSocketServerConnection extends BaseConnection {
         constructor(sessionId, options = {}) {
             super(sessionId, options.onError);
             this._socket = null;
+            this._online = false;
         }
         get online() {
-            return true; // TODO: Implement logic
+            return this._online;
         }
         get _webSocket() {
             return this._socket;
@@ -372,17 +378,14 @@
             this._connections = {};
             this._server = new WebSocket.Server({ port });
             this._server.on('connection', function (socket, request) {
-                const sessionId = WebSocketServer.getSessionIdFromURL(request.url);
+                const sessionId = getSessionIdFromURL(request.url);
                 let connection = that._connections[sessionId];
                 if (!connection) {
                     that._connections[sessionId] = connection = new WebSocketServerConnection(sessionId, options.onError);
                 }
                 connection._setWebSocket(socket);
-
-                /*socket.on('message', function (buffer) {
-                    connection._handleTelegram(JSON.parse(buffer.toString('utf8')));
-                });*/
                 socket.on('close', function () {
+                    connection._online = false;
                     if (typeof options.onClose === 'function') {
                         try {
                             options.onClose(connection);
@@ -392,6 +395,7 @@
                     }
                 });
                 socket.on('error', function (event) {
+                    connection._online = false;
                     if (typeof options.onError === 'function') {
                         try {
                             options.onError(connection, event);
@@ -404,6 +408,7 @@
                     }
                 });
                 if (typeof options.onOpen === 'function') {
+                    connection._online = true;
                     try {
                         options.onOpen(connection);
                     } catch (error) {
@@ -411,10 +416,6 @@
                     }
                 }
             });
-        }
-        static getSessionIdFromURL(url) {
-            const match = /\bsessionId=([0-9a-f]{64})$/.exec(url);
-            return match ? match[1] : '';
         }
     }
 
