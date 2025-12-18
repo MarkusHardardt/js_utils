@@ -295,10 +295,7 @@
         }
         _connect() {
             if (this._socket) {
-                this._socket.onopen =
-                    this._socket.onmessage =
-                    this._socket.onerror =
-                    this._socket.onclose = null;
+                this._socket.onopen = this._socket.onmessage = this._socket.onerror = this._socket.onclose = null;
             }
             this._socket = new WebSocket(this._url);
             this._socket.onopen = () => this._transition(ClientState.Online);
@@ -351,6 +348,7 @@
     class WebSocketServerConnection extends BaseConnection {
         constructor(sessionId, options = {}) {
             super(sessionId, options.onError);
+            this._socket = null;
         }
         get online() {
             return true; // TODO: Implement logic
@@ -358,11 +356,19 @@
         get _webSocket() {
             return this._socket;
         }
+        _setWebSocket(socket) {
+            if (this._socket) {
+                this._socket.onopen = this._socket.onmessage = this._socket.onerror = this._socket.onclose = null;
+            }
+            socket.onmessage = message => this._handleTelegram(JSON.parse(message.data));
+            this._socket = socket;
+        }
     }
 
     class WebSocketServer {
         constructor(port, options = {}) {
             let that = this;
+            this._options = options;
             this._connections = {};
             this._server = new WebSocket.Server({ port });
             this._server.on('connection', function (socket, request) {
@@ -371,10 +377,11 @@
                 if (!connection) {
                     that._connections[sessionId] = connection = new WebSocketServerConnection(sessionId, options.onError);
                 }
-                connection._socket = socket;
-                socket.on('message', function (buffer) {
+                connection._setWebSocket(socket);
+
+                /*socket.on('message', function (buffer) {
                     connection._handleTelegram(JSON.parse(buffer.toString('utf8')));
-                });
+                });*/
                 socket.on('close', function () {
                     if (typeof options.onClose === 'function') {
                         try {
