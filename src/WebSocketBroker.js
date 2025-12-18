@@ -3,7 +3,7 @@
 
     const isNodeJS = typeof require === 'function';
 
-    var WebSocketBaseBroker = function () {
+    const WebSocketBaseBroker = function () {
         this._unique_id_value = 0;
         this._services = {};
         this._callbacks = {};
@@ -29,12 +29,12 @@
     };
 
     WebSocketBaseBroker.prototype.invokeService = function (i_name, i_data, i_callback) {
-        var object = {
+        let object = {
             name: i_name,
             data: i_data
         };
         if (typeof i_callback === 'function') {
-            var id = '#' + (this._unique_id_value++);
+            let id = '#' + (this._unique_id_value++);
             object.id = id;
             this._callbacks[id] = i_callback;
         }
@@ -46,9 +46,9 @@
     };
 
     WebSocketBaseBroker.prototype.received = function (i_string) {
-        var that = this, object = JSON.parse(i_string);
+        let that = this, object = JSON.parse(i_string);
         if (typeof object.name === 'string') {
-            var service = this._services[object.name];
+            let service = this._services[object.name];
             if (service) {
                 try {
                     if (object.id) {
@@ -83,9 +83,9 @@
             }
         }
         else if (object.id) {
-            var callback = this._callbacks[object.id];
+            let callback = this._callbacks[object.id];
             if (callback) {
-                delete this._callbacks;
+                delete this._callbacks[object.id];
                 try {
                     callback(object.data);
                 }
@@ -96,10 +96,10 @@
         }
     };
 
-    var WebSocketServerBroker = function (i_port) {
+    const WebSocketServerBroker = function (i_port) {
         WebSocketBaseBroker.call(this);
-        var that = this;
-        var WebSocket = require('ws');
+        let that = this;
+        let WebSocket = require('ws');
         this._socket = new WebSocket.Server({
             port: i_port
         });
@@ -120,23 +120,23 @@
         throw new Exception('TODO: Implement ServerBroker.transmit(string)');
     };
 
-    var WebSocketClientBroker = function (i_port) {
+    const WebSocketClientBroker = function (i_port) {
         WebSocketBaseBroker.call(this);
-        var url = 'ws://localhost:' + i_port;
+        let url = 'ws://localhost:' + i_port;
         this._socket = new WebSocket(url);
         this._socket.onopen = function (i_event) {
             console.log("opened, now send message");
             //this._socket.send("hello server");
             //console.log("send");
         };
-        var that = this;
+        let that = this;
         this._socket.onmessage = function (i_string) {
             that.received(i_string);
 
 
             console.log("==>MESSAGE: " + i_message.data);
-            var object = JSON.parse(i_message.data);
-            var callback = that._callbacks[object.message_id];
+            let object = JSON.parse(i_message.data);
+            let callback = that._callbacks[object.message_id];
             if (callback) {
                 delete that._callbacks[object.message_id];
                 try {
