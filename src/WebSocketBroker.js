@@ -13,81 +13,88 @@
     WebSocketBaseBroker.prototype.constructor = WebSocketBaseBroker;
 
     WebSocketBaseBroker.prototype.registerService = function (i_name, i_service) {
-        if (typeof i_name === 'string' && typeof i_service === 'function' && !this._services[i_name]) {
-            this._services[i_name] = i_service;
-            return true;
+        if (typeof i_name !== 'string') {
+            throw new Exception('WebSocketBaseBroker.registerService(name, service): name must be a string!');
         }
-        return false;
+        else if (typeof i_service !== 'function') {
+            throw new Exception('WebSocketBaseBroker.registerService(name, service): service must be a function!');
+        }
+        else if (this._services[i_name]) {
+            throw new Exception('WebSocketBaseBroker.registerService(name, service): service with name "' + i_name + '" already registered!');
+        }
+        else {
+            this._services[i_name] = i_service;
+        }
     };
 
     WebSocketBaseBroker.prototype.unregisterService = function (i_name) {
-        if (typeof i_name === 'string' && this._services[i_name] !== undefined) {
-            delete this._services[i_name];
-            return true;
+        if (typeof i_name !== 'string') {
+            throw new Exception('WebSocketBaseBroker.unregisterService(name): name must be a string!');
         }
-        return false;
+        else if (this._services[i_name] === undefined) {
+            throw new Exception('WebSocketBaseBroker.unregisterService(name): service with name "' + i_name + '" not registered!');
+        }
+        else {
+            delete this._services[i_name];
+        }
     };
 
     WebSocketBaseBroker.prototype.invokeService = function (i_name, i_data, i_callback) {
-        let object = {
-            name: i_name,
-            data: i_data
-        };
+        let object = { name: i_name, data: i_data };
         if (typeof i_callback === 'function') {
-            let id = '#' + (this._unique_id_value++);
-            object.id = id;
+            let id = object.id = '#' + (this._unique_id_value++);
             this._callbacks[id] = i_callback;
         }
         this.transmit(JSON.stringify(object));
     };
 
     WebSocketBaseBroker.prototype.transmit = function (i_string) {
-        throw new Exception('Broker.transmit(string) not implemented in abstract class!');
+        throw new Exception('WebSocketBaseBroker.transmit(string) not implemented in base class!');
     };
 
-    WebSocketBaseBroker.prototype.received = function (i_string) {
-        let that = this, object = JSON.parse(i_string);
-        if (typeof object.name === 'string') {
-            let service = this._services[object.name];
+    WebSocketBaseBroker.prototype.received = function (i_request) {
+        let that = this, request = JSON.parse(i_request);
+        if (typeof request.name === 'string') {
+            let service = this._services[request.name];
             if (service) {
                 try {
-                    if (object.id) {
-                        service(object.data, function (i_data) {
+                    if (request.id) {
+                        service(request.data, function (i_response) {
                             that.transmit(JSON.stringify({
-                                id: object.id,
-                                data: i_data
+                                id: request.id,
+                                data: i_response
                             }));
                         }, function (i_exception) {
                             that.transmit(JSON.stringify({
-                                id: object.id,
+                                id: request.id,
                                 error: i_exception ? i_exception : true
                             }));
                         });
                     }
                     else {
-                        service(object.data);
+                        service(request.data);
                     }
                 }
                 catch (exc) {
                     that.transmit(JSON.stringify({
-                        id: object.id,
+                        id: request.id,
                         error: 'Exception: ' + exc
                     }));
                 }
             }
             else {
                 that.transmit(JSON.stringify({
-                    id: object.id,
-                    error: 'unknown service: "' + object.name + '"'
+                    id: request.id,
+                    error: 'unknown service: "' + request.name + '"'
                 }));
             }
         }
-        else if (object.id) {
-            let callback = this._callbacks[object.id];
+        else if (request.id) {
+            let callback = this._callbacks[request.id];
             if (callback) {
-                delete this._callbacks[object.id];
+                delete this._callbacks[request.id];
                 try {
-                    callback(object.data);
+                    callback(request.data);
                 }
                 catch (exc) {
                     console.error('EXCEPTION: ' + exc);
@@ -108,6 +115,7 @@
                 that.received(i_buffer.toString('utf8'));
             });
             i_socket.on('close', function () {
+                // TODO: Handle close
                 console.log('Client beendet Verbindung');
             });
         });
@@ -117,7 +125,7 @@
     WebSocketServerBroker.prototype.constructor = WebSocketServerBroker;
 
     WebSocketServerBroker.prototype.transmit = function (i_string) {
-        throw new Exception('TODO: Implement ServerBroker.transmit(string)');
+        throw new Exception('TODO: Implement WebSocketServerBroker.transmit(string)');
     };
 
     const WebSocketClientBroker = function (i_port) {
@@ -126,16 +134,13 @@
         this._socket = new WebSocket(url);
         let that = this;
         this._socket.onopen = function (i_event) {
+            // TODO: Handle open
             console.log('opened, now send message');
-            // TODO: Remove test message
-            that._socket.send(JSON.stringify({ 
-                name: 'debug',
-                data: 'Hello world' 
-            }));
-            console.log('send');
         };
-        this._socket.onmessage = function (i_string) {
-            that.received(i_string);
+        this._socket.onmessage = function (i_buffer) {
+            that.received(i_buffer.toString('utf8'));
+            // TODO: Remove debug stuff
+            return;
             console.log("==>MESSAGE: " + i_message.data);
             let object = JSON.parse(i_message.data);
             let callback = that._callbacks[object.message_id];
@@ -161,7 +166,8 @@
     WebSocketClientBroker.prototype.constructor = WebSocketClientBroker;
 
     WebSocketClientBroker.prototype.transmit = function (i_string) {
-        throw new Exception('TODO: Implement ClientBroker.transmit(string)');
+        // throw new Exception('TODO: Implement WebSocketClientBroker.transmit(string)');
+        this._socket.send(i_string);
     };
 
     if (isNodeJS) {
