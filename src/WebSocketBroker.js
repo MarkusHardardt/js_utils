@@ -46,7 +46,7 @@
             if (service) {
                 try {
                     if (request.id) {
-                        service(i_socket, request.data, function (i_response) {
+                        service(request.data, function (i_response) {
                             i_socket.send(JSON.stringify({
                                 id: request.id,
                                 data: i_response
@@ -59,7 +59,7 @@
                         });
                     }
                     else {
-                        service(i_socket, request.data);
+                        service(request.data);
                     }
                 }
                 catch (exc) {
