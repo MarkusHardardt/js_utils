@@ -239,11 +239,21 @@
             this._retryDelay = 1000;
             this._heartbeatTimer = null;
             this._heartbeatTimeoutTimer = null;
-            // TODO: use or remove
-            this._handlers = {
-                message: () => { },
-                online: () => { },
-                offline: () => { }
+            this._online = () => {
+                if (typeof options.online === 'function') {
+                    options.online();
+                }
+                else {
+                    console.log('web socket connection is online');
+                }
+            };
+            this._offline = () => {
+                if (typeof options.offline === 'function') {
+                    options.offline();
+                }
+                else {
+                    console.log('web socket connection is offline');
+                }
             };
         }
         get online() {
@@ -251,9 +261,6 @@
         }
         get _webSocket() {
             return this._socket;
-        }
-        on(event, fn) {
-            this._handlers[event] = fn;
         }
         start() {
             if (this._state === ClientState.Idle) {
@@ -275,14 +282,14 @@
                     break;
 
                 case ClientState.Online:
-                    this._handlers.online();
                     this._startHeartbeat();
                     this._retryDelay = 1000;
+                    this._online();
                     break;
 
                 case ClientState.Disconnected:
-                    this._handlers.offline();
                     this._scheduleReconnect();
+                    this._offline();
                     break;
             }
         }
@@ -307,7 +314,7 @@
             this._heartbeatTimer = setInterval(() => {
                 if (this._state === ClientState.Online) {
                     this.ping(millis => {
-                        console.log(`heartbeat ping millis: ${millis}`);
+                        // TODO: reuse or remove: console.log(`heartbeat ping millis: ${millis}`);
                         clearTimeout(this._heartbeatTimeoutTimer);
                     }, exception => {
                         console.error(`heartbeat ping failed: ${exception}`);
