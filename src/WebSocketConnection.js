@@ -49,8 +49,8 @@
         }
     };
 
-    Connection.prototype._received = function (raw) {
-        let that = this, request = JSON.parse(raw);
+    Connection.prototype._received = function (request) {
+        let that = this;
         if (request.name !== undefined) {
             let consumer = this._consumers[request.name];
             if (consumer) {
@@ -91,99 +91,80 @@
         }
     };
 
-    function getWebSocketConnection(port, onOpen, onClose, onError) {
-        let socket = new WebSocket(`ws://${document.location.hostname}:${port}`);
-        let connection = new Connection(socket);
-        socket.onopen = function (event) {
-            if (typeof onOpen === 'function') {
-                try {
-                    onOpen(event);
-                } catch (error) {
-                    console.error(`failed calling onOpen: ${error}`);
-                }
-            }
-            else {
-                console.log('opened connection');
-            }
-        };
-        socket.onclose = function (event) {
-            if (typeof onClose === 'function') {
-                try {
-                    onClose(event);
-                } catch (error) {
-                    console.error(`failed calling onClose: ${error}`);
-                }
-            }
-            else {
-                console.log('closed connection');
-            }
-        };
-        socket.onError = function (event) {
-            if (typeof onError === 'function') {
-                try {
-                    onError(event);
-                } catch (error) {
-                    console.error(`failed calling onError: ${error}`);
-                }
-            }
-            else {
-                console.error('connection error');
-            }
-        };
-        socket.onmessage = function (message) {
-            connection._received(message.data);
-        };
-        return connection;
-    }
-
-    // TODO: Remove or reuse
-    const ClientConnection = function (port, id) {
-        let url = `ws://${document.location.hostname}:${port}`;
-        if (typeof id === 'string') {
-            url += `?clientId=${id}`;
-        }
-        Connection.call(this, new WebSocket(url));
-        let that = this;
-        this._socket.onopen = function (event) {
-            console.log('opened connection');
-        };
-        this._socket.onmessage = function (message) {
-            that._received(message.data);
-        };
-        this._socket.onclose = function (event) {
-            console.log("==>CLOSED");
-        };
-        this._socket.onError = function (event) {
-            console.error("ERROR");
-        };
-    };
-
-    ClientConnection.prototype = Object.create(Connection.prototype);
-    ClientConnection.prototype.constructor = ClientConnection;
-
-    const Server = function (port, onOpen, onClose, onError) {
-        let WebSocket = require('ws');
-        this._socket = new WebSocket.Server({
-            port: port
-        });
-        this._socket.on('connection', function (socket) {
-            const connection = new Connection(socket);
-            socket.on('message', function (buffer) {
-                connection._received(buffer.toString('utf8'));
+    if (isNodeJS) {
+        function WebSocketServer(port, onOpen, onClose, onError) {
+            let WebSocket = require('ws');
+            this._socket = new WebSocket.Server({
+                port: port
             });
-            socket.on('close', function () {
+            this._socket.on('connection', function (socket) {
+                const connection = new Connection(socket);
+                socket.on('message', function (buffer) {
+                    connection._received(JSON.parse(buffer.toString('utf8')));
+                });
+                socket.on('close', function () {
+                    if (typeof onClose === 'function') {
+                        try {
+                            onClose(connection);
+                        } catch (error) {
+                            console.error(`failed calling onClose: ${error}`);
+                        }
+                    }
+                });
+                socket.on('error', function (event) {
+                    if (typeof onError === 'function') {
+                        try {
+                            onError(connection, event);
+                        } catch (error) {
+                            console.error(`failed calling onError: ${error}`);
+                        }
+                    }
+                    else {
+                        console.error('connection error');
+                    }
+                });
+                if (typeof onOpen === 'function') {
+                    try {
+                        onOpen(connection);
+                    } catch (error) {
+                        console.error(`failed calling onOpen: ${error}`);
+                    }
+                }
+            });
+        }
+        module.exports = WebSocketServer;
+    } else {
+        function getWebSocketConnection(port, onOpen, onClose, onError) {
+            let socket = new WebSocket(`ws://${document.location.hostname}:${port}`);
+            let connection = new Connection(socket);
+            socket.onopen = function (event) {
+                if (typeof onOpen === 'function') {
+                    try {
+                        onOpen(event);
+                    } catch (error) {
+                        console.error(`failed calling onOpen: ${error}`);
+                    }
+                }
+                else {
+                    console.log('opened connection');
+                }
+            };
+            socket.onclose = function (event) {
                 if (typeof onClose === 'function') {
                     try {
-                        onClose(connection);
+                        onClose(event);
                     } catch (error) {
                         console.error(`failed calling onClose: ${error}`);
                     }
                 }
-            });
-            socket.on('error', function (event) {
+                else {
+                    console.log('closed connection');
+                }
+            };
+            socket.onError = function (event) {
                 if (typeof onError === 'function') {
                     try {
-                        onError(connection, event);
+                        onError(event);
                     } catch (error) {
                         console.error(`failed calling onError: ${error}`);
                     }
@@ -191,21 +172,12 @@
                 else {
                     console.error('connection error');
                 }
-            });
-            if (typeof onOpen === 'function') {
-                try {
-                    onOpen(connection);
-                } catch (error) {
-                    console.error(`failed calling onOpen: ${error}`);
-                }
-            }
-        });
-    };
-
-    if (isNodeJS) {
-        module.exports = Server;
-    } else {
-        // root.WebSocketConnection = ClientConnection;
+            };
+            socket.onmessage = function (message) {
+                connection._received(JSON.parse(message.data));
+            };
+            return connection;
+        }
         root.getWebSocketConnection = getWebSocketConnection;
     }
 }(globalThis));
