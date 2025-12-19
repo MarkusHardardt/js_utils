@@ -3,21 +3,24 @@
 
     const isNodeJS = typeof require === 'function';
 
-    const Connection = function (socket) {
+    const Connection = function (socket, onError) {
         this._socket = socket;
         this._consumers = {};
         this._callbacks = {};
         let unique_id = 0;
         this._nextID = () => `#${(unique_id++).toString(36)}`;
+        if (typeof onError === 'function') {
+            this._onError = onError;
+        }
     };
 
     Connection.prototype = Object.create(Object.prototype);
     Connection.prototype.constructor = Connection;
 
     Connection.prototype.send = function (name, data, callback) {
-        let request = { n: name, d: data };
+        let request = { cn: name, dt: data };
         if (typeof callback === 'function') {
-            this._callbacks[request.c = this._nextID()] = callback;
+            this._callbacks[request.cb = this._nextID()] = callback;
         }
         this._socket.send(JSON.stringify(request));
     };
@@ -51,42 +54,49 @@
 
     Connection.prototype._consume = function (request) {
         let that = this;
-        if (request.n !== undefined) {
-            let method = this._consumers[request.n];
+        if (request.er !== undefined) {
+            if (this._onError) {
+                this._onError(request.er);
+            }
+            else {
+                console.error(`Received error: ${request.er}`);
+            }
+        }
+        else if (request.cn !== undefined) {
+            let method = this._consumers[request.cn];
             if (method) {
-                if (request.c !== undefined) {
+                if (request.cb !== undefined) {
                     try {
-                        method(request.d, function (response) {
-                            that._socket.send(JSON.stringify({ c: request.c, d: response }));
+                        method(request.dt, function (response) {
+                            that._socket.send(JSON.stringify({ cb: request.cb, dt: response }));
                         }, function (error) {
-                            that._socket.send(JSON.stringify({ c: request.c, error: error ? error : true }));
+                            that._socket.send(JSON.stringify({ cb: request.cb, er: error ? error : true }));
                         });
                     } catch (error) {
-                        that._socket.send(JSON.stringify({ c: request.c, error: `error calling consumer ${request.n}: ${error}` }));
+                        that._socket.send(JSON.stringify({ cb: request.cb, er: `error calling consumer ${request.cn}: ${error}` }));
                     }
                 }
                 else {
                     try {
-                        method(request.d);
+                        method(request.dt);
                     } catch (error) {
-                        that._socket.send(JSON.stringify({ error: `error calling consumer ${request.n}: ${error}` }));
+                        that._socket.send(JSON.stringify({ er: `error calling consumer ${request.cn}: ${error}` }));
                     }
                 }
             }
             else {
-                that._socket.send(JSON.stringify({ error: `unknown consumer: ${request.n}` }));
+                that._socket.send(JSON.stringify({ er: `unknown consumer: ${request.cn}` }));
             }
         }
-        else if (request.c !== undefined) {
-            let callback = this._callbacks[request.c];
+        else if (request.cb !== undefined) {
+            let callback = this._callbacks[request.cb];
             if (callback) {
-                delete this._callbacks[request.c];
+                delete this._callbacks[request.cb];
                 try {
-                    console.log(`Calling callback: ${JSON.stringify(request)}`)
-                    callback(request.d); // TODO: callback(request); ???
+                    callback(request.dt);
                 }
                 catch (error) {
-                    that._socket.send(JSON.stringify({ error: `error calling callback: ${error}` }));
+                    that._socket.send(JSON.stringify({ er: `error calling callback: ${error}` }));
                 }
             }
         }
@@ -99,7 +109,7 @@
                 port: port
             });
             this._socket.on('connection', function (socket) {
-                const connection = new Connection(socket);
+                const connection = new Connection(socket, onError);
                 socket.on('message', function (buffer) {
                     connection._consume(JSON.parse(buffer.toString('utf8')));
                 });
@@ -137,7 +147,7 @@
     } else {
         function getWebSocketConnection(port, onOpen, onClose, onError) {
             let socket = new WebSocket(`ws://${document.location.hostname}:${port}`);
-            let connection = new Connection(socket);
+            let connection = new Connection(socket, onError);
             socket.onopen = function (event) {
                 if (typeof onOpen === 'function') {
                     try {
