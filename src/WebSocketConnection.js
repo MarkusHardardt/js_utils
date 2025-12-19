@@ -5,7 +5,7 @@
 
     const Connection = function (socket) {
         this._socket = socket;
-        this._services = {};
+        this._consumers = {};
         this._callbacks = {};
         let unique_id = 0;
         this._nextID = () => `#${(unique_id++).toString(36)}`;
@@ -14,26 +14,26 @@
     Connection.prototype = Object.create(Object.prototype);
     Connection.prototype.constructor = Connection;
 
-    Connection.prototype.send = function (service, data, callback) {
-        let request = { name: service, data: data };
+    Connection.prototype.send = function (consumer, data, callback) {
+        let request = { name: consumer, data: data };
         if (typeof callback === 'function') {
             this._callbacks[request.id = this._nextID()] = callback;
         }
         this._socket.send(JSON.stringify(request));
     };
 
-    Connection.prototype.register = function (name, service) {
+    Connection.prototype.register = function (name, consumer) {
         if (typeof name !== 'string') {
-            throw new Exception('Connection.register(name, service): name must be a string!');
+            throw new Exception('Connection.register(name, consumer): name must be a string!');
         }
-        else if (typeof service !== 'function') {
-            throw new Exception('Connection.register(name, service): service must be a function!');
+        else if (typeof consumer !== 'function') {
+            throw new Exception('Connection.register(name, consumer): consumer must be a function!');
         }
-        else if (this._services[name]) {
-            throw new Exception('Connection.register(name, service): service with name "' + name + '" already registered!');
+        else if (this._consumers[name]) {
+            throw new Exception(`Connection.register(name, consumer): consumer with name "${name}" already registered!`);
         }
         else {
-            this._services[name] = service;
+            this._consumers[name] = consumer;
         }
     };
 
@@ -41,37 +41,40 @@
         if (typeof name !== 'string') {
             throw new Exception('Connection.unregister(name): name must be a string!');
         }
-        else if (this._services[name] === undefined) {
-            throw new Exception('Connection.unregister(name): service with name "' + name + '" not registered!');
+        else if (this._consumers[name] === undefined) {
+            throw new Exception(`Connection.unregister(name): consumer with name "${name}" not registered!`);
         }
         else {
-            delete this._services[name];
+            delete this._consumers[name];
         }
     };
 
     Connection.prototype._received = function (raw) {
         let that = this, request = JSON.parse(raw);
         if (request.name !== undefined) {
-            let service = this._services[request.name];
-            if (service) {
-                try {
-                    if (request.id !== undefined) {
-                        service(request.data, function (response) {
+            let consumer = this._consumers[request.name];
+            if (consumer) {
+                if (request.id !== undefined) {
+                    try {
+                        consumer(request.data, function (response) {
                             that._socket.send(JSON.stringify({ id: request.id, data: response }));
                         }, function (exception) {
                             that._socket.send(JSON.stringify({ id: request.id, error: exception ? exception : true }));
                         });
-                    }
-                    else {
-                        service(request.data);
+                    } catch (error) {
+                        that._socket.send(JSON.stringify({ id: request.id, error: `error calling consumer: ${error}` }));
                     }
                 }
-                catch (exc) {
-                    that._socket.send(JSON.stringify({ id: request.id, error: 'Exception: ' + exc }));
+                else {
+                    try {
+                        consumer(request.data);
+                    } catch (error) {
+                        that._socket.send(JSON.stringify({ id: request.id, error: `error calling consumer: ${error}` }));
+                    }
                 }
             }
             else {
-                that._socket.send(JSON.stringify({ id: request.id, error: 'unknown service: "' + request.name + '"' }));
+                that._socket.send(JSON.stringify({ id: request.id, error: `unknown consumer: ${request.name}` }));
             }
         }
         else if (request.id !== undefined) {
@@ -81,13 +84,59 @@
                 try {
                     callback(request.data);
                 }
-                catch (exc) {
-                    that._socket.send(JSON.stringify({ id: request.id, error: 'Exception: ' + exc }));
+                catch (error) {
+                    that._socket.send(JSON.stringify({ id: request.id, error: `error calling callback: ${error}` }));
                 }
             }
         }
     };
 
+    function getWebSocketConnection(port, onOpen, onClose, onError) {
+        let socket = new WebSocket(`ws://${document.location.hostname}:${port}`);
+        let connection = new Connection(socket);
+        socket.onopen = function (event) {
+            if (typeof onOpen === 'function') {
+                try {
+                    onOpen(event);
+                } catch (error) {
+                    console.error(`failed calling onOpen: ${error}`);
+                }
+            }
+            else {
+                console.log('opened connection');
+            }
+        };
+        socket.onclose = function (event) {
+            if (typeof onClose === 'function') {
+                try {
+                    onClose(event);
+                } catch (error) {
+                    console.error(`failed calling onClose: ${error}`);
+                }
+            }
+            else {
+                console.log('closed connection');
+            }
+        };
+        socket.onError = function (event) {
+            if (typeof onError === 'function') {
+                try {
+                    onError(event);
+                } catch (error) {
+                    console.error(`failed calling onError: ${error}`);
+                }
+            }
+            else {
+                console.error('connection error');
+            }
+        };
+        socket.onmessage = function (message) {
+            connection._received(message.data);
+        };
+        return connection;
+    }
+
+    // TODO: Remove or reuse
     const ClientConnection = function (port, id) {
         let url = `ws://${document.location.hostname}:${port}`;
         if (typeof id === 'string') {
@@ -112,7 +161,7 @@
     ClientConnection.prototype = Object.create(Connection.prototype);
     ClientConnection.prototype.constructor = ClientConnection;
 
-    const Server = function (port, opened, closed) {
+    const Server = function (port, onOpen, onClose, onError) {
         let WebSocket = require('ws');
         this._socket = new WebSocket.Server({
             port: port
@@ -125,22 +174,31 @@
                 connection._received(buffer.toString('utf8'));
             });
             socket.on('close', function () {
-                if (typeof closed === 'function') {
+                if (typeof onClose === 'function') {
                     try {
-                        closed(id, connection);
-                    } catch (exception) {
-                        console.error('EXCEPTION: ' + exception);
+                        onClose(id, connection);
+                    } catch (error) {
+                        console.error(`failed calling onClose: ${error}`);
                     }
                 }
             });
-            socket.on('error', function (error) {
-                console.error('WebSocket-Fehler: ' + error);
+            socket.on('error', function (event) {
+                if (typeof onError === 'function') {
+                    try {
+                        onError(event);
+                    } catch (error) {
+                        console.error(`failed calling onError: ${error}`);
+                    }
+                }
+                else {
+                    console.error('connection error');
+                }
             });
-            if (typeof opened === 'function') {
+            if (typeof onOpen === 'function') {
                 try {
-                    opened(id, connection);
-                } catch (exception) {
-                    console.error('EXCEPTION: ' + exception);
+                    onOpen(id, connection);
+                } catch (error) {
+                    console.error(`failed calling onOpen: ${error}`);
                 }
             }
         });
@@ -149,6 +207,7 @@
     if (isNodeJS) {
         module.exports = Server;
     } else {
-        root.WebSocketConnection = ClientConnection;
+        // root.WebSocketConnection = ClientConnection;
+        root.getWebSocketConnection = getWebSocketConnection;
     }
 }(globalThis));
