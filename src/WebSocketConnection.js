@@ -17,7 +17,7 @@
     Connection.prototype.send = function (consumer, data, callback) {
         let request = { name: consumer, data: data };
         if (typeof callback === 'function') {
-            this._callbacks[request.id = this._nextID()] = callback;
+            this._callbacks[request.callback = this._nextID()] = callback;
         }
         this._socket.send(JSON.stringify(request));
     };
@@ -49,43 +49,44 @@
         }
     };
 
-    Connection.prototype._received = function (request) {
+    Connection.prototype._consume = function (request) {
         let that = this;
         if (request.name !== undefined) {
             let consumer = this._consumers[request.name];
             if (consumer) {
-                if (request.id !== undefined) {
+                if (request.callback !== undefined) {
                     try {
                         consumer(request.data, function (response) {
-                            that._socket.send(JSON.stringify({ id: request.id, data: response }));
-                        }, function (exception) {
-                            that._socket.send(JSON.stringify({ id: request.id, error: exception ? exception : true }));
+                            that._socket.send(JSON.stringify({ callback: request.callback, data: response }));
+                        }, function (error) {
+                            that._socket.send(JSON.stringify({ callback: request.callback, error: error ? error : true }));
                         });
                     } catch (error) {
-                        that._socket.send(JSON.stringify({ id: request.id, error: `error calling consumer: ${error}` }));
+                        that._socket.send(JSON.stringify({ callback: request.callback, error: `error calling consumer ${request.name}: ${error}` }));
                     }
                 }
                 else {
                     try {
                         consumer(request.data);
                     } catch (error) {
-                        that._socket.send(JSON.stringify({ id: request.id, error: `error calling consumer: ${error}` }));
+                        that._socket.send(JSON.stringify({ error: `error calling consumer ${request.name}: ${error}` }));
                     }
                 }
             }
             else {
-                that._socket.send(JSON.stringify({ id: request.id, error: `unknown consumer: ${request.name}` }));
+                that._socket.send(JSON.stringify({ error: `unknown consumer: ${request.name}` }));
             }
         }
-        else if (request.id !== undefined) {
-            let callback = this._callbacks[request.id];
+        else if (request.callback !== undefined) {
+            let callback = this._callbacks[request.callback];
             if (callback) {
-                delete this._callbacks[request.id];
+                delete this._callbacks[request.callback];
                 try {
-                    callback(request.data);
+                    console.log(`Calling callback: ${JSON.stringify(request)}`)
+                    callback(request.data); // TODO: callback(request); ???
                 }
                 catch (error) {
-                    that._socket.send(JSON.stringify({ id: request.id, error: `error calling callback: ${error}` }));
+                    that._socket.send(JSON.stringify({ error: `error calling callback: ${error}` }));
                 }
             }
         }
@@ -100,7 +101,7 @@
             this._socket.on('connection', function (socket) {
                 const connection = new Connection(socket);
                 socket.on('message', function (buffer) {
-                    connection._received(JSON.parse(buffer.toString('utf8')));
+                    connection._consume(JSON.parse(buffer.toString('utf8')));
                 });
                 socket.on('close', function () {
                     if (typeof onClose === 'function') {
@@ -174,7 +175,7 @@
                 }
             };
             socket.onmessage = function (message) {
-                connection._received(JSON.parse(message.data));
+                connection._consume(JSON.parse(message.data));
             };
             return connection;
         }
