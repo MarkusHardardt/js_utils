@@ -5,99 +5,114 @@
 
     const Connection = function (socket, onError) {
         this._socket = socket;
-        this._consumers = {};
+        this._onError = typeof onError === 'function' ? onError : (error) => console.error(`error: ${error}`);
+        this._receiversHandler = {};
         this._callbacks = {};
         let unique_id = 0;
-        this._nextID = () => `#${(unique_id++).toString(36)}`;
-        if (typeof onError === 'function') {
-            this._onError = onError;
-        }
+        this._nextId = () => `#${(unique_id++).toString(36)}`;
     };
 
     Connection.prototype = Object.create(Object.prototype);
     Connection.prototype.constructor = Connection;
 
-    Connection.prototype.send = function (name, data, callback) {
-        let request = { cn: name, dt: data };
-        if (typeof callback === 'function') {
-            this._callbacks[request.cb = this._nextID()] = callback;
+    Connection.prototype.register = function (receiver, handler) {
+        if (typeof receiver !== 'string') {
+            throw new Exception('Connection.register(receiver, handler): receiver must be a string!');
         }
-        this._socket.send(JSON.stringify(request));
-    };
-
-    Connection.prototype.register = function (name, method) {
-        if (typeof name !== 'string') {
-            throw new Exception('Connection.register(name, method): name must be a string!');
+        else if (typeof handler !== 'function') {
+            throw new Exception('Connection.register(receiver, handler): handler must be a function!');
         }
-        else if (typeof method !== 'function') {
-            throw new Exception('Connection.register(name, method): method must be a function!');
-        }
-        else if (this._consumers[name]) {
-            throw new Exception(`Connection.register(name, method): method with name "${name}" already registered!`);
+        else if (this._receiversHandler[receiver]) {
+            throw new Exception(`Connection.register(receiver, handler): handler "${receiver}" already registered!`);
         }
         else {
-            this._consumers[name] = method;
+            this._receiversHandler[receiver] = handler;
         }
     };
 
-    Connection.prototype.unregister = function (name) {
-        if (typeof name !== 'string') {
-            throw new Exception('Connection.unregister(name): name must be a string!');
+    Connection.prototype.unregister = function (receiver) {
+        if (typeof receiver !== 'string') {
+            throw new Exception('Connection.unregister(receiver): receiver must be a string!');
         }
-        else if (this._consumers[name] === undefined) {
-            throw new Exception(`Connection.unregister(name): consumer with name "${name}" not registered!`);
+        else if (this._receiversHandler[receiver] === undefined) {
+            throw new Exception(`Connection.unregister(receiver): "${receiver}" not registered!`);
         }
         else {
-            delete this._consumers[name];
+            delete this._receiversHandler[receiver];
         }
     };
 
-    Connection.prototype._consume = function (request) {
+    Connection.prototype.send = function (receiver, data, onResponse, onError) {
+        let telegram = { receiver, data };
+        if (typeof onResponse === 'function' || typeof onError === 'function') {
+            this._callbacks[telegram.callback = this._nextId()] = { onResponse, onError };
+        }
+        this._socket.send(JSON.stringify(telegram));
+    };
+
+    /*  Telegrams send with the 'send' method are like:
+        - { receiver, data } if no answer is expected
+        - { receiver, data, callback } if an answer as argument of the callback is expected
+
+    */
+    Connection.prototype._receive = function (telegram) {
         let that = this;
-        if (request.er !== undefined) {
-            if (this._onError) {
-                this._onError(request.er);
-            }
-            else {
-                console.error(`Received error: ${request.er}`);
-            }
-        }
-        else if (request.cn !== undefined) {
-            let method = this._consumers[request.cn];
-            if (method) {
-                if (request.cb !== undefined) {
+        if (telegram.receiver !== undefined) {
+            let handler = this._receiversHandler[telegram.receiver];
+            if (handler) {
+                if (telegram.callback !== undefined) {
                     try {
-                        method(request.dt, function (response) {
-                            that._socket.send(JSON.stringify({ cb: request.cb, dt: response }));
-                        }, function (error) {
-                            that._socket.send(JSON.stringify({ cb: request.cb, er: error ? error : true }));
+                        handler(telegram.data, function onSuccess(data) {
+                            that._socket.send(JSON.stringify({ callback: telegram.callback, data }));
+                        }, function onError(error) {
+                            that._socket.send(JSON.stringify({ callback: telegram.callback, error: error ? error : true }));
                         });
                     } catch (error) {
-                        that._socket.send(JSON.stringify({ cb: request.cb, er: `error calling consumer ${request.cn}: ${error}` }));
+                        that._socket.send(JSON.stringify({ callback: telegram.callback, error: `error calling receivers ${telegram.receiver} handler: ${error}` }));
                     }
                 }
                 else {
                     try {
-                        method(request.dt);
+                        handler(telegram.data);
                     } catch (error) {
-                        that._socket.send(JSON.stringify({ er: `error calling consumer ${request.cn}: ${error}` }));
+                        that._socket.send(JSON.stringify({ error: `error calling receivers ${telegram.receiver} handler: ${error}` }));
                     }
                 }
             }
             else {
-                that._socket.send(JSON.stringify({ er: `unknown consumer: ${request.cn}` }));
+                that._socket.send(JSON.stringify({ error: `unknown receiver: ${telegram.receiver}` }));
             }
         }
-        else if (request.cb !== undefined) {
-            let callback = this._callbacks[request.cb];
+        else if (telegram.error !== undefined) {
+            let callback = telegram.callback !== undefined ? this._callbacks[telegram.callback] : false;
             if (callback) {
-                delete this._callbacks[request.cb];
-                try {
-                    callback(request.dt);
+                delete this._callbacks[telegram.callback];
+                if (callback.onError) {
+                    try {
+                        callback.onError(telegram.error);
+                    }
+                    catch (error) {
+                        this._onError(`error calling onError callback: ${error}`);
+                    }
                 }
-                catch (error) {
-                    that._socket.send(JSON.stringify({ er: `error calling callback: ${error}` }));
+                else {
+                    this._onError(telegram.error);
                 }
+            }
+            else {
+                this._onError(telegram.error);
+            }
+        }
+        else if (telegram.callback !== undefined) {
+            let callback = this._callbacks[telegram.callback];
+            delete this._callbacks[telegram.callback];
+            try {
+                if (callback.onResponse) {
+                    callback.onResponse(telegram.data);
+                }
+            }
+            catch (error) {
+                this._onError(`error calling callback: ${error}`);
             }
         }
     };
@@ -105,13 +120,11 @@
     if (isNodeJS) {
         function WebSocketServer(port, onOpen, onClose, onError) {
             let WebSocket = require('ws');
-            this._socket = new WebSocket.Server({
-                port: port
-            });
+            this._socket = new WebSocket.Server({ port });
             this._socket.on('connection', function (socket) {
                 const connection = new Connection(socket, onError);
                 socket.on('message', function (buffer) {
-                    connection._consume(JSON.parse(buffer.toString('utf8')));
+                    connection._receive(JSON.parse(buffer.toString('utf8')));
                 });
                 socket.on('close', function () {
                     if (typeof onClose === 'function') {
@@ -185,7 +198,7 @@
                 }
             };
             socket.onmessage = function (message) {
-                connection._consume(JSON.parse(message.data));
+                connection._receive(JSON.parse(message.data));
             };
             return connection;
         }
