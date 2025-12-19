@@ -80,7 +80,7 @@
                 }
             }
             else {
-                that._socket.send(JSON.stringify({ error: `unknown receiver: ${telegram.receiver}` }));
+                that._socket.send(JSON.stringify({ callback: telegram.callback, error: `unknown receiver: ${telegram.receiver}` }));
             }
         }
         else if (telegram.error !== undefined) {
@@ -158,9 +158,9 @@
         }
         module.exports = WebSocketServer;
     } else {
-        function getWebSocketConnection(port, onOpen, onClose, onError) {
+        function getWebSocketConnection(port, onOpen, onClose, onSocketError, onConnectionError) {
             let socket = new WebSocket(`ws://${document.location.hostname}:${port}`);
-            let connection = new Connection(socket, onError);
+            let connection = new Connection(socket, onConnectionError);
             socket.onopen = function (event) {
                 if (typeof onOpen === 'function') {
                     try {
@@ -186,9 +186,9 @@
                 }
             };
             socket.onError = function (event) {
-                if (typeof onError === 'function') {
+                if (typeof onSocketError === 'function') {
                     try {
-                        onError(event);
+                        onSocketError(event);
                     } catch (error) {
                         console.error(`failed calling onError: ${error}`);
                     }
