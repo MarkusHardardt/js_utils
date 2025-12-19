@@ -166,17 +166,15 @@
         this._socket = new WebSocket.Server({
             port: port
         });
-        this._socket.on('connection', function (socket, request) {
+        this._socket.on('connection', function (socket) {
             const connection = new Connection(socket);
-            const match = /\bclientId=(.+)$/.exec(request.url);
-            const id = match ? match[1] : undefined;
             socket.on('message', function (buffer) {
                 connection._received(buffer.toString('utf8'));
             });
             socket.on('close', function () {
                 if (typeof onClose === 'function') {
                     try {
-                        onClose(id, connection);
+                        onClose(connection);
                     } catch (error) {
                         console.error(`failed calling onClose: ${error}`);
                     }
@@ -185,7 +183,7 @@
             socket.on('error', function (event) {
                 if (typeof onError === 'function') {
                     try {
-                        onError(event);
+                        onError(connection, event);
                     } catch (error) {
                         console.error(`failed calling onError: ${error}`);
                     }
@@ -196,7 +194,7 @@
             });
             if (typeof onOpen === 'function') {
                 try {
-                    onOpen(id, connection);
+                    onOpen(connection);
                 } catch (error) {
                     console.error(`failed calling onOpen: ${error}`);
                 }
