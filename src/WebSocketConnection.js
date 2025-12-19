@@ -113,6 +113,42 @@
     ClientConnection.prototype = Object.create(BaseConnection.prototype);
     ClientConnection.prototype.constructor = ClientConnection;
 
+    const clientIdRegex = /\bclientId=(.+)$/;
+
+    const ServerConnection = function (port, opened, closed) {
+        let that = this;
+        let WebSocket = require('ws');
+        this._socket = new WebSocket.Server({
+            port: port
+        });
+        this._socket.on('connection', function connection(socket, request) { // TODO: connection???
+            const connection = new BaseConnection(socket);
+            const match = clientIdRegex.exec(request.url);
+            const id = match ? match[1] : undefined;
+            socket.on('message', function (buffer) {
+                connection._received(buffer.toString('utf8'));
+            });
+            socket.on('close', function () {
+                if (typeof closed === 'function') {
+                    try {
+                        closed(id, connection);
+                    } catch (exception) {
+                        console.error('EXCEPTION: ' + exception);
+                    }
+                }
+            });
+            socket.on('error', function (error) {
+                console.error('WebSocket-Fehler: ' + error);
+            });
+            if (typeof opened === 'function') {
+                try {
+                    opened(id, connection);
+                } catch (exception) {
+                    console.error('EXCEPTION: ' + exception);
+                }
+            }
+        });
+    };
 
     // TODO: Reuse or remove
     const WebSocketBaseBroker = function () {
@@ -211,8 +247,6 @@
         i_socket.send(JSON.stringify(request));
     };
 
-    const clientIdRegex = /\bclientId=(.+)$/;
-
     const WebSocketServerBroker = function (i_port) {
         WebSocketBaseBroker.call(this);
         let that = this;
@@ -255,7 +289,7 @@
     WebSocketServerBroker.prototype.constructor = WebSocketServerBroker;
 
     if (isNodeJS) {
-        module.exports = WebSocketServerBroker;
+        module.exports = ServerConnection; // WebSocketServerBroker;
     } else {
         root.WebSocketConnection = ClientConnection;
     }
