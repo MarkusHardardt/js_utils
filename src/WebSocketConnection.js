@@ -14,26 +14,26 @@
     Connection.prototype = Object.create(Object.prototype);
     Connection.prototype.constructor = Connection;
 
-    Connection.prototype.send = function (consumer, data, callback) {
-        let request = { name: consumer, data: data };
+    Connection.prototype.send = function (name, data, callback) {
+        let request = { n: name, d: data };
         if (typeof callback === 'function') {
-            this._callbacks[request.callback = this._nextID()] = callback;
+            this._callbacks[request.c = this._nextID()] = callback;
         }
         this._socket.send(JSON.stringify(request));
     };
 
-    Connection.prototype.register = function (name, consumer) {
+    Connection.prototype.register = function (name, method) {
         if (typeof name !== 'string') {
-            throw new Exception('Connection.register(name, consumer): name must be a string!');
+            throw new Exception('Connection.register(name, method): name must be a string!');
         }
-        else if (typeof consumer !== 'function') {
-            throw new Exception('Connection.register(name, consumer): consumer must be a function!');
+        else if (typeof method !== 'function') {
+            throw new Exception('Connection.register(name, method): method must be a function!');
         }
         else if (this._consumers[name]) {
-            throw new Exception(`Connection.register(name, consumer): consumer with name "${name}" already registered!`);
+            throw new Exception(`Connection.register(name, method): method with name "${name}" already registered!`);
         }
         else {
-            this._consumers[name] = consumer;
+            this._consumers[name] = method;
         }
     };
 
@@ -51,39 +51,39 @@
 
     Connection.prototype._consume = function (request) {
         let that = this;
-        if (request.name !== undefined) {
-            let consumer = this._consumers[request.name];
-            if (consumer) {
-                if (request.callback !== undefined) {
+        if (request.n !== undefined) {
+            let method = this._consumers[request.n];
+            if (method) {
+                if (request.c !== undefined) {
                     try {
-                        consumer(request.data, function (response) {
-                            that._socket.send(JSON.stringify({ callback: request.callback, data: response }));
+                        method(request.d, function (response) {
+                            that._socket.send(JSON.stringify({ c: request.c, d: response }));
                         }, function (error) {
-                            that._socket.send(JSON.stringify({ callback: request.callback, error: error ? error : true }));
+                            that._socket.send(JSON.stringify({ c: request.c, error: error ? error : true }));
                         });
                     } catch (error) {
-                        that._socket.send(JSON.stringify({ callback: request.callback, error: `error calling consumer ${request.name}: ${error}` }));
+                        that._socket.send(JSON.stringify({ c: request.c, error: `error calling consumer ${request.n}: ${error}` }));
                     }
                 }
                 else {
                     try {
-                        consumer(request.data);
+                        method(request.d);
                     } catch (error) {
-                        that._socket.send(JSON.stringify({ error: `error calling consumer ${request.name}: ${error}` }));
+                        that._socket.send(JSON.stringify({ error: `error calling consumer ${request.n}: ${error}` }));
                     }
                 }
             }
             else {
-                that._socket.send(JSON.stringify({ error: `unknown consumer: ${request.name}` }));
+                that._socket.send(JSON.stringify({ error: `unknown consumer: ${request.n}` }));
             }
         }
-        else if (request.callback !== undefined) {
-            let callback = this._callbacks[request.callback];
+        else if (request.c !== undefined) {
+            let callback = this._callbacks[request.c];
             if (callback) {
-                delete this._callbacks[request.callback];
+                delete this._callbacks[request.c];
                 try {
                     console.log(`Calling callback: ${JSON.stringify(request)}`)
-                    callback(request.data); // TODO: callback(request); ???
+                    callback(request.d); // TODO: callback(request); ???
                 }
                 catch (error) {
                     that._socket.send(JSON.stringify({ error: `error calling callback: ${error}` }));
