@@ -16,7 +16,7 @@
 
     BaseConnection.prototype.send = function (service, data, callback) {
         let request = { name: service, data: data };
-        if (typeof success === 'function') {
+        if (typeof callback === 'function') {
             let id = request.id = this._nextID();
             this._callbacks[id] = callback;
         }
@@ -94,13 +94,13 @@
         if (typeof id === 'string') {
             url += `?clientId=${id}`;
         }
-        BaseConnection.call(new WebSocket(url));
+        BaseConnection.call(this, new WebSocket(url));
         let that = this;
         this._socket.onopen = function (event) {
             console.log('opened connection');
         };
         this._socket.onmessage = function (message) {
-            that._received(that._socket, message.data);
+            that._received(message.data);
         };
         this._socket.onclose = function (event) {
             console.log("==>CLOSED");
@@ -254,50 +254,9 @@
     WebSocketServerBroker.prototype = Object.create(WebSocketBaseBroker.prototype);
     WebSocketServerBroker.prototype.constructor = WebSocketServerBroker;
 
-    const WebSocketClientBroker = function (i_port, i_id) {
-        WebSocketBaseBroker.call(this);
-        let url = `ws://${document.location.hostname}:${i_port}?clientId=${(typeof i_id === 'string' ? i_id : 'unknown')}`;
-        this._socket = new WebSocket(url);
-        let that = this;
-        this._socket.onopen = function (i_event) {
-            // TODO: Handle open
-            console.log('opened, now send message');
-        };
-        this._socket.onmessage = function (i_message) {
-            that._received(that._socket, i_message.data);
-            // TODO: Remove debug stuff
-            return;
-            console.log("==>MESSAGE: " + i_message.data);
-            let object = JSON.parse(i_message.data);
-            let callback = that._callbacks[object.message_id];
-            if (callback) {
-                delete that._callbacks[object.message_id];
-                try {
-                    callback(object.response);
-                }
-                catch (exc) {
-                    console.error(exc);
-                }
-            }
-        };
-        this._socket.onclose = function (i_event) {
-            console.log("==>CLOSED");
-        };
-        this._socket.onError = function (i_event) {
-            console.error("ERROR");
-        };
-    };
-
-    WebSocketClientBroker.prototype = Object.create(WebSocketBaseBroker.prototype);
-    WebSocketClientBroker.prototype.constructor = WebSocketClientBroker;
-
-    WebSocketClientBroker.prototype.send = function (i_name, i_data, i_callback) {
-        WebSocketBaseBroker.prototype.send.call(this, this._socket, i_name, i_data, i_callback);
-    };
-
     if (isNodeJS) {
         module.exports = WebSocketServerBroker;
     } else {
-        root.WebSocketClientBroker = WebSocketClientBroker;
+        root.WebSocketConnection = ClientConnection;
     }
 }(globalThis));
