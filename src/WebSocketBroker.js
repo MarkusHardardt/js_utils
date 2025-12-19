@@ -3,6 +3,118 @@
 
     const isNodeJS = typeof require === 'function';
 
+    const BaseConnection = function (socket) {
+        this._socket = socket;
+        this._services = {};
+        this._callbacks = {};
+        let unique_id = 0;
+        this._nextID = () => `#${(unique_id++).toString(36)}`;
+    };
+
+    BaseConnection.prototype = Object.create(Object.prototype);
+    BaseConnection.prototype.constructor = BaseConnection;
+
+    BaseConnection.prototype.send = function (service, data, callback) {
+        let request = { name: service, data: data };
+        if (typeof success === 'function') {
+            let id = request.id = this._nextID();
+            this._callbacks[id] = callback;
+        }
+        this._socket.send(JSON.stringify(request));
+    };
+
+    BaseConnection.prototype.register = function (name, service) {
+        if (typeof name !== 'string') {
+            throw new Exception('BaseConnection.register(name, service): name must be a string!');
+        }
+        else if (typeof service !== 'function') {
+            throw new Exception('BaseConnection.register(name, service): service must be a function!');
+        }
+        else if (this._services[name]) {
+            throw new Exception('BaseConnection.register(name, service): service with name "' + name + '" already registered!');
+        }
+        else {
+            this._services[name] = service;
+        }
+    };
+
+    BaseConnection.prototype.unregister = function (name) {
+        if (typeof name !== 'string') {
+            throw new Exception('BaseConnection.unregister(name): name must be a string!');
+        }
+        else if (this._services[name] === undefined) {
+            throw new Exception('BaseConnection.unregister(name): service with name "' + name + '" not registered!');
+        }
+        else {
+            delete this._services[name];
+        }
+    };
+
+    BaseConnection.prototype._received = function (raw) {
+        let that = this, request = JSON.parse(raw);
+        if (typeof request.name === 'string') {
+            let service = this._services[request.name];
+            if (service) {
+                try {
+                    if (request.id) {
+                        service(request.data, function (response) {
+                            that._socket.send(JSON.stringify({ id: request.id, data: response }));
+                        }, function (exception) {
+                            that._socket.send(JSON.stringify({ id: request.id, error: exception ? exception : true }));
+                        });
+                    }
+                    else {
+                        service(request.data);
+                    }
+                }
+                catch (exc) {
+                    that._socket.send(JSON.stringify({ id: request.id, error: 'Exception: ' + exc }));
+                }
+            }
+            else {
+                that._socket.send(JSON.stringify({ id: request.id, error: 'unknown service: "' + request.name + '"' }));
+            }
+        }
+        else if (request.id) {
+            let callback = this._callbacks[request.id];
+            if (callback) {
+                delete this._callbacks[request.id];
+                try {
+                    callback(request.data);
+                }
+                catch (exc) {
+                    console.error('EXCEPTION: ' + exc);
+                }
+            }
+        }
+    };
+
+    const ClientConnection = function (port, id) {
+        let url = `ws://${document.location.hostname}:${port}`;
+        if (typeof id === 'string') {
+            url += `?clientId=${id}`;
+        }
+        BaseConnection.call(new WebSocket(url));
+        let that = this;
+        this._socket.onopen = function (event) {
+            console.log('opened connection');
+        };
+        this._socket.onmessage = function (message) {
+            that._received(that._socket, message.data);
+        };
+        this._socket.onclose = function (event) {
+            console.log("==>CLOSED");
+        };
+        this._socket.onError = function (event) {
+            console.error("ERROR");
+        };
+    };
+
+    ClientConnection.prototype = Object.create(BaseConnection.prototype);
+    ClientConnection.prototype.constructor = ClientConnection;
+
+
+    // TODO: Reuse or remove
     const WebSocketBaseBroker = function () {
         this._unique_id_value = 0;
         this._services = {};
@@ -129,7 +241,7 @@
             });
             if (typeof that.connectionOpened === 'function') {
                 try {
-                    that.connectionOpened(id, function(i_name, i_data, i_callback) {
+                    that.connectionOpened(id, function (i_name, i_data, i_callback) {
                         that.send(i_socket, i_name, i_data, i_callback);
                     });
                 } catch (exception) {
