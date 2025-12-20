@@ -1,6 +1,11 @@
 (function (root) {
     "use strict";
 
+    // TODO: Reuse or remove:
+    /*  Telegrams send with the 'send' method are like:
+        - { receiver, data } if no answer is expected
+        - { receiver, data, callback } if an answer as argument of the callback is expected
+    */
     const isNodeJS = typeof require === 'function';
 
     const Connection = function (socket, onError) {
@@ -14,6 +19,35 @@
 
     Connection.prototype = Object.create(Object.prototype);
     Connection.prototype.constructor = Connection;
+
+    Connection.prototype.ping = function (onResponse, onError) {
+        let telegram = { ping: true };
+        this._callbacks[telegram.callback = this._nextId()] = { request: Date.now(), onResponse, onError };
+        this._socket.send(JSON.stringify(telegram));
+    };
+
+    Connection.prototype._handlePing = function (callback) {
+        this._socket.send(JSON.stringify({ pong: true, callback, now: Date.now() }));
+    };
+
+    Connection.prototype._handlePong = function (callback, now) {
+        let cb = callback !== undefined ? this._callbacks[callback] : false;
+        if (cb) {
+            delete this._callbacks[callback];
+            let request = cb.request, response = Date.now(), local = (request + response) / 2;
+            try {
+                if (cb.onResponse) {
+                    cb.onResponse(response - request, local, now);
+                }
+            }
+            catch (exception) {
+                this._onError(`error calling callback: ${exception}`);
+            }
+        }
+        else {
+            this._onError('No pong callback found');
+        }
+    };
 
     Connection.prototype.register = function (receiver, handler) {
         if (typeof receiver !== 'string') {
@@ -45,75 +79,92 @@
     Connection.prototype.send = function (receiver, data, onResponse, onError) {
         let telegram = { receiver, data };
         if (typeof onResponse === 'function' || typeof onError === 'function') {
-            this._callbacks[telegram.callback = this._nextId()] = { onResponse, onError };
+            this._callbacks[telegram.callback = this._nextId()] = { request: Date.now(), onResponse, onError };
         }
         this._socket.send(JSON.stringify(telegram));
     };
 
-    /*  Telegrams send with the 'send' method are like:
-        - { receiver, data } if no answer is expected
-        - { receiver, data, callback } if an answer as argument of the callback is expected
-
-    */
-    Connection.prototype._receive = function (telegram) {
-        let that = this;
-        if (telegram.receiver !== undefined) {
-            let handler = this._receiversHandler[telegram.receiver];
-            if (handler) {
-                if (telegram.callback !== undefined) {
-                    try {
-                        handler(telegram.data, function onSuccess(data) {
-                            that._socket.send(JSON.stringify({ callback: telegram.callback, data }));
-                        }, function onError(error) {
-                            that._socket.send(JSON.stringify({ callback: telegram.callback, error: error ? error : true }));
-                        });
-                    } catch (error) {
-                        that._socket.send(JSON.stringify({ callback: telegram.callback, error: `error calling receivers ${telegram.receiver} handler: ${error}` }));
-                    }
-                }
-                else {
-                    try {
-                        handler(telegram.data);
-                    } catch (error) {
-                        that._socket.send(JSON.stringify({ error: `error calling receivers ${telegram.receiver} handler: ${error}` }));
-                    }
+    Connection.prototype._handleRequest = function (receiver, data, callback) {
+        let that = this, handler = this._receiversHandler[receiver];
+        if (handler) {
+            if (callback !== undefined) {
+                try {
+                    handler(data, function onSuccess(data) {
+                        that._socket.send(JSON.stringify({ callback, data }));
+                    }, function onError(error) {
+                        that._socket.send(JSON.stringify({ callback, error: error ? error : true }));
+                    });
+                } catch (exception) {
+                    this._socket.send(JSON.stringify({ callback, error: `error calling receivers ${receiver} handler: ${exception}` }));
                 }
             }
             else {
-                that._socket.send(JSON.stringify({ callback: telegram.callback, error: `unknown receiver: ${telegram.receiver}` }));
+                try {
+                    handler(data);
+                } catch (exception) {
+                    this._socket.send(JSON.stringify({ error: `error calling receivers ${receiver} handler: ${exception}` }));
+                }
             }
+        }
+        else {
+            this._socket.send(JSON.stringify({ callback, error: `unknown receiver: ${receiver}` }));
+        }
+    };
+
+    Connection.prototype._handleResponse = function (callback, data) {
+        let cb = this._callbacks[callback];
+        delete this._callbacks[callback];
+        if (cb) {
+            try {
+                if (cb.onResponse) {
+                    cb.onResponse(data, Date.now() - cb.request);
+                }
+            }
+            catch (exception) {
+                this._onError(`error calling callback: ${exception}`);
+            }
+        }
+        else {
+            this._onError('No pong callback found');
+        }
+    };
+
+    Connection.prototype._handleError = function (error, callback) {
+        let cb = callback !== undefined ? this._callbacks[callback] : false;
+        if (cb) {
+            delete this._callbacks[callback];
+            if (cb.onError) {
+                try {
+                    cb.onError(error, Date.now() - cb.request);
+                }
+                catch (exception) {
+                    this._onError(`error calling onError callback: ${exception}`);
+                }
+            }
+            else {
+                this._onError(error);
+            }
+        }
+        else {
+            this._onError(error);
+        }
+    };
+
+    Connection.prototype._receive = function (telegram) {
+        if (telegram.ping) {
+            this._handlePing(telegram.callback);
+        }
+        else if (telegram.pong) {
+            this._handlePong(telegram.callback, telegram.now);
+        }
+        else if (telegram.receiver !== undefined) {
+            this._handleRequest(telegram.receiver, telegram.data, telegram.callback);
         }
         else if (telegram.error !== undefined) {
-            let callback = telegram.callback !== undefined ? this._callbacks[telegram.callback] : false;
-            if (callback) {
-                delete this._callbacks[telegram.callback];
-                if (callback.onError) {
-                    try {
-                        callback.onError(telegram.error);
-                    }
-                    catch (error) {
-                        this._onError(`error calling onError callback: ${error}`);
-                    }
-                }
-                else {
-                    this._onError(telegram.error);
-                }
-            }
-            else {
-                this._onError(telegram.error);
-            }
+            this._handleError(telegram.error, telegram.callback);
         }
         else if (telegram.callback !== undefined) {
-            let callback = this._callbacks[telegram.callback];
-            delete this._callbacks[telegram.callback];
-            try {
-                if (callback.onResponse) {
-                    callback.onResponse(telegram.data);
-                }
-            }
-            catch (error) {
-                this._onError(`error calling callback: ${error}`);
-            }
+            this._handleResponse(telegram.callback, telegram.data);
         }
     };
 
