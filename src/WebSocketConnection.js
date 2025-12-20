@@ -8,6 +8,13 @@
     */
     const isNodeJS = typeof require === 'function';
 
+    // Telegram types
+    const PING_REQUEST = 1;
+    const PING_RESPONSE = 2;
+    const DATA_REQUEST = 3;
+    const DATA_RESPONSE = 4;
+    const ERROR_RESPONSE = 5;
+
     const Connection = function (socket, onError) {
         this._socket = socket;
         this._onError = typeof onError === 'function' ? onError : (error) => console.error(`error: ${error}`);
@@ -21,17 +28,17 @@
     Connection.prototype.constructor = Connection;
 
     Connection.prototype.ping = function (onResponse, onError) {
-        let telegram = { ping: true };
+        let telegram = { type: PING_REQUEST };
         this._callbacks[telegram.callback = this._nextId()] = { request: Date.now(), onResponse, onError };
         this._socket.send(JSON.stringify(telegram));
     };
 
-    Connection.prototype._handlePing = function (callback) {
-        this._socket.send(JSON.stringify({ pong: true, callback, now: Date.now() }));
+    Connection.prototype._handlePingRequest = function (callback) {
+        this._socket.send(JSON.stringify({ type: PING_RESPONSE, callback }));
     };
 
-    Connection.prototype._handlePong = function (callback, now) {
-        let cb = callback !== undefined ? this._callbacks[callback] : false;
+    Connection.prototype._handlePingResponse = function (callback) {
+        let cb = this._callbacks[callback];
         if (cb) {
             delete this._callbacks[callback];
             try {
@@ -76,44 +83,44 @@
     };
 
     Connection.prototype.send = function (receiver, data, onResponse, onError) {
-        let telegram = { receiver, data };
+        let telegram = { type: DATA_REQUEST, receiver, data };
         if (typeof onResponse === 'function' || typeof onError === 'function') {
             this._callbacks[telegram.callback = this._nextId()] = { request: Date.now(), onResponse, onError };
         }
         this._socket.send(JSON.stringify(telegram));
     };
 
-    Connection.prototype._handleRequest = function (receiver, data, callback) {
+    Connection.prototype._handleDataRequest = function (callback, data, receiver) {
         let that = this, handler = this._receiversHandler[receiver];
         if (handler) {
             if (callback !== undefined) {
                 try {
                     handler(data, function onSuccess(data) {
-                        that._socket.send(JSON.stringify({ callback, data }));
+                        that._socket.send(JSON.stringify({ type: DATA_RESPONSE, callback, data }));
                     }, function onError(error) {
-                        that._socket.send(JSON.stringify({ callback, error: error ? error : true }));
+                        that._socket.send(JSON.stringify({ type: ERROR_RESPONSE, callback, error: error ? error : true }));
                     });
                 } catch (exception) {
-                    this._socket.send(JSON.stringify({ callback, error: `error calling receivers ${receiver} handler: ${exception}` }));
+                    this._socket.send(JSON.stringify({ type: ERROR_RESPONSE, callback, error: `error calling receivers ${receiver} handler: ${exception}` }));
                 }
             }
             else {
                 try {
                     handler(data);
                 } catch (exception) {
-                    this._socket.send(JSON.stringify({ error: `error calling receivers ${receiver} handler: ${exception}` }));
+                    this._socket.send(JSON.stringify({ type: ERROR_RESPONSE, error: `error calling receivers ${receiver} handler: ${exception}` }));
                 }
             }
         }
         else {
-            this._socket.send(JSON.stringify({ callback, error: `unknown receiver: ${receiver}` }));
+            this._socket.send(JSON.stringify({ type: ERROR_RESPONSE, callback, error: `unknown receiver: ${receiver}` }));
         }
     };
 
-    Connection.prototype._handleResponse = function (callback, data) {
+    Connection.prototype._handleDataResponse = function (callback, data) {
         let cb = this._callbacks[callback];
-        delete this._callbacks[callback];
         if (cb) {
+            delete this._callbacks[callback];
             try {
                 if (cb.onResponse) {
                     cb.onResponse(data, Date.now() - cb.request);
@@ -128,7 +135,7 @@
         }
     };
 
-    Connection.prototype._handleError = function (error, callback) {
+    Connection.prototype._handleError = function (callback, error) {
         let cb = callback !== undefined ? this._callbacks[callback] : false;
         if (cb) {
             delete this._callbacks[callback];
@@ -149,21 +156,26 @@
         }
     };
 
-    Connection.prototype._receive = function (telegram) {
-        if (telegram.ping) {
-            this._handlePing(telegram.callback);
-        }
-        else if (telegram.pong) {
-            this._handlePong(telegram.callback, telegram.now);
-        }
-        else if (telegram.receiver !== undefined) {
-            this._handleRequest(telegram.receiver, telegram.data, telegram.callback);
-        }
-        else if (telegram.error !== undefined) {
-            this._handleError(telegram.error, telegram.callback);
-        }
-        else if (telegram.callback !== undefined) {
-            this._handleResponse(telegram.callback, telegram.data);
+    Connection.prototype._handleTelegram = function (telegram) {
+        switch (telegram.type) {
+            case PING_REQUEST:
+                this._handlePingRequest(telegram.callback);
+                break;
+            case PING_RESPONSE:
+                this._handlePingResponse(telegram.callback);
+                break;
+            case DATA_REQUEST:
+                this._handleDataRequest(telegram.callback, telegram.data, telegram.receiver);
+                break;
+            case DATA_RESPONSE:
+                this._handleDataResponse(telegram.callback, telegram.data);
+                break;
+            case ERROR_RESPONSE:
+                this._handleError(telegram.callback, telegram.error);
+                break;
+            default:
+                this._onError(`Received invalid telegram type: ${telegram.type}`);
+                break;
         }
     };
 
@@ -174,7 +186,7 @@
             this._socket.on('connection', function (socket) {
                 const connection = new Connection(socket, onError);
                 socket.on('message', function (buffer) {
-                    connection._receive(JSON.parse(buffer.toString('utf8')));
+                    connection._handleTelegram(JSON.parse(buffer.toString('utf8')));
                 });
                 socket.on('close', function () {
                     if (typeof onClose === 'function') {
@@ -248,7 +260,7 @@
                 }
             };
             socket.onmessage = function (message) {
-                connection._receive(JSON.parse(message.data));
+                connection._handleTelegram(JSON.parse(message.data));
             };
             return connection;
         }
