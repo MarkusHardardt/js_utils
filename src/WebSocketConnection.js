@@ -34,7 +34,7 @@
         let cb = callback !== undefined ? this._callbacks[callback] : false;
         if (cb) {
             delete this._callbacks[callback];
-            let request = cb.request, response = Date.now(), local = (request + response) / 2;
+            let request = cb.request, response = Date.now(), local = Math.ceil((request + response) / 2);
             try {
                 if (cb.onResponse) {
                     cb.onResponse(response - request, local, now);
