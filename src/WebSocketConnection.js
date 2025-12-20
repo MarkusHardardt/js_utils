@@ -15,8 +15,10 @@
     const DATA_RESPONSE = 4;
     const ERROR_RESPONSE = 5;
 
-    const Connection = function (socket, onError) {
+    const Connection = function (socket, id, onError) {
         this._socket = socket;
+        this._id = id;
+        Object.defineProperty(this, 'id', { configurable: false, enumerable: true, get: () => id });
         this._onError = typeof onError === 'function' ? onError : (error) => console.error(`error: ${error}`);
         this._receiversHandler = {};
         this._callbacks = {};
@@ -183,8 +185,10 @@
         function WebSocketServer(port, onOpen, onClose, onError) {
             let WebSocket = require('ws');
             this._socket = new WebSocket.Server({ port });
-            this._socket.on('connection', function (socket) {
-                const connection = new Connection(socket, onError);
+            this._socket.on('connection', function (socket, request) {
+                const match = /\bclientId=(.+)$/.exec(request.url);
+                const clientId = match ? match[1] : undefined;
+                const connection = new Connection(socket, clientId, onError);
                 socket.on('message', function (buffer) {
                     connection._handleTelegram(JSON.parse(buffer.toString('utf8')));
                 });
@@ -220,9 +224,13 @@
         }
         module.exports = WebSocketServer;
     } else {
-        function getWebSocketConnection(port, onOpen, onClose, onSocketError, onConnectionError) {
-            let socket = new WebSocket(`ws://${document.location.hostname}:${port}`);
-            let connection = new Connection(socket, onConnectionError);
+        function getWebSocketConnection(port, id, onOpen, onClose, onSocketError, onConnectionError) {
+            let url = `ws://${document.location.hostname}:${port}`;
+            if (typeof id === 'string') {
+                url += `?clientId=${id}`;
+            }
+            let socket = new WebSocket(url);
+            let connection = new Connection(socket, id, onConnectionError);
             socket.onopen = function (event) {
                 if (typeof onOpen === 'function') {
                     try {
