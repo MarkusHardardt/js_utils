@@ -1,11 +1,6 @@
 (function (root) {
     "use strict";
 
-    // TODO: Reuse or remove:
-    /*  Telegrams send with the 'send' method are like:
-        - { receiver, data } if no answer is expected
-        - { receiver, data, callback } if an answer as argument of the callback is expected
-    */
     const isNodeJS = typeof require === 'function';
 
     // Telegram types
@@ -41,6 +36,7 @@
         }
         _handlePingRequest(callback) {
             this._socket.send(JSON.stringify({ type: PING_RESPONSE, callback }));
+            console.log(`sending pong: ${Date.now()}`);
         }
         _handlePingResponse(callback) {
             let cb = this._callbacks[callback];
@@ -194,14 +190,15 @@
             this._state = CLIENT_STATE_IDLE;
             this._socket = null;
 
-            this._heartbeatInterval = options._heartbeatInterval ?? 15000;
-            this._heartbeatTimeout = options._heartbeatTimeout ?? 5000;
-            this._reconnectMax = options._reconnectMax ?? 30000;
+            this._heartbeatInterval = options.heartbeatInterval ?? 15000;
+            this._heartbeatTimeout = options.heartbeatTimeout ?? 5000;
+            this._reconnectMax = options.reconnectMax ?? 30000;
 
             this._retryDelay = 1000;
             this._heartbeatTimer = null;
             this._heartbeatTimeoutTimer = null;
 
+            // TODO: use or remove
             this._handlers = {
                 message: () => { },
                 online: () => { },
@@ -215,10 +212,9 @@
 
         start() {
             if (this._state === CLIENT_STATE_IDLE) {
-                let that = this;
-                Utilities.sha256(`#${Math.random()}&${Date.now()}%${Math.random()}@`, function onSuccess(sessionId) {
-                    that._url = `ws://${that._hostname}:${that._port}?sessionId=${sessionId}`;
-                    that._transition(CLIENT_STATE_CONNECTING);
+                Utilities.sha256(`#${Math.random()}&${Date.now()}%${Math.random()}@`, sessionId => {
+                    this._url = `ws://${this._hostname}:${this._port}?sessionId=${sessionId}`;
+                    this._transition(CLIENT_STATE_CONNECTING);
                 }, function onError(exception) {
                     console.error(`Error creating session id: ${exception}`);
                 });
@@ -230,7 +226,7 @@
             this._transition(CLIENT_STATE_IDLE);
         }
 
-        send(data) {
+        ___send(data) {
             if (this._state !== CLIENT_STATE_ONLINE) return false;
             this._socket.send(data);
             return true;
@@ -265,7 +261,15 @@
             this._socket = new WebSocket(this._url);
 
             this._socket.onopen = () => this._transition(CLIENT_STATE_ONLINE);
-            this._socket.onmessage = e => this._handlers.message(e.data);
+            // this._socket.onmessage = e => this._handlers.message(e.data);
+            let that = this;
+            this._socket.onmessage = function (message) {
+                that._handleTelegram(JSON.parse(message.data));
+            };
+
+            // this._socket.onmessage = e => this._handleTelegram(JSON.parse(e.data.toString('utf8')));
+
+            
 
             this._socket.onerror = () => this._socket.close();
             this._socket.onclose = () => {
@@ -281,10 +285,16 @@
             this._heartbeatTimer = setInterval(() => {
                 if (this._state !== CLIENT_STATE_ONLINE) return;
 
-                this._socket.send(JSON.stringify({ type: "ping" }));
-
+                // this._socket.send(JSON.stringify({ type: "ping" })); 
+                this.ping(millis => {
+                    console.log(`heartbeat ping millis: ${millis}`);
+                    clearTimeout(this._heartbeatTimeoutTimer);
+                }, exception => {
+                    console.error(`heartbeat ping failed: ${exception}`);
+                });
                 this._heartbeatTimeoutTimer = setTimeout(() => {
-                    this._socket.close();
+                    // TODO: Reuse: this._socket.close();
+                    console.error('heartbeat timeout expired');
                 }, this._heartbeatTimeout);
             }, this._heartbeatInterval);
         }
