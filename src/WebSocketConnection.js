@@ -194,15 +194,15 @@
             this._state = CLIENT_STATE_IDLE;
             this._socket = null;
 
-            this.heartbeatInterval = options.heartbeatInterval ?? 15000;
-            this.heartbeatTimeout = options.heartbeatTimeout ?? 5000;
-            this.reconnectMax = options.reconnectMax ?? 30000;
+            this._heartbeatInterval = options._heartbeatInterval ?? 15000;
+            this._heartbeatTimeout = options._heartbeatTimeout ?? 5000;
+            this._reconnectMax = options._reconnectMax ?? 30000;
 
-            this.retryDelay = 1000;
-            this.heartbeatTimer = null;
-            this.heartbeatTimeoutTimer = null;
+            this._retryDelay = 1000;
+            this._heartbeatTimer = null;
+            this._heartbeatTimeoutTimer = null;
 
-            this.handlers = {
+            this._handlers = {
                 message: () => { },
                 online: () => { },
                 offline: () => { }
@@ -210,15 +210,15 @@
         }
 
         on(event, fn) {
-            this.handlers[event] = fn;
+            this._handlers[event] = fn;
         }
 
         start() {
-            let that = this;
             if (this._state === CLIENT_STATE_IDLE) {
+                let that = this;
                 Utilities.sha256(`#${Math.random()}&${Date.now()}%${Math.random()}@`, function onSuccess(sessionId) {
                     that._url = `ws://${that._hostname}:${that._port}?sessionId=${sessionId}`;
-                    this._transition(CLIENT_STATE_CONNECTING);
+                    that._transition(CLIENT_STATE_CONNECTING);
                 }, function onError(exception) {
                     console.error(`Error creating session id: ${exception}`);
                 });
@@ -249,14 +249,14 @@
                     break;
 
                 case CLIENT_STATE_ONLINE:
-                    this.handlers.online();
-                    this.startHeartbeat();
-                    this.retryDelay = 1000;
+                    this._handlers.online();
+                    this._startHeartbeat();
+                    this._retryDelay = 1000;
                     break;
 
                 case CLIENT_STATE_DISCONNECTED:
-                    this.handlers.offline();
-                    this.scheduleReconnect();
+                    this._handlers.offline();
+                    this._scheduleReconnect();
                     break;
             }
         }
@@ -265,7 +265,7 @@
             this._socket = new WebSocket(this._url);
 
             this._socket.onopen = () => this._transition(CLIENT_STATE_ONLINE);
-            this._socket.onmessage = e => this.handlers.message(e.data);
+            this._socket.onmessage = e => this._handlers.message(e.data);
 
             this._socket.onerror = () => this._socket.close();
             this._socket.onclose = () => {
@@ -277,38 +277,38 @@
 
         /* ---------------- Heartbeat ---------------- */
 
-        startHeartbeat() {
-            this.heartbeatTimer = setInterval(() => {
+        _startHeartbeat() {
+            this._heartbeatTimer = setInterval(() => {
                 if (this._state !== CLIENT_STATE_ONLINE) return;
 
                 this._socket.send(JSON.stringify({ type: "ping" }));
 
-                this.heartbeatTimeoutTimer = setTimeout(() => {
+                this._heartbeatTimeoutTimer = setTimeout(() => {
                     this._socket.close();
-                }, this.heartbeatTimeout);
-            }, this.heartbeatInterval);
+                }, this._heartbeatTimeout);
+            }, this._heartbeatInterval);
         }
 
         /* ---------------- Reconnect ---------------- */
 
-        scheduleReconnect() {
+        _scheduleReconnect() {
             setTimeout(() => {
                 if (this._state === CLIENT_STATE_DISCONNECTED) {
                     this._transition(CLIENT_STATE_RECONNECTING);
                 }
-            }, this.retryDelay);
+            }, this._retryDelay);
 
-            this.retryDelay = Math.min(
-                this.retryDelay * 2,
-                this.reconnectMax
+            this._retryDelay = Math.min(
+                this._retryDelay * 2,
+                this._reconnectMax
             );
         }
 
         /* ---------------- Cleanup ---------------- */
 
         _cleanup() {
-            clearInterval(this.heartbeatTimer);
-            clearTimeout(this.heartbeatTimeoutTimer);
+            clearInterval(this._heartbeatTimer);
+            clearTimeout(this._heartbeatTimeoutTimer);
 
             if (this._socket) {
                 this._socket.onopen =
@@ -418,5 +418,6 @@
             return connection;
         }
         root.getWebSocketConnection = getWebSocketConnection;
+        root.ClientConnection = ClientConnection;
     }
 }(globalThis));
