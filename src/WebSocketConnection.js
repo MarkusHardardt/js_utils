@@ -15,10 +15,10 @@
     const DATA_RESPONSE = 4;
     const ERROR_RESPONSE = 5;
 
-    const Connection = function (socket, id, onError) {
-        this._socket = socket;
-        this._id = id;
-        Object.defineProperty(this, 'id', { configurable: false, enumerable: true, get: () => id });
+    const Connection = function (socket, sessionId, onError) {
+        this._setSocket(socket); // TODO: Call in derived classes
+        this._sessionId = sessionId;
+        Object.defineProperty(this, 'sessionId', { configurable: false, enumerable: true, get: () => sessionId });
         this._onError = typeof onError === 'function' ? onError : (error) => console.error(`error: ${error}`);
         this._receiversHandler = {};
         this._callbacks = {};
@@ -28,6 +28,11 @@
 
     Connection.prototype = Object.create(Object.prototype);
     Connection.prototype.constructor = Connection;
+
+    Connection.prototype._setSocket = function (socket) {
+        this._socket = socket;
+        // TODO: 
+    };
 
     Connection.prototype.ping = function (onResponse, onError) {
         let telegram = { type: PING_REQUEST };
@@ -181,14 +186,21 @@
         }
     };
 
+    const ClientConnection = function (socket, sessionId, onError) {
+        Connection.call(this, socket, sessionId, onError);
+    };
+
+    ClientConnection.prototype = Object.create(Connection.prototype);
+    ClientConnection.prototype.constructor = ClientConnection;
+
     if (isNodeJS) {
         function WebSocketServer(port, onOpen, onClose, onError) {
             let WebSocket = require('ws');
             this._socket = new WebSocket.Server({ port });
             this._socket.on('connection', function (socket, request) {
-                const match = /\bclientId=(.+)$/.exec(request.url);
-                const clientId = match ? match[1] : undefined;
-                const connection = new Connection(socket, clientId, onError);
+                const match = /\bsessionId=(.+)$/.exec(request.url);
+                const sessionId = match ? match[1] : undefined;
+                const connection = new Connection(socket, sessionId, onError);
                 socket.on('message', function (buffer) {
                     connection._handleTelegram(JSON.parse(buffer.toString('utf8')));
                 });
@@ -224,13 +236,13 @@
         }
         module.exports = WebSocketServer;
     } else {
-        function getWebSocketConnection(port, id, onOpen, onClose, onSocketError, onConnectionError) {
+        function getWebSocketConnection(port, sessionId, onOpen, onClose, onSocketError, onConnectionError) {
             let url = `ws://${document.location.hostname}:${port}`;
-            if (typeof id === 'string') {
-                url += `?clientId=${id}`;
+            if (typeof sessionId === 'string') {
+                url += `?sessionId=${sessionId}`;
             }
             let socket = new WebSocket(url);
-            let connection = new Connection(socket, id, onConnectionError);
+            let connection = new Connection(socket, sessionId, onConnectionError);
             socket.onopen = function (event) {
                 if (typeof onOpen === 'function') {
                     try {
