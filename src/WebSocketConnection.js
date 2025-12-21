@@ -186,12 +186,18 @@
         }
     };
 
+    // TODO: Implement client extensions
     const ClientConnection = function (socket, sessionId, onError) {
         Connection.call(this, socket, sessionId, onError);
+        this._foo = true;
     };
 
     ClientConnection.prototype = Object.create(Connection.prototype);
     ClientConnection.prototype.constructor = ClientConnection;
+
+    ClientConnection.prototype.foo = function (telegram) {
+        return `this is the lelegram: ${telegram}`;
+    };
 
     if (isNodeJS) {
         function WebSocketServer(port, onOpen, onClose, onError) {
