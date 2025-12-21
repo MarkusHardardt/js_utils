@@ -16,15 +16,18 @@
     const ERROR_RESPONSE = 5;
 
     class Connection {
-        constructor(socket, sessionId, onError) {
-            this._setSocket(socket); // TODO: Call in derived classes
-            this._sessionId = sessionId;
-            Object.defineProperty(this, 'sessionId', { configurable: false, enumerable: true, get: () => sessionId });
+        constructor(onError) {
             this._onError = typeof onError === 'function' ? onError : (error) => console.error(`error: ${error}`);
             this._receiversHandler = {};
             this._callbacks = {};
             let unique_id = 0;
             this._nextId = () => `#${(unique_id++).toString(36)}`;
+        }
+        get sessionId() {
+            return this._sid;
+        }
+        set _sessionId(value) {
+            this._sid = value;
         }
         _setSocket(socket) {
             this._socket = socket;
@@ -174,16 +177,132 @@
         }
     }
 
-    // TODO: Implement client extensions
     class ClientConnection extends Connection {
-        constructor(socket, sessionId, onError) {
-            super(socket, sessionId, onError);
-            this._foo = true;
+        constructor(sessionId, onError, url, options = {}) {
+            super(sessionId, onError);
+            this.url = url;
+
+            this.state = "IDLE";
+            this.ws = null;
+
+            this.heartbeatInterval = options.heartbeatInterval ?? 15000;
+            this.heartbeatTimeout = options.heartbeatTimeout ?? 5000;
+            this.reconnectMax = options.reconnectMax ?? 30000;
+
+            this.retryDelay = 1000;
+            this.heartbeatTimer = null;
+            this.heartbeatTimeoutTimer = null;
+
+            this.handlers = {
+                message: () => { },
+                online: () => { },
+                offline: () => { }
+            };
         }
-        foo(telegram) {
-            return `this is the lelegram: ${telegram}`;
+
+        on(event, fn) {
+            this.handlers[event] = fn;
+        }
+
+        start() {
+            if (this.state !== "IDLE") return;
+            this.transition("CONNECTING");
+        }
+
+        stop() {
+            this.cleanup();
+            this.transition("IDLE");
+        }
+
+        send(data) {
+            if (this.state !== "ONLINE") return false;
+            this.ws.send(data);
+            return true;
+        }
+
+        /* ---------------- FSM core ---------------- */
+
+        transition(next) {
+            this.cleanup();
+            this.state = next;
+
+            switch (next) {
+                case "CONNECTING":
+                case "RECONNECTING":
+                    this.connect();
+                    break;
+
+                case "ONLINE":
+                    this.handlers.online();
+                    this.startHeartbeat();
+                    this.retryDelay = 1000;
+                    break;
+
+                case "DISCONNECTED":
+                    this.handlers.offline();
+                    this.scheduleReconnect();
+                    break;
+            }
+        }
+
+        connect() {
+            this.ws = new WebSocket(this.url);
+
+            this.ws.onopen = () => this.transition("ONLINE");
+            this.ws.onmessage = e => this.handlers.message(e.data);
+
+            this.ws.onerror = () => this.ws.close();
+            this.ws.onclose = () => {
+                if (this.state !== "IDLE") {
+                    this.transition("DISCONNECTED");
+                }
+            };
+        }
+
+        /* ---------------- Heartbeat ---------------- */
+
+        startHeartbeat() {
+            this.heartbeatTimer = setInterval(() => {
+                if (this.state !== "ONLINE") return;
+
+                this.ws.send(JSON.stringify({ type: "ping" }));
+
+                this.heartbeatTimeoutTimer = setTimeout(() => {
+                    this.ws.close();
+                }, this.heartbeatTimeout);
+            }, this.heartbeatInterval);
+        }
+
+        /* ---------------- Reconnect ---------------- */
+
+        scheduleReconnect() {
+            setTimeout(() => {
+                if (this.state === "DISCONNECTED") {
+                    this.transition("RECONNECTING");
+                }
+            }, this.retryDelay);
+
+            this.retryDelay = Math.min(
+                this.retryDelay * 2,
+                this.reconnectMax
+            );
+        }
+
+        /* ---------------- Cleanup ---------------- */
+
+        cleanup() {
+            clearInterval(this.heartbeatTimer);
+            clearTimeout(this.heartbeatTimeoutTimer);
+
+            if (this.ws) {
+                this.ws.onopen =
+                    this.ws.onmessage =
+                    this.ws.onerror =
+                    this.ws.onclose = null;
+            }
         }
     }
+
 
     if (isNodeJS) {
         class WebSocketServer {
@@ -193,7 +312,9 @@
                 this._socket.on('connection', function (socket, request) {
                     const match = /\bsessionId=(.+)$/.exec(request.url);
                     const sessionId = match ? match[1] : undefined;
-                    const connection = new Connection(socket, sessionId, onError);
+                    const connection = new Connection(onError);
+                    connection._sessionId = sessionId;
+                    connection._setSocket(socket);
                     socket.on('message', function (buffer) {
                         connection._handleTelegram(JSON.parse(buffer.toString('utf8')));
                     });
@@ -230,13 +351,15 @@
         }
         module.exports = WebSocketServer;
     } else {
-        function getWebSocketConnection(port, sessionId, onOpen, onClose, onSocketError, onConnectionError) {
-            let url = `ws://${document.location.hostname}:${port}`;
+        function getWebSocketConnection(hostname, port, sessionId, onOpen, onClose, onSocketError, onConnectionError) {
+            let url = `ws://${hostname}:${port}`;
             if (typeof sessionId === 'string') {
                 url += `?sessionId=${sessionId}`;
             }
-            let socket = new WebSocket(url);
-            let connection = new Connection(socket, sessionId, onConnectionError);
+            const socket = new WebSocket(url);
+            const connection = new Connection(onConnectionError);
+            connection._sessionId = sessionId;
+            connection._setSocket(socket);
             socket.onopen = function (event) {
                 if (typeof onOpen === 'function') {
                     try {
