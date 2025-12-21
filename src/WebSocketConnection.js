@@ -29,6 +29,7 @@
         set _sessionId(value) {
             this._sid = value;
         }
+        // TODO: remove or reuse
         _setSocket(socket) {
             this._socket = socket;
             // TODO: 
@@ -177,13 +178,21 @@
         }
     }
 
-    class ClientConnection extends Connection {
-        constructor(sessionId, onError, url, options = {}) {
-            super(sessionId, onError);
-            this.url = url;
+    const CLIENT_STATE_IDLE = 0;
+    const CLIENT_STATE_CONNECTING = 1;
+    const CLIENT_STATE_RECONNECTING = 2;
+    const CLIENT_STATE_ONLINE = 3;
+    const CLIENT_STATE_DISCONNECTED = 4;
 
-            this.state = "IDLE";
-            this.ws = null;
+    class ClientConnection extends Connection {
+        constructor(hostname, port, onError, options = {}) {
+            super(onError);
+            this._hostname = hostname;
+            this._port = port;
+            this._url = undefined;
+
+            this._state = CLIENT_STATE_IDLE;
+            this._socket = null;
 
             this.heartbeatInterval = options.heartbeatInterval ?? 15000;
             this.heartbeatTimeout = options.heartbeatTimeout ?? 5000;
@@ -205,56 +214,63 @@
         }
 
         start() {
-            if (this.state !== "IDLE") return;
-            this.transition("CONNECTING");
+            let that = this;
+            if (this._state === CLIENT_STATE_IDLE) {
+                Utilities.sha256(`#${Math.random()}&${Date.now()}%${Math.random()}@`, function onSuccess(sessionId) {
+                    that._url = `ws://${that._hostname}:${that._port}?sessionId=${sessionId}`;
+                    this._transition(CLIENT_STATE_CONNECTING);
+                }, function onError(exception) {
+                    console.error(`Error creating session id: ${exception}`);
+                });
+            }
         }
 
         stop() {
-            this.cleanup();
-            this.transition("IDLE");
+            this._cleanup();
+            this._transition(CLIENT_STATE_IDLE);
         }
 
         send(data) {
-            if (this.state !== "ONLINE") return false;
-            this.ws.send(data);
+            if (this._state !== CLIENT_STATE_ONLINE) return false;
+            this._socket.send(data);
             return true;
         }
 
         /* ---------------- FSM core ---------------- */
 
-        transition(next) {
-            this.cleanup();
-            this.state = next;
+        _transition(next) {
+            this._cleanup();
+            this._state = next;
 
             switch (next) {
-                case "CONNECTING":
-                case "RECONNECTING":
-                    this.connect();
+                case CLIENT_STATE_CONNECTING:
+                case CLIENT_STATE_RECONNECTING:
+                    this._connect();
                     break;
 
-                case "ONLINE":
+                case CLIENT_STATE_ONLINE:
                     this.handlers.online();
                     this.startHeartbeat();
                     this.retryDelay = 1000;
                     break;
 
-                case "DISCONNECTED":
+                case CLIENT_STATE_DISCONNECTED:
                     this.handlers.offline();
                     this.scheduleReconnect();
                     break;
             }
         }
 
-        connect() {
-            this.ws = new WebSocket(this.url);
+        _connect() {
+            this._socket = new WebSocket(this._url);
 
-            this.ws.onopen = () => this.transition("ONLINE");
-            this.ws.onmessage = e => this.handlers.message(e.data);
+            this._socket.onopen = () => this._transition(CLIENT_STATE_ONLINE);
+            this._socket.onmessage = e => this.handlers.message(e.data);
 
-            this.ws.onerror = () => this.ws.close();
-            this.ws.onclose = () => {
-                if (this.state !== "IDLE") {
-                    this.transition("DISCONNECTED");
+            this._socket.onerror = () => this._socket.close();
+            this._socket.onclose = () => {
+                if (this._state !== CLIENT_STATE_IDLE) {
+                    this._transition(CLIENT_STATE_DISCONNECTED);
                 }
             };
         }
@@ -263,12 +279,12 @@
 
         startHeartbeat() {
             this.heartbeatTimer = setInterval(() => {
-                if (this.state !== "ONLINE") return;
+                if (this._state !== CLIENT_STATE_ONLINE) return;
 
-                this.ws.send(JSON.stringify({ type: "ping" }));
+                this._socket.send(JSON.stringify({ type: "ping" }));
 
                 this.heartbeatTimeoutTimer = setTimeout(() => {
-                    this.ws.close();
+                    this._socket.close();
                 }, this.heartbeatTimeout);
             }, this.heartbeatInterval);
         }
@@ -277,8 +293,8 @@
 
         scheduleReconnect() {
             setTimeout(() => {
-                if (this.state === "DISCONNECTED") {
-                    this.transition("RECONNECTING");
+                if (this._state === CLIENT_STATE_DISCONNECTED) {
+                    this._transition(CLIENT_STATE_RECONNECTING);
                 }
             }, this.retryDelay);
 
@@ -290,15 +306,15 @@
 
         /* ---------------- Cleanup ---------------- */
 
-        cleanup() {
+        _cleanup() {
             clearInterval(this.heartbeatTimer);
             clearTimeout(this.heartbeatTimeoutTimer);
 
-            if (this.ws) {
-                this.ws.onopen =
-                    this.ws.onmessage =
-                    this.ws.onerror =
-                    this.ws.onclose = null;
+            if (this._socket) {
+                this._socket.onopen =
+                    this._socket.onmessage =
+                    this._socket.onerror =
+                    this._socket.onclose = null;
             }
         }
     }
