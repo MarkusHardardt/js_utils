@@ -36,7 +36,6 @@
         }
         _handlePingRequest(callback) {
             this._socket.send(JSON.stringify({ type: PING_RESPONSE, callback }));
-            console.log(`sending pong: ${Date.now()}`);
         }
         _handlePingResponse(callback) {
             let cb = this._callbacks[callback];
@@ -204,6 +203,7 @@
                 online: () => { },
                 offline: () => { }
             };
+            //ws.on("message", msg => handleMachineData(msg));
         }
 
         on(event, fn) {
@@ -258,18 +258,21 @@
         }
 
         _connect() {
+            if (this._socket) {
+                this._socket.onopen =
+                    this._socket.onmessage =
+                    this._socket.onerror =
+                    this._socket.onclose = null;
+            }
             this._socket = new WebSocket(this._url);
 
             this._socket.onopen = () => this._transition(CLIENT_STATE_ONLINE);
             // this._socket.onmessage = e => this._handlers.message(e.data);
-            let that = this;
-            this._socket.onmessage = function (message) {
-                that._handleTelegram(JSON.parse(message.data));
-            };
+            this._socket.onmessage = message => this._handleTelegram(JSON.parse(message.data));
 
             // this._socket.onmessage = e => this._handleTelegram(JSON.parse(e.data.toString('utf8')));
 
-            
+
 
             this._socket.onerror = () => this._socket.close();
             this._socket.onclose = () => {
@@ -293,7 +296,7 @@
                     console.error(`heartbeat ping failed: ${exception}`);
                 });
                 this._heartbeatTimeoutTimer = setTimeout(() => {
-                    // TODO: Reuse: this._socket.close();
+                    this._socket.close();
                     console.error('heartbeat timeout expired');
                 }, this._heartbeatTimeout);
             }, this._heartbeatInterval);
@@ -319,13 +322,6 @@
         _cleanup() {
             clearInterval(this._heartbeatTimer);
             clearTimeout(this._heartbeatTimeoutTimer);
-
-            if (this._socket) {
-                this._socket.onopen =
-                    this._socket.onmessage =
-                    this._socket.onerror =
-                    this._socket.onclose = null;
-            }
         }
     }
 
