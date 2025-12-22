@@ -21,6 +21,8 @@
             this._callbacks = {};
             let unique_id = 0;
             this._nextId = () => `#${(unique_id++).toString(36)}`;
+            this._remoteMediumUTC = 0;
+            this._remoteToLocalOffsetMillis = 0;
         }
         get sessionId() {
             return this._sessionId;
@@ -34,7 +36,8 @@
         ping(onResponse, onError) {
             if (this.online) {
                 let telegram = { type: TelegramType.PingRequest };
-                this._callbacks[telegram.callback = this._nextId()] = { request: Date.now(), onResponse, onError };
+                let localRequestUTC = Date.now();
+                this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC, onResponse, onError };
                 this._webSocket.send(JSON.stringify(telegram));
                 return true;
             }
@@ -45,19 +48,30 @@
         }
         _handlePingRequest(callback) {
             if (this.online) {
-                this._webSocket.send(JSON.stringify({ type: TelegramType.PingResponse, callback }));
+                this._webSocket.send(JSON.stringify({ type: TelegramType.PingResponse, callback, utc: Date.now() }));
             }
             else {
                 this._onError('Cannot send ping reponse when disconnected');
             }
         }
-        _handlePingResponse(callback) {
+        _handlePingResponse(callback, remoteMediumUTC) {
+            this._remoteMediumUTC = remoteMediumUTC;
             let cb = this._callbacks[callback];
             if (cb) {
                 delete this._callbacks[callback];
+                /*  Note:
+                    cb.localRequestUTC: This is the local time when the request was sent.
+                    localResponseUTC: This is the local time when the request was received.
+                    localMediumUTC: Assuming that sending and receiving take approximately the same amount of time, the local time in between is calculated here.
+                    remoteMediumUTC: This is the time of the other participant at the moment when answered the request.
+                    remoteToLocalOffsetMillis: This is the offset between both times.
+                */
+                let localResponseUTC = Date.now();
+                let localMediumUTC = (localResponseUTC + cb.localRequestUTC) / 2;
+                this._remoteToLocalOffsetMillis = remoteMediumUTC - localMediumUTC;
                 try {
                     if (cb.onResponse) {
-                        cb.onResponse(Date.now() - cb.request);
+                        cb.onResponse(localResponseUTC - cb.localRequestUTC);
                     }
                 }
                 catch (exception) {
@@ -65,8 +79,12 @@
                 }
             }
             else {
-                this._onError('No pong callback found');
+                this._onError('No ping callback found');
             }
+        }
+        getRemoteUTC() {
+            let now = Date.now();
+            return this._remoteToLocalOffsetMillis !== 0 ? Math.ceil(now + this._remoteToLocalOffsetMillis) : now;
         }
         register(receiver, handler) {
             if (typeof receiver !== 'string') {
@@ -97,7 +115,8 @@
             if (this.online) {
                 let telegram = { type: TelegramType.DataRequest, receiver, data };
                 if (typeof onResponse === 'function' || typeof onError === 'function') {
-                    this._callbacks[telegram.callback = this._nextId()] = { request: Date.now(), onResponse, onError };
+                    let localRequestUTC = Date.now();
+                    this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC, onResponse, onError };
                 }
                 this._webSocket.send(JSON.stringify(telegram));
                 return true;
@@ -164,7 +183,7 @@
                 delete this._callbacks[callback];
                 try {
                     if (cb.onResponse) {
-                        cb.onResponse(data, Date.now() - cb.request);
+                        cb.onResponse(data, Date.now() - cb.localRequestUTC);
                     }
                 }
                 catch (exception) {
@@ -181,7 +200,7 @@
                 delete this._callbacks[callback];
                 if (cb.onError) {
                     try {
-                        cb.onError(error, Date.now() - cb.request);
+                        cb.onError(error, Date.now() - cb.localRequestUTC);
                     }
                     catch (exception) {
                         this._onError(`error calling onError callback: ${exception}`);
@@ -201,7 +220,7 @@
                     this._handlePingRequest(telegram.callback);
                     break;
                 case TelegramType.PingResponse:
-                    this._handlePingResponse(telegram.callback);
+                    this._handlePingResponse(telegram.callback, telegram.utc);
                     break;
                 case TelegramType.DataRequest:
                     this._handleDataRequest(telegram.callback, telegram.data, telegram.receiver);
@@ -322,6 +341,7 @@
                 if (this._state === ClientState.Online) {
                     this.ping(millis => {
                         // TODO: reuse or remove: console.log(`heartbeat ping millis: ${millis}`);
+                        // console.log(`Server time: ${(new Date(this.getRemoteUTC()))}`);
                         clearTimeout(this._heartbeatTimeoutTimer);
                     }, exception => {
                         console.error(`heartbeat ping failed: ${exception}`);
