@@ -16,9 +16,17 @@
     class BaseConnection {
         constructor(sessionId, onError) {
             this._sessionId = sessionId;
-            this._onError = typeof onError === 'function' ? onError : error => console.error(`error: ${error}`);
             this._receiversHandler = {};
             this._callbacks = {};
+            this._onError = error => {
+                if (typeof onError === 'function') {
+                    try {
+                        onError(error);
+                    } catch (exception) {
+                        console.error(`failed calling onError: ${exception}`);
+                    }
+                }
+            };
             let unique_id = 0;
             this._nextId = () => `#${(unique_id++).toString(36)}`;
             this._remoteMediumUTC = 0;
@@ -36,13 +44,12 @@
         ping(onResponse, onError) {
             if (this.isOnline) {
                 let telegram = { type: TelegramType.PingRequest };
-                let localRequestUTC = Date.now();
-                this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC, onResponse, onError };
+                this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC: Date.now(), onResponse, onError };
                 this._webSocket.send(JSON.stringify(telegram));
                 return true;
             }
             else {
-                this._onError('Cannot send ping request when disconnected');
+                this._onError('cannot send ping request when disconnected');
                 return false;
             }
         }
@@ -51,7 +58,7 @@
                 this._webSocket.send(JSON.stringify({ type: TelegramType.PingResponse, callback, utc: Date.now() }));
             }
             else {
-                this._onError('Cannot send ping reponse when disconnected');
+                this._onError('cannot send ping reponse when disconnected');
             }
         }
         _handlePingResponse(callback, remoteMediumUTC) {
@@ -75,11 +82,11 @@
                     }
                 }
                 catch (exception) {
-                    this._onError(`error calling callback: ${exception}`);
+                    this._onError(`failed calling onResponse: ${exception}`);
                 }
             }
             else {
-                this._onError('Missing ping callback');
+                this._onError('missing ping callback');
             }
         }
         getRemoteUTC() {
@@ -115,65 +122,64 @@
             if (this.isOnline) {
                 let telegram = { type: TelegramType.DataRequest, receiver, data };
                 if (typeof onResponse === 'function' || typeof onError === 'function') {
-                    let localRequestUTC = Date.now();
-                    this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC, onResponse, onError };
+                    this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC: Date.now(), onResponse, onError };
                 }
                 this._webSocket.send(JSON.stringify(telegram));
                 return true;
             }
             else {
-                this._onError('Cannot send data request when disconnected');
+                this._onError('cannot send data request when disconnected');
                 return false;
             }
         }
-        _handleDataRequest(callback, data, receiver) {
-            let that = this, handler = this._receiversHandler[receiver];
+        _handleDataRequest(callback, requestData, receiver) {
+            let handler = this._receiversHandler[receiver];
             if (handler) {
                 if (callback !== undefined) {
                     try {
-                        handler(data, function onSuccess(data) {
-                            if (that.isOnline) {
-                                that._webSocket.send(JSON.stringify({ type: TelegramType.DataResponse, callback, data }));
+                        handler(requestData, responseData => {
+                            if (this.isOnline) {
+                                this._webSocket.send(JSON.stringify({ type: TelegramType.DataResponse, callback, data: responseData }));
                             }
                             else {
-                                that._onError('Cannot send data response when disconnected');
+                                this._onError('cannot send data response when disconnected');
                             }
-                        }, function onError(error) {
-                            if (that.isOnline) {
-                                that._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: error ? error : true }));
+                        }, error => {
+                            if (this.isOnline) {
+                                this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: error ? error : true }));
                             }
                             else {
-                                that._onError('Cannot send error response when disconnected');
+                                this._onError(`cannot send error response when disconnected (error: ${error})`);
                             }
                         });
                     } catch (exception) {
                         if (this.isOnline) {
-                            this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `error calling receivers ${receiver} handler: ${exception}` }));
+                            this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `failed calling receive handler '${receiver}'! exception: ${exception}` }));
                         }
                         else {
-                            this._onError('Cannot send error response when disconnected');
+                            this._onError(`failed calling receive handler '${receiver}' but cannot send error response when disconnected! exception: ${exception}`);
                         }
                     }
                 }
                 else {
                     try {
-                        handler(data);
+                        handler(requestData);
                     } catch (exception) {
                         if (this.isOnline) {
-                            this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `error calling receivers ${receiver} handler: ${exception}` }));
+                            this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `failed calling receive handler '${receiver}'! exception: ${exception}` }));
                         }
                         else {
-                            this._onError('Cannot send error response when disconnected');
+                            this._onError(`failed calling receive handler '${receiver}' but cannot send error response when disconnected! exception: ${exception}`);
                         }
                     }
                 }
             }
             else {
                 if (this.isOnline) {
-                    this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `unknown receiver: ${receiver}` }));
+                    this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `unknown receiver: '${receiver}'` }));
                 }
                 else {
-                    this._onError('Cannot send error response when disconnected');
+                    this._onError(`cannot send error response for unknown receiver: '${receiver}' when disconnected`);
                 }
             }
         }
@@ -187,11 +193,11 @@
                     }
                 }
                 catch (exception) {
-                    this._onError(`Error calling callback: ${exception}`);
+                    this._onError(`failed calling onResponse: ${exception}`);
                 }
             }
             else {
-                this._onError('Missing data callback');
+                this._onError('missing data callback');
             }
         }
         _handleError(callback, error) {
@@ -203,7 +209,7 @@
                         cb.onError(error, Date.now() - cb.localRequestUTC);
                     }
                     catch (exception) {
-                        this._onError(`Error calling onError callback: ${exception}`);
+                        this._onError(`failed calling onError: ${exception}`);
                     }
                 }
                 else {
@@ -248,6 +254,7 @@
 
     const DEFAULT_HEARTBEAT_INTERVAL = 5000;
     const DEFAULT_HEARTBEAT_TIMEOUT = 1000;
+    const DEFAULT_RECONNECT_START_INTERVAL = 1000;
     const DEFAULT_RECONNECT_MAX_INTERVAL = 32000;
 
     class WebSocketClientConnection extends BaseConnection {
@@ -259,8 +266,8 @@
             this._verbose = options.verbose === true;
             this._heartbeatInterval = options.heartbeatInterval ?? DEFAULT_HEARTBEAT_INTERVAL;
             this._heartbeatTimeout = options.heartbeatTimeout ?? DEFAULT_HEARTBEAT_TIMEOUT;
+            this._reconnectStart = options.reconnectStart ?? DEFAULT_RECONNECT_START_INTERVAL;
             this._reconnectMax = options.reconnectMax ?? DEFAULT_RECONNECT_MAX_INTERVAL;
-            this._retryDelay = 1000;
             this._heartbeatTimer = null;
             this._heartbeatTimeoutTimer = null;
             this._onOpen = () => {
@@ -271,7 +278,7 @@
                     try {
                         options.onOpen();
                     } catch (exception) {
-                        console.error(`Error calling onOpen: ${exception}`);
+                        console.error(`failed calling onOpen: ${exception}`);
                     }
                 }
             };
@@ -283,19 +290,7 @@
                     try {
                         options.onClose();
                     } catch (exception) {
-                        console.error(`Error calling onClose: ${exception}`);
-                    }
-                }
-            };
-            this._onError = (error) => {
-                if (this._verbose) {
-                    console.error(error);
-                }
-                if (typeof options.onError === 'function') {
-                    try {
-                        options.onError(error);
-                    } catch (exception) {
-                        console.error(`Error calling onError: ${exception}`);
+                        console.error(`failed calling onClose: ${exception}`);
                     }
                 }
             };
@@ -335,7 +330,7 @@
 
                 case ClientState.Online:
                     this._startHeartbeatMonitoring();
-                    this._retryDelay = 1000;
+                    this._retryDelay = this._reconnectStart;
                     this._onOpen();
                     break;
 
@@ -362,7 +357,6 @@
             };
         }
         _startHeartbeatMonitoring() {
-            // 
             this._heartbeatTimer = setInterval(() => {
                 if (this._state === ClientState.Online) {
                     this.ping(millis => {
