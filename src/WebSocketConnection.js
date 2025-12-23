@@ -355,7 +355,6 @@
             this._heartbeatTimer = setInterval(() => {
                 if (this._state === ClientState.Online) {
                     this.ping(millis => {
-                        console.log(`==> heartbeat: ${millis} ms`)
                         clearTimeout(this._heartbeatTimeoutTimer);
                     }, exception => {
                         this._onError(`heartbeat monitoring failed: ${exception}`);
