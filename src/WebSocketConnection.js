@@ -300,9 +300,12 @@
             }
         }
         stop() {
-            this._transition(ClientState.Idle);
-            if (this._socket) {
-                this._socket.close();
+            if (this._state !== ClientState.Idle) {
+                this._transition(ClientState.Idle);
+                if (this._socket) {
+                    this._socket.close();
+                    this._onClose();
+                }
             }
         }
         _transition(state) {
