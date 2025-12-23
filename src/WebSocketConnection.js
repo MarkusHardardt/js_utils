@@ -14,16 +14,40 @@
     });
 
     class BaseConnection {
-        constructor(sessionId, onError) {
+        constructor(sessionId, options) {
             this._sessionId = sessionId;
             this._receiversHandler = {};
             this._callbacks = {};
             this._onError = error => {
-                if (typeof onError === 'function') {
+                if (typeof options.onError === 'function') {
                     try {
-                        onError(error);
+                        options.onError(this, error);
                     } catch (exception) {
                         console.error(`failed calling onError: ${exception}`);
+                    }
+                }
+            };
+            this._onOpen = () => {
+                if (options.verbose === true) {
+                    console.log('web socket connected');
+                }
+                if (typeof options.onOpen === 'function') {
+                    try {
+                        options.onOpen(this);
+                    } catch (exception) {
+                        console.error(`failed calling onOpen: ${exception}`);
+                    }
+                }
+            };
+            this._onClose = () => {
+                if (options.verbose === true) {
+                    console.log('web socket disconnected');
+                }
+                if (typeof options.onClose === 'function') {
+                    try {
+                        options.onClose(this);
+                    } catch (exception) {
+                        console.error(`failed calling onClose: ${exception}`);
                     }
                 }
             };
@@ -259,7 +283,7 @@
 
     class WebSocketClientConnection extends BaseConnection {
         constructor(sessionId, hostname, port, options = {}) {
-            super(sessionId, options.onError);
+            super(sessionId, options);
             this._url = `ws://${hostname}:${port}?sessionId=${sessionId}`;
             this._state = ClientState.Idle;
             this._socket = null;
@@ -270,30 +294,6 @@
             this._reconnectMax = options.reconnectMax ?? DEFAULT_RECONNECT_MAX_INTERVAL;
             this._heartbeatTimer = null;
             this._heartbeatTimeoutTimer = null;
-            this._onOpen = () => {
-                if (this._verbose) {
-                    console.log(`web socket connected to ${this._url}`);
-                }
-                if (typeof options.onOpen === 'function') {
-                    try {
-                        options.onOpen();
-                    } catch (exception) {
-                        console.error(`failed calling onOpen: ${exception}`);
-                    }
-                }
-            };
-            this._onClose = () => {
-                if (this._verbose) {
-                    console.log(`web socket disconnected from ${this._url}`);
-                }
-                if (typeof options.onClose === 'function') {
-                    try {
-                        options.onClose();
-                    } catch (exception) {
-                        console.error(`failed calling onClose: ${exception}`);
-                    }
-                }
-            };
         }
         get isOnline() {
             return this._state === ClientState.Online;
@@ -301,28 +301,24 @@
         get _webSocket() {
             return this._socket;
         }
-        // TODO: start, stop, connect & disconnect are still provisional 
         start() {
             if (this._state === ClientState.Idle) {
                 this._transition(ClientState.Connecting);
             }
         }
         stop() {
-            this._stopHeartbeatMonitoring();
             this._transition(ClientState.Idle);
-        }
-        connect() {
-            if (this._state === ClientState.Idle) {
-                this._transition(ClientState.Connecting);
+            if (this._socket) {
+                this._socket.close();
             }
-        }
-        disconnect() {
-            this._stopHeartbeatMonitoring();
-            this._socket.close()
         }
         _transition(state) {
             this._state = state;
             switch (state) {
+                case ClientState.Idle:
+                    this._stopHeartbeatMonitoring();
+                    break;
+
                 case ClientState.Connecting:
                 case ClientState.Reconnecting:
                     this._connect();
@@ -349,7 +345,10 @@
             this._socket = new WebSocket(this._url);
             this._socket.onopen = () => this._transition(ClientState.Online);
             this._socket.onmessage = message => this._handleTelegram(JSON.parse(message.data));
-            this._socket.onerror = () => this._socket.close();
+            this._socket.onerror = error => {
+                this._socket.close();
+                this._onError(error);
+            };
             this._socket.onclose = () => {
                 if (this._state !== ClientState.Idle) {
                     this._transition(ClientState.Disconnected);
@@ -402,7 +401,7 @@
 
     class WebSocketServerConnection extends BaseConnection {
         constructor(sessionId, options = {}) {
-            super(sessionId, options.onError);
+            super(sessionId, options);
             this._socket = null;
             this._online = false;
         }
@@ -414,10 +413,21 @@
         }
         _setWebSocket(socket) {
             if (this._socket) {
+                // If connected before we remove all event handlers
                 this._socket.onopen = this._socket.onmessage = this._socket.onerror = this._socket.onclose = null;
             }
-            socket.onmessage = message => this._handleTelegram(JSON.parse(message.data));
             this._socket = socket;
+            this._socket.onopen = () => this._onOpen();
+            this._socket.onmessage = message => this._handleTelegram(JSON.parse(message.data));
+            this._socket.onerror = error => {
+                this._online = false;
+                this._socket.close();
+                this._onError(error);
+            };
+            this._socket.onclose = () => {
+                this._online = false;
+                this._onClose();
+            };
         }
     }
 
@@ -427,44 +437,17 @@
             this._options = options;
             this._connections = {};
             this._server = new WebSocket.Server({ port });
-            this._server.on('connection', function (socket, request) {
+            this._server.on('connection', function (socket, request) { // TODO server.onconnection ???
                 const sessionId = getSessionIdFromURL(request.url);
-                // First, an attempt is made to reuse an existing connection before creating a new one.
                 let connection = that._connections[sessionId];
                 if (!connection) {
-                    that._connections[sessionId] = connection = new WebSocketServerConnection(sessionId, options.onError);
+                    that._connections[sessionId] = connection = new WebSocketServerConnection(sessionId, options);
                 }
                 connection._setWebSocket(socket);
-                socket.on('close', function () {
-                    connection._online = false;
-                    if (typeof options.onClose === 'function') {
-                        try {
-                            options.onClose(connection);
-                        } catch (error) {
-                            console.error(`failed calling onClose: ${error}`);
-                        }
-                    }
-                });
-                socket.on('error', function (event) {
-                    connection._online = false;
-                    if (typeof options.onError === 'function') {
-                        try {
-                            options.onError(connection, event);
-                        } catch (error) {
-                            console.error(`failed calling onError: ${error}`);
-                        }
-                    }
-                    else {
-                        console.error('connection error');
-                    }
-                });
-                if (typeof options.onOpen === 'function') {
-                    connection._online = true;
-                    try {
-                        options.onOpen(connection);
-                    } catch (error) {
-                        console.error(`failed calling onOpen: ${error}`);
-                    }
+                try {
+                    options.onConnection(connection);
+                } catch (error) {
+                    console.error(`failed calling onOpen: ${error}`);
                 }
             });
         }
