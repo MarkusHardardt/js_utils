@@ -405,16 +405,12 @@
         get _webSocket() {
             return this._socket;
         }
-        _setWebSocket(socket) {
+        setAlreadyConnectedAndOpenSocket(socket) {
             if (this._socket) {
                 // If connected before we remove all event handlers
                 this._socket.onopen = this._socket.onmessage = this._socket.onerror = this._socket.onclose = null;
             }
             this._socket = socket;
-            this._socket.onopen = () => {
-                console.log('==> ON OPEN');
-                this._onOpen();
-            };
             this._socket.onmessage = message => this._handleTelegram(JSON.parse(message.data));
             this._socket.onerror = error => {
                 this._online = false;
@@ -425,8 +421,11 @@
                 this._online = false;
                 this._onClose();
             };
+            // Note:
+            // Since this method is called with an already connected and open socket, it is not possible to react to 'socket.onopen' because it is no longer triggered.
+            // Instead, the online status is set directly and the 'onOpen' method is triggered manually.
             this._online = true;
-            // TODO reuse or remove this._onOpen();
+            this._onOpen(this);
         }
     }
 
@@ -442,12 +441,7 @@
                 if (!connection) {
                     that._connections[sessionId] = connection = new WebSocketServerConnection(sessionId, options);
                 }
-                connection._setWebSocket(socket);
-                try {
-                    options.onConnection(connection);
-                } catch (error) {
-                    console.error(`failed calling onConnection: ${error}`);
-                }
+                connection.setAlreadyConnectedAndOpenSocket(socket);
             });
         }
     }
