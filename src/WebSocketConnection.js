@@ -27,14 +27,14 @@
         get sessionId() {
             return this._sessionId;
         }
-        get online() {
+        get isOnline() {
             return false;
         }
         get _webSocket() {
             return null;
         }
         ping(onResponse, onError) {
-            if (this.online) {
+            if (this.isOnline) {
                 let telegram = { type: TelegramType.PingRequest };
                 let localRequestUTC = Date.now();
                 this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC, onResponse, onError };
@@ -47,7 +47,7 @@
             }
         }
         _handlePingRequest(callback) {
-            if (this.online) {
+            if (this.isOnline) {
                 this._webSocket.send(JSON.stringify({ type: TelegramType.PingResponse, callback, utc: Date.now() }));
             }
             else {
@@ -112,7 +112,7 @@
             }
         }
         send(receiver, data, onResponse, onError) {
-            if (this.online) {
+            if (this.isOnline) {
                 let telegram = { type: TelegramType.DataRequest, receiver, data };
                 if (typeof onResponse === 'function' || typeof onError === 'function') {
                     let localRequestUTC = Date.now();
@@ -132,14 +132,14 @@
                 if (callback !== undefined) {
                     try {
                         handler(data, function onSuccess(data) {
-                            if (that.online) {
+                            if (that.isOnline) {
                                 that._webSocket.send(JSON.stringify({ type: TelegramType.DataResponse, callback, data }));
                             }
                             else {
                                 that._onError('Cannot send data response when disconnected');
                             }
                         }, function onError(error) {
-                            if (that.online) {
+                            if (that.isOnline) {
                                 that._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: error ? error : true }));
                             }
                             else {
@@ -147,7 +147,7 @@
                             }
                         });
                     } catch (exception) {
-                        if (this.online) {
+                        if (this.isOnline) {
                             this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `error calling receivers ${receiver} handler: ${exception}` }));
                         }
                         else {
@@ -159,7 +159,7 @@
                     try {
                         handler(data);
                     } catch (exception) {
-                        if (this.online) {
+                        if (this.isOnline) {
                             this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `error calling receivers ${receiver} handler: ${exception}` }));
                         }
                         else {
@@ -169,7 +169,7 @@
                 }
             }
             else {
-                if (this.online) {
+                if (this.isOnline) {
                     this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `unknown receiver: ${receiver}` }));
                 }
                 else {
@@ -246,36 +246,61 @@
         Disconnected: 4
     });
 
+    const DEFAULT_HEARTBEAT_INTERVAL = 5000;
+    const DEFAULT_HEARTBEAT_TIMEOUT = 1000;
+    const DEFAULT_RECONNECT_MAX_INTERVAL = 32000;
+
     class WebSocketClientConnection extends BaseConnection {
         constructor(sessionId, hostname, port, options = {}) {
             super(sessionId, options.onError);
             this._url = `ws://${hostname}:${port}?sessionId=${sessionId}`;
             this._state = ClientState.Idle;
             this._socket = null;
-            this._heartbeatInterval = options.heartbeatInterval ?? 15000;
-            this._heartbeatTimeout = options.heartbeatTimeout ?? 5000;
-            this._reconnectMax = options.reconnectMax ?? 30000;
+            this._verbose = options.verbose === true;
+            this._heartbeatInterval = options.heartbeatInterval ?? DEFAULT_HEARTBEAT_INTERVAL;
+            this._heartbeatTimeout = options.heartbeatTimeout ?? DEFAULT_HEARTBEAT_TIMEOUT;
+            this._reconnectMax = options.reconnectMax ?? DEFAULT_RECONNECT_MAX_INTERVAL;
             this._retryDelay = 1000;
             this._heartbeatTimer = null;
             this._heartbeatTimeoutTimer = null;
-            this._online = () => {
-                if (typeof options.online === 'function') {
-                    options.online();
+            this._onOpen = () => {
+                if (this._verbose) {
+                    console.log(`web socket connected to ${this._url}`);
                 }
-                else {
-                    console.log('web socket connection is online');
+                if (typeof options.onOpen === 'function') {
+                    try {
+                        options.onOpen();
+                    } catch (exception) {
+                        console.error(`Error calling onOpen: ${exception}`);
+                    }
                 }
             };
-            this._offline = () => {
-                if (typeof options.offline === 'function') {
-                    options.offline();
+            this._onClose = () => {
+                if (this._verbose) {
+                    console.log(`web socket disconnected from ${this._url}`);
                 }
-                else {
-                    console.log('web socket connection is offline');
+                if (typeof options.onClose === 'function') {
+                    try {
+                        options.onClose();
+                    } catch (exception) {
+                        console.error(`Error calling onClose: ${exception}`);
+                    }
+                }
+            };
+            this._onError = (error) => {
+                if (this._verbose) {
+                    console.error(error);
+                }
+                if (typeof options.onError === 'function') {
+                    try {
+                        options.onError(error);
+                    } catch (exception) {
+                        console.error(`Error calling onError: ${exception}`);
+                    }
                 }
             };
         }
-        get online() {
+        get isOnline() {
             return this._state === ClientState.Online;
         }
         get _webSocket() {
@@ -288,7 +313,7 @@
             }
         }
         stop() {
-            this._cleanup();
+            this._stopHeartbeatMonitoring();
             this._transition(ClientState.Idle);
         }
         connect() {
@@ -297,33 +322,33 @@
             }
         }
         disconnect() {
-            this._cleanup();
+            this._stopHeartbeatMonitoring();
             this._socket.close()
         }
-        _transition(next) {
-            this._cleanup();
-            this._state = next;
-
-            switch (next) {
+        _transition(state) {
+            this._state = state;
+            switch (state) {
                 case ClientState.Connecting:
                 case ClientState.Reconnecting:
                     this._connect();
                     break;
 
                 case ClientState.Online:
-                    this._startHeartbeat();
+                    this._startHeartbeatMonitoring();
                     this._retryDelay = 1000;
-                    this._online();
+                    this._onOpen();
                     break;
 
                 case ClientState.Disconnected:
+                    this._stopHeartbeatMonitoring();
                     this._scheduleReconnect();
-                    this._offline();
+                    this._onClose();
                     break;
             }
         }
         _connect() {
             if (this._socket) {
+                // If connected before we remove all event handlers
                 this._socket.onopen = this._socket.onmessage = this._socket.onerror = this._socket.onclose = null;
             }
             this._socket = new WebSocket(this._url);
@@ -336,22 +361,25 @@
                 }
             };
         }
-        _startHeartbeat() {
+        _startHeartbeatMonitoring() {
+            // 
             this._heartbeatTimer = setInterval(() => {
                 if (this._state === ClientState.Online) {
                     this.ping(millis => {
-                        // TODO: reuse or remove: console.log(`heartbeat ping millis: ${millis}`);
-                        // console.log(`Server time: ${(new Date(this.getRemoteUTC()))}`);
                         clearTimeout(this._heartbeatTimeoutTimer);
                     }, exception => {
-                        console.error(`heartbeat ping failed: ${exception}`);
+                        this._onError(`heartbeat monitoring failed: ${exception}`);
                     });
                     this._heartbeatTimeoutTimer = setTimeout(() => {
+                        this._onError('heartbeat monitoring timeout expired -> close socket');
                         this._socket.close();
-                        console.error('heartbeat timeout expired');
                     }, this._heartbeatTimeout);
                 }
             }, this._heartbeatInterval);
+        }
+        _stopHeartbeatMonitoring() {
+            clearInterval(this._heartbeatTimer);
+            clearTimeout(this._heartbeatTimeoutTimer);
         }
         _scheduleReconnect() {
             setTimeout(() => {
@@ -363,11 +391,6 @@
                 this._retryDelay * 2,
                 this._reconnectMax
             );
-        }
-        // TODO: When should this be called? (ChatGPT added this to _transition(...))
-        _cleanup() {
-            clearInterval(this._heartbeatTimer);
-            clearTimeout(this._heartbeatTimeoutTimer);
         }
     }
 
@@ -389,7 +412,7 @@
             this._socket = null;
             this._online = false;
         }
-        get online() {
+        get isOnline() {
             return this._online;
         }
         get _webSocket() {
