@@ -16,21 +16,12 @@
     class BaseConnection {
         constructor(sessionId, options) {
             this._sessionId = sessionId;
-            this._receiversHandler = {};
+            this._handlers = {};
             this._callbacks = {};
-            this._onError = error => {
-                if (typeof options.onError === 'function') {
-                    try {
-                        options.onError(this, error);
-                    } catch (exception) {
-                        console.error(`failed calling onError: ${exception}`);
-                    }
-                }
-            };
             this._onOpen = () => {
                 if (typeof options.onOpen === 'function') {
                     try {
-                        options.onOpen(this);
+                        options.onOpen();
                     } catch (exception) {
                         console.error(`failed calling onOpen: ${exception}`);
                     }
@@ -39,9 +30,18 @@
             this._onClose = () => {
                 if (typeof options.onClose === 'function') {
                     try {
-                        options.onClose(this);
+                        options.onClose();
                     } catch (exception) {
                         console.error(`failed calling onClose: ${exception}`);
+                    }
+                }
+            };
+            this._onError = error => {
+                if (typeof options.onError === 'function') {
+                    try {
+                        options.onError(error);
+                    } catch (exception) {
+                        console.error(`failed calling onError: ${exception}`);
                     }
                 }
             };
@@ -64,16 +64,14 @@
                 let telegram = { type: TelegramType.PingRequest };
                 this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC: Date.now(), onResponse, onError };
                 this._webSocket.send(JSON.stringify(telegram));
-            }
-            else {
+            } else {
                 throw new Error('BaseConnection.Ping(): cannot send ping request when disconnected!');
             }
         }
         _handlePingRequest(callback) {
             if (this.IsConnected) {
                 this._webSocket.send(JSON.stringify({ type: TelegramType.PingResponse, callback, utc: Date.now() }));
-            }
-            else {
+            } else {
                 this._onError('cannot send ping reponse when disconnected');
             }
         }
@@ -96,12 +94,10 @@
                     if (cb.onResponse) {
                         cb.onResponse(localResponseUTC - cb.localRequestUTC);
                     }
-                }
-                catch (exception) {
+                } catch (exception) {
                     this._onError(`failed calling onResponse: ${exception}`);
                 }
-            }
-            else {
+            } else {
                 this._onError('missing ping callback');
             }
         }
@@ -112,26 +108,21 @@
         Register(receiver, handler) {
             if (typeof receiver !== 'string') {
                 throw new Error('BaseConnection.Register(receiver, handler): receiver must be a string!');
-            }
-            else if (typeof handler !== 'function') {
+            } else if (typeof handler !== 'function') {
                 throw new Error('BaseConnection.Register(receiver, handler): handler must be a function!');
-            }
-            else if (this._receiversHandler[receiver]) {
+            } else if (this._handlers[receiver]) {
                 throw new Error(`BaseConnection.Register(receiver, handler): handler "${receiver}" already registered!`);
-            }
-            else {
-                this._receiversHandler[receiver] = handler;
+            } else {
+                this._handlers[receiver] = handler;
             }
         }
         Unregister(receiver) {
             if (typeof receiver !== 'string') {
                 throw new Error('BaseConnection.Unregister(receiver): receiver must be a string!');
-            }
-            else if (this._receiversHandler[receiver] === undefined) {
+            } else if (this._handlers[receiver] === undefined) {
                 throw new Error(`BaseConnection.Unregister(receiver): "${receiver}" not registered!`);
-            }
-            else {
-                delete this._receiversHandler[receiver];
+            } else {
+                delete this._handlers[receiver];
             }
         }
         Send(receiver, data, onResponse, onError) {
@@ -142,36 +133,32 @@
                 }
                 this._webSocket.send(JSON.stringify(telegram));
                 return true;
-            }
-            else {
+            } else {
                 throw new Error('BaseConnection.Send(): cannot send data request when disconnected!');
             }
         }
         _handleDataRequest(callback, requestData, receiver) {
-            let handler = this._receiversHandler[receiver];
+            let handler = this._handlers[receiver];
             if (handler) {
                 if (callback !== undefined) {
                     try {
                         handler(requestData, responseData => {
                             if (this.IsConnected) {
                                 this._webSocket.send(JSON.stringify({ type: TelegramType.DataResponse, callback, data: responseData }));
-                            }
-                            else {
+                            } else {
                                 this._onError('cannot send data response when disconnected');
                             }
                         }, error => {
                             if (this.IsConnected) {
                                 this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: error ? error : true }));
-                            }
-                            else {
+                            } else {
                                 this._onError(`cannot send error response when disconnected (error: ${error})`);
                             }
                         });
                     } catch (exception) {
                         if (this.IsConnected) {
                             this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `failed calling receive handler '${receiver}'! exception: ${exception}` }));
-                        }
-                        else {
+                        } else {
                             this._onError(`failed calling receive handler '${receiver}' but cannot send error response when disconnected! exception: ${exception}`);
                         }
                     }
@@ -182,18 +169,15 @@
                     } catch (exception) {
                         if (this.IsConnected) {
                             this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `failed calling receive handler '${receiver}'! exception: ${exception}` }));
-                        }
-                        else {
+                        } else {
                             this._onError(`failed calling receive handler '${receiver}' but cannot send error response when disconnected! exception: ${exception}`);
                         }
                     }
                 }
-            }
-            else {
+            } else {
                 if (this.IsConnected) {
                     this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `unknown receiver: '${receiver}'` }));
-                }
-                else {
+                } else {
                     this._onError(`cannot send error response for unknown receiver: '${receiver}' when disconnected`);
                 }
             }
@@ -206,12 +190,10 @@
                     if (cb.onResponse) {
                         cb.onResponse(data, Date.now() - cb.localRequestUTC);
                     }
-                }
-                catch (exception) {
+                } catch (exception) {
                     this._onError(`failed calling onResponse: ${exception}`);
                 }
-            }
-            else {
+            } else {
                 this._onError('missing data callback');
             }
         }
@@ -222,16 +204,13 @@
                 if (cb.onError) {
                     try {
                         cb.onError(error, Date.now() - cb.localRequestUTC);
-                    }
-                    catch (exception) {
+                    } catch (exception) {
                         this._onError(`failed calling onError: ${exception}`);
                     }
-                }
-                else {
+                } else {
                     this._onError(error);
                 }
-            }
-            else {
+            } else {
                 this._onError(error);
             }
         }
@@ -380,20 +359,8 @@
         }
     }
 
-    // Returns a 64-character hexadecimal string, which should be fairly likely to be unique by using the current time and random values. 
-    function createUniqueSessionId() {
-        let raw = `#${Math.E * Math.random()}&${Date.now()}%${Math.PI * Math.random()}@`;
-        return crypto.createHash('SHA-256').update(raw, 'utf8').digest('hex');
-    }
-
-    // Extracts the session ID generated by the above function from the URL.
-    function getSessionIdFromURL(url) {
-        const match = /\bsessionId=([0-9a-f]{64})$/.exec(url);
-        return match ? match[1] : '';
-    }
-
     class WebSocketServerConnection extends BaseConnection {
-        constructor(sessionId, options = {}) {
+        constructor(sessionId, options) {
             super(sessionId, options);
             this._socket = null;
             this._online = false;
@@ -428,25 +395,116 @@
         }
     }
 
+    const DEFAULT_CLOSED_CONNECTION_DISPOSE_TIMEOUT = 60000;
+
     class WebSocketServer {
         constructor(port, options = {}) {
-            let that = this;
-            this._options = options;
-            this._connections = {};
+            this._port = port;
+            this._options = options; // onOpen(c), onReopen(c), onClose(c), onDispose(c), onError(c,e)
+            this._instances = {};
             this._server = new WebSocket.Server({ port });
-            this._server.on('connection', function (socket, request) {
-                const sessionId = getSessionIdFromURL(request.url);
-                let connection = that._connections[sessionId];
-                if (!connection) {
-                    that._connections[sessionId] = connection = new WebSocketServerConnection(sessionId, options);
+            this._server.on('connection', (socket, request) => {
+                const sessionId = this._getSessionIdFromURL(request.url);
+                let instance = this._instances[sessionId];
+                const isUTC = typeof instance === 'number'; // If UTC from creation we know that the id came from here (see below)
+                const createdUTC = isUTC ? instance : undefined;
+                if (isUTC || instance === undefined) {
+                    this._instances[sessionId] = instance = {};
+                    if (isUTC) {
+                        instance.createdUTC = createdUTC;
+                    } else {
+                        console.warn(`web socket connected with unknown session id: '${sessionId}'`)
+                    }
+                    instance.connection = new WebSocketServerConnection(sessionId, {
+                        onOpen: () => {
+                            const isFirstOpen = instance.openedUTC === undefined;
+                            instance.openedUTC = Date.now();
+                            if (isFirstOpen) {
+                                if (typeof options.onOpen === 'function') {
+                                    try {
+                                        options.onOpen(instance.connection);
+                                    } catch (exception) {
+                                        console.error(`failed calling onOpen: ${exception}`);
+                                    }
+                                } else {
+                                    console.log(`connection opened with session id: '${sessionId}'`);
+                                }
+                            } else {
+                                clearTimeout(instance.disposeTimeoutTimer);
+                                if (typeof options.onReopen === 'function') {
+                                    try {
+                                        options.onReopen(instance.connection);
+                                    } catch (exception) {
+                                        console.error(`failed calling onReopen: ${exception}`);
+                                    }
+                                } else {
+                                    console.log(`connection reopened with session id: '${sessionId}'`);
+                                }
+                            }
+                        },
+                        onClose: () => {
+                            instance.closedUTC = Date.now();
+                            if (typeof options.onClose === 'function') {
+                                try {
+                                    options.onClose(instance.connection);
+                                } catch (exception) {
+                                    console.error(`failed calling onClose: ${exception}`);
+                                }
+                            } else {
+                                console.log(`connection closed with session id: '${sessionId}'`);
+                            }
+                            instance.disposeTimeoutTimer = setTimeout(() => {
+                                delete this._instances[sessionId];
+                                if (typeof options.onDispose === 'function') {
+                                    try {
+                                        options.onDispose(instance.connection);
+                                    } catch (exception) {
+                                        console.error(`failed calling onDispose: ${exception}`);
+                                    }
+                                } else {
+                                    console.log(`connection diposed with session id: '${sessionId}'`);
+                                }
+                            }, options.closedConnectionDisposeTimeout ?? DEFAULT_CLOSED_CONNECTION_DISPOSE_TIMEOUT);
+                        },
+                        onError: error => {
+                            if (typeof options.onError === 'function') {
+                                try {
+                                    options.onError(instance.connection, error);
+                                } catch (exception) {
+                                    console.error(`failed calling onError for error: ${error}: ${exception}`);
+                                }
+                            } else {
+                                console.error(`error in connection with session id: '${sessionId}': ${error}`);
+                            }
+                        }
+                    });
                 }
-                connection.setAlreadyConnectedAndOpenSocket(socket);
+                instance.connection.setAlreadyConnectedAndOpenSocket(socket);
             });
+        }
+        CreateSessionConfig() {
+            let sessionId = this._createUniqueSessionId();
+            this._instances[sessionId] = Date.now(); // By storing the current UTC we know on connect that the id came from here (see above)
+            return {
+                sessionId,
+                webSocketPort: this._port,
+                autoConnect: this._options.autoConnect === true
+            };
+        }
+        // Returns a 64-character hexadecimal string, which should be fairly likely to be unique by using the current time and random values. 
+        _createUniqueSessionId() {
+            let raw = `#${Math.E * Math.random()}&${Date.now()}%${Math.PI * Math.random()}@`;
+            return crypto.createHash('SHA-256').update(raw, 'utf8').digest('hex');
+        }
+        // Extracts the session ID generated by the above function from the URL.
+        _getSessionIdFromURL(url) {
+            const match = /\bsessionId=([0-9a-f]{64})$/.exec(url);
+            return match ? match[1] : '';
         }
     }
 
     if (isNodeJS) {
-        module.exports = { createUniqueSessionId, WebSocketServer };
+        module.exports = WebSocketServer;
     } else {
         root.WebSocketClientConnection = WebSocketClientConnection;
     }
