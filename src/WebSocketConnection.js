@@ -13,6 +13,20 @@
         ErrorResponse: 5
     });
 
+    /*  The BaseConnection constructor requires the following arguments:
+        - sessionId: received from web server (using ajax)
+        - options: {
+            onOpen(): will be called when socket connection has been established
+            onClose(): will be called when socket connection has been lost
+            onError(error): will be called when an error occurred
+          }
+        A connection has the following public interface:
+        - SessionId: The session id
+        - IsConnected: true if connected
+        - Ping(): sends ping to other an waits for response (pong)
+        - Register(): registers receiver for data
+        - Unregister(): unregisters receiver for data
+        - Send(): sends data to receiver on other side an waits optionally for response (pong)    */
     class BaseConnection {
         constructor(sessionId, options) {
             this._sessionId = sessionId;
@@ -251,6 +265,23 @@
     const DEFAULT_RECONNECT_START_INTERVAL = 1000;
     const DEFAULT_RECONNECT_MAX_INTERVAL = 32000;
 
+    /*  WebSocketClientConnection extends BaseConnection and the constructor requires the following arguments:
+        - sessionId: received from web server (using ajax)
+        - hostname: taken from url (using document.location.hostname)
+        - webSocketPort: received from web server (using ajax)
+        - options: {
+            heartbeatInterval: cyclic ping to server [ms]
+            heartbeatTimeout: timeout before disconnect [ms]
+            reconnectStart: timeout before first reconnect attempt [ms] (will be doubled on each try until max is reached)
+            reconnectMax: max timeout before next reconnect attempt [ms]
+            onOpen(): will be called when socket connection has been established
+            onClose(): will be called when socket connection has been lost
+            onError(error): will be called when an error occurred
+          }
+        A client connection has the following public interface:
+        - Start(): triggers connection attempts
+        - Stop(): triggers disconnection
+        Read comment for BaseConnection for more properties and methods.    */
     class WebSocketClientConnection extends BaseConnection {
         constructor(sessionId, hostname, port, options = {}) {
             super(sessionId, options);
@@ -359,6 +390,14 @@
         }
     }
 
+    /*  WebSocketServerConnection extends BaseConnection and the constructor requires the following arguments:
+        - sessionId: received from web server (using ajax)
+        - options: {
+            onOpen(): will be called when socket connection has been established
+            onClose(): will be called when socket connection has been lost
+            onError(error): will be called when an error occurred
+          }
+        Read comment for BaseConnection for more properties and methods.    */
     class WebSocketServerConnection extends BaseConnection {
         constructor(sessionId, options) {
             super(sessionId, options);
@@ -397,10 +436,22 @@
 
     const DEFAULT_CLOSED_CONNECTION_DISPOSE_TIMEOUT = 60000;
 
+    /*  The WebSocketServer constructor requires the following arguments:
+        - port: the port for the socket server
+        - options: {
+            closedConnectionDisposeTimeout: timeout before a closed connection is disposed [ms]
+            onOpen(connection): will be called when socket connection has been established the first time
+            onReopen(connection): will be called when socket connection has been established again
+            onClose(connection): will be called when socket connection has been lost
+            onDispose(connection): will be called when socket connection has been lost and not established again before the timeout has expired
+            onError(connection, error): will be called when an error occurred
+          }   
+        A server has the following public interface:    
+        - CreateSessionConfig(): returns a configuration object containing a new unique session id    */
     class WebSocketServer {
         constructor(port, options = {}) {
             this._port = port;
-            this._options = options; // onOpen(c), onReopen(c), onClose(c), onDispose(c), onError(c,e)
+            this._options = options;
             this._instances = {};
             this._server = new WebSocket.Server({ port });
             this._server.on('connection', (socket, request) => {
