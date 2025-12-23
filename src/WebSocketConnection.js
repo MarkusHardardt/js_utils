@@ -50,29 +50,27 @@
             this._remoteMediumUTC = 0;
             this._remoteToLocalOffsetMillis = 0;
         }
-        get sessionId() {
+        get SessionId() {
             return this._sessionId;
         }
-        get isOnline() {
+        get IsConnected() {
             return false;
         }
         get _webSocket() {
             return null;
         }
-        ping(onResponse, onError) {
-            if (this.isOnline) {
+        Ping(onResponse, onError) {
+            if (this.IsConnected) {
                 let telegram = { type: TelegramType.PingRequest };
                 this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC: Date.now(), onResponse, onError };
                 this._webSocket.send(JSON.stringify(telegram));
-                return true;
             }
             else {
-                this._onError('cannot send ping request when disconnected');
-                return false;
+                throw new Error('BaseConnection.Ping(): cannot send ping request when disconnected!');
             }
         }
         _handlePingRequest(callback) {
-            if (this.isOnline) {
+            if (this.IsConnected) {
                 this._webSocket.send(JSON.stringify({ type: TelegramType.PingResponse, callback, utc: Date.now() }));
             }
             else {
@@ -107,37 +105,37 @@
                 this._onError('missing ping callback');
             }
         }
-        getRemoteUTC() {
+        get RemoteUTC() {
             let now = Date.now();
             return this._remoteToLocalOffsetMillis !== 0 ? Math.ceil(now + this._remoteToLocalOffsetMillis) : now;
         }
-        register(receiver, handler) {
+        Register(receiver, handler) {
             if (typeof receiver !== 'string') {
-                throw new Error('BaseConnection.register(receiver, handler): receiver must be a string!');
+                throw new Error('BaseConnection.Register(receiver, handler): receiver must be a string!');
             }
             else if (typeof handler !== 'function') {
-                throw new Error('BaseConnection.register(receiver, handler): handler must be a function!');
+                throw new Error('BaseConnection.Register(receiver, handler): handler must be a function!');
             }
             else if (this._receiversHandler[receiver]) {
-                throw new Error(`BaseConnection.register(receiver, handler): handler "${receiver}" already registered!`);
+                throw new Error(`BaseConnection.Register(receiver, handler): handler "${receiver}" already registered!`);
             }
             else {
                 this._receiversHandler[receiver] = handler;
             }
         }
-        unregister(receiver) {
+        Unregister(receiver) {
             if (typeof receiver !== 'string') {
-                throw new Error('BaseConnection.unregister(receiver): receiver must be a string!');
+                throw new Error('BaseConnection.Unregister(receiver): receiver must be a string!');
             }
             else if (this._receiversHandler[receiver] === undefined) {
-                throw new Error(`BaseConnection.unregister(receiver): "${receiver}" not registered!`);
+                throw new Error(`BaseConnection.Unregister(receiver): "${receiver}" not registered!`);
             }
             else {
                 delete this._receiversHandler[receiver];
             }
         }
-        send(receiver, data, onResponse, onError) {
-            if (this.isOnline) {
+        Send(receiver, data, onResponse, onError) {
+            if (this.IsConnected) {
                 let telegram = { type: TelegramType.DataRequest, receiver, data };
                 if (typeof onResponse === 'function' || typeof onError === 'function') {
                     this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC: Date.now(), onResponse, onError };
@@ -146,8 +144,7 @@
                 return true;
             }
             else {
-                this._onError('cannot send data request when disconnected');
-                return false;
+                throw new Error('BaseConnection.Send(): cannot send data request when disconnected!');
             }
         }
         _handleDataRequest(callback, requestData, receiver) {
@@ -156,14 +153,14 @@
                 if (callback !== undefined) {
                     try {
                         handler(requestData, responseData => {
-                            if (this.isOnline) {
+                            if (this.IsConnected) {
                                 this._webSocket.send(JSON.stringify({ type: TelegramType.DataResponse, callback, data: responseData }));
                             }
                             else {
                                 this._onError('cannot send data response when disconnected');
                             }
                         }, error => {
-                            if (this.isOnline) {
+                            if (this.IsConnected) {
                                 this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: error ? error : true }));
                             }
                             else {
@@ -171,7 +168,7 @@
                             }
                         });
                     } catch (exception) {
-                        if (this.isOnline) {
+                        if (this.IsConnected) {
                             this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `failed calling receive handler '${receiver}'! exception: ${exception}` }));
                         }
                         else {
@@ -183,7 +180,7 @@
                     try {
                         handler(requestData);
                     } catch (exception) {
-                        if (this.isOnline) {
+                        if (this.IsConnected) {
                             this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `failed calling receive handler '${receiver}'! exception: ${exception}` }));
                         }
                         else {
@@ -193,7 +190,7 @@
                 }
             }
             else {
-                if (this.isOnline) {
+                if (this.IsConnected) {
                     this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `unknown receiver: '${receiver}'` }));
                 }
                 else {
@@ -288,18 +285,18 @@
             this._heartbeatTimer = null;
             this._heartbeatTimeoutTimer = null;
         }
-        get isOnline() {
+        get IsConnected() {
             return this._state === ClientState.Online;
         }
         get _webSocket() {
             return this._socket;
         }
-        start() {
+        Start() {
             if (this._state === ClientState.Idle) {
                 this._transition(ClientState.Connecting);
             }
         }
-        stop() {
+        Stop() {
             if (this._state !== ClientState.Idle) {
                 this._transition(ClientState.Idle);
                 if (this._socket) {
@@ -354,7 +351,7 @@
         _startHeartbeatMonitoring() {
             this._heartbeatTimer = setInterval(() => {
                 if (this._state === ClientState.Online) {
-                    this.ping(millis => {
+                    this.Ping(millis => {
                         clearTimeout(this._heartbeatTimeoutTimer);
                     }, exception => {
                         this._onError(`heartbeat monitoring failed: ${exception}`);
@@ -401,7 +398,7 @@
             this._socket = null;
             this._online = false;
         }
-        get isOnline() {
+        get IsConnected() {
             return this._online;
         }
         get _webSocket() {
