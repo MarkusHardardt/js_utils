@@ -266,9 +266,13 @@
     const DEFAULT_RECONNECT_MAX_INTERVAL = 32000;
 
     /*  WebSocketClientConnection extends BaseConnection and the constructor requires the following arguments:
-        - sessionId: received from web server (using ajax)
         - hostname: taken from url (using document.location.hostname)
-        - webSocketPort: received from web server (using ajax)
+        - config: { received as stuct from web server (using ajax)
+            sessionId: the session id
+            port: the web socket server port
+            secure: true if https will be used
+            autoConnect: true if client must trying to connect immediatelly
+        }
         - options: {
             heartbeatInterval: cyclic ping to server [ms]
             heartbeatTimeout: timeout before disconnect [ms]
@@ -283,9 +287,9 @@
         - Stop(): triggers disconnection
         Read comment for BaseConnection for more properties and methods.    */
     class WebSocketClientConnection extends BaseConnection {
-        constructor(sessionId, hostname, port, options = {}) {
-            super(sessionId, options);
-            this._url = `ws://${hostname}:${port}?sessionId=${sessionId}`;
+        constructor(hostname, config, options = {}) {
+            super(config.sessionId, options);
+            this._url = `${(config.secure ? 'wss' : 'ws')}://${hostname}:${config.port}?sessionId=${config.sessionId}`;
             this._state = ClientState.Idle;
             this._socket = null;
             this._heartbeatInterval = options.heartbeatInterval ?? DEFAULT_HEARTBEAT_INTERVAL;
@@ -447,7 +451,7 @@
             onError(connection, error): will be called when an error occurred
           }   
         A server has the following public interface:    
-        - CreateSessionConfig(): returns a configuration object containing a new unique session id    */
+        - CreateSessionConfig(): returns a configuration object containing the port and a new unique session id    */
     class WebSocketServer {
         constructor(port, options = {}) {
             this._port = port;
@@ -538,7 +542,8 @@
             this._instances[sessionId] = Date.now(); // By storing the current UTC we know on connect that the id came from here (see above)
             return {
                 sessionId,
-                webSocketPort: this._port,
+                port: this._port,
+                secure: this._options.secure === true,
                 autoConnect: this._options.autoConnect === true
             };
         }
