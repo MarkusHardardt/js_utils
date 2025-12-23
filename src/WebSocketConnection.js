@@ -28,9 +28,6 @@
                 }
             };
             this._onOpen = () => {
-                if (options.verbose === true) {
-                    console.log('web socket connected');
-                }
                 if (typeof options.onOpen === 'function') {
                     try {
                         options.onOpen(this);
@@ -40,9 +37,6 @@
                 }
             };
             this._onClose = () => {
-                if (options.verbose === true) {
-                    console.log('web socket disconnected');
-                }
                 if (typeof options.onClose === 'function') {
                     try {
                         options.onClose(this);
@@ -287,7 +281,6 @@
             this._url = `ws://${hostname}:${port}?sessionId=${sessionId}`;
             this._state = ClientState.Idle;
             this._socket = null;
-            this._verbose = options.verbose === true;
             this._heartbeatInterval = options.heartbeatInterval ?? DEFAULT_HEARTBEAT_INTERVAL;
             this._heartbeatTimeout = options.heartbeatTimeout ?? DEFAULT_HEARTBEAT_TIMEOUT;
             this._reconnectStart = options.reconnectStart ?? DEFAULT_RECONNECT_START_INTERVAL;
@@ -359,6 +352,7 @@
             this._heartbeatTimer = setInterval(() => {
                 if (this._state === ClientState.Online) {
                     this.ping(millis => {
+                        console.log(`==> heartbeat: ${millis} ms`)
                         clearTimeout(this._heartbeatTimeoutTimer);
                     }, exception => {
                         this._onError(`heartbeat monitoring failed: ${exception}`);
@@ -417,7 +411,10 @@
                 this._socket.onopen = this._socket.onmessage = this._socket.onerror = this._socket.onclose = null;
             }
             this._socket = socket;
-            this._socket.onopen = () => this._onOpen();
+            this._socket.onopen = () => {
+                console.log('==> ON OPEN');
+                this._onOpen();
+            };
             this._socket.onmessage = message => this._handleTelegram(JSON.parse(message.data));
             this._socket.onerror = error => {
                 this._online = false;
@@ -428,6 +425,8 @@
                 this._online = false;
                 this._onClose();
             };
+            this._online = true;
+            // TODO reuse or remove this._onOpen();
         }
     }
 
@@ -437,7 +436,7 @@
             this._options = options;
             this._connections = {};
             this._server = new WebSocket.Server({ port });
-            this._server.on('connection', function (socket, request) { // TODO server.onconnection ???
+            this._server.on('connection', function (socket, request) {
                 const sessionId = getSessionIdFromURL(request.url);
                 let connection = that._connections[sessionId];
                 if (!connection) {
@@ -447,7 +446,7 @@
                 try {
                     options.onConnection(connection);
                 } catch (error) {
-                    console.error(`failed calling onOpen: ${error}`);
+                    console.error(`failed calling onConnection: ${error}`);
                 }
             });
         }
