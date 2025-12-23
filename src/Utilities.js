@@ -392,6 +392,21 @@
         checkboxOff: '☐'
     };
 
+    async function fetchJson(url, request, onSuccess, onError) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: request !== undefined ? JSON.stringify(request) : undefined
+        });
+        if (response.ok) {
+            const result = await response.json();
+            onSuccess(result)
+        }
+        else {
+            onError(`url: '${url}' failed: ${response.status}, ${response.statusText}`);
+        }
+    }
+
     // export
     var exp = {
         getFirstIndexOfIdentical: get_first_index_of_identical,
@@ -515,7 +530,8 @@
             });
             input.trigger("click");
         },
-        utf8Symbols: utf8Symbols
+        utf8Symbols: utf8Symbols,
+        fetchJson: (url, request, onSuccess, onError) => { (async () => await fetchJson(url, request, onSuccess, onError))(); }
     };
 
     if (isNodeJS) {
