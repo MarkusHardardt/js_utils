@@ -113,13 +113,13 @@
         }
         register(receiver, handler) {
             if (typeof receiver !== 'string') {
-                throw new Exception('BaseConnection.register(receiver, handler): receiver must be a string!');
+                throw new Error('BaseConnection.register(receiver, handler): receiver must be a string!');
             }
             else if (typeof handler !== 'function') {
-                throw new Exception('BaseConnection.register(receiver, handler): handler must be a function!');
+                throw new Error('BaseConnection.register(receiver, handler): handler must be a function!');
             }
             else if (this._receiversHandler[receiver]) {
-                throw new Exception(`BaseConnection.register(receiver, handler): handler "${receiver}" already registered!`);
+                throw new Error(`BaseConnection.register(receiver, handler): handler "${receiver}" already registered!`);
             }
             else {
                 this._receiversHandler[receiver] = handler;
@@ -127,10 +127,10 @@
         }
         unregister(receiver) {
             if (typeof receiver !== 'string') {
-                throw new Exception('BaseConnection.unregister(receiver): receiver must be a string!');
+                throw new Error('BaseConnection.unregister(receiver): receiver must be a string!');
             }
             else if (this._receiversHandler[receiver] === undefined) {
-                throw new Exception(`BaseConnection.unregister(receiver): "${receiver}" not registered!`);
+                throw new Error(`BaseConnection.unregister(receiver): "${receiver}" not registered!`);
             }
             else {
                 delete this._receiversHandler[receiver];
