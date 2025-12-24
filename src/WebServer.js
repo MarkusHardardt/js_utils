@@ -45,14 +45,10 @@
                 // render the error page
                 res.status(err.status || 500);
                 // res.render('error');
-                res.json({
-                    error: err
-                });
+                res.json({ error: err });
             });
             // this returns our main html document
-            app.get('/', (req, res) => {
-                res.send(this._generate_html());
-            });
+            app.get('/', (req, res) => res.send(this._generate_html()));
         }
         get IsSecure() {
             return this._secure;
@@ -68,14 +64,14 @@
         AddStaticDir(directory, id) {
             if (typeof directory === 'string') {
                 if (typeof id === 'string') {
-                    this._app.use('/' + id, express.static(directory));
+                    this._app.use(`/${id}`, express.static(directory));
                 }
                 else {
                     let id = this._paths[directory];
                     if (!id) {
                         const raw = this._random_id === true ? directory + Math.random() : directory;
                         this._paths[directory] = id = crypto.createHash('SHA-256').update(raw, 'utf8').digest('hex');
-                        this._app.use('/' + id, express.static(directory));
+                        this._app.use(`/${id}`, express.static(directory));
                     }
                     return id;
                 }
@@ -86,7 +82,7 @@
         }
         _prepare(directory, name, buffer) {
             const id = this.AddStaticDir(directory);
-            buffer.push('/' + id + '/' + name);
+            buffer.push(`/${id}/${name}`);
         }
         AddStaticFile() {
             const dir = arguments.length === 1 ? path.dirname(arguments[0]) : arguments[0];
