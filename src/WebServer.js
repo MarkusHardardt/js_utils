@@ -5,10 +5,11 @@
 
     const js_rx = /\.js$/i;
     const css_rx = /\.css$/i;
-    const path = require('path');
-    const express = require('express');
-    const https = require('https');
     const fs = require('fs');
+    const path = require('path');
+    const http = require('http');
+    const https = require('https');
+    const express = require('express');
     const bodyParser = require('body-parser');
     const crypto = isNodeJS ? require('crypto') : undefined;
 
@@ -19,25 +20,23 @@
             this._paths = {};
             this._title = '';
             this._body = '';
+            const app = this._app = express();
             this._secure = typeof options.secureKeyFile === 'string' && typeof options.secureCertFile === 'string';
-            const server = express();
-            this._httpsServer = this._secure ? https.createServer({
+            this._server = this._secure ? https.createServer({
                 key: fs.readFileSync(options.secureKeyFile),
                 cert: fs.readFileSync(options.secureCertFile),
-            }, server) : undefined;
-
-            this._server = server;
+            }, app) : http.createServer(app);;
             // support parsing of application/json type post data
-            server.use(bodyParser.json({
+            app.use(bodyParser.json({
                 limit: '32mb'
             }));
             //support parsing of application/x-www-form-urlencoded post data
-            server.use(bodyParser.urlencoded({
+            app.use(bodyParser.urlencoded({
                 limit: '32mb',
                 extended: true,
                 parameterLimit: 50000
             }));
-            server.use((err, req, res, next) => {
+            app.use((err, req, res, next) => {
                 console.log('>>>>>> ERROR: ' + err.message);
                 // set locals, only providing error in development
                 res.locals.message = err.message;
@@ -51,7 +50,7 @@
                 });
             });
             // this returns our main html document
-            server.get('/', (req, res) => {
+            app.get('/', (req, res) => {
                 res.send(this._generate_html());
             });
         }
@@ -61,7 +60,7 @@
         PrepareFavicon(path) {
             // gimp: "./src/app/favicon.xcf"
             // alternative url: "https://www.favicon-generator.org/"
-            this._server.use('/favicon.ico', express.static(path));
+            this._app.use('/favicon.ico', express.static(path));
         }
         set RandomFileIdenabled(value) {
             this._random_id = value === true;
@@ -69,14 +68,14 @@
         AddStaticDir(directory, id) {
             if (typeof directory === 'string') {
                 if (typeof id === 'string') {
-                    this._server.use('/' + id, express.static(directory));
+                    this._app.use('/' + id, express.static(directory));
                 }
                 else {
                     let id = this._paths[directory];
                     if (!id) {
                         const raw = this._random_id === true ? directory + Math.random() : directory;
                         this._paths[directory] = id = crypto.createHash('SHA-256').update(raw, 'utf8').digest('hex');
-                        this._server.use('/' + id, express.static(directory));
+                        this._app.use('/' + id, express.static(directory));
                     }
                     return id;
                 }
@@ -102,10 +101,10 @@
             }
         }
         Post(url, onResponse) {
-            this._server.post(url, onResponse);
+            this._app.post(url, onResponse);
         }
         Get(url, onResponse) {
-            this._server.get(url, onResponse);
+            this._app.get(url, onResponse);
         }
         SetTitle(title) {
             this._title = title;
@@ -148,12 +147,8 @@
             return html;
         }
         Listen(port, onResponse) {
-            if (this._httpsServer) {
-                this._httpsServer.listen(port, onResponse);
-            }
-            else {
-                this._server.listen(port, onResponse);
-            }
+            // this._app.listen(port, onResponse);
+            this._server.listen(port, onResponse);
         }
     }
 

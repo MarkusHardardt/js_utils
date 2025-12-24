@@ -5,6 +5,10 @@
     const crypto = isNodeJS ? require('crypto') : undefined;
     const WebSocket = isNodeJS ? require('ws') : root.WebSocket;
 
+    function formatSesionId(sessionId) {
+        return `${sessionId.substring(0, 6)}...`;
+    }
+
     const TelegramType = Object.freeze({
         PingRequest: 1,
         PingResponse: 2,
@@ -468,7 +472,7 @@
                     if (isUTC) {
                         instance.createdUTC = createdUTC;
                     } else {
-                        console.warn(`web socket connected with unknown session id: '${sessionId}'`)
+                        console.warn(`web socket connected with unknown session id: '${formatSesionId(sessionId)}'`)
                     }
                     instance.connection = new WebSocketServerConnection(sessionId, {
                         onOpen: () => {
@@ -482,7 +486,7 @@
                                         console.error(`failed calling onOpen: ${exception}`);
                                     }
                                 } else {
-                                    console.log(`connection opened with session id: '${sessionId}'`);
+                                    console.log(`connection opened with session id: '${formatSesionId(sessionId)}'`);
                                 }
                             } else {
                                 clearTimeout(instance.disposeTimeoutTimer);
@@ -493,7 +497,7 @@
                                         console.error(`failed calling onReopen: ${exception}`);
                                     }
                                 } else {
-                                    console.log(`connection reopened with session id: '${sessionId}'`);
+                                    console.log(`connection reopened with session id: '${formatSesionId(sessionId)}'`);
                                 }
                             }
                         },
@@ -506,7 +510,7 @@
                                     console.error(`failed calling onClose: ${exception}`);
                                 }
                             } else {
-                                console.log(`connection closed with session id: '${sessionId}'`);
+                                console.log(`connection closed with session id: '${formatSesionId(sessionId)}'`);
                             }
                             instance.disposeTimeoutTimer = setTimeout(() => {
                                 delete this._instances[sessionId];
@@ -517,7 +521,7 @@
                                         console.error(`failed calling onDispose: ${exception}`);
                                     }
                                 } else {
-                                    console.log(`connection diposed with session id: '${sessionId}'`);
+                                    console.log(`connection diposed with session id: '${formatSesionId(sessionId)}'`);
                                 }
                             }, options.closedConnectionDisposeTimeout ?? DEFAULT_CLOSED_CONNECTION_DISPOSE_TIMEOUT);
                         },
@@ -529,7 +533,7 @@
                                     console.error(`failed calling onError for error: ${error}: ${exception}`);
                                 }
                             } else {
-                                console.error(`error in connection with session id: '${sessionId}': ${error}`);
+                                console.error(`error in connection with session id: '${formatSesionId(sessionId)}': ${error}`);
                             }
                         }
                     });
@@ -560,8 +564,9 @@
     }
 
     if (isNodeJS) {
-        module.exports = WebSocketServer;
+        module.exports = { WebSocketServer, formatSesionId };
     } else {
         root.WebSocketClientConnection = WebSocketClientConnection;
+        root.formatSesionId = formatSesionId;
     }
 }(globalThis));
