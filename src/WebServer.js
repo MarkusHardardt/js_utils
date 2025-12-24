@@ -7,17 +7,20 @@
     const css_rx = /\.css$/i;
     const path = require('path');
     const express = require('express');
+    const https = require('https');
+    const fs = require('fs');
     const bodyParser = require('body-parser');
     const crypto = isNodeJS ? require('crypto') : undefined;
 
     class WebServer {
-        constructor() {
+        constructor(options = {}) {
             this._scripts = [];
             this._styles = [];
             this._paths = {};
             this._title = '';
             this._body = '';
-            const server = express();
+            this._secure = typeof options.secureKeyFile === 'string' && typeof options.secureCertFile === 'string';
+            const server = this._createServer(options);
             this._server = server;
             // support parsing of application/json type post data
             server.use(bodyParser.json({
@@ -46,6 +49,19 @@
             server.get('/', (req, res) => {
                 res.send(this._generate_html());
             });
+        }
+        get IsSecure() {
+            return this._secure;
+        }
+        _createServer(options) {
+            const server = express();
+            if (this._secure) {
+                https.createServer({
+                    key: fs.readFileSync(options.secureKeyFile),
+                    cert: fs.readFileSync(options.secureCertFile),
+                }, server);
+            }
+            return server;
         }
         PrepareFavicon(path) {
             // gimp: "./src/app/favicon.xcf"
