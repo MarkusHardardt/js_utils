@@ -290,7 +290,6 @@
         constructor(hostname, config, options = {}) {
             super(config.sessionId, options);
             this._url = `${(config.secure ? 'wss' : 'ws')}://${hostname}:${config.port}?sessionId=${config.sessionId}`;
-            this._state = ClientState.Idle;
             this._socket = null;
             this._heartbeatInterval = options.heartbeatInterval ?? DEFAULT_HEARTBEAT_INTERVAL;
             this._heartbeatTimeout = options.heartbeatTimeout ?? DEFAULT_HEARTBEAT_TIMEOUT;
@@ -298,6 +297,7 @@
             this._reconnectMax = options.reconnectMax ?? DEFAULT_RECONNECT_MAX_INTERVAL;
             this._heartbeatTimer = null;
             this._heartbeatTimeoutTimer = null;
+            this._transition(config.autoConnect === true ? ClientState.Connecting : ClientState.Idle);
         }
         get IsConnected() {
             return this._state === ClientState.Online;
