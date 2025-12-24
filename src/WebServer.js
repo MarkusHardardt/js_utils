@@ -20,7 +20,12 @@
             this._title = '';
             this._body = '';
             this._secure = typeof options.secureKeyFile === 'string' && typeof options.secureCertFile === 'string';
-            const server = this._createServer(options);
+            const server = express();
+            this._httpsServer = this._secure ? https.createServer({
+                key: fs.readFileSync(options.secureKeyFile),
+                cert: fs.readFileSync(options.secureCertFile),
+            }, server) : undefined;
+
             this._server = server;
             // support parsing of application/json type post data
             server.use(bodyParser.json({
@@ -52,16 +57,6 @@
         }
         get IsSecure() {
             return this._secure;
-        }
-        _createServer(options) {
-            const server = express();
-            if (this._secure) {
-                https.createServer({
-                    key: fs.readFileSync(options.secureKeyFile),
-                    cert: fs.readFileSync(options.secureCertFile),
-                }, server);
-            }
-            return server;
         }
         PrepareFavicon(path) {
             // gimp: "./src/app/favicon.xcf"
@@ -153,7 +148,12 @@
             return html;
         }
         Listen(port, onResponse) {
-            this._server.listen(port, onResponse);
+            if (this._httpsServer) {
+                this._httpsServer.listen(port, onResponse);
+            }
+            else {
+                this._server.listen(port, onResponse);
+            }
         }
     }
 
