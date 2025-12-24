@@ -5,8 +5,10 @@
 
     class DataNode {
         constructor(options = {}) {
+            this._options = options;
             this._onError = typeof options.onError === 'function' ? options.onError : error => console.error(error);
             this._equal = typeof options.equal === 'function' ? options.equal : (l1, l2) => l1 === l2;
+            this._onStopListeningDelay = typeof options.onStopListeningDelay === 'number' ? options.onStopListeningDelay : false;
             this._listeners = [];
             this._listener = value => {
                 if (!this._equal(value, this._value)) {
@@ -16,7 +18,7 @@
             };
         }
 
-        get Listner() {
+        get Listener() {
             return this._listener;
         }
 
@@ -41,8 +43,9 @@
                 }
             }
             this._listeners.push(listener);
-            if (this._listeners.length === 1) {
-                // TODO: Add this listener
+            if (this._listeners.length === 1 && typeof this._options.onStartListening === 'function') {
+                clearTimeout(this._onStopListeningDelayTimer);
+                this._options.onStartListening(this._listener);
             }
         }
 
@@ -51,7 +54,15 @@
                 if (this._listeners[i] === listener) {
                     this._listeners.splice(idx, 1);
                     if (this._listeners.length === 0) {
-                        // TODO: Remove this listener
+                        if (this._listeners.length === 1 && typeof this._options.onStopListening === 'function') {
+                            if (this._onStopListeningDelay) {
+                                this._onStopListeningDelayTimer = setTimeout(() => {
+                                    this._options.onStopListening(this._listener);
+                                }, this._onStopListeningDelay);
+                            } else {
+                                this._options.onStopListening(this._listener);
+                            }
+                        }
                     }
                     return;
                 }
@@ -60,11 +71,29 @@
         }
     }
 
-    const exp = {};
+    class DataBroker {
+        constructor(options) {
+            this._options = options;
+            this._nodes = {};
+        }
+
+        AddListener(key, listener) {
+            let node = this._nodes[key];
+            if (!node) {
+                this._nodes[key] = node = new DataNode({
+                    onError: error => console.error(error),
+                    equal: (l1, l2) => l1 === l2,
+                    onStartListening: listener => { },
+                    onStopListening: listener => { }
+                });
+            }
+            node.AddListener(listener);
+        }
+    }
 
     if (isNodeJS) {
-        module.exports = exp;
+        module.exports = DataBroker;
     } else {
-        root.EmptyTemplate = exp;
+        root.DataBroker = DataBroker;
     }
 }(globalThis));
