@@ -17,9 +17,11 @@
         constructor(adapter, receiver) {
             this._adapter = adapter;
             this._receiver = receiver ?? DEFAULT_DATA_CONNECTION_RECEIVER;
+            this._connections = {};
         }
 
         OnOpen(connection) {
+            this._connections[connection.SessionId] = { connection, online: true };
             connection.Register(this._receiver, (data, onResponse, onError) => {
                 switch (data.type) {
                     case RequestType.Read:
@@ -46,49 +48,50 @@
         }
 
         OnReopen(connection) {
-            // TODO: Implement or remove
+            const con = this._connections[connection.SessionId];
+            if (con) {
+                con.online = true;
+            }
         }
 
         OnClose(connection) {
-            // TODO: Implement or remove
+            const con = this._connections[connection.SessionId];
+            if (con) {
+                con.online = false;
+            }
         }
 
         OnDispose(connection) {
             connection.Unregister(this._receiver);
+            delete this._connections[connection.SessionId];
         }
 
         Read(key, onResponse, onError) {
-            this._connection.Send(this._receiver, { type: RequestType.Read, key }, onResponse, onError);
+            // TODO: Implement or remove
         }
 
         Write(key, value) {
-            this._connection.Send(this._receiver, { type: RequestType.Write, key, value });
+            // TODO: Implement or remove
         }
 
         Subscribe(key, subscriber) {
-            if (typeof key !== 'string') {
-                throw new Error(`Invalid subscription key type: ${(typeof key)}`);
-            } else if (typeof subscriber !== 'function') {
-                throw new Error(`Subscriber for subscription key ${key} is not a function`);
-            } else if (this._subscribers[key] !== undefined) {
-                throw new Error(`Key ${key} is already subscribed`);
-            }
-            this._subscribers[key] = subscriber;
-            this._connection.Send(this._receiver, { type: RequestType.Subscribe, key });
+            // TODO: Implement or remove
         }
 
         Unsubscribe(key, subscriber) {
-            if (typeof key !== 'string') {
-                throw new Error(`Invalid unsubscription key type: ${(typeof key)}`);
-            } else if (typeof subscriber !== 'function') {
-                throw new Error(`Subscriber for unsubscription key ${key} is not a function`);
-            } else if (this._subscribers[key] === undefined) {
-                throw new Error(`Key ${key} is already subscribed`);
-            } else if (this._subscribers[key] !== subscriber) {
-                throw new Error(`Unexpected subscriber for key ${key} to unsubscribe`);
+            // TODO: Implement or remove
+        }
+
+        Send(values) {
+            console.log(`Send to subscribers: ${JSON.stringify(values)}`);
+            for (const sessionId in this._connections) {
+                if (this._connections.hasOwnProperty(sessionId)) {
+                    const con = this._connections[sessionId];
+                    if (con && con.online) {
+                        con.connection.Send(this._receiver, { type: RequestType.Notify, values: values });
+                    }
+                }
             }
-            delete this._subscribers[key];
-            this._connection.Send(this._receiver, { type: RequestType.Unsubscribe, key });
         }
     }
 
