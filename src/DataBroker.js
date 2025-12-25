@@ -7,13 +7,13 @@
         constructor(options = {}) {
             this._onError = typeof options.onError === 'function' ? options.onError : error => console.error(error);
             this._equal = typeof options.equal === 'function' ? options.equal : (l1, l2) => l1 === l2;
-            this._readValue = typeof options.readValue === 'function' ? options.readValue : (onResponse, onError) => { 
+            this._readValue = typeof options.readValue === 'function' ? options.readValue : (onResponse, onError) => {
                 console.log('Read value');
                 onError('Not implemented')
             };
             this._writeValue = typeof options.writeValue === 'function' ? options.writeValue : value => console.log(`Write value: ${value}`);
-            this._onSubscription = typeof options.onSubscription === 'function' ? options.onSubscription : () => console.log('Subscribed');
-            this._onUnsubscription = typeof options.onUnsubscription === 'function' ? options.onUnsubscription : () => console.log('Unsubscribed');
+            this._onSubscription = typeof options.onSubscription === 'function' ? options.onSubscription : subscriber => console.log('Subscribed');
+            this._onUnsubscription = typeof options.onUnsubscription === 'function' ? options.onUnsubscription : subscriber => console.log('Unsubscribed');
             this._onUnsubscriptionDelay = typeof options.onUnsubscriptionDelay === 'number' ? options.onUnsubscriptionDelay : false;
             this._onUnsubscriptionDelayTimer = null;
             this._subscribers = [];
@@ -99,13 +99,13 @@
         constructor(options) {
             this._onError = typeof options.onError === 'function' ? options.onError : error => console.error(error);
             this._equal = typeof options.equal === 'function' ? options.equal : (l1, l2) => l1 === l2;
-            this._readValue = typeof options.readValue === 'function' ? options.readValue : (key, onResponse, onError) => { 
+            this._readValue = typeof options.readValue === 'function' ? options.readValue : (key, onResponse, onError) => {
                 console.log(`Read value for key: ${key}`);
                 onError('Not implemented')
             };
             this._writeValue = typeof options.writeValue === 'function' ? options.writeValue : (key, value) => console.log(`Write value: ${value} for key: ${key}`);
-            this._onSubscription = typeof options.onSubscription === 'function' ? options.onSubscription : key => console.log(`Subscribed key: ${key}`);
-            this._onUnsubscription = typeof options.onUnsubscription === 'function' ? options.onUnsubscription : key => console.log(`Unsubscribed key: ${key}`);
+            this._onSubscription = typeof options.onSubscription === 'function' ? options.onSubscription : (key, subscriber) => console.log(`Subscribed key: ${key}`);
+            this._onUnsubscription = typeof options.onUnsubscription === 'function' ? options.onUnsubscription : (key, subscriber) => console.log(`Unsubscribed key: ${key}`);
             this._onUnsubscriptionDelay = typeof options.onUnsubscriptionDelay === 'number' ? options.onUnsubscriptionDelay : false;
             this._nodes = {};
         }
@@ -146,10 +146,10 @@
                 this._nodes[key] = node = new DataNode({
                     onError: this._onError,
                     equal: this._equal,
-                    readValue: this._readValue,
+                    readValue: (onResponse, onError) => this._readValue(key, onResponse, onError),
                     writeValue: this._writeValue,
-                    onSubscription: this._onSubscription,
-                    onUnsubscription: this._onUnsubscription,
+                    onSubscription: subscriber => this._onSubscription(key, subscriber),
+                    onUnsubscription: subscriber => this._onUnsubscription(key, subscriber),
                     onUnsubscriptionDelay: this._onUnsubscriptionDelay
                 });
             }
