@@ -9,10 +9,10 @@
             this._onUnsubscriptionDelay = typeof options.OnUnsubscriptionDelay === 'number' ? options.OnUnsubscriptionDelay : false;
             this._onUnsubscriptionDelayTimer = null;
             this._subscribers = [];
-            this._subscriber = value => {
+            this._subscriber = (key, value, type) => {
                 if (!this._adapter.Equal(value, this._value)) {
                     this._value = value;
-                    Notify()
+                    this.Notify()
                 }
             };
         }

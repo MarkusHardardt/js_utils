@@ -103,9 +103,14 @@
             connection.Register(this._receiver, (data, onResponse, onError) => {
                 switch (data.type) {
                     case RequestType.Notify:
-                        const subscriber = this._subscribers[data.key];
-                        if (subscriber) {
-                            subscriber();
+                        for (const nodeId in data.values) {
+                            if (data.values.hasOwnProperty(nodeId)) {
+                                const value = data.values[nodeId];
+                                const subscriber = this._subscribers[nodeId];
+                                if (subscriber) {
+                                    subscriber(nodeId, value);
+                                }
+                            }
                         }
                         break;
                 }
