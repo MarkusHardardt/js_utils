@@ -41,7 +41,7 @@
             this._writeValue(value);
         }
 
-        get Subscriber() {
+        get Subscriber() { // TODO: Use or remove
             return this._subscriber;
         }
 

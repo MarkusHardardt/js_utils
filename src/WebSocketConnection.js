@@ -450,9 +450,9 @@
         - options: {
             closedConnectionDisposeTimeout: timeout before a closed connection is disposed [ms]
             OnOpen(connection): will be called when socket connection has been established the first time
-            onReopen(connection): will be called when socket connection has been established again
+            OnReopen(connection): will be called when socket connection has been established again
             OnClose(connection): will be called when socket connection has been lost
-            onDispose(connection): will be called when socket connection has been lost and not established again before the timeout has expired
+            OnDispose(connection): will be called when socket connection has been lost and not established again before the timeout has expired
             OnError(connection, error): will be called when an error occurred
           }   
         A server has the following public interface:    
@@ -491,11 +491,11 @@
                                 }
                             } else {
                                 clearTimeout(instance.disposeTimeoutTimer);
-                                if (typeof options.onReopen === 'function') {
+                                if (typeof options.OnReopen === 'function') {
                                     try {
-                                        options.onReopen(instance.connection);
+                                        options.OnReopen(instance.connection);
                                     } catch (error) {
-                                        console.error(`failed calling onReopen: ${error}`);
+                                        console.error(`failed calling OnReopen: ${error}`);
                                     }
                                 } else {
                                     console.log(`connection reopened with session id: '${formatSesionId(sessionId)}'`);
@@ -515,11 +515,11 @@
                             }
                             instance.disposeTimeoutTimer = setTimeout(() => {
                                 delete this._instances[sessionId];
-                                if (typeof options.onDispose === 'function') {
+                                if (typeof options.OnDispose === 'function') {
                                     try {
-                                        options.onDispose(instance.connection);
+                                        options.OnDispose(instance.connection);
                                     } catch (error) {
-                                        console.error(`failed calling onDispose: ${error}`);
+                                        console.error(`failed calling OnDispose: ${error}`);
                                     }
                                 } else {
                                     console.log(`connection diposed with session id: '${formatSesionId(sessionId)}'`);

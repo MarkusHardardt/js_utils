@@ -13,11 +13,13 @@
         Notify: 5
     });
 
-    class ServerDataConnection {
+    class DataConnectionServer {
         constructor(receiver) {
-            this._connection = connection;
             this._receiver = receiver ?? DEFAULT_DATA_CONNECTION_RECEIVER;
             this._subscribers = {};
+        }
+
+        OnOpen(connection) {
             connection.Register(this._receiver, (data, onResponse, onError) => {
                 switch (data.type) {
                     case RequestType.Notify:
@@ -30,6 +32,18 @@
             });
         }
 
+        OnReopen(connection) {
+
+        }
+
+        OnClose(connection) {
+
+        }
+
+        OnDispose(connection) {
+            connection.Unregister(this._receiver);
+        }
+        
         Read(key, onResponse, onError) {
             this._connection.Send(this._receiver, { type: RequestType.Read, key }, onResponse, onError);
         }
@@ -65,7 +79,7 @@
         }
     }
 
-    class ClientDataConnection {
+    class DataConnection {
         constructor(connection, receiver) {
             this._connection = connection;
             this._receiver = receiver ?? DEFAULT_DATA_CONNECTION_RECEIVER;
@@ -118,8 +132,8 @@
     }
 
     if (isNodeJS) {
-        module.exports = { ServerDataConnection };
+        module.exports = { DataConnectionServer };
     } else {
-        root.ClientDataConnection = ClientDataConnection;
+        root.DataConnection = DataConnection;
     }
 }(globalThis));
