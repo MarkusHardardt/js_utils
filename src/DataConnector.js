@@ -22,7 +22,20 @@
         OnOpen(connection) {
             connection.Register(this._receiver, (data, onResponse, onError) => {
                 switch (data.type) {
+                    case RequestType.Read:
+                        console.log(`Read(${JSON.stringify(data)})`);
+                        break;
+                    case RequestType.Write:
+                        console.log(`Write(${JSON.stringify(data)})`);
+                        break;
+                    case RequestType.Subscribe:
+                        console.log(`Subscribe(${JSON.stringify(data)})`);
+                        break;
+                    case RequestType.Unsubscribe:
+                        console.log(`Unsubscribe(${JSON.stringify(data)})`);
+                        break;
                     case RequestType.Notify:
+                        console.log(`Notify(${JSON.stringify(data)})`);
                         const subscriber = this._subscribers[data.key];
                         if (subscriber) {
                             subscriber();
@@ -43,7 +56,7 @@
         OnDispose(connection) {
             connection.Unregister(this._receiver);
         }
-        
+
         Read(key, onResponse, onError) {
             this._connection.Send(this._receiver, { type: RequestType.Read, key }, onResponse, onError);
         }

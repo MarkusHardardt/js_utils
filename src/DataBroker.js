@@ -90,8 +90,6 @@
     class DataBroker {
         constructor(adapter, options = {}) { // adapter: { Read, Write, Subscribe, Unsubscribe, OnError, Equal }, options { OnUnsubscriptionDelay }
             this._adapter = adapter;
-            this._onError = typeof options.OnError === 'function' ? options.OnError : error => console.error(error);
-            this._equal = typeof options.Equal === 'function' ? options.Equal : (value1, value2) => { throw new Error('Not implemented: Equal(value1, value2)'); };
             this._onUnsubscriptionDelay = typeof options.OnUnsubscriptionDelay === 'number' ? options.OnUnsubscriptionDelay : false;
             this._nodes = {};
         }
@@ -134,8 +132,8 @@
                     Write: value => this._adapter.Write(key, value),
                     Subscribe: subscriber => this._adapter.Subscribe(key, subscriber),
                     Unsubscribe: subscriber => this._adapter.Unsubscribe(key, subscriber),
-                    OnError: this._onError,
-                    Equal: this._equal
+                    OnError: this._adapter.OnError,
+                    Equal: this._adapter.Equal
                 }, {
                     OnUnsubscriptionDelay: this._onUnsubscriptionDelay
                 });
