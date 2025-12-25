@@ -4,18 +4,13 @@
     const isNodeJS = typeof require === 'function';
 
     class DataNode {
-        constructor(options = {}) { // options: { OnError, Equal, Read, Write, OnSubscription, OnUnsubscription, OnUnsubscriptionDelay }
-            this._onError = typeof options.OnError === 'function' ? options.OnError : error => console.error(error);
-            this._equal = typeof options.Equal === 'function' ? options.Equal : (value1, value2) => { throw new Error('Not implemented: Equal(value1, value2)'); };
-            this._readValue = typeof options.Read === 'function' ? options.Read : (onResponse, onError) => { throw new Error('Not implemented: Read(onResponse, onError)'); };
-            this._writeValue = typeof options.Write === 'function' ? options.Write : value => { throw new Error('Not implemented: Write(value)'); };
-            this._onSubscription = typeof options.OnSubscription === 'function' ? options.OnSubscription : subscriber => { throw new Error('Not implemented: OnSubscription(subscriber)'); };
-            this._onUnsubscription = typeof options.OnUnsubscription === 'function' ? options.OnUnsubscription : subscriber => { throw new Error('Not implemented: OnUnsubscription(subscriber)'); };
+        constructor(adapter, options = {}) { // adapter: { Read, Write, Subscribe, Unsubscribe, OnError, Equal }, options { OnUnsubscriptionDelay }
+            this._adapter = adapter;
             this._onUnsubscriptionDelay = typeof options.OnUnsubscriptionDelay === 'number' ? options.OnUnsubscriptionDelay : false;
             this._onUnsubscriptionDelayTimer = null;
             this._subscribers = [];
             this._subscriber = value => {
-                if (!this._equal(value, this._value)) {
+                if (!this._adapter.Equal(value, this._value)) {
                     this._value = value;
                     Notify()
                 }
@@ -27,7 +22,7 @@
         }
 
         Read(onResponse, onError) {
-            this._readValue(response => {
+            this._adapter.Read(response => {
                 this._subscriber(response);
                 try {
                     onResponse(response);
@@ -38,7 +33,7 @@
         }
 
         Write(value) {
-            this._writeValue(value);
+            this._adapter.Write(value);
         }
 
         get Subscriber() { // TODO: Use or remove
@@ -50,7 +45,7 @@
                 try {
                     subscriber(this._value);
                 } catch (error) {
-                    this._onError(`Failed notifying subscriber: ${error}`);
+                    this._adapter.OnError(`Failed notifying subscriber: ${error}`);
                 }
             }
         }
@@ -68,7 +63,7 @@
             this._subscribers.push(subscriber);
             if (this._subscribers.length === 1) {
                 clearTimeout(this._onUnsubscriptionDelayTimer);
-                this._onSubscription(this._subscriber);
+                this._adapter.Subscribe(this._subscriber);
             }
         }
 
@@ -79,10 +74,10 @@
                     if (this._subscribers.length === 0) {
                         if (this._onUnsubscriptionDelay) {
                             this._onUnsubscriptionDelayTimer = setTimeout(() => {
-                                this._onUnsubscription(this._subscriber);
+                                this._adapter.Unsubscribe(this._subscriber);
                             }, this._onUnsubscriptionDelay);
                         } else {
-                            this._onUnsubscription(this._subscriber);
+                            this._adapter.Unsubscribe(this._subscriber);
                         }
                     }
                     return;
@@ -93,13 +88,10 @@
     }
 
     class DataBroker {
-        constructor(options) { // options: { OnError, Equal, Read, Write, OnSubscription, OnUnsubscription, OnUnsubscriptionDelay }
+        constructor(adapter, options = {}) { // adapter: { Read, Write, Subscribe, Unsubscribe, OnError, Equal }, options { OnUnsubscriptionDelay }
+            this._adapter = adapter;
             this._onError = typeof options.OnError === 'function' ? options.OnError : error => console.error(error);
             this._equal = typeof options.Equal === 'function' ? options.Equal : (value1, value2) => { throw new Error('Not implemented: Equal(value1, value2)'); };
-            this._readValue = typeof options.Read === 'function' ? options.Read : (key, onResponse, onError) => { throw new Error('Not implemented: Read(key, onResponse, onError)'); };
-            this._writeValue = typeof options.Write === 'function' ? options.Write : (key, value) => { throw new Error('Not implemented: Write(key, value)'); };
-            this._onSubscription = typeof options.OnSubscription === 'function' ? options.OnSubscription : (key, subscriber) => { throw new Error('Not implemented: OnSubscription(key, subscriber)'); };
-            this._onUnsubscription = typeof options.OnUnsubscription === 'function' ? options.OnUnsubscription : (key, subscriber) => { throw new Error('Not implemented: OnUnsubscription(key, subscriber)'); };
             this._onUnsubscriptionDelay = typeof options.OnUnsubscriptionDelay === 'number' ? options.OnUnsubscriptionDelay : false;
             this._nodes = {};
         }
@@ -138,12 +130,13 @@
             let node = this._nodes[key];
             if (!node) {
                 this._nodes[key] = node = new DataNode({
+                    Read: (onResponse, onError) => this._adapter.Read(key, onResponse, onError),
+                    Write: value => this._adapter.Write(key, value),
+                    Subscribe: subscriber => this._adapter.Subscribe(key, subscriber),
+                    Unsubscribe: subscriber => this._adapter.Unsubscribe(key, subscriber),
                     OnError: this._onError,
-                    Equal: this._equal,
-                    Read: (onResponse, onError) => this._readValue(key, onResponse, onError),
-                    Write: value => this._writeValue(key, value),
-                    OnSubscription: subscriber => this._onSubscription(key, subscriber),
-                    OnUnsubscription: subscriber => this._onUnsubscription(key, subscriber),
+                    Equal: this._equal
+                }, {
                     OnUnsubscriptionDelay: this._onUnsubscriptionDelay
                 });
             }

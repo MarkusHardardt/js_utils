@@ -13,7 +13,7 @@
         Notify: 5
     });
 
-    class DataConnectionServer {
+    class DataConnectorServer {
         constructor(receiver) {
             this._receiver = receiver ?? DEFAULT_DATA_CONNECTION_RECEIVER;
             this._subscribers = {};
@@ -132,7 +132,7 @@
     }
 
     if (isNodeJS) {
-        module.exports = { DataConnectionServer };
+        module.exports = { DataConnectorServer };
     } else {
         root.DataConnector = DataConnector;
     }
