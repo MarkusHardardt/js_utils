@@ -5,8 +5,9 @@
     const crypto = isNodeJS ? require('crypto') : undefined;
     const WebSocket = isNodeJS ? require('ws') : root.WebSocket;
 
+    const FORMATED_SESSION_ID_PART_LENGTH = 6;
     function formatSesionId(sessionId) {
-        return `${sessionId.substring(0, 6)}...`;
+        return `${sessionId.substring(0, FORMATED_SESSION_ID_PART_LENGTH)}..${sessionId.substring(sessionId.length - FORMATED_SESSION_ID_PART_LENGTH, sessionId.length)}`;
     }
 
     const TelegramType = Object.freeze({

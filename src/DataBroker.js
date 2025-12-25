@@ -8,9 +8,12 @@
             this._options = options;
             this._onError = typeof options.onError === 'function' ? options.onError : error => console.error(error);
             this._equal = typeof options.equal === 'function' ? options.equal : (l1, l2) => l1 === l2;
-            this._onStopListeningDelay = typeof options.onStopListeningDelay === 'number' ? options.onStopListeningDelay : false;
-            this._listeners = [];
-            this._listener = value => {
+            this._readValue = typeof options.readValue === 'function' ? options.readValue : value => console.log('Read value');
+            this._writeValue = typeof options.writeValue === 'function' ? options.writeValue : value => console.log(`Write value: ${value}`);
+            this._onUnsubscriptionDelay = typeof options.onUnsubscriptionDelay === 'number' ? options.onUnsubscriptionDelay : false;
+            this._onUnsubscriptionDelayTimer = null;
+            this._subscribers = [];
+            this._subscriber = value => {
                 if (!this._equal(value, this._value)) {
                     this._value = value;
                     Notify()
@@ -18,56 +21,75 @@
             };
         }
 
-        get Listener() {
-            return this._listener;
+        get Value() {
+            return this._value;
+        }
+
+        Read(onResponse, onError) {
+            this._readValue(response => {
+                this._subscriber(response);
+                try {
+                    onResponse(response);
+                } catch (error) {
+                    onError(error);
+                }
+            }, onError);
+        }
+
+        Write(value) {
+            this._writeValue(value);
+        }
+
+        get Subscriber() {
+            return this._subscriber;
         }
 
         Notify() {
-            for (let li of this._listeners) {
+            for (let subscriber of this._subscribers) {
                 try {
-                    li(this._value);
+                    subscriber(this._value);
                 } catch (error) {
-                    this._onError(`Failed notifying listener: ${error}`);
+                    this._onError(`Failed notifying subscriber: ${error}`);
                 }
             }
         }
 
-        AddListener(listener) {
-            let type = typeof listener;
+        Subscribe(subscriber) {
+            let type = typeof subscriber;
             if (type !== 'function') {
                 throw new Error(`Is not a function but '${type}'`);
             }
-            for (let li of this._listeners) {
-                if (li === listener) {
-                    throw new Error('Listener already contained');
+            for (let sub of this._subscribers) {
+                if (sub === subscriber) {
+                    throw new Error('Subscriber already contained');
                 }
             }
-            this._listeners.push(listener);
-            if (this._listeners.length === 1 && typeof this._options.onStartListening === 'function') {
-                clearTimeout(this._onStopListeningDelayTimer);
-                this._options.onStartListening(this._listener);
+            this._subscribers.push(subscriber);
+            if (this._subscribers.length === 1 && typeof this._options.onSubscription === 'function') {
+                clearTimeout(this._onUnsubscriptionDelayTimer);
+                this._options.onSubscription(this._subscriber);
             }
         }
 
-        RemoveListener(listener) {
-            for (let i = 0; i < this._listeners.length; i++) {
-                if (this._listeners[i] === listener) {
-                    this._listeners.splice(idx, 1);
-                    if (this._listeners.length === 0) {
-                        if (this._listeners.length === 1 && typeof this._options.onStopListening === 'function') {
-                            if (this._onStopListeningDelay) {
-                                this._onStopListeningDelayTimer = setTimeout(() => {
-                                    this._options.onStopListening(this._listener);
-                                }, this._onStopListeningDelay);
+        Unsubscribe(subscriber) {
+            for (let sub = 0; sub < this._subscribers.length; sub++) {
+                if (this._subscribers[sub] === subscriber) {
+                    this._subscribers.splice(sub, 1);
+                    if (this._subscribers.length === 0) {
+                        if (this._subscribers.length === 1 && typeof this._options.onUnsubscription === 'function') {
+                            if (this._onUnsubscriptionDelay) {
+                                this._onUnsubscriptionDelayTimer = setTimeout(() => {
+                                    this._options.onUnsubscription(this._subscriber);
+                                }, this._onUnsubscriptionDelay);
                             } else {
-                                this._options.onStopListening(this._listener);
+                                this._options.onUnsubscription(this._subscriber);
                             }
                         }
                     }
                     return;
                 }
             }
-            throw new Error('Listener not contained');
+            throw new Error('Subscriber not contained');
         }
     }
 
@@ -77,22 +99,60 @@
             this._nodes = {};
         }
 
-        AddListener(key, listener) {
+        Get(key) {
+            const node = this._nodes[key];
+            if (node) {
+                return node.Value;
+            }
+            else {
+                throw new Error(`Cannot get for invalid key: ${key}`);
+            }
+        }
+
+        Read(key, onResponse, onError) {
+            const node = this._nodes[key];
+            if (node) {
+                node.Read(onResponse, onError);
+            }
+            else {
+                throw new Error(`Cannot read for invalid key: ${key}`);
+            }
+        }
+
+        Write(key, value) {
+            const node = this._nodes[key];
+            if (node) {
+                node.Write(value);
+            }
+            else {
+                throw new Error(`Cannot write for invalid key: ${key}`);
+            }
+        }
+
+        Subscribe(key, subscriber) {
             let node = this._nodes[key];
             if (!node) {
                 this._nodes[key] = node = new DataNode({
                     onError: error => console.error(error),
                     equal: (l1, l2) => l1 === l2,
-                    onStartListening: listener => { },
-                    onStopListening: listener => { }
+                    onSubscribtion: subscriber => { },
+                    onUnsubscription: subscriber => { }
                 });
             }
-            node.AddListener(listener);
+            node.Subscribe(subscriber);
+        }
+
+        Unsubscribe(key, subscriber) {
+            let node = this._nodes[key];
+            if (!node) {
+                throw new Error(`Cannot unsubscribe for invalid key: ${key}`);
+            }
+            node.Unsubscribe(subscriber);
         }
     }
 
     if (isNodeJS) {
-        module.exports = DataBroker;
+        module.exports = { DataBroker };
     } else {
         root.DataBroker = DataBroker;
     }

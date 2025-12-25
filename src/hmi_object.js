@@ -78,6 +78,13 @@
     var TWO_PI = PI + PI;
     var HALF_PI = PI / 2;
 
+    const ElementTypes = Object.freeze({
+        LABELS_GROUP: 'Labels',
+        LABELS_TYPE: 'STRING',
+        TEXTS_GROUP: 'Texts',
+        TEXTS_TYPE: 'TEXT'
+    });
+
     var regex_analyse = Regex.analyse;
 
     // zoom factor: double by three clicks: Math.exp(Math.log(2)/3)
@@ -2392,7 +2399,7 @@
                 var column = that.columns[i];
                 var cell = $('#' + _columns[i]._id);
                 if (typeof column.labelId === 'string' && column.labelId.length > 0) {
-                    cell.text(S4.env.data.getDataValue(column.labelId));
+                    cell.text(that.hmi.env.data.Get(column.labelId));
                 }
                 else if (typeof column.text === 'string' && column.text.length > 0) {
                     cell.text(column.text);
@@ -2422,7 +2429,7 @@
                 txt += _columns[i]._id;
                 txt += '">';
                 // TODO
-                txt += S4.env.data.getDataValue(column.labelId);
+                txt += that.hmi.env.data.Get(column.labelId);
                 txt += '</b>';
             }
             else if (typeof column.text === 'string' && column.text.length > 0) {
@@ -3281,11 +3288,11 @@
             return false;
         }
         else if (typeof i_visible === 'string') {
-            return S4.env.isInstance(i_visible);
+            return that.hmi.env.isInstance(i_visible);
         }
         else if (Array.isArray(i_visible) && i_visible.length > 0) {
             for (var i = 0; i < i_visible.length; i++) {
-                if (S4.env.isInstance(i_visible[i]) === true) {
+                if (that.hmi.env.isInstance(i_visible[i]) === true) {
                     return true;
                 }
             }
@@ -4496,7 +4503,7 @@
         var _children = undefined;
         var _curves = undefined;
         var _watch = undefined;
-        var _dataListener = undefined;
+        var _subscriber = undefined;
         var event = undefined;
         var clicked = undefined;
         var _p = {};
@@ -6697,7 +6704,7 @@
                                     var from = typeof child.from === 'number' ? child.from : 0.0;
                                     var to = typeof child.to === 'number' ? child.to : 1.0;
                                     var cs = new CurveSection(cu, curve.id, from * curveLength, to * curveLength, hmiobj.children);
-                                    var pa = new ZonePositionAdjuster(cs, hmiobj.length, S4.env.isSimulationEnabled() === true);
+                                    var pa = new ZonePositionAdjuster(cs, hmiobj.length, that.hmi.env.isSimulationEnabled() === true);
                                     pa.addListeners();
                                     hmiobj.hmi_from = 0.0;
                                     hmiobj.hmi_to = cs.length;
@@ -6925,7 +6932,7 @@
 
         // LISTENERS
         var _watch = undefined;
-        var _dataListener = undefined;
+        var _subscriber = undefined;
         this._hmi_listenerAdds = [];
         this._hmi_listenerRemoves = [];
 
@@ -7092,42 +7099,35 @@
         };
 
         // ADD LISTENERS
-        this._hmi_addListeners = function (i_hmiObject, i_success, i_error) {
+        this._hmi_addListeners = (i_hmiObject, i_success, i_error) => {
             // WATCH / TEXT
             _watch = get_watch(that.watch);
             if (Array.isArray(_watch)) {
-                _dataListener = {
-                    handleDataUpdate: function (i_id, i_value, i_type) {
-                        try {
-                            if (typeof that.handleDataUpdate === 'function') {
-                                that.handleDataUpdate(i_id, i_value, i_type);
+                _subscriber = (key, value, type) => {
+                    try {
+                        if (typeof that.handleDataUpdate === 'function') {
+                            that.handleDataUpdate(key, value, type);
+                        } else if (type === ElementTypes.TEXTS_TYPE) {
+                            if (that.hmi_html) {
+                                that.hmi_html(value);
                             }
-                            else if (i_type === S4.env.TEXTS_TYPE) {
-                                if (that.hmi_html) {
-                                    that.hmi_html(i_value);
-                                }
-                            }
-                            else if (that.hmi_text) {
-                                if (typeof that.formatValue === 'function') {
-                                    var value = that.formatValue(i_id, i_value);
-                                    that.hmi_text(value);
-                                }
-                                else if (typeof i_value === 'number') {
-                                    var value = typeof that.factor === 'number' ? that.factor * i_value : i_value;
-                                    that.hmi_text(StringHelper.formatValue(value, typeof that.postDecimalPositions === 'number' ? that.postDecimalPositions : 0));
-                                }
-                                else {
-                                    that.hmi_text(i_value);
-                                }
+                        } else if (that.hmi_text) {
+                            if (typeof that.formatValue === 'function') {
+                                var value = that.formatValue(key, value);
+                                that.hmi_text(value);
+                            } else if (typeof value === 'number') {
+                                var value = typeof that.factor === 'number' ? that.factor * value : value;
+                                that.hmi_text(StringHelper.formatValue(value, typeof that.postDecimalPositions === 'number' ? that.postDecimalPositions : 0));
+                            } else {
+                                that.hmi_text(value);
                             }
                         }
-                        catch (exc) {
-                            console.error('EXCEPTION: ' + exc);
-                        }
+                    } catch (exc) {
+                        console.error('EXCEPTION: ' + exc);
                     }
                 };
                 for (var i = 0; i < _watch.length; i++) {
-                    S4.env.data.addDataListener(_watch[i], _dataListener);
+                    that.hmi.env.data.Subscribe(_watch[i], _subscriber);
                 }
             }
             if (typeof that.handleLanguageChanged === 'function') {
@@ -7139,8 +7139,7 @@
                 if (typeof func === 'function') {
                     try {
                         func();
-                    }
-                    catch (exc) {
+                    } catch (exc) {
                         console.error('EXCEPTION! Cannot add listeners: ' + exc + ' ' + func.toString());
                     }
                 }
@@ -7169,11 +7168,11 @@
             }
             if (Array.isArray(_watch)) {
                 for (var i = _watch.length - 1; i >= 0; i--) {
-                    S4.env.data.removeDataListener(_watch[i], _dataListener);
+                    that.hmi.env.data.Unsubscribe(_watch[i], _subscriber);
                 }
                 _watch.splice(0, _watch.length);
                 _watch = undefined;
-                _dataListener = undefined;
+                _subscriber = undefined;
             }
             // delete method to prevent other calls
             delete that._hmi_removeListeners;
@@ -7373,7 +7372,7 @@
         var buttons = [];
         if (typeof i_config.ok === 'function') {
             buttons.push({
-                text: typeof i_config.okLabelId === 'string' ? S4.env.data.getDataValue(i_config.okLabelId) : 'OK',
+                text: typeof i_config.okLabelId === 'string' ? that.hmi.env.data.Get(i_config.okLabelId) : 'OK',
                 click: function (i_close) {
                     perform(i_config.ok, i_close);
                 }
@@ -7381,7 +7380,7 @@
         }
         if (typeof i_config.yes === 'function') {
             buttons.push({
-                text: typeof i_config.yesLabelId === 'string' ? S4.env.data.getDataValue(i_config.yesLabelId) : 'Yes',
+                text: typeof i_config.yesLabelId === 'string' ? that.hmi.env.data.Get(i_config.yesLabelId) : 'Yes',
                 click: function (i_close) {
                     perform(i_config.yes, i_close);
                 }
@@ -7389,7 +7388,7 @@
         }
         if (typeof i_config.no === 'function') {
             buttons.push({
-                text: typeof i_config.noLabelId === 'string' ? S4.env.data.getDataValue(i_config.noLabelId) : 'No',
+                text: typeof i_config.noLabelId === 'string' ? that.hmi.env.data.Get(i_config.noLabelId) : 'No',
                 click: function (i_close) {
                     perform(i_config.no, i_close);
                 }
@@ -7397,7 +7396,7 @@
         }
         if (typeof i_config.cancel === 'function') {
             buttons.push({
-                text: typeof i_config.cancelLabelId === 'string' ? S4.env.data.getDataValue(i_config.cancelLabelId) : 'Cancel',
+                text: typeof i_config.cancelLabelId === 'string' ? that.hmi.env.data.Get(i_config.cancelLabelId) : 'Cancel',
                 click: function (i_close) {
                     perform(i_config.cancel, i_close);
                 }
