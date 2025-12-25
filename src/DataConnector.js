@@ -79,7 +79,7 @@
         }
     }
 
-    class DataConnection {
+    class DataConnector {
         constructor(connection, receiver) {
             this._connection = connection;
             this._receiver = receiver ?? DEFAULT_DATA_CONNECTION_RECEIVER;
@@ -134,6 +134,6 @@
     if (isNodeJS) {
         module.exports = { DataConnectionServer };
     } else {
-        root.DataConnection = DataConnection;
+        root.DataConnector = DataConnector;
     }
 }(globalThis));
