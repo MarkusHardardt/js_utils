@@ -21,9 +21,9 @@
     /*  The BaseConnection constructor requires the following arguments:
         - sessionId: received from web server (using ajax)
         - options: {
-            onOpen(): will be called when socket connection has been established
-            onClose(): will be called when socket connection has been lost
-            onError(error): will be called when an error occurred
+            OnOpen(): will be called when socket connection has been established
+            OnClose(): will be called when socket connection has been lost
+            OnError(error): will be called when an error occurred
           }
         A connection has the following public interface:
         - SessionId: The session id
@@ -38,29 +38,29 @@
             this._handlers = {};
             this._callbacks = {};
             this._onOpen = () => {
-                if (typeof options.onOpen === 'function') {
+                if (typeof options.OnOpen === 'function') {
                     try {
-                        options.onOpen();
-                    } catch (exception) {
-                        console.error(`failed calling onOpen: ${exception}`);
+                        options.OnOpen();
+                    } catch (error) {
+                        console.error(`failed calling OnOpen: ${error}`);
                     }
                 }
             };
             this._onClose = () => {
-                if (typeof options.onClose === 'function') {
+                if (typeof options.OnClose === 'function') {
                     try {
-                        options.onClose();
-                    } catch (exception) {
-                        console.error(`failed calling onClose: ${exception}`);
+                        options.OnClose();
+                    } catch (error) {
+                        console.error(`failed calling OnClose: ${error}`);
                     }
                 }
             };
             this._onError = error => {
-                if (typeof options.onError === 'function') {
+                if (typeof options.OnError === 'function') {
                     try {
-                        options.onError(error);
-                    } catch (exception) {
-                        console.error(`failed calling onError: ${exception}`);
+                        options.OnError(error);
+                    } catch (error) {
+                        console.error(`failed calling OnError: ${error}`);
                     }
                 }
             };
@@ -113,8 +113,8 @@
                     if (cb.onResponse) {
                         cb.onResponse(localResponseUTC - cb.localRequestUTC);
                     }
-                } catch (exception) {
-                    this._onError(`failed calling onResponse: ${exception}`);
+                } catch (error) {
+                    this._onError(`failed calling onResponse: ${error}`);
                 }
             } else {
                 this._onError('missing ping callback');
@@ -174,22 +174,22 @@
                                 this._onError(`cannot send error response when disconnected (error: ${error})`);
                             }
                         });
-                    } catch (exception) {
+                    } catch (error) {
                         if (this.IsConnected) {
-                            this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `failed calling receive handler '${receiver}'! exception: ${exception}` }));
+                            this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `failed calling receive handler '${receiver}'! error: ${error}` }));
                         } else {
-                            this._onError(`failed calling receive handler '${receiver}' but cannot send error response when disconnected! exception: ${exception}`);
+                            this._onError(`failed calling receive handler '${receiver}' but cannot send error response when disconnected! error: ${error}`);
                         }
                     }
                 }
                 else {
                     try {
                         handler(requestData);
-                    } catch (exception) {
+                    } catch (error) {
                         if (this.IsConnected) {
-                            this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `failed calling receive handler '${receiver}'! exception: ${exception}` }));
+                            this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `failed calling receive handler '${receiver}'! error: ${error}` }));
                         } else {
-                            this._onError(`failed calling receive handler '${receiver}' but cannot send error response when disconnected! exception: ${exception}`);
+                            this._onError(`failed calling receive handler '${receiver}' but cannot send error response when disconnected! error: ${error}`);
                         }
                     }
                 }
@@ -209,8 +209,8 @@
                     if (cb.onResponse) {
                         cb.onResponse(data, Date.now() - cb.localRequestUTC);
                     }
-                } catch (exception) {
-                    this._onError(`failed calling onResponse: ${exception}`);
+                } catch (error) {
+                    this._onError(`failed calling onResponse: ${error}`);
                 }
             } else {
                 this._onError('missing data callback');
@@ -223,8 +223,8 @@
                 if (cb.onError) {
                     try {
                         cb.onError(error, Date.now() - cb.localRequestUTC);
-                    } catch (exception) {
-                        this._onError(`failed calling onError: ${exception}`);
+                    } catch (error) {
+                        this._onError(`failed calling onError: ${error}`);
                     }
                 } else {
                     this._onError(error);
@@ -283,9 +283,9 @@
             heartbeatTimeout: timeout before disconnect [ms]
             reconnectStart: timeout before first reconnect attempt [ms] (will be doubled on each try until max is reached)
             reconnectMax: max timeout before next reconnect attempt [ms]
-            onOpen(): will be called when socket connection has been established
-            onClose(): will be called when socket connection has been lost
-            onError(error): will be called when an error occurred
+            OnOpen(): will be called when socket connection has been established
+            OnClose(): will be called when socket connection has been lost
+            OnError(error): will be called when an error occurred
           }
         A client connection has the following public interface:
         - Start(): triggers connection attempts
@@ -372,8 +372,8 @@
                 if (this._state === ClientState.Online) {
                     this.Ping(millis => {
                         clearTimeout(this._heartbeatTimeoutTimer);
-                    }, exception => {
-                        this._onError(`heartbeat monitoring failed: ${exception}`);
+                    }, error => {
+                        this._onError(`heartbeat monitoring failed: ${error}`);
                     });
                     this._heartbeatTimeoutTimer = setTimeout(() => {
                         this._onError('heartbeat monitoring timeout expired -> close socket');
@@ -402,9 +402,9 @@
     /*  WebSocketServerConnection extends BaseConnection and the constructor requires the following arguments:
         - sessionId: received from web server (using ajax)
         - options: {
-            onOpen(): will be called when socket connection has been established
-            onClose(): will be called when socket connection has been lost
-            onError(error): will be called when an error occurred
+            OnOpen(): will be called when socket connection has been established
+            OnClose(): will be called when socket connection has been lost
+            OnError(error): will be called when an error occurred
           }
         Read comment for BaseConnection for more properties and methods.    */
     class WebSocketServerConnection extends BaseConnection {
@@ -437,7 +437,7 @@
             };
             // Note:
             // Since this method is called with an already connected and open socket, it is not possible to react to 'socket.onopen' because it is no longer triggered.
-            // Instead, the online status is set directly and the 'onOpen' method is triggered manually.
+            // Instead, the online status is set directly and the 'OnOpen' method is triggered manually.
             this._online = true;
             this._onOpen(this);
         }
@@ -449,11 +449,11 @@
         - port: the port for the socket server
         - options: {
             closedConnectionDisposeTimeout: timeout before a closed connection is disposed [ms]
-            onOpen(connection): will be called when socket connection has been established the first time
+            OnOpen(connection): will be called when socket connection has been established the first time
             onReopen(connection): will be called when socket connection has been established again
-            onClose(connection): will be called when socket connection has been lost
+            OnClose(connection): will be called when socket connection has been lost
             onDispose(connection): will be called when socket connection has been lost and not established again before the timeout has expired
-            onError(connection, error): will be called when an error occurred
+            OnError(connection, error): will be called when an error occurred
           }   
         A server has the following public interface:    
         - CreateSessionConfig(): returns a configuration object containing the port and a new unique session id    */
@@ -476,15 +476,15 @@
                         console.warn(`web socket connected with unknown session id: '${formatSesionId(sessionId)}'`)
                     }
                     instance.connection = new WebSocketServerConnection(sessionId, {
-                        onOpen: () => {
+                        OnOpen: () => {
                             const isFirstOpen = instance.openedUTC === undefined;
                             instance.openedUTC = Date.now();
                             if (isFirstOpen) {
-                                if (typeof options.onOpen === 'function') {
+                                if (typeof options.OnOpen === 'function') {
                                     try {
-                                        options.onOpen(instance.connection);
-                                    } catch (exception) {
-                                        console.error(`failed calling onOpen: ${exception}`);
+                                        options.OnOpen(instance.connection);
+                                    } catch (error) {
+                                        console.error(`failed calling OnOpen: ${error}`);
                                     }
                                 } else {
                                     console.log(`connection opened with session id: '${formatSesionId(sessionId)}'`);
@@ -494,21 +494,21 @@
                                 if (typeof options.onReopen === 'function') {
                                     try {
                                         options.onReopen(instance.connection);
-                                    } catch (exception) {
-                                        console.error(`failed calling onReopen: ${exception}`);
+                                    } catch (error) {
+                                        console.error(`failed calling onReopen: ${error}`);
                                     }
                                 } else {
                                     console.log(`connection reopened with session id: '${formatSesionId(sessionId)}'`);
                                 }
                             }
                         },
-                        onClose: () => {
+                        OnClose: () => {
                             instance.closedUTC = Date.now();
-                            if (typeof options.onClose === 'function') {
+                            if (typeof options.OnClose === 'function') {
                                 try {
-                                    options.onClose(instance.connection);
-                                } catch (exception) {
-                                    console.error(`failed calling onClose: ${exception}`);
+                                    options.OnClose(instance.connection);
+                                } catch (error) {
+                                    console.error(`failed calling OnClose: ${error}`);
                                 }
                             } else {
                                 console.log(`connection closed with session id: '${formatSesionId(sessionId)}'`);
@@ -518,20 +518,20 @@
                                 if (typeof options.onDispose === 'function') {
                                     try {
                                         options.onDispose(instance.connection);
-                                    } catch (exception) {
-                                        console.error(`failed calling onDispose: ${exception}`);
+                                    } catch (error) {
+                                        console.error(`failed calling onDispose: ${error}`);
                                     }
                                 } else {
                                     console.log(`connection diposed with session id: '${formatSesionId(sessionId)}'`);
                                 }
                             }, options.closedConnectionDisposeTimeout ?? DEFAULT_CLOSED_CONNECTION_DISPOSE_TIMEOUT);
                         },
-                        onError: error => {
-                            if (typeof options.onError === 'function') {
+                        OnError: error => {
+                            if (typeof options.OnError === 'function') {
                                 try {
-                                    options.onError(instance.connection, error);
-                                } catch (exception) {
-                                    console.error(`failed calling onError for error: ${error}: ${exception}`);
+                                    options.OnError(instance.connection, error);
+                                } catch (error) {
+                                    console.error(`failed calling OnError for error: ${error}: ${error}`);
                                 }
                             } else {
                                 console.error(`error in connection with session id: '${formatSesionId(sessionId)}': ${error}`);
