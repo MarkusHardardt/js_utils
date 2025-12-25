@@ -5,11 +5,15 @@
 
     class DataNode {
         constructor(options = {}) {
-            this._options = options;
             this._onError = typeof options.onError === 'function' ? options.onError : error => console.error(error);
             this._equal = typeof options.equal === 'function' ? options.equal : (l1, l2) => l1 === l2;
-            this._readValue = typeof options.readValue === 'function' ? options.readValue : value => console.log('Read value');
+            this._readValue = typeof options.readValue === 'function' ? options.readValue : (onResponse, onError) => { 
+                console.log('Read value');
+                onError('Not implemented')
+            };
             this._writeValue = typeof options.writeValue === 'function' ? options.writeValue : value => console.log(`Write value: ${value}`);
+            this._onSubscription = typeof options.onSubscription === 'function' ? options.onSubscription : () => console.log('Subscribed');
+            this._onUnsubscription = typeof options.onUnsubscription === 'function' ? options.onUnsubscription : () => console.log('Unsubscribed');
             this._onUnsubscriptionDelay = typeof options.onUnsubscriptionDelay === 'number' ? options.onUnsubscriptionDelay : false;
             this._onUnsubscriptionDelayTimer = null;
             this._subscribers = [];
@@ -65,9 +69,9 @@
                 }
             }
             this._subscribers.push(subscriber);
-            if (this._subscribers.length === 1 && typeof this._options.onSubscription === 'function') {
+            if (this._subscribers.length === 1) {
                 clearTimeout(this._onUnsubscriptionDelayTimer);
-                this._options.onSubscription(this._subscriber);
+                this._onSubscription(this._subscriber);
             }
         }
 
@@ -76,14 +80,12 @@
                 if (this._subscribers[sub] === subscriber) {
                     this._subscribers.splice(sub, 1);
                     if (this._subscribers.length === 0) {
-                        if (this._subscribers.length === 1 && typeof this._options.onUnsubscription === 'function') {
-                            if (this._onUnsubscriptionDelay) {
-                                this._onUnsubscriptionDelayTimer = setTimeout(() => {
-                                    this._options.onUnsubscription(this._subscriber);
-                                }, this._onUnsubscriptionDelay);
-                            } else {
-                                this._options.onUnsubscription(this._subscriber);
-                            }
+                        if (this._onUnsubscriptionDelay) {
+                            this._onUnsubscriptionDelayTimer = setTimeout(() => {
+                                this._onUnsubscription(this._subscriber);
+                            }, this._onUnsubscriptionDelay);
+                        } else {
+                            this._onUnsubscription(this._subscriber);
                         }
                     }
                     return;
@@ -95,7 +97,16 @@
 
     class DataBroker {
         constructor(options) {
-            this._options = options;
+            this._onError = typeof options.onError === 'function' ? options.onError : error => console.error(error);
+            this._equal = typeof options.equal === 'function' ? options.equal : (l1, l2) => l1 === l2;
+            this._readValue = typeof options.readValue === 'function' ? options.readValue : (key, onResponse, onError) => { 
+                console.log(`Read value for key: ${key}`);
+                onError('Not implemented')
+            };
+            this._writeValue = typeof options.writeValue === 'function' ? options.writeValue : (key, value) => console.log(`Write value: ${value} for key: ${key}`);
+            this._onSubscription = typeof options.onSubscription === 'function' ? options.onSubscription : key => console.log(`Subscribed key: ${key}`);
+            this._onUnsubscription = typeof options.onUnsubscription === 'function' ? options.onUnsubscription : key => console.log(`Unsubscribed key: ${key}`);
+            this._onUnsubscriptionDelay = typeof options.onUnsubscriptionDelay === 'number' ? options.onUnsubscriptionDelay : false;
             this._nodes = {};
         }
 
@@ -133,10 +144,13 @@
             let node = this._nodes[key];
             if (!node) {
                 this._nodes[key] = node = new DataNode({
-                    onError: error => console.error(error),
-                    equal: (l1, l2) => l1 === l2,
-                    onSubscribtion: subscriber => { },
-                    onUnsubscription: subscriber => { }
+                    onError: this._onError,
+                    equal: this._equal,
+                    readValue: this._readValue,
+                    writeValue: this._writeValue,
+                    onSubscription: this._onSubscription,
+                    onUnsubscription: this._onUnsubscription,
+                    onUnsubscriptionDelay: this._onUnsubscriptionDelay
                 });
             }
             node.Subscribe(subscriber);
