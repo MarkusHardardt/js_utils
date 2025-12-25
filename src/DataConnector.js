@@ -14,43 +14,43 @@
     });
 
     class DataConnectorServer {
-        constructor(receiver) {
+        constructor(adapter, receiver) {
+            this._adapter = adapter;
             this._receiver = receiver ?? DEFAULT_DATA_CONNECTION_RECEIVER;
-            this._subscribers = {};
         }
 
         OnOpen(connection) {
             connection.Register(this._receiver, (data, onResponse, onError) => {
                 switch (data.type) {
                     case RequestType.Read:
-                        console.log(`Read(${JSON.stringify(data)})`);
+                        // TODO: Remove console.log(`Read(${JSON.stringify(data)})`);
+                        this._adapter.Read(data.key, response => onResponse(response), error => onError(error));
                         break;
                     case RequestType.Write:
-                        console.log(`Write(${JSON.stringify(data)})`);
+                        // TODO: Remove console.log(`Write(${JSON.stringify(data)})`);
+                        this._adapter.Write(data.key, data.value);
                         break;
                     case RequestType.Subscribe:
-                        console.log(`Subscribe(${JSON.stringify(data)})`);
+                        // TODO: Remove console.log(`Subscribe(${JSON.stringify(data)})`);
+                        this._adapter.Subscribe(data.key);
                         break;
                     case RequestType.Unsubscribe:
-                        console.log(`Unsubscribe(${JSON.stringify(data)})`);
+                        // TODO: Remove console.log(`Unsubscribe(${JSON.stringify(data)})`);
+                        this._adapter.Unsubscribe(data.key);
                         break;
                     case RequestType.Notify:
                         console.log(`Notify(${JSON.stringify(data)})`);
-                        const subscriber = this._subscribers[data.key];
-                        if (subscriber) {
-                            subscriber();
-                        }
                         break;
                 }
             });
         }
 
         OnReopen(connection) {
-
+            // TODO: Implement or remove
         }
 
         OnClose(connection) {
-
+            // TODO: Implement or remove
         }
 
         OnDispose(connection) {
