@@ -34,6 +34,7 @@
                         break;
                     case RequestType.Subscribe:
                         // TODO: Remove console.log(`Subscribe(${JSON.stringify(data)})`);
+                        // TODO: Das funktioniert nicht bei mehrenen Browsern! Muss da nicht wieder ein DataNode verwendet werden, der mehrere subscribers behandeln kann und zudem zeitverzögert unsubscribed?
                         this._adapter.Subscribe(data.key);
                         break;
                     case RequestType.Unsubscribe:
@@ -83,7 +84,7 @@
         }
 
         Send(values) {
-            console.log(`Send to subscribers: ${JSON.stringify(values)}`);
+            // TODO: Remove console.log(`Send to subscribers: ${JSON.stringify(values)}`);
             for (const sessionId in this._connections) {
                 if (this._connections.hasOwnProperty(sessionId)) {
                     const con = this._connections[sessionId];

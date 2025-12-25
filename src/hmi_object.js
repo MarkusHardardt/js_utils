@@ -7117,7 +7117,7 @@
                                 that.hmi_text(value);
                             } else if (typeof value === 'number') {
                                 var value = typeof that.factor === 'number' ? that.factor * value : value;
-                                that.hmi_text(StringHelper.formatValue(value, typeof that.postDecimalPositions === 'number' ? that.postDecimalPositions : 0));
+                                that.hmi_text(Utilities.formatNumber(value, typeof that.postDecimalPositions === 'number' ? that.postDecimalPositions : 0));
                             } else {
                                 that.hmi_text(value);
                             }
