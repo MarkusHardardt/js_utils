@@ -38,7 +38,7 @@
 
     class BaseDataConnector {
         constructor() {
-            this._connection = null;
+            this.connection = null;
             this.onError = defaultOnError;
             this.receiver = DEFAULT_DATA_CONNECTION_RECEIVER;
             this._handler = data => this.handleReceived(data);
@@ -46,16 +46,16 @@
 
         set Connection(value) {
             if (value) {
-                if (this._connection) {
-                    this._connection.Unregister(this.receiver);
-                    this._connection = null;
+                if (this.connection) {
+                    this.connection.Unregister(this.receiver);
+                    this.connection = null;
                 }
                 validateConnection(value);
-                this._connection = value;
-                this._connection.Register(this.receiver, this._handler);
-            } else if (this._connection) {
-                this._connection.Unregister(this.receiver);
-                this._connection = null;
+                this.connection = value;
+                this.connection.Register(this.receiver, this._handler);
+            } else if (this.connection) {
+                this.connection.Unregister(this.receiver);
+                this.connection = null;
             }
         }
 
@@ -92,8 +92,8 @@
             } else if (this._buffering) {
                 this._buffering = false;
                 const ids = [];
-                validateConnection(this._connection);
-                this._connection.Send(this.receiver, {
+                validateConnection(this.connection);
+                this.connection.Send(this.receiver, {
                     type: TransmissionType.SubscriptionRequest,
                     subscribe: this._bufferedSubsciptions.splice(0, this._bufferedSubsciptions.length),
                     unsubscribe: this._bufferedUnsubsciptions.splice(0, this._bufferedUnsubsciptions.length)
@@ -102,7 +102,7 @@
         }
 
         Subscribe(id, subscriber) {
-            validateConnection(this._connection);
+            validateConnection(this.connection);
             if (typeof id !== 'string') {
                 throw new Error(`Invalid subscription id: ${id}`);
             } else if (typeof subscriber !== 'function') {
@@ -115,12 +115,12 @@
                 addId(this._bufferedSubsciptions, id);
                 removeId(this._bufferedUnsubsciptions, id);
             } else {
-                this._connection.Send(this.receiver, { type: TransmissionType.SubscriptionRequest, subscribe: [id] });
+                this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionRequest, subscribe: [id] });
             }
         }
 
         Unsubscribe(id, subscriber) {
-            validateConnection(this._connection);
+            validateConnection(this.connection);
             if (typeof id !== 'string') {
                 throw new Error(`Invalid unsubscription id: ${id}`);
             } else if (typeof subscriber !== 'function') {
@@ -135,18 +135,18 @@
                 addId(this._bufferedUnsubsciptions, id);
                 removeId(this._bufferedSubsciptions, id);
             } else {
-                this._connection.Send(this.receiver, { type: TransmissionType.SubscriptionRequest, unsubscribe: [id] });
+                this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionRequest, unsubscribe: [id] });
             }
         }
 
         Read(id, onResponse, onError) {
-            validateConnection(this._connection);
-            this._connection.Send(this.receiver, { type: TransmissionType.ReadRequest, id }, onResponse, onError);
+            validateConnection(this.connection);
+            this.connection.Send(this.receiver, { type: TransmissionType.ReadRequest, id }, onResponse, onError);
         }
 
         Write(id, value) {
-            validateConnection(this._connection);
-            this._connection.Send(this.receiver, { type: TransmissionType.WriteRequest, id, value });
+            validateConnection(this.connection);
+            this.connection.Send(this.receiver, { type: TransmissionType.WriteRequest, id, value });
         }
 
         handleReceived(data) {
@@ -198,6 +198,7 @@
         handleReceived(data) {
             try {
                 validateDataBroker(this._broker);
+                validateConnection(this.connection);
                 switch (data.type) {
                     case TransmissionType.SubscriptionRequest:
                         if (data.unsubscribe) {
@@ -213,7 +214,12 @@
                             for (const id of data.subscribe) {
                                 let subscriber = this._subscribers[id];
                                 if (!subscriber) {
-                                    this._subscribers[id] = subscriber = value => { };
+                                    this._subscribers[id] = subscriber = value => { 
+                                        console.log(`Updated id: '${id}', value: ${value}`);
+                                        const values = {};
+                                        values[id] = value;
+                                        this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionResponse, values });
+                                    };
                                 }
                                 this._broker.Subscribe(id, subscriber);
                             }
