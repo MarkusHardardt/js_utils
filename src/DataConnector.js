@@ -187,8 +187,12 @@
         }
 
         set Broker(value) {
-            validateDataBroker(value);
-            this._broker = value;
+            if (value) {
+                validateDataBroker(value);
+                this._broker = value;
+            } else {
+                this._broker = null;
+            }
         }
 
         handleReceived(data) {
