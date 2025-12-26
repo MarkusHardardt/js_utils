@@ -188,22 +188,22 @@
     class ServerDataConnector extends BaseDataConnector {
         constructor() {
             super();
-            this._target = null;
+            this._parent = null;
             this._callbacks = {};
         }
 
-        set TargetEventPublisher(value) {
+        set Parent(value) {
             if (value) {
                 validateEventPublisher(value);
-                this._target = value;
+                this._parent = value;
             } else {
-                this._target = null;
+                this._parent = null;
             }
         }
 
         handleReceived(data) {
             try {
-                validateEventPublisher(this._target);
+                validateEventPublisher(this._parent);
                 validateConnection(this.connection);
                 switch (data.type) {
                     case TransmissionType.SubscriptionRequest:
@@ -212,7 +212,7 @@
                                 const onEvent = this._callbacks[id];
                                 if (onEvent) {
                                     delete this._callbacks[id];
-                                    this._target.Unsubscribe(id, onEvent);
+                                    this._parent.Unsubscribe(id, onEvent);
                                 }
                             }
                         }
@@ -227,17 +227,17 @@
                                         this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionResponse, values });
                                     };
                                 }
-                                this._target.Subscribe(id, onEvent);
+                                this._parent.Subscribe(id, onEvent);
                             }
                         }
                         break;
                     case TransmissionType.ReadRequest:
-                        this._target.Read(data.id, value => {
+                        this._parent.Read(data.id, value => {
                             this.connection.Send(this.receiver, { type: TransmissionType.ReadResponse, id: data.id, value });
                         }, error => this.onError(error));
                         break;
                     case TransmissionType.WriteRequest:
-                        this._target.Write(data.id, data.value);
+                        this._parent.Write(data.id, data.value);
                         break;
                     default:
                         throw new Error(`Invalid transmission type: ${data.type}`);

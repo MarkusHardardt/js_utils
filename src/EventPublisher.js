@@ -23,20 +23,20 @@
     class EventPublisher {
         constructor() {
             validateEventPublisher(this);
-            this._target = null;
+            this._parent = null;
             this._equal = defaultEqual;
             this._onError = defaultOnError;
             this._unsubscribeDelay = false;
             this._events = {};
         }
 
-        set TargetEventPublisher(value) {
+        set Parent(value) {
             if (value) {
                 validateEventPublisher(value);
-                this._target = value;
+                this._parent = value;
             }
             else {
-                this._target = null;
+                this._parent = null;
             }
         }
 
@@ -59,7 +59,7 @@
         }
 
         Subscribe(id, onEvent) {
-            validateEventPublisher(this._target);
+            validateEventPublisher(this._parent);
             if (typeof id !== 'string') {
                 throw new Error(`Invalid subscription id: ${id}`);
             } else if (typeof onEvent !== 'function') {
@@ -82,13 +82,13 @@
                     event.unsubscribeDelayTimer = null;
                 }
                 else {
-                    this._target.Subscribe(event.id, event.onEvent);
+                    this._parent.Subscribe(event.id, event.onEvent);
                 }
             }
         }
 
         Unsubscribe(id, onEvent) {
-            validateEventPublisher(this._target);
+            validateEventPublisher(this._parent);
             if (typeof id !== 'string') {
                 throw new Error(`Invalid unsubscription id: ${id}`);
             } else if (typeof onEvent !== 'function') {
@@ -104,11 +104,11 @@
                     if (event.callbacks.length === 0) {
                         if (this._unsubscribeDelay) {
                             event.unsubscribeDelayTimer = setTimeout(() => {
-                                this._target.Unsubscribe(event.id, event.onEvent);
+                                this._parent.Unsubscribe(event.id, event.onEvent);
                                 event.unsubscribeDelayTimer = null;
                             }, this._unsubscribeDelay);
                         } else {
-                            this._target.Unsubscribe(event.id, event.onEvent);
+                            this._parent.Unsubscribe(event.id, event.onEvent);
                         }
                     }
                     return;
@@ -118,8 +118,8 @@
         }
 
         Read(id, onResponse, onError) {
-            validateEventPublisher(this._target);
-            this._target.Read(id, value => {
+            validateEventPublisher(this._parent);
+            this._parent.Read(id, value => {
                 try {
                     onResponse(value);
                 } catch (error) {
@@ -134,8 +134,8 @@
         }
 
         Write(id, value) {
-            validateEventPublisher(this._target);
-            this._target.Write(id, value);
+            validateEventPublisher(this._parent);
+            this._parent.Write(id, value);
             let event = this._events[id];
             if (!event) {
                 this._events[id] = event = this._createEvent(id);
