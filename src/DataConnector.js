@@ -3,9 +3,10 @@
 
     const isNodeJS = typeof require === 'function';
 
+    const Common = isNodeJS ? require('./Common.js') : root.Common;
+    const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
     const { validateEventPublisher } = isNodeJS ? require('./EventPublisher.js') : { validateEventPublisher: root.validateEventPublisher };
     const { validateConnection } = isNodeJS ? require('./WebSocketConnection.js') : { validateConnection: root.validateConnection };
-    const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
 
     const compareTextsAndNumbers = Sorting.getTextsAndNumbersCompareFunction(true, false, true);
     function addId(ids, id) {
@@ -190,6 +191,7 @@
             super();
             this._parent = null;
             this._callbacks = {};
+            this._nextId = Common.idGenerator();
         }
 
         set Parent(value) {
@@ -199,6 +201,41 @@
             } else {
                 this._parent = null;
             }
+        }
+
+        SetIds(ids) {
+            if (!Array.isArray(ids)) {
+                throw new Error(`Ids must be passed as an array of strings: ${ids}`);
+            }
+            const sorted = [];
+            for (const id of ids) {
+                addId(sorted, id);
+            }
+            const id2con = {};
+            const con2id = {};
+            for (const id of sorted) {
+                const con = this._nextId();
+                id2con[id] = con;
+                con2id[con] = [id];
+            }
+            this._id2con = id2con;
+            this._con2id = con2id;
+        }
+
+        OnOpen() {
+            console.log('ServerDataConnector.OnOpen()');
+        }
+
+        OnReopen() {
+            console.log('ServerDataConnector.OnReopen()');
+        }
+
+        OnClose() {
+            console.log('ServerDataConnector.OnClose()');
+        }
+
+        OnDispose() {
+            console.log('ServerDataConnector.OnDispose()');
         }
 
         handleReceived(data) {

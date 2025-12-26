@@ -6927,7 +6927,7 @@
 
         // LISTENERS
         var _watch = undefined;
-        var _subscriber = undefined;
+        var _onEventCallbacks = undefined;
         this._hmi_listenerAdds = [];
         this._hmi_listenerRemoves = [];
 
@@ -7098,12 +7098,12 @@
             // WATCH / TEXT
             _watch = get_watch(that.watch);
             if (Array.isArray(_watch)) {
-                _subscriber = [];
+                _onEventCallbacks = [];
                 for (var i = 0; i < _watch.length; i++) {
                     (function () {
                         const id = _watch[i];
                         const type = undefined; // TODO: Handle ElementTypes.TEXTS_TYPE ???
-                        const subscriber = value => {
+                        const onEvent = value => {
                             try {
                                 if (typeof that.handleDataUpdate === 'function') {
                                     that.handleDataUpdate(id, value, type);
@@ -7126,8 +7126,8 @@
                                 console.error('EXCEPTION: ' + exc);
                             }
                         };
-                        _subscriber.push(subscriber);
-                        that.hmi.env.data.Subscribe(id, subscriber);
+                        _onEventCallbacks.push(onEvent);
+                        that.hmi.env.data.Subscribe(id, onEvent);
                     }());
                 }
             }
@@ -7169,11 +7169,11 @@
             }
             if (Array.isArray(_watch)) {
                 for (var i = _watch.length - 1; i >= 0; i--) {
-                    that.hmi.env.data.Unsubscribe(_watch[i], _subscriber[i]);
+                    that.hmi.env.data.Unsubscribe(_watch[i], _onEventCallbacks[i]);
                 }
                 _watch.splice(0, _watch.length);
                 _watch = undefined;
-                _subscriber = undefined;
+                _onEventCallbacks = undefined;
             }
             // delete method to prevent other calls
             delete that._hmi_removeListeners;

@@ -3,6 +3,7 @@
 
     const isNodeJS = typeof require === 'function';
 
+    const Common = isNodeJS ? require('./Common.js') : root.Common;
     const Server = isNodeJS ? require('./Server.js') : null;
     const WebSocket = isNodeJS ? require('ws') : root.WebSocket;
 
@@ -79,8 +80,7 @@
                     }
                 }
             };
-            let unique_id = 0;
-            this._nextId = () => `#${(unique_id++).toString(36)}`;
+            this._nextId = Common.idGenerator();
             this._remoteMediumUTC = 0;
             this._remoteToLocalOffsetMillis = 0;
         }
