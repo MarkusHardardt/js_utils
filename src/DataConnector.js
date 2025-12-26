@@ -21,17 +21,28 @@
             ids.splice(idx, 1);
         }
     };
+    function invert(source) {
+        const target = {};
+        for (const s in source) {
+            if (source.hasOwnProperty(s)) {
+                target[source[s]] = s;
+            }
+        }
+        return target;
+    }
 
     const DEFAULT_DATA_CONNECTION_RECEIVER = 'dcr';
 
     const defaultOnError = error => console.error(error);
 
     const TransmissionType = Object.freeze({
-        SubscriptionRequest: 1,
-        SubscriptionResponse: 2,
-        ReadRequest: 3,
-        ReadResponse: 4,
-        WriteRequest: 5
+        Con2IdRequest: 1,
+        Con2IdResponse: 2,
+        SubscriptionRequest: 3,
+        SubscriptionResponse: 4,
+        ReadRequest: 5,
+        ReadResponse: 6,
+        WriteRequest: 7
     });
 
     class BaseDataConnector {
@@ -83,10 +94,12 @@
             this._callbacks = {};
             this._bufferedSubsciptions = [];
             this._bufferedUnsubsciptions = [];
-            this._buffering = false;
+            this._buffering = false; // TODO: Remove
+            this._con2Id = null;
+            this._id2Con = null;
         }
 
-        set Buffering(value) {
+        set Buffering(value) { // TODO: Replace with better mechanism like timeout
             if (value === true) {
                 this._buffering = true;
             } else if (this._buffering) {
@@ -99,6 +112,19 @@
                     unsubscribe: this._bufferedUnsubsciptions.splice(0, this._bufferedUnsubsciptions.length)
                 });
             }
+        }
+
+        OnOpen() {
+            console.log('ClientDataConnector.OnOpen()');
+            validateConnection(this.connection);
+            this.connection.Send(this.receiver, { type: TransmissionType.Con2IdRequest, id }, con2Id => {
+                this._con2Id = con2Id;
+                this._id2Con = invert(con2Id);
+            }, error => this.onError(error));
+        }
+
+        OnClose() {
+            console.log('ClientDataConnector.OnClose()');
         }
 
         Subscribe(id, onEvent) {
@@ -192,6 +218,8 @@
             this._parent = null;
             this._callbacks = {};
             this._nextId = Common.idGenerator();
+            this._con2Id = null;
+            this._id2Con = null;
         }
 
         set Parent(value) {
@@ -211,15 +239,11 @@
             for (const id of ids) {
                 addId(sorted, id);
             }
-            const id2con = {};
-            const con2id = {};
+            this._con2Id = {};
             for (const id of sorted) {
-                const con = this._nextId();
-                id2con[id] = con;
-                con2id[con] = [id];
+                this._con2Id[this._nextId()] = id;
             }
-            this._id2con = id2con;
-            this._con2id = con2id;
+            this._id2Con = invert(this._con2Id);
         }
 
         OnOpen() {
@@ -243,6 +267,9 @@
                 validateEventPublisher(this._parent);
                 validateConnection(this.connection);
                 switch (data.type) {
+                    case TransmissionType.Con2IdRequest:
+                        this.connection.Send(this.receiver, { type: TransmissionType.Con2IdResponse, con2Id: this._con2Id });
+                        break;
                     case TransmissionType.SubscriptionRequest:
                         if (data.unsubscribe) {
                             for (const id of data.unsubscribe) {
