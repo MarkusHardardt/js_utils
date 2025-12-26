@@ -742,34 +742,31 @@
         var _div = $(DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
         _div.appendTo(_cont);
         var _object = undefined;
-        this.hmi_getContent = function () {
-            return _object;
-        };
-        this.hmi_setContent = function (i_object, i_success, i_error, i_initData, i_disableVisuEvents, i_enableEditorEvents) {
+        this.hmi_getContent = () => _object;
+        this.hmi_setContent = (i_object, i_success, i_error, i_initData, i_disableVisuEvents, i_enableEditorEvents) => {
             if (_object === undefined && i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
-                create_hmi_object_branch(i_object, _div, function () {
+                create_hmi_object_branch(i_object, _div, () => {
                     _object = i_object;
                     i_success();
-                }, function (i_exception) {
+                }, i_exception => {
                     _div.empty();
                     i_error(i_exception);
                 }, that.hmi, i_initData, that, i_object.id, that.hmi_node(), i_disableVisuEvents, i_enableEditorEvents);
             }
         };
-        this.hmi_removeContent = function (i_success, i_error) {
+        this.hmi_removeContent = (i_success, i_error) => {
             if (_object !== undefined) {
-                var obj = _object;
+                const obj = _object;
                 _object = undefined;
-                destroy_hmi_object_branch(obj, function () {
+                destroy_hmi_object_branch(obj, () => {
                     _div.empty();
                     if (typeof i_success === 'function') {
                         i_success();
                     }
-                }, function (i_exception) {
+                }, i_exception => {
                     if (typeof i_error === 'function') {
                         i_error(i_exception);
-                    }
-                    else {
+                    } else {
                         console.error(i_exception);
                     }
                 });
@@ -778,7 +775,7 @@
                 i_success();
             }
         };
-        this._hmi_resizes.push(function () {
+        this._hmi_resizes.push(() => {
             if (_object) {
                 var hmiobj = _object._hmi_object;
                 if (hmiobj._hmi_resize) {
@@ -786,7 +783,7 @@
                 }
             }
         });
-        this._hmi_destroys.push(function () {
+        this._hmi_destroys.push(() => {
             _div.remove();
             _div = undefined;
             delete that.hmi_getContent;
@@ -1572,7 +1569,7 @@
                         if (child.objectReference === i_objectReference) {
                             // here we use .object because we placed our object there (see
                             // code above)
-                            destroy_hmi_object_branch(child.object, function () {
+                            destroy_hmi_object_branch(child.object, () => {
                                 delete child._hmi_object;
                                 delete child.hmi_object;
                                 delete child.object;
@@ -7871,34 +7868,40 @@
         }
     };
 
+    function setConnectorBuffering(hmi, buffering) {
+        if (hmi && hmi.env && hmi.env.connector) {
+            hmi.env.connector.Buffering = buffering;
+        }
+    }
     // /////////////////////////////////////////////////////////////////////////////////////////
     // INITIALIZATION AND DESTROY
     // /////////////////////////////////////////////////////////////////////////////////////////
     var create_hmi_object_branch = function (i_object, i_jqueryElement, i_success, i_error, i_hmi, i_initData, i_parentObject, i_nodeId, i_parentNode, i_disableVisuEvents, i_enableEditorEvents) {
         if (i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
+            setConnectorBuffering(i_hmi, true);
             Executor.run(function (i_suc, i_err) {
                 init_object(i_object, i_initData);
-                perform_attribute_on_object_branch(i_object, 'build', true, function () {
+                perform_attribute_on_object_branch(i_object, 'build', true, () => {
                     attach_hmi_object(i_object);
                     var hmiobj = i_object._hmi_object;
                     create_id_node_branch(hmiobj, i_parentObject, i_nodeId, i_parentNode);
                     process_object_branch(hmiobj, true, undefined, function (i_processObject) {
                         ObjectImpl.call(i_processObject, i_disableVisuEvents, hmiobj === i_processObject && i_enableEditorEvents);
                     });
-                    perform_attribute_on_object_branch(i_object, 'apply', false, function () {
+                    perform_attribute_on_object_branch(i_object, 'apply', false, () => {
                         if (hmiobj._hmi_init_dom) {
                             hmiobj._hmi_init_dom({
                                 // #create/destroy_hmi_object_branch: 2
                                 container: i_jqueryElement
                             }, function () {
-                                perform_attribute_on_object_branch(i_object, 'prepare', true, function () {
+                                perform_attribute_on_object_branch(i_object, 'prepare', true, () => {
                                     // TODO: handle external sources here
-                                    perform_attribute_on_object_branch(i_object, '_hmi_addListeners', true, function () {
+                                    perform_attribute_on_object_branch(i_object, '_hmi_addListeners', true, () => {
                                         // #bugfix: 'start' is reverse (from leaves to root) - fixed
                                         // 2017-02-07
-                                        perform_attribute_on_object_branch(i_object, 'start', false, function () {
+                                        perform_attribute_on_object_branch(i_object, 'start', false, () => {
                                             // set alive
-                                            process_object_branch(hmiobj, true, undefined, function (i_processObject) {
+                                            process_object_branch(hmiobj, true, undefined, i_processObject => {
                                                 i_processObject._hmi_alive = true;
                                             });
                                             // handle root objects
@@ -7921,7 +7924,14 @@
                         }
                     }, i_err);
                 }, i_err, i_hmi);
-            }, i_success, i_error, function () {
+            }, () => {
+                setConnectorBuffering(i_hmi, false);
+                i_success();
+            }, error => {
+                setConnectorBuffering(i_hmi, false);
+                i_error(error);
+            }, () => {
+                setConnectorBuffering(i_hmi, false);
                 i_error('timeout');
             }, 5000);
         }
@@ -7932,6 +7942,8 @@
 
     var destroy_hmi_object_branch = function (i_object, i_success, i_error) {
         if (i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
+            const hmi = i_object.hmi;
+            setConnectorBuffering(hmi, true);
             var hmiobj = i_object._hmi_object;
             if (hmiobj !== null && typeof hmiobj === 'object') {
                 // handle root objects
@@ -7941,19 +7953,19 @@
                         break;
                     }
                 }
-                process_object_branch(hmiobj, false, undefined, function (i_processObject) {
+                process_object_branch(hmiobj, false, undefined, i_processObject => {
                     delete i_processObject._hmi_alive;
                 });
-                Executor.run(function (i_suc, i_err) {
-                    perform_attribute_on_object_branch(i_object, 'stop', true, function () {
-                        perform_attribute_on_object_branch(i_object, '_hmi_removeListeners', false, function () {
-                            perform_attribute_on_object_branch(i_object, 'destroy', false, function () {
+                Executor.run((i_suc, i_err) => {
+                    perform_attribute_on_object_branch(i_object, 'stop', true, () => {
+                        perform_attribute_on_object_branch(i_object, '_hmi_removeListeners', false, () => {
+                            perform_attribute_on_object_branch(i_object, 'destroy', false, () => {
                                 if (hmiobj._hmi_destroy_dom) {
                                     // #create/destroy_hmi_object_branch: 1 + 2
                                     hmiobj._hmi_destroy_dom();
                                 }
-                                perform_attribute_on_object_branch(i_object, 'remove', true, function () {
-                                    process_object_branch(hmiobj, false, undefined, function (i_processObject) {
+                                perform_attribute_on_object_branch(i_object, 'remove', true, () => {
+                                    process_object_branch(hmiobj, false, undefined, i_processObject => {
                                         if (i_processObject._hmi_destroy) {
                                             i_processObject._hmi_destroy();
                                         }
@@ -7965,7 +7977,14 @@
                             }, i_err);
                         }, i_err);
                     }, i_err);
-                }, i_success, i_error, function () {
+                }, () => {
+                    setConnectorBuffering(hmi, false);
+                    i_success();
+                }, error => {
+                    setConnectorBuffering(hmi, false);
+                    i_error(error);
+                }, () => {
+                    setConnectorBuffering(hmi, false);
                     i_error('timeout');
                 }, 5000);
             }
