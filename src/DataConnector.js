@@ -25,46 +25,43 @@
 
     const defaultOnError = error => console.error(error);
 
-    const RequestType = Object.freeze({
+    const TransmissionType = Object.freeze({
         SubscriptionRequest: 1,
         SubscriptionResponse: 2,
-        Read: 3,
-        Write: 4,
+        ReadRequest: 3,
+        ReadResponse: 4,
+        WriteRequest: 5,
         Subscribe: 14, // TODO: Required?
         Unsubscribe: 15, // TODO: Required?
         Notify: 16 // TODO: Required?
     });
 
-    class ClientDataConnector {
+    class BaseDataConnector {
         constructor() {
             this._connection = null;
-            this._onError = defaultOnError;
-            this._subscribers = {};
-            this._bufferedSubsciptions = [];
-            this._bufferedUnsubsciptions = [];
-            this._buffering = false;
-            this._receiver = DEFAULT_DATA_CONNECTION_RECEIVER;
-            this._handler = data => this._handleReceived(data);
+            this.onError = defaultOnError;
+            this.receiver = DEFAULT_DATA_CONNECTION_RECEIVER;
+            this._handler = data => this.handleReceived(data);
         }
 
         set Connection(value) {
             if (value) {
                 if (this._connection) {
-                    this._connection.Unregister(this._receiver);
+                    this._connection.Unregister(this.receiver);
                     this._connection = null;
                 }
                 validateConnection(value);
                 this._connection = value;
-                this._connection.Register(this._receiver, this._handler);
+                this._connection.Register(this.receiver, this._handler);
             } else if (this._connection) {
-                this._connection.Unregister(this._receiver);
+                this._connection.Unregister(this.receiver);
                 this._connection = null;
             }
         }
 
         set OnError(value) {
             if (typeof value === 'function') {
-                this._onError = value;
+                this.onError = value;
             } else {
                 throw new Error('Set value for OnError() is not a function');
             }
@@ -74,7 +71,19 @@
             if (typeof value !== 'string') {
                 throw new Error(`Invalid receiver: ${value}`);
             }
-            this._receiver = value;
+            this.receiver = value;
+        }
+
+        handleReceived(data) { }
+    }
+
+    class ClientDataConnector extends BaseDataConnector {
+        constructor() {
+            super();
+            this._subscribers = {};
+            this._bufferedSubsciptions = [];
+            this._bufferedUnsubsciptions = [];
+            this._buffering = false;
         }
 
         set Buffering(value) {
@@ -84,8 +93,8 @@
                 this._buffering = false;
                 const ids = [];
                 validateConnection(this._connection);
-                this._connection.Send(this._receiver, {
-                    type: RequestType.SubscriptionRequest,
+                this._connection.Send(this.receiver, {
+                    type: TransmissionType.SubscriptionRequest,
                     subscribe: this._bufferedSubsciptions.splice(0, this._bufferedSubsciptions.length),
                     unsubscribe: this._bufferedUnsubsciptions.splice(0, this._bufferedUnsubsciptions.length)
                 });
@@ -106,7 +115,7 @@
                 addId(this._bufferedSubsciptions, id);
                 removeId(this._bufferedUnsubsciptions, id);
             } else {
-                this._connection.Send(this._receiver, { type: RequestType.SubscriptionRequest, subscribe: [id] });
+                this._connection.Send(this.receiver, { type: TransmissionType.SubscriptionRequest, subscribe: [id] });
             }
         }
 
@@ -126,40 +135,107 @@
                 addId(this._bufferedUnsubsciptions, id);
                 removeId(this._bufferedSubsciptions, id);
             } else {
-                this._connection.Send(this._receiver, { type: RequestType.SubscriptionRequest, unsubscribe: [id] });
+                this._connection.Send(this.receiver, { type: TransmissionType.SubscriptionRequest, unsubscribe: [id] });
             }
         }
 
         Read(id, onResponse, onError) {
             validateConnection(this._connection);
-            this._connection.Send(this._receiver, { type: RequestType.Read, id }, onResponse, onError);
+            this._connection.Send(this.receiver, { type: TransmissionType.ReadRequest, id }, onResponse, onError);
         }
 
         Write(id, value) {
             validateConnection(this._connection);
-            this._connection.Send(this._receiver, { type: RequestType.Write, id, value });
+            this._connection.Send(this.receiver, { type: TransmissionType.WriteRequest, id, value });
         }
 
-        _handleReceived(data) {
-            switch (data.type) {
-                case RequestType.SubscriptionResponse:
-                    for (const id in data.values) {
-                        if (data.values.hasOwnProperty(id)) {
-                            const value = data.values[id];
-                            const subscriber = this._subscribers[id];
-                            if (subscriber) {
-                                try {
-                                    subscriber(value);
-                                } catch (error) {
-                                    this._onError(`Failed notifying subscriber for id: ${id}: ${error}`);
+        handleReceived(data) {
+            try {
+                switch (data.type) {
+                    case TransmissionType.SubscriptionResponse:
+                        for (const id in data.values) {
+                            if (data.values.hasOwnProperty(id)) {
+                                const value = data.values[id];
+                                const subscriber = this._subscribers[id];
+                                if (subscriber) {
+                                    try {
+                                        subscriber(value);
+                                    } catch (error) {
+                                        this.onError(`Failed notifying subscriber for id: ${id}: ${error}`);
+                                    }
                                 }
                             }
                         }
-                    }
-                    break;
+                        break;
+                    case TransmissionType.ReadResponse:
+                        // TODO: Implement
+                        break;
+                    default:
+                        throw new Error(`Invalid transmission type: ${data.type}`);
+                }
+            } catch (error) {
+
             }
         }
     }
+
+    class ServerDataConnector extends BaseDataConnector {
+        constructor() {
+            super();
+            this._broker = null;
+            this._subscribers = {};
+        }
+
+        set Broker(value) {
+            validateDataBroker(value);
+            this._broker = value;
+        }
+
+        handleReceived(data) {
+            try {
+                validateDataBroker(this._broker);
+                switch (data.type) {
+                    case TransmissionType.SubscriptionRequest:
+                        if (data.unsubscribe) {
+                            for (const id of data.unsubscribe) {
+                                const subscriber = this._subscribers[id];
+                                if (subscriber) {
+                                    delete this._subscribers[id];
+                                    this._broker.Unsubscribe(id, subscriber);
+                                }
+                            }
+                        }
+                        if (data.subscribe) {
+                            for (const id of data.subscribe) {
+                                let subscriber = this._subscribers[id];
+                                if (!subscriber) {
+                                    this._subscribers[id] = subscriber = value => { };
+                                }
+                                this._broker.Subscribe(id, subscriber);
+                            }
+                        }
+                        break;
+                    case TransmissionType.ReadRequest:
+                        /* this._broker.Read(data.id, response => {
+
+                        }, error => {
+
+                        });
+                        break; */
+                        throw new Error('Read request not yetimplemented');
+
+                    case TransmissionType.WriteRequest:
+                        // break;
+                        throw new Error('Write request not yetimplemented');
+                    default:
+                        throw new Error(`Invalid transmission type: ${data.type}`);
+                }
+            } catch (error) {
+                this.onError(`Failed handling received data: ${error}'`);
+            }
+        }
+    }
+
 
     class DataConnector { // TODO: Reuse or remove
         constructor(connection, receiver) {
@@ -168,7 +244,7 @@
             this._subscribers = {};
             connection.Register(this._receiver, (data, onResponse, onError) => {
                 switch (data.type) {
-                    case RequestType.Notify:
+                    case TransmissionType.Notify:
                         for (const nodeId in data.values) {
                             if (data.values.hasOwnProperty(nodeId)) {
                                 const value = data.values[nodeId];
@@ -184,11 +260,11 @@
         }
 
         Read(id, onResponse, onError) {
-            this._connection.Send(this._receiver, { type: RequestType.Read, id }, onResponse, onError);
+            this._connection.Send(this._receiver, { type: TransmissionType.ReadRequest, id }, onResponse, onError);
         }
 
         Write(id, value) {
-            this._connection.Send(this._receiver, { type: RequestType.Write, id, value });
+            this._connection.Send(this._receiver, { type: TransmissionType.WriteRequest, id, value });
         }
 
         Subscribe(id, subscriber) {
@@ -200,7 +276,7 @@
                 throw new Error(`Key ${id} is already subscribed`);
             }
             this._subscribers[id] = subscriber;
-            this._connection.Send(this._receiver, { type: RequestType.Subscribe, id });
+            this._connection.Send(this._receiver, { type: TransmissionType.Subscribe, id });
         }
 
         Unsubscribe(id, subscriber) {
@@ -214,7 +290,7 @@
                 throw new Error(`Unexpected subscriber for id ${id} to unsubscribe`);
             }
             delete this._subscribers[id];
-            this._connection.Send(this._receiver, { type: RequestType.Unsubscribe, id });
+            this._connection.Send(this._receiver, { type: TransmissionType.Unsubscribe, id });
         }
     }
 
@@ -229,24 +305,24 @@
             this._connections[connection.SessionId] = { connection, online: true };
             connection.Register(this._receiver, (data, onResponse, onError) => {
                 switch (data.type) {
-                    case RequestType.Read:
-                        // TODO: Remove console.log(`Read(${JSON.stringify(data)})`);
+                    case TransmissionType.ReadRequest:
+                        // TODO: Remove console.log(`ReadRequest(${JSON.stringify(data)})`);
                         this._adapter.Read(data.id, response => onResponse(response), error => onError(error));
                         break;
-                    case RequestType.Write:
-                        // TODO: Remove console.log(`Write(${JSON.stringify(data)})`);
+                    case TransmissionType.WriteRequest:
+                        // TODO: Remove console.log(`WriteRequest(${JSON.stringify(data)})`);
                         this._adapter.Write(data.id, data.value);
                         break;
-                    case RequestType.Subscribe:
+                    case TransmissionType.Subscribe:
                         // TODO: Remove console.log(`Subscribe(${JSON.stringify(data)})`);
                         // TODO: Das funktioniert nicht bei mehrenen Browsern! Muss da nicht wieder ein DataNode verwendet werden, der mehrere subscribers behandeln kann und zudem zeitverzögert unsubscribed?
                         this._adapter.Subscribe(data.id);
                         break;
-                    case RequestType.Unsubscribe:
+                    case TransmissionType.Unsubscribe:
                         // TODO: Remove console.log(`Unsubscribe(${JSON.stringify(data)})`);
                         this._adapter.Unsubscribe(data.id);
                         break;
-                    case RequestType.Notify:
+                    case TransmissionType.Notify:
                         console.log(`Notify(${JSON.stringify(data)})`);
                         break;
                 }
@@ -294,7 +370,7 @@
                 if (this._connections.hasOwnProperty(sessionId)) {
                     const con = this._connections[sessionId];
                     if (con && con.online) {
-                        con.connection.Send(this._receiver, { type: RequestType.Notify, values: values });
+                        con.connection.Send(this._receiver, { type: TransmissionType.Notify, values: values });
                     }
                 }
             }
@@ -302,7 +378,7 @@
     }
 
     if (isNodeJS) {
-        module.exports = { DataConnectorServer };
+        module.exports = { ServerDataConnector, DataConnectorServer };
     } else {
         root.ClientDataConnector = ClientDataConnector;
         root.DataConnector = DataConnector;
