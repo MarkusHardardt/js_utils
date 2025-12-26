@@ -90,7 +90,7 @@
                 this._buffering = false;
                 const ids = [];
                 validateConnection(this.connection);
-                this.connection.Send(this.receiver, {
+                this.connection.Send(this.receiver, { // TODO: This fails if not connected!
                     type: TransmissionType.SubscriptionRequest,
                     subscribe: this._bufferedSubsciptions.splice(0, this._bufferedSubsciptions.length),
                     unsubscribe: this._bufferedUnsubsciptions.splice(0, this._bufferedUnsubsciptions.length)
