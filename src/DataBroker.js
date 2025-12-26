@@ -5,15 +5,15 @@
 
     function validateDataBroker(db) {
         if (!db) {
-            throw new Error('Invalid DataBroker: Is null or undefined');
+            throw new Error('Invalid data broker: Is null or undefined');
         } else if (typeof db.Subscribe !== 'function') {
-            throw new Error('Invalid DataBroker: Missing method Subscribe(in, subscriber)');
+            throw new Error('Invalid data broker: Missing method Subscribe(in, subscriber)');
         } else if (typeof db.Unsubscribe !== 'function') {
-            throw new Error('Invalid DataBroker: Missing method Unsubscribe(in, subscriber)');
+            throw new Error('Invalid data broker: Missing method Unsubscribe(in, subscriber)');
         } else if (typeof db.Read !== 'function') {
-            throw new Error('Invalid DataBroker: Missing method Read(id, onResponse, onError)');
+            throw new Error('Invalid data broker: Missing method Read(id, onResponse, onError)');
         } else if (typeof db.Write !== 'function') {
-            throw new Error('Invalid DataBroker: Missing method Write(id, value)');
+            throw new Error('Invalid data broker: Missing method Write(id, value)');
         }
     }
 
@@ -56,7 +56,9 @@
 
         Subscribe(id, subscriber) {
             validateDataBroker(this._other);
-            if (typeof subscriber !== 'function') {
+            if (typeof id !== 'string') {
+                throw new Error(`Invalid subscription id: ${id}`);
+            } else if (typeof subscriber !== 'function') {
                 throw new Error(`Subscriber for id '${id}' is not a function`);
             }
             let node = this._nodes[id];
@@ -83,6 +85,11 @@
 
         Unsubscribe(id, subscriber) {
             validateDataBroker(this._other);
+            if (typeof id !== 'string') {
+                throw new Error(`Invalid unsubscription id: ${id}`);
+            } else if (typeof subscriber !== 'function') {
+                throw new Error(`Subscriber for id '${id}' is not a function`);
+            }
             let node = this._nodes[id];
             if (!node) {
                 throw new Error(`Cannot unsubscribe for unknown id: ${id}`);
@@ -139,9 +146,9 @@
                 SetValue: value => {
                     if (!this._equal(value, node.value)) {
                         node.value = value;
-                        for (const sub of node.subscribers) {
+                        for (const subscriber of node.subscribers) {
                             try {
-                                sub(value);
+                                subscriber(value);
                             } catch (error) {
                                 this._onError(`Failed notifying subscriber for id: ${node.id}: ${error}`);
                             }

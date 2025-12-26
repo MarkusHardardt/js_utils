@@ -3,15 +3,204 @@
 
     const isNodeJS = typeof require === 'function';
 
+    const { validateDataBroker } = isNodeJS ? require('./DataBroker.js') : { validateDataBroker: root.validateDataBroker }; // TODO: Required?
+    const { validateConnection } = isNodeJS ? require('./WebSocketConnection.js') : { validateConnection: root.validateConnection };
+    const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
+
+    const compareTextsAndNumbers = Sorting.getTextsAndNumbersCompareFunction(true, false, true);
+    function addId(ids, id) {
+        let idx = Sorting.getInsertionIndex(id, ids, true, compareTextsAndNumbers);
+        if (idx >= 0) {
+            ids.splice(idx, 0, id);
+        }
+    };
+    function removeId(ids, id) {
+        let idx = Sorting.getInsertionIndex(id, ids, true, compareTextsAndNumbers);
+        if (idx >= 0) {
+            ids.splice(idx, 0, id);
+        }
+    };
+
     const DEFAULT_DATA_CONNECTION_RECEIVER = 'dcr';
 
+    const defaultOnError = error => console.error(error);
+
     const RequestType = Object.freeze({
-        Read: 1,
-        Write: 2,
-        Subscribe: 3,
-        Unsubscribe: 4,
-        Notify: 5
+        SubscriptionRequest: 1,
+        SubscriptionResponse: 2,
+        Read: 3,
+        Write: 4,
+        Subscribe: 14, // TODO: Required?
+        Unsubscribe: 15, // TODO: Required?
+        Notify: 16 // TODO: Required?
     });
+
+    class ClientDataConnector {
+        constructor() {
+            this._connection = null;
+            this._onError = defaultOnError;
+            this._receiver = DEFAULT_DATA_CONNECTION_RECEIVER;
+            this._subscribers = {};
+            this._bufferedSubsciptions = [];
+            this._bufferedUnsubsciptions = [];
+            this._buffering = false;
+        }
+
+        set Connection(value) {
+            if (value) {
+                validateConnection(value);
+                value.Register(this._receiver, (data, onResponse, onError) => {
+                    switch (data.type) {
+                        case RequestType.SubscriptionResponse:
+                            for (const id in data.values) {
+                                if (data.values.hasOwnProperty(id)) {
+                                    const value = data.values[id];
+                                    const subscriber = this._subscribers[id];
+                                    if (subscriber) {
+                                        try {
+                                            subscriber(value);
+                                        } catch (error) {
+                                            this._onError(`Failed notifying subscriber for id: ${id}: ${error}`);
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+                    }
+                });
+                this._connection = value;
+            }
+        }
+
+        set OnError(value) {
+            if (typeof value === 'function') {
+                this._onError = value;
+            } else {
+                throw new Error('Set value for OnError() is not a function');
+            }
+        }
+
+        set Receiver(value) {
+            if (typeof value !== 'string') {
+                throw new Error(`Invalid receiver: ${value}`);
+            }
+            this._receiver = value;
+        }
+
+        set Buffering(value) {
+            if (value === true) {
+                this._buffering = true;
+            } else if (this._buffering) {
+                this._buffering = false;
+                const ids = []; // addId
+
+
+            }
+        }
+
+        Subscribe(id, subscriber) {
+            validateConnection(this._connection);
+            if (typeof id !== 'string') {
+                throw new Error(`Invalid subscription id: ${id}`);
+            } else if (typeof subscriber !== 'function') {
+                throw new Error(`Subscriber for subscription id ${id} is not a function`);
+            } else if (this._subscribers[id] !== undefined) {
+                throw new Error(`Key ${id} is already subscribed`);
+            }
+            this._subscribers[id] = subscriber;
+            if (this._buffering) {
+                addId(this._bufferedUnsubsciptions, id);
+            } else {
+                this._connection.Send(this._receiver, { type: RequestType.SubscriptionRequest, subscribe: [id] });
+            }
+        }
+
+        Unsubscribe(id, subscriber) {
+            validateConnection(this._connection);
+            if (typeof id !== 'string') {
+                throw new Error(`Invalid unsubscription id: ${id}`);
+            } else if (typeof subscriber !== 'function') {
+                throw new Error(`Subscriber for unsubscription id ${id} is not a function`);
+            } else if (this._subscribers[id] === undefined) {
+                throw new Error(`Key ${id} is already subscribed`);
+            } else if (this._subscribers[id] !== subscriber) {
+                throw new Error(`Unexpected subscriber for id ${id} to unsubscribe`);
+            }
+            delete this._subscribers[id];
+            if (this._buffering) {
+                addId(this._bufferedSubsciptions, id);
+            } else {
+                this._connection.Send(this._receiver, { type: RequestType.SubscriptionRequest, unsubscribe: [id] });
+            }
+        }
+
+        Read(id, onResponse, onError) {
+            validateConnection(this._connection);
+            this._connection.Send(this._receiver, { type: RequestType.Read, id }, onResponse, onError);
+        }
+
+        Write(id, value) {
+            validateConnection(this._connection);
+            this._connection.Send(this._receiver, { type: RequestType.Write, id, value });
+        }
+    }
+
+    class DataConnector { // TODO: Reuse or remove
+        constructor(connection, receiver) {
+            this._connection = connection;
+            this._receiver = receiver ?? DEFAULT_DATA_CONNECTION_RECEIVER;
+            this._subscribers = {};
+            connection.Register(this._receiver, (data, onResponse, onError) => {
+                switch (data.type) {
+                    case RequestType.Notify:
+                        for (const nodeId in data.values) {
+                            if (data.values.hasOwnProperty(nodeId)) {
+                                const value = data.values[nodeId];
+                                const subscriber = this._subscribers[nodeId];
+                                if (subscriber) {
+                                    subscriber(value);
+                                }
+                            }
+                        }
+                        break;
+                }
+            });
+        }
+
+        Read(id, onResponse, onError) {
+            this._connection.Send(this._receiver, { type: RequestType.Read, id }, onResponse, onError);
+        }
+
+        Write(id, value) {
+            this._connection.Send(this._receiver, { type: RequestType.Write, id, value });
+        }
+
+        Subscribe(id, subscriber) {
+            if (typeof id !== 'string') {
+                throw new Error(`Invalid subscription id type: ${(typeof id)}`);
+            } else if (typeof subscriber !== 'function') {
+                throw new Error(`Subscriber for subscription id ${id} is not a function`);
+            } else if (this._subscribers[id] !== undefined) {
+                throw new Error(`Key ${id} is already subscribed`);
+            }
+            this._subscribers[id] = subscriber;
+            this._connection.Send(this._receiver, { type: RequestType.Subscribe, id });
+        }
+
+        Unsubscribe(id, subscriber) {
+            if (typeof id !== 'string') {
+                throw new Error(`Invalid unsubscription id type: ${(typeof id)}`);
+            } else if (typeof subscriber !== 'function') {
+                throw new Error(`Subscriber for unsubscription id ${id} is not a function`);
+            } else if (this._subscribers[id] === undefined) {
+                throw new Error(`Key ${id} is already subscribed`);
+            } else if (this._subscribers[id] !== subscriber) {
+                throw new Error(`Unexpected subscriber for id ${id} to unsubscribe`);
+            }
+            delete this._subscribers[id];
+            this._connection.Send(this._receiver, { type: RequestType.Unsubscribe, id });
+        }
+    }
 
     class DataConnectorServer {
         constructor(adapter, receiver) {
@@ -93,63 +282,6 @@
                     }
                 }
             }
-        }
-    }
-
-    class DataConnector {
-        constructor(connection, receiver) {
-            this._connection = connection;
-            this._receiver = receiver ?? DEFAULT_DATA_CONNECTION_RECEIVER;
-            this._subscribers = {};
-            connection.Register(this._receiver, (data, onResponse, onError) => {
-                switch (data.type) {
-                    case RequestType.Notify:
-                        for (const nodeId in data.values) {
-                            if (data.values.hasOwnProperty(nodeId)) {
-                                const value = data.values[nodeId];
-                                const subscriber = this._subscribers[nodeId];
-                                if (subscriber) {
-                                    subscriber(value);
-                                }
-                            }
-                        }
-                        break;
-                }
-            });
-        }
-
-        Read(id, onResponse, onError) {
-            this._connection.Send(this._receiver, { type: RequestType.Read, id }, onResponse, onError);
-        }
-
-        Write(id, value) {
-            this._connection.Send(this._receiver, { type: RequestType.Write, id, value });
-        }
-
-        Subscribe(id, subscriber) {
-            if (typeof id !== 'string') {
-                throw new Error(`Invalid subscription id type: ${(typeof id)}`);
-            } else if (typeof subscriber !== 'function') {
-                throw new Error(`Subscriber for subscription id ${id} is not a function`);
-            } else if (this._subscribers[id] !== undefined) {
-                throw new Error(`Key ${id} is already subscribed`);
-            }
-            this._subscribers[id] = subscriber;
-            this._connection.Send(this._receiver, { type: RequestType.Subscribe, id });
-        }
-
-        Unsubscribe(id, subscriber) {
-            if (typeof id !== 'string') {
-                throw new Error(`Invalid unsubscription id type: ${(typeof id)}`);
-            } else if (typeof subscriber !== 'function') {
-                throw new Error(`Subscriber for unsubscription id ${id} is not a function`);
-            } else if (this._subscribers[id] === undefined) {
-                throw new Error(`Key ${id} is already subscribed`);
-            } else if (this._subscribers[id] !== subscriber) {
-                throw new Error(`Unexpected subscriber for id ${id} to unsubscribe`);
-            }
-            delete this._subscribers[id];
-            this._connection.Send(this._receiver, { type: RequestType.Unsubscribe, id });
         }
     }
 

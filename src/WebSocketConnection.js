@@ -18,6 +18,20 @@
         ErrorResponse: 5
     });
 
+    function validateConnection(con) {
+        if (!con) {
+            throw new Error('Invalid connection: Is null or undefined');
+        } else if (typeof con.Ping !== 'function') {
+            throw new Error('Invalid connection: Missing method Ping(onResponse, onError)');
+        } else if (typeof con.Register !== 'function') {
+            throw new Error('Invalid connection: Missing method Register(receiver, handler)');
+        } else if (typeof con.Unregister !== 'function') {
+            throw new Error('Invalid connection: Missing method Unregister(receiver)');
+        } else if (typeof con.Send !== 'function') {
+            throw new Error('Invalid connection: Missing method Send(receiver, data, onResponse, onError)');
+        }
+    }
+
     /*  The BaseConnection constructor requires the following arguments:
         - sessionId: received from web server (using ajax)
         - options: {
@@ -565,8 +579,9 @@
     }
 
     if (isNodeJS) {
-        module.exports = { WebSocketServer, formatSesionId };
+        module.exports = { validateConnection, WebSocketServer, formatSesionId };
     } else {
+        root.validateConnection = validateConnection;
         root.WebSocketClientConnection = WebSocketClientConnection;
         root.formatSesionId = formatSesionId;
     }
