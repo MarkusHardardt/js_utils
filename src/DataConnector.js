@@ -57,11 +57,10 @@
         }
 
         set OnError(value) {
-            if (typeof value === 'function') {
-                this.onError = value;
-            } else {
+            if (typeof value !== 'function') {
                 throw new Error('Set value for OnError() is not a function');
             }
+            this.onError = value;
         }
 
         set Receiver(value) {
@@ -71,13 +70,15 @@
             this.receiver = value;
         }
 
-        handleReceived(data) { }
+        handleReceived(data) {
+            throw new Error('Not implemented in base class: handleReceived(data)')
+        }
     }
 
     class ClientDataConnector extends BaseDataConnector {
         constructor() {
             super();
-            this._subscribers = {};
+            this._callbacks = {};
             this._bufferedSubsciptions = [];
             this._bufferedUnsubsciptions = [];
             this._buffering = false;
@@ -98,16 +99,16 @@
             }
         }
 
-        Subscribe(id, subscriber) {
+        Subscribe(id, onEvent) {
             validateConnection(this.connection);
             if (typeof id !== 'string') {
                 throw new Error(`Invalid subscription id: ${id}`);
-            } else if (typeof subscriber !== 'function') {
+            } else if (typeof onEvent !== 'function') {
                 throw new Error(`Subscriber for subscription id ${id} is not a function`);
-            } else if (this._subscribers[id] !== undefined) {
+            } else if (this._callbacks[id] !== undefined) {
                 throw new Error(`Key ${id} is already subscribed`);
             }
-            this._subscribers[id] = subscriber;
+            this._callbacks[id] = onEvent;
             if (this._buffering) {
                 addId(this._bufferedSubsciptions, id);
                 removeId(this._bufferedUnsubsciptions, id);
@@ -116,18 +117,18 @@
             }
         }
 
-        Unsubscribe(id, subscriber) {
+        Unsubscribe(id, onEvent) {
             validateConnection(this.connection);
             if (typeof id !== 'string') {
                 throw new Error(`Invalid unsubscription id: ${id}`);
-            } else if (typeof subscriber !== 'function') {
+            } else if (typeof onEvent !== 'function') {
                 throw new Error(`Subscriber for unsubscription id ${id} is not a function`);
-            } else if (this._subscribers[id] === undefined) {
+            } else if (this._callbacks[id] === undefined) {
                 throw new Error(`Key ${id} is already subscribed`);
-            } else if (this._subscribers[id] !== subscriber) {
-                throw new Error(`Unexpected subscriber for id ${id} to unsubscribe`);
+            } else if (this._callbacks[id] !== onEvent) {
+                throw new Error(`Unexpected onEvent for id ${id} to unsubscribe`);
             }
-            delete this._subscribers[id];
+            delete this._callbacks[id];
             if (this._buffering) {
                 addId(this._bufferedUnsubsciptions, id);
                 removeId(this._bufferedSubsciptions, id);
@@ -153,12 +154,12 @@
                         for (const id in data.values) {
                             if (data.values.hasOwnProperty(id)) {
                                 const value = data.values[id];
-                                const subscriber = this._subscribers[id];
-                                if (subscriber) {
+                                const onEvent = this._callbacks[id];
+                                if (onEvent) {
                                     try {
-                                        subscriber(value);
+                                        onEvent(value);
                                     } catch (error) {
-                                        this.onError(`Failed notifying subscriber for id: ${id}: ${error}`);
+                                        this.onError(`Failed calling onEvent() for id: ${id}: ${error}`);
                                     }
                                 }
                             }
@@ -179,51 +180,51 @@
     class ServerDataConnector extends BaseDataConnector {
         constructor() {
             super();
-            this._broker = null;
-            this._subscribers = {};
+            this._target = null;
+            this._callbacks = {};
         }
 
-        set Broker(value) {
+        set TargetEventPublisher(value) {
             if (value) {
                 validateEventPublisher(value);
-                this._broker = value;
+                this._target = value;
             } else {
-                this._broker = null;
+                this._target = null;
             }
         }
 
         handleReceived(data) {
             try {
-                validateEventPublisher(this._broker);
+                validateEventPublisher(this._target);
                 validateConnection(this.connection);
                 switch (data.type) {
                     case TransmissionType.SubscriptionRequest:
                         if (data.unsubscribe) {
                             for (const id of data.unsubscribe) {
-                                const subscriber = this._subscribers[id];
-                                if (subscriber) {
-                                    delete this._subscribers[id];
-                                    this._broker.Unsubscribe(id, subscriber);
+                                const onEvent = this._callbacks[id];
+                                if (onEvent) {
+                                    delete this._callbacks[id];
+                                    this._target.Unsubscribe(id, onEvent);
                                 }
                             }
                         }
                         if (data.subscribe) {
                             for (const id of data.subscribe) {
-                                let subscriber = this._subscribers[id];
-                                if (!subscriber) {
-                                    this._subscribers[id] = subscriber = value => { 
+                                let onEvent = this._callbacks[id];
+                                if (!onEvent) {
+                                    this._callbacks[id] = onEvent = value => {
                                         // console.log(`Updated id: '${id}', value: ${value}`);
                                         const values = {};
                                         values[id] = value;
                                         this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionResponse, values });
                                     };
                                 }
-                                this._broker.Subscribe(id, subscriber);
+                                this._target.Subscribe(id, onEvent);
                             }
                         }
                         break;
                     case TransmissionType.ReadRequest:
-                        /* this._broker.Read(data.id, response => {
+                        /* this._target.Read(data.id, response => {
 
                         }, error => {
 
