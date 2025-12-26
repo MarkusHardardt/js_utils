@@ -15,9 +15,9 @@
         }
     };
     function removeId(ids, id) {
-        let idx = Sorting.getInsertionIndex(id, ids, true, compareTextsAndNumbers);
+        let idx = Sorting.getIndexOfFirstEqual(id, ids, compareTextsAndNumbers);
         if (idx >= 0) {
-            ids.splice(idx, 0, id);
+            ids.splice(idx, 1);
         }
     };
 
@@ -39,36 +39,26 @@
         constructor() {
             this._connection = null;
             this._onError = defaultOnError;
-            this._receiver = DEFAULT_DATA_CONNECTION_RECEIVER;
             this._subscribers = {};
             this._bufferedSubsciptions = [];
             this._bufferedUnsubsciptions = [];
             this._buffering = false;
+            this._receiver = DEFAULT_DATA_CONNECTION_RECEIVER;
+            this._handler = data => this._handleReceived(data);
         }
 
         set Connection(value) {
             if (value) {
+                if (this._connection) {
+                    this._connection.Unregister(this._receiver);
+                    this._connection = null;
+                }
                 validateConnection(value);
-                value.Register(this._receiver, (data, onResponse, onError) => {
-                    switch (data.type) {
-                        case RequestType.SubscriptionResponse:
-                            for (const id in data.values) {
-                                if (data.values.hasOwnProperty(id)) {
-                                    const value = data.values[id];
-                                    const subscriber = this._subscribers[id];
-                                    if (subscriber) {
-                                        try {
-                                            subscriber(value);
-                                        } catch (error) {
-                                            this._onError(`Failed notifying subscriber for id: ${id}: ${error}`);
-                                        }
-                                    }
-                                }
-                            }
-                            break;
-                    }
-                });
                 this._connection = value;
+                this._connection.Register(this._receiver, this._handler);
+            } else if (this._connection) {
+                this._connection.Unregister(this._receiver);
+                this._connection = null;
             }
         }
 
@@ -92,9 +82,13 @@
                 this._buffering = true;
             } else if (this._buffering) {
                 this._buffering = false;
-                const ids = []; // addId
-
-
+                const ids = [];
+                validateConnection(this._connection);
+                this._connection.Send(this._receiver, {
+                    type: RequestType.SubscriptionRequest,
+                    subscribe: this._bufferedSubsciptions.splice(0, this._bufferedSubsciptions.length),
+                    unsubscribe: this._bufferedUnsubsciptions.splice(0, this._bufferedUnsubsciptions.length)
+                });
             }
         }
 
@@ -109,7 +103,8 @@
             }
             this._subscribers[id] = subscriber;
             if (this._buffering) {
-                addId(this._bufferedUnsubsciptions, id);
+                addId(this._bufferedSubsciptions, id);
+                removeId(this._bufferedUnsubsciptions, id);
             } else {
                 this._connection.Send(this._receiver, { type: RequestType.SubscriptionRequest, subscribe: [id] });
             }
@@ -128,7 +123,8 @@
             }
             delete this._subscribers[id];
             if (this._buffering) {
-                addId(this._bufferedSubsciptions, id);
+                addId(this._bufferedUnsubsciptions, id);
+                removeId(this._bufferedSubsciptions, id);
             } else {
                 this._connection.Send(this._receiver, { type: RequestType.SubscriptionRequest, unsubscribe: [id] });
             }
@@ -142,6 +138,26 @@
         Write(id, value) {
             validateConnection(this._connection);
             this._connection.Send(this._receiver, { type: RequestType.Write, id, value });
+        }
+
+        _handleReceived(data) {
+            switch (data.type) {
+                case RequestType.SubscriptionResponse:
+                    for (const id in data.values) {
+                        if (data.values.hasOwnProperty(id)) {
+                            const value = data.values[id];
+                            const subscriber = this._subscribers[id];
+                            if (subscriber) {
+                                try {
+                                    subscriber(value);
+                                } catch (error) {
+                                    this._onError(`Failed notifying subscriber for id: ${id}: ${error}`);
+                                }
+                            }
+                        }
+                    }
+                    break;
+            }
         }
     }
 
@@ -288,6 +304,7 @@
     if (isNodeJS) {
         module.exports = { DataConnectorServer };
     } else {
+        root.ClientDataConnector = ClientDataConnector;
         root.DataConnector = DataConnector;
     }
 }(globalThis));
