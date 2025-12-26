@@ -95,6 +95,7 @@
             this._callbacks = {};
             this._con2Id = null;
             this._id2Con = null;
+            this._online = false;
         }
 
         set Parent(value) {
@@ -123,19 +124,21 @@
         }
 
         OnOpen() {
-            console.log('ServerDataConnector.OnOpen()');
+            this._online = true;
         }
 
         OnReopen() {
-            console.log('ServerDataConnector.OnReopen()');
+            this._online = true;
         }
 
         OnClose() {
-            console.log('ServerDataConnector.OnClose()');
+            this._online = false;
+            this._updateSubscriptions('');
         }
 
         OnDispose() {
-            console.log('ServerDataConnector.OnDispose()');
+            this._online = false;
+            this._updateSubscriptions('');
         }
 
         handleReceived(data, onResponse, onError) {
@@ -152,39 +155,7 @@
                         }
                         break;
                     case TransmissionType.SubscriptionRequest:
-                        if (this._con2Id && this._id2Con) {
-                            for (const id in this._callbacks) {
-                                if (this._callbacks.hasOwnProperty(id)) {
-                                    const con = this._id2Con[id];
-                                    const onEvent = data.subs.indexOf(con) < 0 ? this._callbacks[id] : false;
-                                    if (onEvent) {
-                                        delete this._callbacks[id];
-                                        this._parent.Unsubscribe(id, onEvent);
-                                    }
-                                }
-                            }
-                            Regex.each(conRegex, data.subs, (start, end, match) => {
-                                const id = this._con2Id[match[0]];
-                                if (id) {
-                                    if (!this._callbacks[id]) {
-                                        const onEvent = value => {
-                                            // console.log(`Updated id: '${id}', value: ${value}`);
-                                            const values = {};
-                                            values[id] = value;
-                                            this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionResponse, values });
-                                        };
-                                        this._callbacks[id] = onEvent;
-                                        this._parent.Subscribe(id, onEvent);
-                                    }
-                                }
-                                else {
-                                    this.onError(`Cannot subscribe: ${match[0]}`);
-                                }
-                            }, true);
-                        }
-                        else {
-                            this.onError('No ids available');
-                        }
+                        this._updateSubscriptions(data.subs);
                         break;
                     case TransmissionType.ReadRequest:
                         this._parent.Read(data.id, onResponse, onError);
@@ -197,6 +168,47 @@
                 }
             } catch (error) {
                 this.onError(`Failed handling received data: ${error}'`);
+            }
+        }
+
+        _updateSubscriptions(subCons) {
+            try {
+                validateEventPublisher(this._parent);
+                if (this._con2Id && this._id2Con) {
+                    for (const id in this._callbacks) {
+                        if (this._callbacks.hasOwnProperty(id)) {
+                            const con = this._id2Con[id];
+                            const onEvent = subCons.indexOf(con) < 0 ? this._callbacks[id] : false;
+                            if (onEvent) {
+                                delete this._callbacks[id];
+                                this._parent.Unsubscribe(id, onEvent);
+                            }
+                        }
+                    }
+                    Regex.each(conRegex, subCons, (start, end, match) => {
+                        const id = this._con2Id[match[0]];
+                        if (id) {
+                            if (!this._callbacks[id]) {
+                                const onEvent = value => {
+                                    // console.log(`Updated id: '${id}', value: ${value}`);
+                                    const values = {};
+                                    values[id] = value;
+                                    this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionResponse, values });
+                                };
+                                this._callbacks[id] = onEvent;
+                                this._parent.Subscribe(id, onEvent);
+                            }
+                        }
+                        else {
+                            this.onError(`Cannot subscribe: ${match[0]}`);
+                        }
+                    }, true);
+                }
+                else {
+                    this.onError('No ids available');
+                }
+            } catch (error) {
+                this.onError(`Failed updating subscriptions: ${error}'`);
             }
         }
     }
