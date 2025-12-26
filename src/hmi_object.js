@@ -4502,8 +4502,6 @@
         // here we store some internal data for performance reasons
         var _children = undefined;
         var _curves = undefined;
-        var _watch = undefined;
-        var _subscriber = undefined;
         var event = undefined;
         var clicked = undefined;
         var _p = {};
@@ -7103,31 +7101,37 @@
             // WATCH / TEXT
             _watch = get_watch(that.watch);
             if (Array.isArray(_watch)) {
-                _subscriber = (key, value, type) => {
-                    try {
-                        if (typeof that.handleDataUpdate === 'function') {
-                            that.handleDataUpdate(key, value, type);
-                        } else if (type === ElementTypes.TEXTS_TYPE) {
-                            if (that.hmi_html) {
-                                that.hmi_html(value);
-                            }
-                        } else if (that.hmi_text) {
-                            if (typeof that.formatValue === 'function') {
-                                var value = that.formatValue(key, value);
-                                that.hmi_text(value);
-                            } else if (typeof value === 'number') {
-                                var value = typeof that.factor === 'number' ? that.factor * value : value;
-                                that.hmi_text(Utilities.formatNumber(value, typeof that.postDecimalPositions === 'number' ? that.postDecimalPositions : 0));
-                            } else {
-                                that.hmi_text(value);
-                            }
-                        }
-                    } catch (exc) {
-                        console.error('EXCEPTION: ' + exc);
-                    }
-                };
+                _subscriber = [];
                 for (var i = 0; i < _watch.length; i++) {
-                    that.hmi.env.data.Subscribe(_watch[i], _subscriber);
+                    (function () {
+                        const id = _watch[i];
+                        const type = undefined; // TODO: Handle ElementTypes.TEXTS_TYPE ???
+                        const subscriber = value => {
+                            try {
+                                if (typeof that.handleDataUpdate === 'function') {
+                                    that.handleDataUpdate(id, value, type);
+                                } else if (type === ElementTypes.TEXTS_TYPE) {
+                                    if (that.hmi_html) {
+                                        that.hmi_html(value);
+                                    }
+                                } else if (that.hmi_text) {
+                                    if (typeof that.formatValue === 'function') {
+                                        var value = that.formatValue(id, value);
+                                        that.hmi_text(value);
+                                    } else if (typeof value === 'number') {
+                                        var value = typeof that.factor === 'number' ? that.factor * value : value;
+                                        that.hmi_text(Utilities.formatNumber(value, typeof that.postDecimalPositions === 'number' ? that.postDecimalPositions : 0));
+                                    } else {
+                                        that.hmi_text(value);
+                                    }
+                                }
+                            } catch (exc) {
+                                console.error('EXCEPTION: ' + exc);
+                            }
+                        };
+                        _subscriber.push(subscriber);
+                        that.hmi.env.data.Subscribe(id, subscriber);
+                    }());
                 }
             }
             if (typeof that.handleLanguageChanged === 'function') {
@@ -7168,7 +7172,7 @@
             }
             if (Array.isArray(_watch)) {
                 for (var i = _watch.length - 1; i >= 0; i--) {
-                    that.hmi.env.data.Unsubscribe(_watch[i], _subscriber);
+                    that.hmi.env.data.Unsubscribe(_watch[i], _subscriber[i]);
                 }
                 _watch.splice(0, _watch.length);
                 _watch = undefined;

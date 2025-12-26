@@ -20,7 +20,11 @@
         }
 
         set Equal(value) {
-            this._equal = typeof value === 'function' ? value : defaultEqual;
+            if (typeof value === 'function') {
+                this._equal = value;
+            } else {
+                throw new Error('Set value for Equal() is not a function');
+            }
         }
 
         set OnError(value) {
@@ -45,7 +49,7 @@
             } else {
                 this._nodes[id] = node = {
                     id,
-                    subscriber: (id, value) => this._setValue(node, value),
+                    subscriber: value => this._setValue(node, value),
                     subscribers: [],
                     unsubscribeDelayTimer: null
                 };
@@ -91,9 +95,9 @@
                 node.value = value;
                 for (let subscriber of node.subscribers) {
                     try {
-                        subscriber(node.id, value);
+                        subscriber(value);
                     } catch (error) {
-                        this._onError(`Failed notifying subscriber for id: ${id}: ${error}`);
+                        this._onError(`Failed notifying subscriber for id: ${node.id}: ${error}`);
                     }
                 }
             }
@@ -101,23 +105,31 @@
     }
 
     class DataNode {
-        constructor(id) {
+        constructor(id, other) {
             this._id = id;
-            this._other = null;
+            if (typeof other.Subscribe === 'function' && typeof other.Unsubscribe === 'function') {
+                this._other = other;
+            } else {
+                throw new Error('Other must provide Subscribe/Unsubscribe methods');
+            }
             this._equal = defaultEqual;
             this._onError = defaultOnError;
             this._unsubscribeDelay = false;
             this._unsubscribeDelayTimer = null;
             this._subscribers = [];
-            this._subscriber = (id, value) => this.Value = value;
+            this._subscriber = value => this.Value = value;
         }
 
-        set Other(value) {
-            this._other = value;
+        get Id() {
+            return this._id;
         }
 
         set Equal(value) {
-            this._equal = typeof value === 'function' ? value : defaultEqual;
+            if (typeof value === 'function') {
+                this._equal = value;
+            } else {
+                throw new Error(`Data node (id: '${this._id}') set value for Equal() is not a function`);
+            }
         }
 
         get Value() {
@@ -129,9 +141,9 @@
                 this._value = value;
                 for (let subscriber of this._subscribers) {
                     try {
-                        subscriber(this._id, value);
+                        subscriber(value);
                     } catch (error) {
-                        this._onError(`Failed notifying subscriber: ${error}`);
+                        this._onError(`Failed notifying subscriber (id: '${this._id}'): ${error}`);
                     }
                 }
             }
@@ -143,11 +155,11 @@
 
         Subscribe(subscriber) {
             if (typeof subscriber !== 'function') {
-                throw new Error('Subscriber is not a function');
+                throw new Error(`Data node (id: '${this._id}') subscriber is not a function`);
             }
             for (let sub of this._subscribers) {
                 if (sub === subscriber) {
-                    throw new Error('Subscriber already contained');
+                    throw new Error(`Data node (id: '${this._id}') subscriber already contained`);
                 }
             }
             this._subscribers.push(subscriber);
@@ -179,98 +191,7 @@
                     return;
                 }
             }
-            throw new Error('Subscriber not contained');
-        }
-    }
-
-    class DataNode_DISCARDED {
-        constructor(id, adapter, options = {}) { // adapter: { Read, Write, Subscribe, Unsubscribe, OnError, Equal }, options { UnsubscribeDelay }
-            this._key = id;
-            this._adapter = adapter;
-            this._unsubscribeDelay = typeof options.UnsubscribeDelay === 'number' ? options.UnsubscribeDelay : false;
-            this._unsubscribeDelayTimer = null;
-            this._subscribers = [];
-            this._subscriber = (id, value) => {
-                if (!this._adapter.Equal(value, this._value)) {
-                    this._value = value;
-                    this._notifySubscribers()
-                }
-            };
-        }
-
-        get Value() {
-            return this._value;
-        }
-
-        Read(onResponse, onError) {
-            this._adapter.Read(response => {
-                this._subscriber(this._key, response);
-                try {
-                    onResponse(response);
-                } catch (error) {
-                    onError(error);
-                }
-            }, onError);
-        }
-
-        Write(value) {
-            this._adapter.Write(value);
-        }
-
-        get Subscriber() { // TODO: Use or remove
-            return this._subscriber;
-        }
-
-        _notifySubscribers() {
-            for (let subscriber of this._subscribers) {
-                try {
-                    subscriber(this._key, this._value);
-                } catch (error) {
-                    this._adapter.OnError(`Failed notifying subscriber: ${error}`);
-                }
-            }
-        }
-
-        Subscribe(subscriber) {
-            let type = typeof subscriber;
-            if (type !== 'function') {
-                throw new Error(`Is not a function but '${type}'`);
-            }
-            for (let sub of this._subscribers) {
-                if (sub === subscriber) {
-                    throw new Error('Subscriber already contained');
-                }
-            }
-            this._subscribers.push(subscriber);
-            if (this._subscribers.length === 1) {
-                if (this._unsubscribeDelayTimer) {
-                    clearTimeout(this._unsubscribeDelayTimer);
-                    this._unsubscribeDelayTimer = null;
-                }
-                else {
-                    this._adapter.Subscribe(this._subscriber);
-                }
-            }
-        }
-
-        Unsubscribe(subscriber) {
-            for (let sub = 0; sub < this._subscribers.length; sub++) {
-                if (this._subscribers[sub] === subscriber) {
-                    this._subscribers.splice(sub, 1);
-                    if (this._subscribers.length === 0) {
-                        if (this._unsubscribeDelay) {
-                            this._unsubscribeDelayTimer = setTimeout(() => {
-                                this._adapter.Unsubscribe(this._subscriber);
-                                this._unsubscribeDelayTimer = null;
-                            }, this._unsubscribeDelay);
-                        } else {
-                            this._adapter.Unsubscribe(this._subscriber);
-                        }
-                    }
-                    return;
-                }
-            }
-            throw new Error('Subscriber not contained');
+            throw new Error(`Data node (id: '${this._id}') subscriber is not contained`);
         }
     }
 
@@ -338,8 +259,8 @@
     }
 
     if (isNodeJS) {
-        module.exports = { DataBroker };
+        module.exports = { DataBroker: DataNodeSubscriptionRegistry }; // { DataBroker };
     } else {
-        root.DataBroker = DataBroker;
+        root.DataBroker = DataNodeSubscriptionRegistry; // DataBroker;
     }
 }(globalThis));
