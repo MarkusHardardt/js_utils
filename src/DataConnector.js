@@ -87,6 +87,107 @@
         }
     }
 
+    class ServerDataConnector extends BaseDataConnector {
+        constructor() {
+            super();
+            this._parent = null;
+            this._callbacks = {};
+            this._con2Id = null;
+            this._id2Con = null;
+        }
+
+        set Parent(value) {
+            if (value) {
+                validateEventPublisher(value);
+                this._parent = value;
+            } else {
+                this._parent = null;
+            }
+        }
+
+        SetIds(ids) {
+            if (!Array.isArray(ids)) {
+                throw new Error(`Ids must be passed as an array of strings: ${ids}`);
+            }
+            const sorted = [];
+            for (const id of ids) {
+                addId(sorted, id);
+            }
+            this._con2Id = {};
+            const nextId = Common.idGenerator();
+            for (const id of sorted) {
+                this._con2Id[nextId()] = id;
+            }
+            this._id2Con = invert(this._con2Id);
+        }
+
+        OnOpen() {
+            console.log('ServerDataConnector.OnOpen()');
+        }
+
+        OnReopen() {
+            console.log('ServerDataConnector.OnReopen()');
+        }
+
+        OnClose() {
+            console.log('ServerDataConnector.OnClose()');
+        }
+
+        OnDispose() {
+            console.log('ServerDataConnector.OnDispose()');
+        }
+
+        handleReceived(data) {
+            try {
+                validateEventPublisher(this._parent);
+                validateConnection(this.connection);
+                switch (data.type) {
+                    case TransmissionType.Con2IdRequest:
+                        this.connection.Send(this.receiver, { type: TransmissionType.Con2IdResponse, con2Id: this._con2Id });
+                        console.log(`Send TransmissionType.Con2IdResponse: ${JSON.stringify(this._con2Id)}`);
+                        break;
+                    case TransmissionType.SubscriptionRequest:
+                        if (data.unsubscribe) {
+                            for (const id of data.unsubscribe) {
+                                const onEvent = this._callbacks[id];
+                                if (onEvent) {
+                                    delete this._callbacks[id];
+                                    this._parent.Unsubscribe(id, onEvent);
+                                }
+                            }
+                        }
+                        if (data.subscribe) {
+                            for (const id of data.subscribe) {
+                                let onEvent = this._callbacks[id];
+                                if (!onEvent) {
+                                    this._callbacks[id] = onEvent = value => {
+                                        // console.log(`Updated id: '${id}', value: ${value}`);
+                                        const values = {};
+                                        values[id] = value;
+                                        this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionResponse, values });
+                                    };
+                                }
+                                this._parent.Subscribe(id, onEvent);
+                            }
+                        }
+                        break;
+                    case TransmissionType.ReadRequest:
+                        this._parent.Read(data.id, value => {
+                            this.connection.Send(this.receiver, { type: TransmissionType.ReadResponse, id: data.id, value });
+                        }, error => this.onError(error));
+                        break;
+                    case TransmissionType.WriteRequest:
+                        this._parent.Write(data.id, data.value);
+                        break;
+                    default:
+                        throw new Error(`Invalid transmission type: ${data.type}`);
+                }
+            } catch (error) {
+                this.onError(`Failed handling received data: ${error}'`);
+            }
+        }
+    }
+
     class ClientDataConnector extends BaseDataConnector {
         constructor() {
             super();
@@ -117,7 +218,7 @@
         OnOpen() {
             console.log('ClientDataConnector.OnOpen()');
             validateConnection(this.connection);
-            this.connection.Send(this.receiver, { type: TransmissionType.Con2IdRequest, id }, con2Id => {
+            this.connection.Send(this.receiver, { type: TransmissionType.Con2IdRequest }, con2Id => {
                 this._con2Id = con2Id;
                 this._id2Con = invert(con2Id);
             }, error => this.onError(error));
@@ -208,106 +309,6 @@
                 }
             } catch (error) {
 
-            }
-        }
-    }
-
-    class ServerDataConnector extends BaseDataConnector {
-        constructor() {
-            super();
-            this._parent = null;
-            this._callbacks = {};
-            this._nextId = Common.idGenerator();
-            this._con2Id = null;
-            this._id2Con = null;
-        }
-
-        set Parent(value) {
-            if (value) {
-                validateEventPublisher(value);
-                this._parent = value;
-            } else {
-                this._parent = null;
-            }
-        }
-
-        SetIds(ids) {
-            if (!Array.isArray(ids)) {
-                throw new Error(`Ids must be passed as an array of strings: ${ids}`);
-            }
-            const sorted = [];
-            for (const id of ids) {
-                addId(sorted, id);
-            }
-            this._con2Id = {};
-            for (const id of sorted) {
-                this._con2Id[this._nextId()] = id;
-            }
-            this._id2Con = invert(this._con2Id);
-        }
-
-        OnOpen() {
-            console.log('ServerDataConnector.OnOpen()');
-        }
-
-        OnReopen() {
-            console.log('ServerDataConnector.OnReopen()');
-        }
-
-        OnClose() {
-            console.log('ServerDataConnector.OnClose()');
-        }
-
-        OnDispose() {
-            console.log('ServerDataConnector.OnDispose()');
-        }
-
-        handleReceived(data) {
-            try {
-                validateEventPublisher(this._parent);
-                validateConnection(this.connection);
-                switch (data.type) {
-                    case TransmissionType.Con2IdRequest:
-                        this.connection.Send(this.receiver, { type: TransmissionType.Con2IdResponse, con2Id: this._con2Id });
-                        break;
-                    case TransmissionType.SubscriptionRequest:
-                        if (data.unsubscribe) {
-                            for (const id of data.unsubscribe) {
-                                const onEvent = this._callbacks[id];
-                                if (onEvent) {
-                                    delete this._callbacks[id];
-                                    this._parent.Unsubscribe(id, onEvent);
-                                }
-                            }
-                        }
-                        if (data.subscribe) {
-                            for (const id of data.subscribe) {
-                                let onEvent = this._callbacks[id];
-                                if (!onEvent) {
-                                    this._callbacks[id] = onEvent = value => {
-                                        // console.log(`Updated id: '${id}', value: ${value}`);
-                                        const values = {};
-                                        values[id] = value;
-                                        this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionResponse, values });
-                                    };
-                                }
-                                this._parent.Subscribe(id, onEvent);
-                            }
-                        }
-                        break;
-                    case TransmissionType.ReadRequest:
-                        this._parent.Read(data.id, value => {
-                            this.connection.Send(this.receiver, { type: TransmissionType.ReadResponse, id: data.id, value });
-                        }, error => this.onError(error));
-                        break;
-                    case TransmissionType.WriteRequest:
-                        this._parent.Write(data.id, data.value);
-                        break;
-                    default:
-                        throw new Error(`Invalid transmission type: ${data.type}`);
-                }
-            } catch (error) {
-                this.onError(`Failed handling received data: ${error}'`);
             }
         }
     }

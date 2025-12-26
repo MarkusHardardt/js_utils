@@ -50,6 +50,7 @@
         - Send(): sends data to receiver on other side an waits optionally for response (pong)    */
     class BaseConnection {
         constructor(sessionId, options) {
+            validateConnection(this);
             this._sessionId = sessionId;
             this._handlers = {};
             this._callbacks = {};
