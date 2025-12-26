@@ -5,6 +5,7 @@
 
     const Common = isNodeJS ? require('./Common.js') : root.Common;
     const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
+    const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
     const { validateEventPublisher } = isNodeJS ? require('./EventPublisher.js') : { validateEventPublisher: root.validateEventPublisher };
     const { validateConnection } = isNodeJS ? require('./WebSocketConnection.js') : { validateConnection: root.validateConnection };
 
@@ -85,6 +86,8 @@
         }
     }
 
+    const conRegex = /#[a-z0-9]+\b/g;
+
     class ServerDataConnector extends BaseDataConnector {
         constructor() {
             super();
@@ -149,28 +152,38 @@
                         }
                         break;
                     case TransmissionType.SubscriptionRequest:
-                        if (data.unsubscribe) {
-                            for (const id of data.unsubscribe) {
-                                const onEvent = this._callbacks[id];
-                                if (onEvent) {
-                                    delete this._callbacks[id];
-                                    this._parent.Unsubscribe(id, onEvent);
+                        if (this._con2Id && this._id2Con) {
+                            for (const id in this._callbacks) {
+                                if (this._callbacks.hasOwnProperty(id)) {
+                                    const con = this._id2Con[id];
+                                    const onEvent = data.subs.indexOf(con) < 0 ? this._callbacks[id] : false;
+                                    if (onEvent) {
+                                        delete this._callbacks[id];
+                                        this._parent.Unsubscribe(id, onEvent);
+                                    }
                                 }
                             }
+                            Regex.each(conRegex, data.subs, (start, end, match) => {
+                                const id = this._con2Id[match[0]];
+                                if (id) {
+                                    if (!this._callbacks[id]) {
+                                        const onEvent = value => {
+                                            // console.log(`Updated id: '${id}', value: ${value}`);
+                                            const values = {};
+                                            values[id] = value;
+                                            this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionResponse, values });
+                                        };
+                                        this._callbacks[id] = onEvent;
+                                        this._parent.Subscribe(id, onEvent);
+                                    }
+                                }
+                                else {
+                                    this.onError(`Cannot subscribe: ${match[0]}`);
+                                }
+                            }, true);
                         }
-                        if (data.subscribe) {
-                            for (const id of data.subscribe) {
-                                let onEvent = this._callbacks[id];
-                                if (!onEvent) {
-                                    this._callbacks[id] = onEvent = value => {
-                                        // console.log(`Updated id: '${id}', value: ${value}`);
-                                        const values = {};
-                                        values[id] = value;
-                                        this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionResponse, values });
-                                    };
-                                }
-                                this._parent.Subscribe(id, onEvent);
-                            }
+                        else {
+                            this.onError('No ids available');
                         }
                         break;
                     case TransmissionType.ReadRequest:
@@ -195,24 +208,14 @@
             this._callbacks = {};
             this._bufferedSubsciptions = [];
             this._bufferedUnsubsciptions = [];
-            this._buffering = false; // TODO: Remove
             this._con2Id = null;
             this._id2Con = null;
+            this._subscribtionDelay = false;
+            this._subscribtionDelayTimer = null;
         }
 
-        set Buffering(value) { // TODO: Replace with better mechanism like timeout
-            if (value === true) {
-                this._buffering = true;
-            } else if (this._buffering) {
-                this._buffering = false;
-                const ids = [];
-                validateConnection(this.connection);
-                this.connection.Send(this.receiver, { // TODO: This fails if not connected!
-                    type: TransmissionType.SubscriptionRequest,
-                    subscribe: this._bufferedSubsciptions.splice(0, this._bufferedSubsciptions.length),
-                    unsubscribe: this._bufferedUnsubsciptions.splice(0, this._bufferedUnsubsciptions.length)
-                });
-            }
+        set SubscribtionDelay(value) {
+            this._subscribtionDelay = typeof value === 'number' && value > 0 ? value : false;
         }
 
         OnOpen() {
@@ -238,12 +241,7 @@
                 throw new Error(`Key ${id} is already subscribed`);
             }
             this._callbacks[id] = onEvent;
-            if (this._buffering) {
-                addId(this._bufferedSubsciptions, id);
-                removeId(this._bufferedUnsubsciptions, id);
-            } else {
-                this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionRequest, subscribe: [id] });
-            }
+            this._subscriptionsChanged();
         }
 
         Unsubscribe(id, onEvent) {
@@ -258,12 +256,7 @@
                 throw new Error(`Unexpected onEvent for id ${id} to unsubscribe`);
             }
             delete this._callbacks[id];
-            if (this._buffering) {
-                addId(this._bufferedUnsubsciptions, id);
-                removeId(this._bufferedSubsciptions, id);
-            } else {
-                this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionRequest, unsubscribe: [id] });
-            }
+            this._subscriptionsChanged();
         }
 
         Read(id, onResponse, onError) {
@@ -298,8 +291,37 @@
                         throw new Error(`Invalid transmission type: ${data.type}`);
                 }
             } catch (error) {
-
+                this.onError(`Failed handleReceived(): ${error}`);
             }
+        }
+
+        _subscriptionsChanged() {
+            if (this._subscribtionDelay && !this._subscribtionDelayTimer) {
+                this._subscribtionDelayTimer = setTimeout(() => {
+                    this._sendSubscriptionRequest();
+                    this._subscribtionDelayTimer = null;
+                }, this._subscribtionDelay);
+            } else {
+                this._sendSubscriptionRequest();
+            }
+        }
+
+        _sendSubscriptionRequest() {
+            validateConnection(this.connection);
+            if (!this._id2Con) {
+                throw new Error('Not available: this._id2Con');
+            }
+            let subs = '';
+            for (const id in this._callbacks) {
+                if (this._callbacks.hasOwnProperty(id)) {
+                    const con = this._id2Con[id];
+                    if (!con) {
+                        throw new Error(`Unknown id: ${id}`);
+                    }
+                    subs += con;
+                }
+            }
+            this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionRequest, subs });
         }
     }
 
