@@ -7868,17 +7868,11 @@
         }
     };
 
-    function setConnectorBuffering(hmi, buffering) {
-        if (hmi && hmi.env && hmi.env.connector) {
-            hmi.env.connector.Buffering = buffering;
-        }
-    }
     // /////////////////////////////////////////////////////////////////////////////////////////
     // INITIALIZATION AND DESTROY
     // /////////////////////////////////////////////////////////////////////////////////////////
     var create_hmi_object_branch = function (i_object, i_jqueryElement, i_success, i_error, i_hmi, i_initData, i_parentObject, i_nodeId, i_parentNode, i_disableVisuEvents, i_enableEditorEvents) {
         if (i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
-            setConnectorBuffering(i_hmi, true);
             Executor.run(function (i_suc, i_err) {
                 init_object(i_object, i_initData);
                 perform_attribute_on_object_branch(i_object, 'build', true, () => {
@@ -7924,14 +7918,7 @@
                         }
                     }, i_err);
                 }, i_err, i_hmi);
-            }, () => {
-                setConnectorBuffering(i_hmi, false);
-                i_success();
-            }, error => {
-                setConnectorBuffering(i_hmi, false);
-                i_error(error);
-            }, () => {
-                setConnectorBuffering(i_hmi, false);
+            }, i_success, i_error, () => {
                 i_error('timeout');
             }, 5000);
         }
@@ -7943,7 +7930,6 @@
     var destroy_hmi_object_branch = function (i_object, i_success, i_error) {
         if (i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
             const hmi = i_object.hmi;
-            setConnectorBuffering(hmi, true);
             var hmiobj = i_object._hmi_object;
             if (hmiobj !== null && typeof hmiobj === 'object') {
                 // handle root objects
@@ -7977,14 +7963,7 @@
                             }, i_err);
                         }, i_err);
                     }, i_err);
-                }, () => {
-                    setConnectorBuffering(hmi, false);
-                    i_success();
-                }, error => {
-                    setConnectorBuffering(hmi, false);
-                    i_error(error);
-                }, () => {
-                    setConnectorBuffering(hmi, false);
+                }, i_success, i_error, () => {
                     i_error('timeout');
                 }, 5000);
             }

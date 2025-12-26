@@ -7,6 +7,7 @@
 
     class TargetSystemAdapter {
         constructor() {
+            validateEventPublisher(this);
             this._targetSystems = {};
         }
 

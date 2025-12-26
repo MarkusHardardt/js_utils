@@ -22,6 +22,7 @@
 
     class EventPublisher {
         constructor() {
+            validateEventPublisher(this);
             this._target = null;
             this._equal = defaultEqual;
             this._onError = defaultOnError;

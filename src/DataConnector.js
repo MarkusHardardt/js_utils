@@ -78,6 +78,7 @@
     class ClientDataConnector extends BaseDataConnector {
         constructor() {
             super();
+            validateEventPublisher(this);
             this._callbacks = {};
             this._bufferedSubsciptions = [];
             this._bufferedUnsubsciptions = [];
