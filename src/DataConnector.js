@@ -3,7 +3,7 @@
 
     const isNodeJS = typeof require === 'function';
 
-    const { validateDataBroker } = isNodeJS ? require('./DataBroker.js') : { validateDataBroker: root.validateDataBroker }; // TODO: Required?
+    const { validateEventPublisher } = isNodeJS ? require('./EventPublisher.js') : { validateEventPublisher: root.validateEventPublisher };
     const { validateConnection } = isNodeJS ? require('./WebSocketConnection.js') : { validateConnection: root.validateConnection };
     const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
 
@@ -185,7 +185,7 @@
 
         set Broker(value) {
             if (value) {
-                validateDataBroker(value);
+                validateEventPublisher(value);
                 this._broker = value;
             } else {
                 this._broker = null;
@@ -194,7 +194,7 @@
 
         handleReceived(data) {
             try {
-                validateDataBroker(this._broker);
+                validateEventPublisher(this._broker);
                 validateConnection(this.connection);
                 switch (data.type) {
                     case TransmissionType.SubscriptionRequest:
