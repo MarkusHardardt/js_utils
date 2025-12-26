@@ -50,7 +50,7 @@
             this.connection = null;
             this.onError = defaultOnError;
             this.receiver = DEFAULT_DATA_CONNECTION_RECEIVER;
-            this._handler = data => this.handleReceived(data);
+            this._handler = (data, onSuccess, onError) => this.handleReceived(data, onSuccess, onError);
         }
 
         set Connection(value) {
@@ -82,8 +82,8 @@
             this.receiver = value;
         }
 
-        handleReceived(data) {
-            throw new Error('Not implemented in base class: handleReceived(data)')
+        handleReceived(data, onSuccess, onError) {
+            throw new Error('Not implemented in base class: handleReceived(data, onSuccess, onError)')
         }
     }
 
@@ -137,14 +137,19 @@
             console.log('ServerDataConnector.OnDispose()');
         }
 
-        handleReceived(data) {
+        handleReceived(data, onSuccess, onError) {
             try {
                 validateEventPublisher(this._parent);
                 validateConnection(this.connection);
                 switch (data.type) {
                     case TransmissionType.Con2IdRequest:
-                        this.connection.Send(this.receiver, { type: TransmissionType.Con2IdResponse, con2Id: this._con2Id });
                         console.log(`Send TransmissionType.Con2IdResponse: ${JSON.stringify(this._con2Id)}`);
+                        if (this._con2Id) {
+                            onSuccess(this._con2Id);
+                        }
+                        else {
+                            onError('No ids available');
+                        }
                         break;
                     case TransmissionType.SubscriptionRequest:
                         if (data.unsubscribe) {
@@ -276,7 +281,7 @@
             this.connection.Send(this.receiver, { type: TransmissionType.WriteRequest, id, value });
         }
 
-        handleReceived(data) {
+        handleReceived(data, onSuccess, onError) {
             try {
                 switch (data.type) {
                     case TransmissionType.SubscriptionResponse:
