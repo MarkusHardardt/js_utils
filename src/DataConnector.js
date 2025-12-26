@@ -166,7 +166,14 @@
                         }
                         break;
                     case TransmissionType.ReadResponse:
-                        // TODO: Implement
+                        const onEvent = this._callbacks[data.id];
+                        if (onEvent) {
+                            try {
+                                onEvent(data.value);
+                            } catch (error) {
+                                this.onError(`Failed calling onEvent() for id: ${data.id}: ${error}`);
+                            }
+                        }
                         break;
                     default:
                         throw new Error(`Invalid transmission type: ${data.type}`);
@@ -224,17 +231,13 @@
                         }
                         break;
                     case TransmissionType.ReadRequest:
-                        /* this._target.Read(data.id, response => {
-
-                        }, error => {
-
-                        });
-                        break; */
-                        throw new Error('Read request not yetimplemented');
-
+                        this._target.Read(data.id, value => {
+                            this.connection.Send(this.receiver, { type: TransmissionType.ReadResponse, id: data.id, value });
+                        }, error => this.onError(error));
+                        break;
                     case TransmissionType.WriteRequest:
-                        // break;
-                        throw new Error('Write request not yetimplemented');
+                        this._target.Write(data.id, data.value);
+                        break;
                     default:
                         throw new Error(`Invalid transmission type: ${data.type}`);
                 }
