@@ -244,56 +244,6 @@
         return CryptoJS.MD5(i_string, i_options).toString(CryptoJS.enc.Hex);
     };
 
-    const crypto = isNodeJS ? require('crypto') : undefined;
-
-    function createHash(text, mode, onSuccess, onError) {
-        if (isNodeJS) {
-            try {
-                let hashHex = crypto.createHash(mode).update(text, 'utf8').digest('hex');
-                if (typeof onSuccess === 'function') {
-                    onSuccess(hashHex);
-                }
-            } catch (exception) {
-                if (typeof onError === 'function') {
-                    onError(exception);
-                }
-                else {
-                    console.error(`Error calculation hash '${mode}': ${exception}`);
-                }
-            }
-        }
-        else {
-            (async () => {
-                try {
-                    // Convert string to bytes
-                    const data = new TextEncoder().encode(text);
-                    // Compute checksum using Web Crypto API (async)
-                    const hashBuffer = await root.crypto.subtle.digest(mode, data);
-                    // Convert ArrayBuffer → hex string
-                    const hashArray = Array.from(new Uint8Array(hashBuffer));
-                    const hashHex = hashArray
-                        .map(b => b.toString(16).padStart(2, '0'))
-                        .join('');
-                    // Return result via callback
-                    if (typeof onSuccess === 'function') {
-                        onSuccess(hashHex);
-                    }
-                } catch (exception) {
-                    if (typeof onError === 'function') {
-                        onError(exception);
-                    }
-                    else {
-                        console.error(`Error calculation hash '${mode}': ${exception}`);
-                    }
-                }
-            })();
-        }
-    }
-
-    const sha256 = (text, onSuccess, onError) => createHash(text, 'SHA-256', onSuccess, onError);
-    const sha384 = (text, onSuccess, onError) => createHash(text, 'SHA-384', onSuccess, onError);
-    const sha512 = (text, onSuccess, onError) => createHash(text, 'SHA-512', onSuccess, onError);
-
     // this is used for building unique ID's
     var _unique_id = 0;
 
@@ -392,21 +342,6 @@
         checkboxOff: '☐'
     };
 
-    async function fetchJson(url, request, onSuccess, onError) {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: request !== undefined ? JSON.stringify(request) : undefined
-        });
-        if (response.ok) {
-            const result = await response.json();
-            onSuccess(result)
-        }
-        else {
-            onError(`url: '${url}' failed: ${response.status}, ${response.statusText}`);
-        }
-    }
-
     // export
     var exp = {
         getFirstIndexOfIdentical: get_first_index_of_identical,
@@ -442,9 +377,6 @@
          * Conpute message digest (md5 algorithm)
          */
         md5,
-        sha256,
-        sha384,
-        sha512,
         /**
          * Copy array
          */
@@ -530,8 +462,7 @@
             });
             input.trigger("click");
         },
-        utf8Symbols: utf8Symbols,
-        fetchJson: (url, request, onSuccess, onError) => { (async () => await fetchJson(url, request, onSuccess, onError))(); }
+        utf8Symbols: utf8Symbols
     };
 
     if (isNodeJS) {
