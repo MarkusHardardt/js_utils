@@ -37,12 +37,10 @@
 
     const TransmissionType = Object.freeze({
         Con2IdRequest: 1,
-        Con2IdResponse: 2,
         SubscriptionRequest: 3,
         SubscriptionResponse: 4,
         ReadRequest: 5,
-        ReadResponse: 6,
-        WriteRequest: 7
+        WriteRequest: 6
     });
 
     class BaseDataConnector {
@@ -50,7 +48,7 @@
             this.connection = null;
             this.onError = defaultOnError;
             this.receiver = DEFAULT_DATA_CONNECTION_RECEIVER;
-            this._handler = (data, onSuccess, onError) => this.handleReceived(data, onSuccess, onError);
+            this._handler = (data, onResponse, onError) => this.handleReceived(data, onResponse, onError);
         }
 
         set Connection(value) {
@@ -82,8 +80,8 @@
             this.receiver = value;
         }
 
-        handleReceived(data, onSuccess, onError) {
-            throw new Error('Not implemented in base class: handleReceived(data, onSuccess, onError)')
+        handleReceived(data, onResponse, onError) {
+            throw new Error('Not implemented in base class: handleReceived(data, onResponse, onError)')
         }
     }
 
@@ -137,15 +135,14 @@
             console.log('ServerDataConnector.OnDispose()');
         }
 
-        handleReceived(data, onSuccess, onError) {
+        handleReceived(data, onResponse, onError) {
             try {
                 validateEventPublisher(this._parent);
                 validateConnection(this.connection);
                 switch (data.type) {
                     case TransmissionType.Con2IdRequest:
-                        console.log(`Send TransmissionType.Con2IdResponse: ${JSON.stringify(this._con2Id)}`);
                         if (this._con2Id) {
-                            onSuccess(this._con2Id);
+                            onResponse(this._con2Id);
                         }
                         else {
                             onError('No ids available');
@@ -177,9 +174,7 @@
                         }
                         break;
                     case TransmissionType.ReadRequest:
-                        this._parent.Read(data.id, value => {
-                            this.connection.Send(this.receiver, { type: TransmissionType.ReadResponse, id: data.id, value });
-                        }, error => this.onError(error));
+                        this._parent.Read(data.id, onResponse, onError);
                         break;
                     case TransmissionType.WriteRequest:
                         this._parent.Write(data.id, data.value);
@@ -281,7 +276,7 @@
             this.connection.Send(this.receiver, { type: TransmissionType.WriteRequest, id, value });
         }
 
-        handleReceived(data, onSuccess, onError) {
+        handleReceived(data, onResponse, onError) {
             try {
                 switch (data.type) {
                     case TransmissionType.SubscriptionResponse:
@@ -296,16 +291,6 @@
                                         this.onError(`Failed calling onEvent() for id: ${id}: ${error}`);
                                     }
                                 }
-                            }
-                        }
-                        break;
-                    case TransmissionType.ReadResponse:
-                        const onEvent = this._callbacks[data.id];
-                        if (onEvent) {
-                            try {
-                                onEvent(data.value);
-                            } catch (error) {
-                                this.onError(`Failed calling onEvent() for id: ${data.id}: ${error}`);
                             }
                         }
                         break;
