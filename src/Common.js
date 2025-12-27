@@ -195,7 +195,7 @@
         return result;
     };
 
-    const showTopologicalSorting = true; // TODO: Set true if topological sorting must be dumped to console
+    const showTopologicalSorting = false; // TODO: Set true if topological sorting must be dumped to console
     if (showTopologicalSorting) {
         // Get the topological sorting of the files contained in js_utils
         const topo = getTopologicalSorting({
@@ -206,7 +206,7 @@
             'EventPublisher': ['Common'],
             'Executor': [],
             'HashLists': ['Utilities'],
-            'hmi_object': ['Regex', 'Executor', 'math', 'ObjectPositionSystem'],
+            'hmi_object': ['Regex', 'Executor', 'math', 'ObjectPositionSystem', 'Sorting'],
             'jsonfx': [],
             'math': [],
             'ObjectPositionSystem': [],
@@ -219,7 +219,7 @@
             'WebServer': [],
             'WebSocketConnection': ['Common', 'Server']
         });
-        console.log(`Topological sorting of the files contained in js_utils: ${JSON.stringify(topo, undefined, 2)}`);
+        console.log(`Topological sorting of the files contained in js_utils:\nconst jsUtilsTopologicalSorting = ${JSON.stringify(topo, undefined, 2)};`);
     }
 
     const Common = {
