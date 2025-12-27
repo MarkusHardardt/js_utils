@@ -81,7 +81,7 @@
                     }
                 }
             };
-            this._nextId = Common.idGenerator();
+            this._nextId = Common.idGenerator('#');
             this._remoteMediumUTC = 0;
             this._remoteToLocalOffsetMillis = 0;
         }

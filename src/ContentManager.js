@@ -3,14 +3,14 @@
 
   const isNodeJS = typeof require === 'function';
 
-  var Utilities = isNodeJS ? require('./Utilities.js') : root.Utilities;
-  var jsonfx = isNodeJS ? require('./jsonfx.js') : root.jsonfx;
-  var Regex = isNodeJS ? require('./Regex.js') : root.Regex;
-  var Executor = isNodeJS ? require('./Executor.js') : root.Executor;
-  var Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
-  var SqlHelper = isNodeJS ? require('./SqlHelper.js') : root.SqlHelper;
+  const Utilities = isNodeJS ? require('./Utilities.js') : root.Utilities;
+  const jsonfx = isNodeJS ? require('./jsonfx.js') : root.jsonfx;
+  const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
+  const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
+  const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
+  const SqlHelper = isNodeJS ? require('./SqlHelper.js') : root.SqlHelper;
 
-  var compare_keys = Sorting.getTextsAndNumbersCompareFunction(false, false, true);
+  const compare_keys = Sorting.getTextsAndNumbersCompareFunction(false, false, true);
 
   // //////////////////////////////////////////////////////////////////////////////////////////
   // CROSS REFERENCES

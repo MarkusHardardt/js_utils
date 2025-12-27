@@ -86,6 +86,7 @@
         }
     }
 
+    const idPrefix = '#';
     const conRegex = /#[a-z0-9]+\b/g;
 
     class ServerDataConnector extends BaseDataConnector {
@@ -116,7 +117,7 @@
                 addId(sorted, id);
             }
             this._con2Id = {};
-            const nextId = Common.idGenerator();
+            const nextId = Common.idGenerator(idPrefix);
             for (const id of sorted) {
                 this._con2Id[nextId()] = id;
             }

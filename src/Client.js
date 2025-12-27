@@ -2,6 +2,9 @@
     "use strict";
 
     const isNodeJS = typeof require === 'function';
+    if (isNodeJS) {
+        throw new Error('Client is not available on server');
+    }
 
     if (!isNodeJS) {
         // polyfill for requestAnimationFrame (by Opera engineer Erik Möller)
