@@ -35,6 +35,15 @@
     // This is a pattern matching valid javascript names: [_$a-z][_$a-z0-9]*
     const methodRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)\s*$/i;
     const functionRegex = /^\s*function\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)/im;
+
+    const chalange = {
+        Foo: () => { },
+        Baz: a => { },
+        Bar: (b, c) => { },
+    };
+    const lamdaRegex = /^\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)\s*=>/im;
+    const lamdaSingleArgRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*=>/im;
+
     const argumentRegex = /(?:\s*,\s*)?([_$a-z][_$a-z0-9]*)\s*/gi;
     function getArguments(args) {
         const a = [];
@@ -44,6 +53,22 @@
             }, true);
         }
         return a;
+    }
+    function validateArguments(name, method, func, args, expectedArgs) {
+        const foundArgs = getArguments(args);
+        console.log(`- Found arguments: ${JSON.stringify(foundArgs)}`);
+        const missingArgs = [];
+        handleNotFound(expectedArgs, foundArgs, undefined, notFound => missingArgs.push(notFound));
+        console.log(`- Missing arguments: ${JSON.stringify(missingArgs)}`);
+        if (missingArgs.length > 0) {
+            throw new Error(`${name} method ${method}: missing argument(s) ${missingArgs.join(', ')} in: ${func}`);
+        }
+        const unexpectedArgs = [];
+        handleNotFound(foundArgs, expectedArgs, undefined, notFound => unexpectedArgs.push(notFound));
+        console.log(`- Unexpected arguments: ${JSON.stringify(unexpectedArgs)}`);
+        if (unexpectedArgs.length > 0) {
+            throw new Error(`${name} method ${method}: unexpected argument(s) ${unexpectedArgs.join(', ')} in: ${func}`);
+        }
     }
     function validateInterface(name, instance, attributes) {
         if (instance === undefined) {
@@ -68,20 +93,17 @@
                     const funcMatch = functionRegex.exec(func);
                     if (funcMatch) {
                         console.log(`- Function match: ${funcMatch}`);
-                        const foundArgs = getArguments(funcMatch[1]);
-                        console.log(`- Found arguments: ${JSON.stringify(foundArgs)}`);
-                        const missingArgs = [];
-                        handleNotFound(expectedArgs, foundArgs, undefined, notFound => missingArgs.push(notFound));
-                        console.log(`- Missing arguments: ${JSON.stringify(missingArgs)}`);
-                        if (missingArgs.length > 0) {
-                            throw new Error(`${name} method ${attr}: missing argument(s) ${missingArgs.join(', ')} in: ${funcMatch[0]}`);
-                        }
-                        const unexpectedArgs = [];
-                        handleNotFound(foundArgs, expectedArgs, undefined, notFound => unexpectedArgs.push(notFound));
-                        console.log(`- Unexpected arguments: ${JSON.stringify(unexpectedArgs)}`);
-                        if (unexpectedArgs.length > 0) {
-                            throw new Error(`${name} method ${attr}: unexpected argument(s) ${unexpectedArgs.join(', ')} in: ${funcMatch[0]}`);
-                        }
+                        validateArguments(name, attr, funcMatch[0], funcMatch[1], expectedArgs);
+                    }
+                    const lambdaMatch = lamdaRegex.exec(func);
+                    if (lambdaMatch) {
+                        console.log(`- Lambda match: ${lambdaMatch}`);
+                        validateArguments(name, attr, lambdaMatch[0], lambdaMatch[1], expectedArgs);
+                    }
+                    const lambdaSingleArgMatch = lamdaSingleArgRegex.exec(func);
+                    if (lambdaSingleArgMatch) {
+                        console.log(`- Lambda single arg match: ${lambdaSingleArgMatch}`);
+                        validateArguments(name, attr, lambdaSingleArgMatch[0], lambdaSingleArgMatch[1], expectedArgs);
                     }
                 }
             }
