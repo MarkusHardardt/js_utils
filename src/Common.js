@@ -34,10 +34,11 @@
     }
 
     // This is a pattern matching valid javascript names: [_$a-z][_$a-z0-9]*
-    const methodRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)\s*$/i;
+    const attributeMethodRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)\s*$/i;
     const functionRegex = /^\s*function\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)/im;
     const lamdaRegex = /^\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)\s*=>/im;
     const lamdaSingleArgRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*=>/im;
+    const classMethodRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)/i;
     const argumentRegex = /(?:\s*,\s*)?([_$a-z][_$a-z0-9]*)\s*/gi;
     function getArguments(args) {
         const a = [];
@@ -48,7 +49,7 @@
         }
         return a;
     }
-    function validateArguments(name, method, func, args, expectedArgs) {
+    function validateArguments(name, method, args, expectedArgs) {
         const foundArgs = getArguments(args);
         if (expectedArgs.length !== foundArgs.length) {
             throw new Error(`${name} method '${method}' expects ${expectedArgs.length} arguments but instance has ${foundArgs.length}: expected: [${expectedArgs.join(',')}], found: [${foundArgs.join(',')}]`);
@@ -69,29 +70,38 @@
             throw new Error(`${name} is not an object`);
         } else if (Array.isArray(attributes)) {
             for (const attr of attributes) {
-                const methodMatch = methodRegex.exec(attr);
+                const methodMatch = attributeMethodRegex.exec(attr);
                 if (methodMatch) {
                     const method = instance[methodMatch[1]];
                     if (typeof method !== 'function') {
                         throw new Error(`${name} has no method '${attr}'`);
                     }
-                    if (checkMethodArguments === true) {
-                        const expectedArgs = getArguments(methodMatch[2]);
-                        const func = method.toString();
-                        const funcMatch = functionRegex.exec(func);
-                        if (funcMatch) {
-                            validateArguments(name, attr, funcMatch[0], funcMatch[1], expectedArgs);
-                        }
-                        const lambdaMatch = lamdaRegex.exec(func);
-                        if (lambdaMatch) {
-                            validateArguments(name, attr, lambdaMatch[0], lambdaMatch[1], expectedArgs);
-                        }
-                        const lambdaSingleArgMatch = lamdaSingleArgRegex.exec(func);
-                        if (lambdaSingleArgMatch) {
-                            validateArguments(name, attr, lambdaSingleArgMatch[0], lambdaSingleArgMatch[1], expectedArgs);
-                        }
+                    if (checkMethodArguments !== true) {
+                        continue;
                     }
-                    continue;
+                    const expectedArgs = getArguments(methodMatch[2]);
+                    const func = method.toString();
+                    const funcMatch = functionRegex.exec(func);
+                    if (funcMatch) {
+                        validateArguments(name, attr, funcMatch[1], expectedArgs);
+                        continue;
+                    }
+                    const lambdaMatch = lamdaRegex.exec(func);
+                    if (lambdaMatch) {
+                        validateArguments(name, attr, lambdaMatch[1], expectedArgs);
+                        continue;
+                    }
+                    const lambdaSingleArgMatch = lamdaSingleArgRegex.exec(func);
+                    if (lambdaSingleArgMatch) {
+                        validateArguments(name, attr, lambdaSingleArgMatch[1], expectedArgs);
+                        continue;
+                    }
+                    const classMatch = classMethodRegex.exec(func);
+                    if (classMatch) {
+                        validateArguments(name, attr, classMatch[2], expectedArgs);
+                        continue;
+                    }
+                    throw new Error(`${name} instance has no method parameter: '${func}'`);
                 }
                 const propertyMatch = propertyRegex.exec(attr);
                 if (propertyMatch) {
