@@ -405,7 +405,7 @@
                 );
             }
         }
-        WebSocketConnection.Connection = WebSocketClientConnection;
+        WebSocketConnection.ClientConnection = WebSocketClientConnection;
     }
 
     // Server
