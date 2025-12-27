@@ -2,6 +2,7 @@
     "use strict";
 
     const isNodeJS = typeof require === 'function';
+    const Common = isNodeJS ? require('./Common.js') : root.Common;
 
     var get_first_index_of_identical = function (i_array, i_value) {
         for (var i = 0, l = i_array.length; i < l; i++) {
@@ -151,7 +152,7 @@
             // #1
             if (Array.isArray(tgtval)) {
                 // #2
-                transfer_properties(srcval, tgtval);
+                transferProperties(srcval, tgtval);
             }
             else {
                 // #3
@@ -182,7 +183,7 @@
             }
             else if (typeof tgtval === 'object') {
                 // #6
-                transfer_properties(srcval, tgtval);
+                transferProperties(srcval, tgtval);
             }
             else {
                 // #7
@@ -218,27 +219,27 @@
      * case, no data will be transfered
      * 
      * @param {Object}
-     *          i_source The source object or array
+     *          source The source object or array
      * @param {Object}
-     *          i_target The target object or array
+     *          target The target object or array
      * @param {Object}
-     *          i_pre_include_source Storage object for included sources
+     *          pre_include_source Storage object for included sources
      */
-    var transfer_properties = function (i_source, i_target, i_pre_include_source) {
-        var arrayMode = Array.isArray(i_source) && Array.isArray(i_target);
+    function transferProperties (source, target, pre_include_source) {
+        const arrayMode = Array.isArray(source) && Array.isArray(target);
         if (arrayMode) {
-            for (var key = 0, len = i_source.length; key < len; key++) {
-                transfer_property(arrayMode, i_source, i_target, key, i_pre_include_source);
+            for (let key = 0, len = source.length; key < len; key++) {
+                transfer_property(arrayMode, source, target, key, pre_include_source);
             }
         }
-        else if (typeof i_source === 'object' && i_source !== null && typeof i_target === 'object' && i_target !== null) {
-            for (var key in i_source) {
-                if (i_source.hasOwnProperty(key)) {
-                    transfer_property(arrayMode, i_source, i_target, key, i_pre_include_source);
+        else if (typeof source === 'object' && source !== null && typeof target === 'object' && target !== null) {
+            for (let key in source) {
+                if (source.hasOwnProperty(key)) {
+                    transfer_property(arrayMode, source, target, key, pre_include_source);
                 }
             }
         }
-    };
+    }
 
     var md5 = isNodeJS ? require('md5') : function (i_string, i_options) {
         return CryptoJS.MD5(i_string, i_options).toString(CryptoJS.enc.Hex);
@@ -346,17 +347,17 @@
     var exp = {
         getFirstIndexOfIdentical: get_first_index_of_identical,
         equals: equals,
-        getObjectProperties: function (i_object, i_properties) {
-            var props = i_properties ? i_properties : [];
-            for (var id in i_object) {
-                if (i_object.hasOwnProperty(id)) {
+        getObjectProperties: (object, properties) => {
+            const props = properties ? properties : [];
+            for (var id in object) {
+                if (object.hasOwnProperty(id)) {
                     props.push(id);
                 }
             }
             return props;
         },
-        getObjectAttributes: function (i_object, i_attributes) {
-            var attrs = i_attributes.split('.'), idx = 0, len = attrs.length, obj = i_object;
+        getObjectAttributes: (object, attributes) => {
+            let attrs = attributes.split('.'), idx = 0, len = attrs.length, obj = object;
             while (idx < len) {
                 if (obj === null || typeof obj !== 'object') {
                     return undefined;
@@ -365,14 +366,14 @@
             }
             return obj;
         },
-        DynamicList: DynamicList,
+        DynamicList,
         /**
          * This method transfers all attributes from the source to the target. If
          * source and target are both arrays we iterate over all elements. If
          * source and target are both objects we iterate over all attributes. In
          * any other case, no data will be transfered.
          */
-        transferProperties: transfer_properties,
+        transferProperties,
         /**
          * Conpute message digest (md5 algorithm)
          */
@@ -380,83 +381,63 @@
         /**
          * Copy array
          */
-        copyArray: function (i_source, i_target) {
-            var array = i_target || [], i, l = i_source.length;
+        copyArray: (source, target) => {
+            let array = target || [], i, l = source.length;
             for (i = 0; i < l; i++) {
-                array[i] = i_source[i];
+                array[i] = source[i];
             }
             return array;
         },
-        handleNotFound: function (i_sources, i_targets, i_equal, i_callback, i_backward) {
-            var sidx, slen = i_sources.length, tidx, tlen = i_targets.length;
-            for (sidx = 0; sidx < slen; sidx++) {
-                var source = i_backward === true ? i_sources[slen - 1 - sidx] : i_sources[sidx];
-                var found = false;
-                for (tidx = 0; tidx < tlen; tidx++) {
-                    var target = i_targets[tidx];
-                    if (typeof i_equal === 'function' ? i_equal(source, target) : source === target) {
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    try {
-                        i_callback(source);
-                    }
-                    catch (exc) {
-                        console.error('EXCEPTION! In callback: ' + exc);
-                    }
-                }
-            }
-        },
+        // TODO: Use common method
+        handleNotFound: (sources, targets, equal, onNotFound, backward) => Common.handleNotFound(sources, targets, equal, onNotFound, backward),
         // provider for unique ids
-        getUniqueId: function () {
+        getUniqueId: () => {
             return 'uid' + (_unique_id++);
         },
         // scrolling
-        ScrollHandler: ScrollHandler,
+        ScrollHandler,
         // ???
-        createRelativeParts: createRelativeParts,
+        createRelativeParts,
         // timestamp
-        formatTimestamp: function (i_date, i_hideMillis) {
-            var txt = ('0000' + i_date.getFullYear()).slice(-4);
+        formatTimestamp: (date, hideMillis) => {
+            let txt = ('0000' + date.getFullYear()).slice(-4);
             txt += '-';
-            txt += ('00' + (i_date.getMonth() + 1)).slice(-2);
+            txt += ('00' + (date.getMonth() + 1)).slice(-2);
             txt += '-';
-            txt += ('00' + i_date.getDate()).slice(-2);
+            txt += ('00' + date.getDate()).slice(-2);
             txt += ' ';
-            txt += ('00' + i_date.getHours()).slice(-2);
+            txt += ('00' + date.getHours()).slice(-2);
             txt += ':';
-            txt += ('00' + i_date.getMinutes()).slice(-2);
+            txt += ('00' + date.getMinutes()).slice(-2);
             txt += ':';
-            txt += ('00' + i_date.getSeconds()).slice(-2);
-            if (!i_hideMillis) {
+            txt += ('00' + date.getSeconds()).slice(-2);
+            if (!hideMillis) {
                 txt += '.';
-                txt += ('000' + i_date.getMilliseconds()).slice(-3);
+                txt += ('000' + date.getMilliseconds()).slice(-3);
             }
             return txt;
         },
-        formatNumber: function (i_value, i_postDecimalPositions) {
-            if (i_postDecimalPositions < 1 || i_postDecimalPositions > 14) {
-                return i_value;
+        formatNumber: (value, postDecimalPositions) => {
+            if (postDecimalPositions < 1 || postDecimalPositions > 14) {
+                return value;
             }
-            var e = Math.pow(10, i_postDecimalPositions);
-            var k = (Math.round(i_value * e) / e).toString();
+            let e = Math.pow(10, postDecimalPositions);
+            let k = (Math.round(value * e) / e).toString();
             if (k.indexOf('.') == -1) {
                 k += '.';
             }
             k += e.toString().substring(1);
-            return k.substring(0, k.indexOf('.') + i_postDecimalPositions + 1);
+            return k.substring(0, k.indexOf('.') + postDecimalPositions + 1);
         },
-        loadClientTextFile: function (i_callback) {
+        loadClientTextFile: onResponse => {
             // Note: This next code looks really ugly but unfortunatelly there
             // seems to be be no other solluting for loading an client side text
             // file into the browser.
-            var that = this, input = $('<input type="file" style="display: none" />');
+            let input = $('<input type="file" style="display: none" />');
             input.on('change', function (i_change) {
                 var reader = new FileReader();
                 reader.onload = function () {
-                    i_callback(reader.result);
+                    onResponse(reader.result);
                 };
                 reader.readAsText(i_change.target.files[0]);
             });
