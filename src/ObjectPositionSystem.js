@@ -2,7 +2,7 @@
 
   const isNodeJS = typeof require === 'function';
 
-  var MAX_UPDATE_STEP_DURATION_MILLIS = 2000;
+  const MAX_UPDATE_STEP_DURATION_MILLIS = 2000;
 
   /**
    * This handler connects to the control variables for segment and position of

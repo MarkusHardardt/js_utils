@@ -35,49 +35,44 @@
     // load math library
     // var jsonfx = typeof require === 'function' ? require('./jsonfx.js') :
     // window.jsonfx;
-    var Regex = isNodeJS ? require('./Regex.js') : root.Regex;
-    var Core = isNodeJS ? require('./Core.js') : root.Core;
-    var Executor = isNodeJS ? require('./Executor.js') : root.Executor;
-    var math = isNodeJS ? require('./math.js') : root.math;
-    var ObjectPositionSystem = isNodeJS ? require('./ObjectPositionSystem.js') : root.ObjectPositionSystem;
-    var $ = isNodeJS ? require('jquery') : root.$;
+    const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
+    const Core = isNodeJS ? require('./Core.js') : root.Core;
+    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
+    const math = isNodeJS ? require('./math.js') : root.math;
+    const ObjectPositionSystem = isNodeJS ? require('./ObjectPositionSystem.js') : root.ObjectPositionSystem;
+    const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
+    const $ = isNodeJS ? require('jquery') : root.$;
 
-    var SHOW_SERVER_ERROR_POPUP = true;
-    var DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION = '<div style="box-sizing: border-box;position: relative;width: 100%;height: 100%;" />';
-    var DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION = '<div style="box-sizing: border-box;position: absolute;" />';
-    // var DEFAULT_RELATIVE_POSITIONED_CANVAS = '<canvas style="position:
-    // relative;width: 100%;height: 100%;" />';
-    // var DEFAULT_RELATIVE_POSITIONED_CANVAS = '<canvas />';
-
-    // set this TRUE if console logs for durations during init, resize, ... are
-    // required
-    var NUMBER_EDITOR_OPEN_EDITOR_TIMEOUT = 1000;
+    const SHOW_SERVER_ERROR_POPUP = true;
+    const DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION = '<div style="box-sizing: border-box;position: relative;width: 100%;height: 100%;" />';
+    const DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION = '<div style="box-sizing: border-box;position: absolute;" />';
+    const NUMBER_EDITOR_OPEN_EDITOR_TIMEOUT = 1000;
     // In javascript integer numbers are 64 bit values.
     // That means the value range reaches from -9223372036854775808 to
     // 9223372036854775807.
     // So the worst case value is 19 digits long.
-    var NUMBER_EDITOR_MAX_DIGIT_COUNT = 19;
-    var NUMBER_EDITOR_MAX_POST_DECIMAL_POSITIONS = 13;
+    const NUMBER_EDITOR_MAX_DIGIT_COUNT = 19;
+    const NUMBER_EDITOR_MAX_POST_DECIMAL_POSITIONS = 13;
 
-    var TREND_TIMESTAMP = 'timestamp';
-    var TREND_DATETIME = 'datetime';
-    var TREND_NUMBER = 'number';
+    const TREND_TIMESTAMP = 'timestamp';
+    const TREND_DATETIME = 'datetime';
+    const TREND_NUMBER = 'number';
 
     // store this for performance reasons
-    var Transform = math.Transform;
-    var ArcLine = math.ArcLine;
-    var RopeLine = math.RopeLine;
-    var CurveSection = math.CurveSection;
-    var ZonePositionAdjuster = ObjectPositionSystem.ZonePositionAdjuster;
+    const Transform = math.Transform;
+    const ArcLine = math.ArcLine;
+    const RopeLine = math.RopeLine;
+    const CurveSection = math.CurveSection;
+    const ZonePositionAdjuster = ObjectPositionSystem.ZonePositionAdjuster;
 
-    var normalizeToPlusMinusPI = math.normalizeToPlusMinusPI;
-    var normalizeToPlusMinus180deg = math.normalizeToPlusMinus180deg;
-    var getHarmonicRGB = math.getHarmonicRGB;
-    var RAD2DEG = math.RAD2DEG;
-    var DEG2RAD = math.DEG2RAD;
-    var PI = Math.PI;
-    var TWO_PI = PI + PI;
-    var HALF_PI = PI / 2;
+    const normalizeToPlusMinusPI = math.normalizeToPlusMinusPI;
+    const normalizeToPlusMinus180deg = math.normalizeToPlusMinus180deg;
+    const getHarmonicRGB = math.getHarmonicRGB;
+    const RAD2DEG = math.RAD2DEG;
+    const DEG2RAD = math.DEG2RAD;
+    const PI = Math.PI;
+    const TWO_PI = PI + PI;
+    const HALF_PI = PI / 2;
 
     const ElementTypes = Object.freeze({
         LABELS_GROUP: 'Labels',
@@ -86,14 +81,14 @@
         TEXTS_TYPE: 'TEXT'
     });
 
-    var regex_analyse = Regex.analyse;
+    const regex_analyse = Regex.analyse;
 
     // zoom factor: double by three clicks: Math.exp(Math.log(2)/3)
-    var ZOOM_FACTOR = Math.exp(Math.log(2) / 3);
+    const ZOOM_FACTOR = Math.exp(Math.log(2) / 3);
 
-    var s_types = {};
+    const s_types = {};
 
-    var s_extensions = [];
+    const s_extensions = [];
 
     var attach_hmi_object = function (i_object) {
         // If we got a valid object we iterate to the actual visualization object

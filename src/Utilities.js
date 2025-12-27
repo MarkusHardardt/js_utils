@@ -2,16 +2,6 @@
     "use strict";
 
     const isNodeJS = typeof require === 'function';
-    const Core = isNodeJS ? require('./Core.js') : root.Core;
-
-    var get_first_index_of_identical = function (i_array, i_value) {
-        for (var i = 0, l = i_array.length; i < l; i++) {
-            if (i_array[i] === i_value) {
-                return i;
-            }
-        }
-        return -1;
-    };
 
     var equals = function (i_value1, i_value2, i_compareFunctions) {
         if (typeof i_value1 !== typeof i_value2) {
@@ -345,8 +335,7 @@
 
     // export
     var exp = {
-        getFirstIndexOfIdentical: get_first_index_of_identical,
-        equals: equals,
+        equals,
         getObjectProperties: (object, properties) => {
             const props = properties ? properties : [];
             for (var id in object) {

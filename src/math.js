@@ -11,52 +11,52 @@
 
   const isNodeJS = typeof require === 'function';
 
-  var PI = Math.PI;
-  var TWO_PI = PI + PI;
-  var HALF_PI = PI * 0.5;
-  var THREE_HALF_PI = PI + HALF_PI;
-  var QUARTER_PI = PI * 0.25;
-  var THREE_QUARTER_PI = PI * 0.75;
-  var THIRD_PI = PI / 3;
-  var RAD2DEG = 180.0 / PI;
-  var DEG2RAD = PI / 180.0;
-  var MINIMUM_FLAT_ANGLE = DEG2RAD;
-  var MAXIMUM_SHARP_ANGLE = PI - DEG2RAD;
-  var THIRD = 1.0 / 3.0;
-  var FOUR_THIRD = 4.0 * THIRD;
-  var MIN_LENGTH2 = 0.000001;
-  var MIN_DENOMINATOR = 0.000000001;
-  var EPSILON = 0.000000001;
-  var MIN_STROKE_LENGTH = 0.001;
+  const PI = Math.PI;
+  const TWO_PI = PI + PI;
+  const HALF_PI = PI * 0.5;
+  const THREE_HALF_PI = PI + HALF_PI;
+  const QUARTER_PI = PI * 0.25;
+  const THREE_QUARTER_PI = PI * 0.75;
+  const THIRD_PI = PI / 3;
+  const RAD2DEG = 180.0 / PI;
+  const DEG2RAD = PI / 180.0;
+  const MINIMUM_FLAT_ANGLE = DEG2RAD;
+  const MAXIMUM_SHARP_ANGLE = PI - DEG2RAD;
+  const THIRD = 1.0 / 3.0;
+  const FOUR_THIRD = 4.0 * THIRD;
+  const MIN_LENGTH2 = 0.000001;
+  const MIN_DENOMINATOR = 0.000000001;
+  const EPSILON = 0.000000001;
+  const MIN_STROKE_LENGTH = 0.001;
 
   // [kg/m^3]
-  var SPECIFIC_GRAVITY_OF_STEEL = 7860.0;
+  const SPECIFIC_GRAVITY_OF_STEEL = 7860.0;
   // [m/s^2]
-  var EARTH_GRAVITATION = 9.80665;
+  const EARTH_GRAVITATION = 9.80665;
 
   // this is the solution of the equation 1/x+1=x
   // [or more classic: a/(a+b) = b/a]
-  var GOLDEN_CUT = (1.0 + Math.sqrt(5.0)) * 0.5;
-  var GOLDEN_CUT_INVERTED = 1.0 / GOLDEN_CUT;
-  var DEFAULT_STRESS_S1 = 0.3;
-  var DEFAULT_STRESS_S2 = 0.9;
+  const GOLDEN_CUT = (1.0 + Math.sqrt(5.0)) * 0.5;
+  const GOLDEN_CUT_INVERTED = 1.0 / GOLDEN_CUT;
+  const DEFAULT_STRESS_S1 = 0.3;
+  const DEFAULT_STRESS_S2 = 0.9;
 
-  var sinh = Math.sinh || function (i_value) {
-    var exp = Math.exp(i_value);
+  const sinh = Math.sinh || function (value) {
+    let exp = Math.exp(value);
     return (exp - 1.0 / exp) * 0.5;
   };
 
-  var cosh = Math.cosh || function (i_value) {
-    var exp = Math.exp(i_value);
+  const cosh = Math.cosh || function (value) {
+    let exp = Math.exp(value);
     return (exp + 1.0 / exp) * 0.5;
   };
 
-  var asinh = Math.asinh || function (i_value) {
-    return Math.log(i_value + Math.sqrt(i_value * i_value + 1));
+  const asinh = Math.asinh || function (value) {
+    return Math.log(value + Math.sqrt(value * value + 1));
   };
 
-  var acosh = Math.acosh || function (i_value) {
-    return Math.log(i_value + Math.sqrt(i_value * i_value - 1));
+  const acosh = Math.acosh || function (value) {
+    return Math.log(value + Math.sqrt(value * value - 1));
   };
 
   /*

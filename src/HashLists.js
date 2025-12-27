@@ -16,9 +16,9 @@
   const isNodeJS = typeof require === 'function';
 
   // store for performance reasons
-  var utilities = isNodeJS ? require('./Utilities') : root.Utilities;
+  const Utilities = isNodeJS ? require('./Utilities') : root.Utilities;
 
-  var get_object_properties = utilities.getObjectProperties;
+  var get_object_properties = Utilities.getObjectProperties;
   
   // our mode constants:
   var IDENTICAL_VALUES_PER_KEY = 1;

@@ -3,8 +3,6 @@
 
     const isNodeJS = typeof require === 'function';
 
-    const Utilities = isNodeJS ? require('./Utilities') : root.Utilities;
-
     const CompareResult = Object.freeze({
         Bigger: 1,
         Equal: 0,
@@ -288,6 +286,15 @@
         return dl > 0 ? CompareResult.Bigger : (dl < 0 ? CompareResult.Smaller : CompareResult.Equal);
     }
 
+    function getFirstIndexOfIdentical(array, value) {
+        for (let i = 0, l = array.length; i < l; i++) {
+            if (array[i] === value) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     class SortedSet {
         constructor(noEqualObjectsAllowed, compare) {
             this._noEqualObjectsAllowed = noEqualObjectsAllowed === true;
@@ -320,7 +327,7 @@
             if (typeof value === 'number') {
                 return array.splice(value, 1);
             } else {
-                var idx = Utilities.getFirstIndexOfIdentical(array, value);
+                var idx = getFirstIndexOfIdentical(array, value);
                 if (idx !== -1) {
                     return array.splice(idx, 1);
                 }

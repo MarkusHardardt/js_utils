@@ -6,6 +6,7 @@
         throw new Error('WebServer is not available on client');
     }
 
+    const Server = isNodeJS ? require('./Server.js') : root.Server;
     const js_rx = /\.js$/i;
     const css_rx = /\.css$/i;
     const fs = require('fs');
@@ -14,7 +15,6 @@
     const https = require('https');
     const express = require('express');
     const bodyParser = require('body-parser');
-    const crypto = isNodeJS ? require('crypto') : undefined;
 
     class WebServer {
         constructor(options = {}) {
@@ -73,7 +73,7 @@
                     let id = this._paths[directory];
                     if (!id) {
                         const raw = this._random_id === true ? directory + Math.random() : directory;
-                        this._paths[directory] = id = crypto.createHash('SHA-256').update(raw, 'utf8').digest('hex');
+                        this._paths[directory] = id = Server.createSHA256(raw);
                         this._app.use(`/${id}`, express.static(directory));
                     }
                     return id;
