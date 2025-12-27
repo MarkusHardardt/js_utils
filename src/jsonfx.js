@@ -3,7 +3,7 @@
 
     const isNodeJS = typeof require === 'function';
 
-    const functionRegex = /^\s*function\s*\(\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*\{(?:.|\n)*?\}\s*$/m;
+    const _fx = /^\s*function\s*\(\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*\{(?:.|\n)*?\}\s*$/m;
     const _cx = /[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g;
     const _escapable = /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g;
     const _meta = Object.freeze({// table of character substitutions
@@ -179,7 +179,7 @@
                     else if (object === 'false') {
                         object = false;
                     }
-                    else if (functionRegex.test(object)) {
+                    else if (_fx.test(object)) {
                         try {
                             object = eval('(' + object + ')');
                         }
@@ -247,7 +247,6 @@
     }
 
     const jsonfx = {
-        functionRegex,
         stringify,
         parse,
         reconstruct

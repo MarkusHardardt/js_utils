@@ -2,13 +2,14 @@
     "use strict";
 
     const isNodeJS = typeof require === 'function';
-    const jsonfx = isNodeJS ? require('./jsonfx.js') : root.jsonfx;
 
     function idGenerator(prefix = '#') {
         let id = 0;
         return () => `${prefix}${(id++).toString(36)}`;
     }
 
+    // This is a pattern matching valid javascript names: [_$a-z][_$a-z0-9]*
+    const methodRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)\s*$/im;
     function validateInterface(name, instance, attributes) {
         if (instance === undefined) {
             throw new Error(`${name} is undefined!`);
@@ -17,25 +18,28 @@
         } else if (typeof instance !== 'object') {
             throw new Error(`${name} is not an object`);
         } else if (Array.isArray(attributes)) {
-            for (const attr in attributes) {
-                const match = jsonfx.functionRegex.exec(attr);
-                console.log(match);
-                if (match) {
-
+            for (const attr of attributes) {
+                const methodMatch = methodRegex.exec(attr);
+                //console.log(methodMatch);
+                if (methodMatch) {
+                    const method = instance[methodMatch[1]];
+                    if (typeof method !== 'function') {
+                        throw new Error(`${name} has no method ${attr}`);
+                    }
                 }
             }
-        } else if (typeof instance.Subscribe !== 'function') {
-            throw new Error(`Invalid ${name}: Missing method Subscribe(id, onEvent)`);
-        } else if (typeof instance.Unsubscribe !== 'function') {
-            throw new Error(`Invalid ${name}: Missing method Unsubscribe(id, onEvent)`);
-        } else if (typeof instance.Read !== 'function') {
-            throw new Error(`Invalid ${name}: Missing method Read(id, onResponse, onError)`);
-        } else if (typeof instance.Write !== 'function') {
-            throw new Error(`Invalid ${name}: Missing method Write(id, value)`);
         }
     }
 
-    validateInterface();
+    validateInterface('TestObject', {
+        Foo: function () {},
+        Baz: function(a) {},
+        Bar: function(b,c) {},
+    }, [
+        'Foo()',
+        'Baz(a)',
+        'Bar(b,c)'
+    ]);
 
     const Common = {
         idGenerator
