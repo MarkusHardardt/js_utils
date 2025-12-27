@@ -61,7 +61,7 @@
         }
     }
     const propertyRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*:\s*([_a-z0-9]+)\s*/i;
-    function validateInterface(name, instance, attributes) {
+    function validateInterface(name, instance, attributes, checkMethodArguments) {
         if (instance === undefined) {
             throw new Error(`${name} is undefined!`);
         } if (instance === null) {
@@ -76,19 +76,21 @@
                     if (typeof method !== 'function') {
                         throw new Error(`${name} has no method '${attr}'`);
                     }
-                    const expectedArgs = getArguments(methodMatch[2]);
-                    const func = method.toString();
-                    const funcMatch = functionRegex.exec(func);
-                    if (funcMatch) {
-                        validateArguments(name, attr, funcMatch[0], funcMatch[1], expectedArgs);
-                    }
-                    const lambdaMatch = lamdaRegex.exec(func);
-                    if (lambdaMatch) {
-                        validateArguments(name, attr, lambdaMatch[0], lambdaMatch[1], expectedArgs);
-                    }
-                    const lambdaSingleArgMatch = lamdaSingleArgRegex.exec(func);
-                    if (lambdaSingleArgMatch) {
-                        validateArguments(name, attr, lambdaSingleArgMatch[0], lambdaSingleArgMatch[1], expectedArgs);
+                    if (checkMethodArguments === true) {
+                        const expectedArgs = getArguments(methodMatch[2]);
+                        const func = method.toString();
+                        const funcMatch = functionRegex.exec(func);
+                        if (funcMatch) {
+                            validateArguments(name, attr, funcMatch[0], funcMatch[1], expectedArgs);
+                        }
+                        const lambdaMatch = lamdaRegex.exec(func);
+                        if (lambdaMatch) {
+                            validateArguments(name, attr, lambdaMatch[0], lambdaMatch[1], expectedArgs);
+                        }
+                        const lambdaSingleArgMatch = lamdaSingleArgRegex.exec(func);
+                        if (lambdaSingleArgMatch) {
+                            validateArguments(name, attr, lambdaSingleArgMatch[0], lambdaSingleArgMatch[1], expectedArgs);
+                        }
                     }
                     continue;
                 }
@@ -104,7 +106,7 @@
                     }
                     continue;
                 }
-                throw new Error(`${name} has invalid method/property pattern: '${attr}'`);
+                throw new Error(`Invalid method/property pattern: '${attr}'`);
             }
         }
     }
