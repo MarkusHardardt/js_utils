@@ -1,10 +1,8 @@
 (function (root) {
     "use strict";
+    const Client = {};
 
     const isNodeJS = typeof require === 'function';
-    if (isNodeJS) {
-        throw new Error('Client is not available on server');
-    }
 
     if (!isNodeJS) {
         // polyfill for requestAnimationFrame (by Opera engineer Erik Möller)
@@ -32,29 +30,25 @@
                 };
             }
         }());
-    }
-
-    async function fetchJson(url, request, onResponse, onError) {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: request !== undefined ? JSON.stringify(request) : undefined
-        });
-        if (response.ok) {
-            const result = await response.json();
-            onResponse(result)
+        // fetch JSON
+        async function fetchJsonAsync(url, request, onResponse, onError) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: request !== undefined ? JSON.stringify(request) : undefined
+            });
+            if (response.ok) {
+                const result = await response.json();
+                onResponse(result)
+            }
+            else {
+                onError(`url: '${url}' failed: ${response.status}, ${response.statusText}`);
+            }
         }
-        else {
-            onError(`url: '${url}' failed: ${response.status}, ${response.statusText}`);
-        }
-    }
+        Client.fetchJsonAsync = fetchJsonAsync;
+        Client.fetchJson = (url, request, onResponse, onError) => { (async () => await fetchJsonAsync(url, request, onResponse, onError))(); }
 
-    const Client = {
-        fetchJson: (url, request, onResponse, onError) => { (async () => await fetchJson(url, request, onResponse, onError))(); }
-    };
-    Object.freeze(Client);
-
-    if (!isNodeJS) {
+        Object.freeze(Client);
         root.Client = Client;
     }
 }(globalThis));

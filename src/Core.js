@@ -50,14 +50,48 @@
     /*  Helps writing new moduls*/
     function generateLibraryFileAccess(dependencies, external) {
         const components = getTopologicalSorting(dependencies);
-        let txt = '    // access to other components in node js and browser:\n';
-        txt += `    const isNodeJS = typeof require === 'function';\s`;
+        let txt = ``;
+        // Code usable js_utils internal
+        txt += `    // ### inside js_utils ###\n\n`;
+        for (const file in dependencies) {
+            if (dependencies.hasOwnProperty(file)) {
+                txt += `    // ==> file: '${file}.js':\n`;
+                txt += `    // access to other components in node js and browser:\n`;
+                txt += `    const isNodeJS = typeof require === 'function';\n`;
+                const used = dependencies[file];
+                for (let comp of components) {
+                    if (used.indexOf(comp) >= 0) {
+                        txt += `    const ${comp} = isNodeJS ? require('./${comp}.js') : root.${comp};\n`;
+                    }
+                }
+                txt += `\n`;
+            }
+        }
+        txt += `\n`;
+        // Code for js_utils index.js
+        txt += `    // ### js_utils index.js ###\n\n`;
+        txt += `    // access to other components in node js and browser:\n`;
+        txt += `    const isNodeJS = typeof require === 'function';\n`;
+        for (let comp of components) {
+            txt += `    const ${comp} = isNodeJS ? require('./src/${comp}.js') : root.${comp};\n`;
+        }
+        txt += `\n`;
+        txt += `    const js_utils = {\n`;
+        for (let i = 0; i < components.length; i++) {
+            if (i > 0) { 
+                txt += `,\n`;
+            }
+            txt += `        ${components}`;
+        }
+        txt += `    \n};\n\n`;
+        txt += `    // access to other components in node js and browser:\n`;
+        txt += `    const isNodeJS = typeof require === 'function';\n`;
         const path = external === true ? '@markus.hardardt/js_utils/src' : '.';
         for (let comp of components) {
             txt += `    const ${comp} = isNodeJS ? require('${path}/${comp}.js') : root.${comp};\n`;
         }
-        txt += '\n';
-        txt += '    // js_utils files for browser provided by webserver:\n';
+        txt += `\n`;
+        txt += `    // js_utils files for browser provided by webserver:\n`;
         for (let comp of components) {
             txt += `    webServer.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/${comp}.js');\n`;
         }

@@ -1,29 +1,60 @@
 (function (root) {
     "use strict";
 
+    // access to other components in node js and browser:
     const isNodeJS = typeof require === 'function';
+    const Client = isNodeJS ? require('./src/Client.js') : root.Client;
+    const Executor = isNodeJS ? require('./src/Executor.js') : root.Executor;
+    const jsonfx = isNodeJS ? require('./src/jsonfx.js') : root.jsonfx;
+    const math = isNodeJS ? require('./src/math.js') : root.math;
+    const ObjectPositionSystem = isNodeJS ? require('./src/ObjectPositionSystem.js') : root.ObjectPositionSystem;
+    const Regex = isNodeJS ? require('./src/Regex.js') : root.Regex;
+    const Server = isNodeJS ? require('./src/Server.js') : root.Server;
+    const Sorting = isNodeJS ? require('./src/Sorting.js') : root.Sorting;
+    const Utilities = isNodeJS ? require('./src/Utilities.js') : root.Utilities;
+    const SqlHelper = isNodeJS ? require('./src/SqlHelper.js') : root.SqlHelper;
+    const Core = isNodeJS ? require('./src/Core.js') : root.Core;
+    const WebServer = isNodeJS ? require('./src/WebServer.js') : root.WebServer;
+    const HashLists = isNodeJS ? require('./src/HashLists.js') : root.HashLists;
+    const ContentManager = isNodeJS ? require('./src/ContentManager.js') : root.ContentManager;
+    const Common = isNodeJS ? require('./src/Common.js') : root.Common;
+    const Global = isNodeJS ? require('./src/Global.js') : root.Global;
+    const hmi_object = isNodeJS ? require('./src/hmi_object.js') : root.hmi_object;
+    const WebSocketConnection = isNodeJS ? require('./src/WebSocketConnection.js') : root.WebSocketConnection;
+    const DataConnector = isNodeJS ? require('./src/DataConnector.js') : root.DataConnector;
+    const EventPublisher = isNodeJS ? require('./src/EventPublisher.js') : root.EventPublisher;
+    const TargetSystemAdapter = isNodeJS ? require('./src/TargetSystemAdapter.js') : root.TargetSystemAdapter;
 
-    var exp = {
-        jsonfx: isNodeJS ? require('./src/jsonfx') : root.jsonfx,
-        SqlHelper: isNodeJS ? require('./src/SqlHelper') : root.SqlHelper,
-        Executor: isNodeJS ? require('./src/Executor') : root.Executor,
-        Sorting: isNodeJS ? require('./src/Sorting') : root.Sorting,
-        Regex: isNodeJS ? require('./src/Regex') : root.Regex,
-        math: isNodeJS ? require('./src/math') : root.math,
-        HashLists: isNodeJS ? require('./src/HashLists') : root.HashLists,
-        Utilities: isNodeJS ? require('./src/Utilities') : root.Utilities,
-        WebServer: isNodeJS ? require('./src/WebServer') : root.WebServer,
-        hmi_object: isNodeJS ? require('./src/hmi_object') : root.hmi_object,
-        ContentManager: isNodeJS ? require('./src/ContentManager') : root.ContentManager,
-        ObjectPositionSystem: isNodeJS ? require('./src/ObjectPositionSystem') : root.ObjectPositionSystem
+    const js_utils = {
+        Client,
+        Executor,
+        jsonfx,
+        math,
+        ObjectPositionSystem,
+        Regex,
+        Server,
+        Sorting,
+        Utilities,
+        SqlHelper,
+        Core,
+        WebServer,
+        HashLists,
+        ContentManager,
+        Common,
+        Global,
+        hmi_object,
+        WebSocketConnection,
+        DataConnector,
+        EventPublisher,
+        TargetSystemAdapter
     };
 
-    Object.seal(exp);
+    Object.seal(js_utils);
 
     // export
     if (isNodeJS) {
-        module.exports = exp;
+        module.exports = js_utils;
     } else {
-        root.js_utils = exp;
+        root.js_utils = js_utils;
     }
 }(globalThis));

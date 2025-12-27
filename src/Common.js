@@ -39,7 +39,6 @@
         }());
     }
 
-
     Object.freeze(Common);
     if (isNodeJS) {
         module.exports = Common;
