@@ -16,6 +16,8 @@
         createSHA512: text => createHash(text, 'SHA-512')
     };
 
+    Object.freeze(Server);
+
     if (isNodeJS) {
         module.exports = Server;
     }

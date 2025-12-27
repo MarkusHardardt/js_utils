@@ -52,6 +52,7 @@
     const Client = {
         fetchJson: (url, request, onResponse, onError) => { (async () => await fetchJson(url, request, onResponse, onError))(); }
     };
+    Object.freeze(Client);
 
     if (!isNodeJS) {
         root.Client = Client;

@@ -170,72 +170,14 @@
         throw new Error(error);
     });
 
-    /*  Kahn's algorithm  */
-    function getTopologicalSorting(dependencies) {
-        const graph = new Map();
-        const inDegree = new Map();
-        const queue = [];
-        const result = [];
-        for (const node in dependencies) {
-            if (!inDegree.has(node))
-                inDegree.set(node, 0);
-            for (const dep of dependencies[node]) {
-                graph.set(dep, (graph.get(dep) || []).concat(node));
-                inDegree.set(node, (inDegree.get(node) || 0) + 1);
-            }
-        }
-        for (const [node, degree] of inDegree.entries()) {
-            if (degree === 0) queue.push(node);
-        }
-        while (queue.length > 0) {
-            const node = queue.shift();
-            result.push(node);
-            for (const neighbor of graph.get(node) || []) {
-                inDegree.set(neighbor, inDegree.get(neighbor) - 1);
-                if (inDegree.get(neighbor) === 0) {
-                    queue.push(neighbor);
-                }
-            }
-        }
-        if (result.length !== inDegree.size) {
-            throw new Error("Cyclical dependency detected!");
-        }
-        return result;
-    };
-
-    const showTopologicalSorting = false; // TODO: Set true if topological sorting must be dumped to console
-    if (showTopologicalSorting) {
-        // Get the topological sorting of the files contained in js_utils
-        const topo = getTopologicalSorting({
-            'Client': [],
-            'Common': ['Regex', 'Executor'],
-            'ContentManager': ['Utilities', 'jsonfx', 'Regex', 'Executor', 'Sorting', 'SqlHelper'],
-            'DataConnector': ['Common', 'Sorting', 'Regex', 'EventPublisher', 'WebSocketConnection'],
-            'EventPublisher': ['Common'],
-            'Executor': [],
-            'HashLists': ['Utilities'],
-            'hmi_object': ['Regex', 'Executor', 'math', 'ObjectPositionSystem', 'Sorting'],
-            'jsonfx': [],
-            'math': [],
-            'ObjectPositionSystem': [],
-            'Regex': [],
-            'Server': [],
-            'Sorting': ['Utilities'],
-            'SqlHelper': ['Executor'],
-            'TargetSystemAdapter': ['EventPublisher'],
-            'Utilities': ['Common'],
-            'WebServer': [],
-            'WebSocketConnection': ['Common', 'Server']
-        });
-        console.log(`Topological sorting of the files contained in js_utils:\nconst jsUtilsTopologicalSorting = ${JSON.stringify(topo, undefined, 2)};`);
-    }
-
     const Common = {
         idGenerator,
         handleNotFound,
         validateInterface,
         getTopologicalSorting
     };
+
+    Object.freeze(Common);
 
     if (isNodeJS) {
         module.exports = Common;

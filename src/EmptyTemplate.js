@@ -1,13 +1,15 @@
 (function (root) {
     "use strict";
-
     const isNodeJS = typeof require === 'function';
+    const Template = {};
 
-    const exp = {};
+    // TODO: Add content
+    Template.content = {};
 
+    Object.freeze(Template);
     if (isNodeJS) {
-        module.exports = exp;
+        module.exports = Template;
     } else {
-        root.EmptyTemplate = exp;
+        root.Template = Template;
     }
 }(globalThis));
