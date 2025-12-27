@@ -30,7 +30,7 @@
                 'WebServer': ['Server'],
                 'WebSocketConnection': ['Core', 'Server'],
             };
-            const dumpLibraryFileAccess = true; // TODO: Set true if topological sorting must be dumped to console
+            const dumpLibraryFileAccess = false; // TODO: Set true if topological sorting must be dumped to console
             if (dumpLibraryFileAccess) {
                 // Get the topological sorting of the files contained in js_utils
                 console.log(JSON.stringify(Core.getTopologicalSorting(js_utils_dependencies), undefined, 2));

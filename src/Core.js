@@ -48,7 +48,7 @@
     Core.getTopologicalSorting = getTopologicalSorting;
 
     /*  Helps writing new moduls*/
-    function generateLibraryFileAccess(dependencies, external) {
+    function generateLibraryFileAccess(dependencies) {
         const components = getTopologicalSorting(dependencies);
         let txt = ``;
         // Code usable js_utils internal
@@ -81,14 +81,13 @@
             if (i > 0) { 
                 txt += `,\n`;
             }
-            txt += `        ${components}`;
+            txt += `        ${components[i]}`;
         }
         txt += `    \n};\n\n`;
-        txt += `    // access to other components in node js and browser:\n`;
+        txt += `    // access from other projects to js_utils components on node js:\n`;
         txt += `    const isNodeJS = typeof require === 'function';\n`;
-        const path = external === true ? '@markus.hardardt/js_utils/src' : '.';
         for (let comp of components) {
-            txt += `    const ${comp} = isNodeJS ? require('${path}/${comp}.js') : root.${comp};\n`;
+            txt += `    const ${comp} = require('@markus.hardardt/js_utils/src/${comp}.js');\n`;
         }
         txt += `\n`;
         txt += `    // js_utils files for browser provided by webserver:\n`;
@@ -125,13 +124,13 @@
 
     /*  Interface validation */
     (function () {
-        // This is a pattern matching valid javascript names: [_$a-z][_$a-z0-9]*
-        const attributeMethodRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)\s*$/i;
-        const functionRegex = /^\s*function\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)/im;
-        const lamdaRegex = /^\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)\s*=>/im;
-        const lamdaSingleArgRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*=>/im;
-        const classMethodRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)/i;
-        const argumentRegex = /(?:\s*,\s*)?([_$a-z][_$a-z0-9]*)\s*/gi;
+        // This is a pattern matching valid javascript names: [_$a-zA-Z][_$a-zA-Z0-9]*
+        const attributeMethodRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*$/;
+        const functionRegex = /^\s*function\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)/m;
+        const lamdaRegex = /^\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*=>/m;
+        const lamdaSingleArgRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*=>/m;
+        const classMethodRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)/;
+        const argumentRegex = /(?:\s*,\s*)?([_$a-zA-Z][_$a-zA-Z0-9]*)\s*/g;
         function getArguments(args) {
             const a = [];
             if (args) {
@@ -152,7 +151,7 @@
                 }
             }
         }
-        const propertyRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*:\s*([_a-z0-9]+)\s*/i;
+        const propertyRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*:\s*([_a-zA-Z0-9]+)\s*/;
         function validateInterface(name, instance, attributes, validateMethodArguments) {
             if (instance === undefined) {
                 throw new Error(`${name} is undefined!`);
