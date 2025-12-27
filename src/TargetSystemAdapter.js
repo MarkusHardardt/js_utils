@@ -12,7 +12,7 @@
         }
 
         Register(target, system) {
-            validateEventPublisher(system);
+            validateEventPublisher(system, true);
             if (typeof target !== 'string') {
                 throw new Error(`Invalid target '${target}' for Register(target, system)`);
             } else if (this._targetSystems[target] !== undefined) {
@@ -23,7 +23,7 @@
         }
 
         Unregister(target, system) {
-            validateEventPublisher(system);
+            validateEventPublisher(system, true);
             if (typeof target !== 'string') {
                 throw new Error(`Invalid target '${target}' for Unregister(target, system)`);
             } else if (this._targetSystems[target] === undefined) {

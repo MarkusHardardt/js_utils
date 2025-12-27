@@ -50,15 +50,13 @@
     }
     function validateArguments(name, method, func, args, expectedArgs) {
         const foundArgs = getArguments(args);
-        const missingArgs = [];
-        handleNotFound(expectedArgs, foundArgs, undefined, notFound => missingArgs.push(notFound));
-        if (missingArgs.length > 0) {
-            throw new Error(`${name} method '${method}' has missing argument(s): [${missingArgs.join(',')}] in: '${func}'`);
+        if (expectedArgs.length !== foundArgs.length) {
+            throw new Error(`${name} method '${method}' expects ${expectedArgs.length} arguments but instance has ${foundArgs.length}: expected: [${expectedArgs.join(',')}], found: [${foundArgs.join(',')}]`);
         }
-        const unexpectedArgs = [];
-        handleNotFound(foundArgs, expectedArgs, undefined, notFound => unexpectedArgs.push(notFound));
-        if (unexpectedArgs.length > 0) {
-            throw new Error(`${name} method '${method}' has unexpected argument(s): [${unexpectedArgs.join(', ')}] in: '${func}'`);
+        for (let i = 0; i < expectedArgs.length; i++) {
+            if (expectedArgs[i] !== foundArgs[i]) {
+                throw new Error(`${name} method '${method}' expects as argument ${(i + 1)} '${expectedArgs[i]}' but instance has '${foundArgs[i]}': expected: [${expectedArgs.join(',')}], found: [${foundArgs.join(',')}]`);
+            }
         }
     }
     const propertyRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*:\s*([_a-z0-9]+)\s*/i;
@@ -127,7 +125,7 @@
             validateInterface('Test1', {
                 Foo: function () { },
                 Baz: function (a) { },
-                Bar: function (b, c) { },
+                Bar: function (b, c) { }, // b, c
                 State: true,
                 Answer: 42,
                 Text: 'Hello world'

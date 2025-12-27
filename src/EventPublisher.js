@@ -28,7 +28,7 @@
 
         set Parent(value) {
             if (value) {
-                validateEventPublisher(value);
+                validateEventPublisher(value, true);
                 this._parent = value;
             }
             else {
