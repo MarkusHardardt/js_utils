@@ -35,15 +35,8 @@
     // This is a pattern matching valid javascript names: [_$a-z][_$a-z0-9]*
     const methodRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)\s*$/i;
     const functionRegex = /^\s*function\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)/im;
-
-    const chalange = {
-        Foo: () => { },
-        Baz: a => { },
-        Bar: (b, c) => { },
-    };
     const lamdaRegex = /^\s*\(\s*([_$a-z][_$a-z0-9]*(?:\s*,\s*[_$a-z][_$a-z0-9]*)*)?\s*\)\s*=>/im;
     const lamdaSingleArgRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*=>/im;
-
     const argumentRegex = /(?:\s*,\s*)?([_$a-z][_$a-z0-9]*)\s*/gi;
     function getArguments(args) {
         const a = [];
@@ -56,20 +49,18 @@
     }
     function validateArguments(name, method, func, args, expectedArgs) {
         const foundArgs = getArguments(args);
-        console.log(`- Found arguments: ${JSON.stringify(foundArgs)}`);
         const missingArgs = [];
         handleNotFound(expectedArgs, foundArgs, undefined, notFound => missingArgs.push(notFound));
-        console.log(`- Missing arguments: ${JSON.stringify(missingArgs)}`);
         if (missingArgs.length > 0) {
-            throw new Error(`${name} method ${method}: missing argument(s) ${missingArgs.join(', ')} in: ${func}`);
+            throw new Error(`${name} method '${method}' has missing argument(s): [${missingArgs.join(',')}] in: '${func}'`);
         }
         const unexpectedArgs = [];
         handleNotFound(foundArgs, expectedArgs, undefined, notFound => unexpectedArgs.push(notFound));
-        console.log(`- Unexpected arguments: ${JSON.stringify(unexpectedArgs)}`);
         if (unexpectedArgs.length > 0) {
-            throw new Error(`${name} method ${method}: unexpected argument(s) ${unexpectedArgs.join(', ')} in: ${func}`);
+            throw new Error(`${name} method '${method}' has unexpected argument(s): [${unexpectedArgs.join(', ')}] in: '${func}'`);
         }
     }
+    const propertyRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*:\s*([_a-z0-9]+)\s*/i;
     function validateInterface(name, instance, attributes) {
         if (instance === undefined) {
             throw new Error(`${name} is undefined!`);
@@ -82,30 +73,38 @@
                 const methodMatch = methodRegex.exec(attr);
                 if (methodMatch) {
                     const method = instance[methodMatch[1]];
-                    console.log(`Check method: ${attr}`);
                     if (typeof method !== 'function') {
-                        throw new Error(`${name} has no method ${attr}`);
+                        throw new Error(`${name} has no method '${attr}'`);
                     }
                     const expectedArgs = getArguments(methodMatch[2]);
-                    console.log(`- Expected arguments: ${JSON.stringify(expectedArgs)}`);
                     const func = method.toString();
-                    console.log(`- Function code: ${func}`);
                     const funcMatch = functionRegex.exec(func);
                     if (funcMatch) {
-                        console.log(`- Function match: ${funcMatch}`);
                         validateArguments(name, attr, funcMatch[0], funcMatch[1], expectedArgs);
                     }
                     const lambdaMatch = lamdaRegex.exec(func);
                     if (lambdaMatch) {
-                        console.log(`- Lambda match: ${lambdaMatch}`);
                         validateArguments(name, attr, lambdaMatch[0], lambdaMatch[1], expectedArgs);
                     }
                     const lambdaSingleArgMatch = lamdaSingleArgRegex.exec(func);
                     if (lambdaSingleArgMatch) {
-                        console.log(`- Lambda single arg match: ${lambdaSingleArgMatch}`);
                         validateArguments(name, attr, lambdaSingleArgMatch[0], lambdaSingleArgMatch[1], expectedArgs);
                     }
+                    continue;
                 }
+                const propertyMatch = propertyRegex.exec(attr);
+                if (propertyMatch) {
+                    const prop = propertyMatch[1];
+                    const type = propertyMatch[2];
+                    const property = instance[prop];
+                    if (property === undefined) {
+                        throw new Error(`${name} has no property '${prop}' of type '${type}'`);
+                    } else if (typeof property !== type) {
+                        throw new Error(`${name} property '${prop}' has invalid type '${(typeof property)}' (expected: '${type})'`);
+                    }
+                    continue;
+                }
+                throw new Error(`${name} has invalid method/property pattern: '${attr}'`);
             }
         }
     }
@@ -113,18 +112,27 @@
     const testAttributes = [
         'Foo()',
         'Baz(a)',
-        'Bar(b,c)'
+        'Bar(b,c)',
+        'State:boolean',
+        'Answer:number',
+        'Text:string'
     ];
 
     validateInterface('Object1', {
         Foo: function () { },
         Baz: function (a) { },
         Bar: function (b, c) { },
+        State: true,
+        Answer: 42,
+        Text: 'Hello world'
     }, testAttributes);
     validateInterface('Object2', {
         Foo: () => { },
         Baz: a => { },
         Bar: (b, c) => { },
+        State: true,
+        Answer: 42,
+        Text: 'Hello world'
     }, testAttributes);
 
     const Common = {
