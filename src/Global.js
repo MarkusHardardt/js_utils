@@ -5,35 +5,46 @@
     const Core = isNodeJS ? require('./Core.js') : root.Core;
 
     /*  event publisher inferface  */
-    function validateEventPublisherInterface(instance, checkMethodArguments) {
+    function validateEventPublisherInterface(instance, validateMethodArguments) {
         Core.validateInterface('EventPublisherInterface', instance, [
             'Subscribe(id, onEvent)',
             'Unsubscribe(id, onEvent)',
             'Read(id, onResponse, onError)',
             'Write(id, value)'
-        ], checkMethodArguments);
+        ], validateMethodArguments);
     }
     Global.validateEventPublisherInterface = validateEventPublisherInterface;
 
     /*  connection inferface  */
-    function validateConnection(instance, checkMethodArguments) {
-        Core.validateInterface('Connection', instance, [
+    function validateConnectionInterface(instance, validateMethodArguments) {
+        Core.validateInterface('ConnectionInterface', instance, [
             'Ping(onResponse, onError)',
             'Register(receiver, handler)',
             'Unregister(receiver)',
             'Send(receiver, data, onResponse, onError)'
-        ], checkMethodArguments);
+        ], validateMethodArguments);
     }
-    Global.validateConnection = validateConnection;
+    Global.validateConnectionInterface = validateConnectionInterface;
 
-    /*  connector inferface  */
-    function validateConnectorInterface(instance, checkMethodArguments) {
-        Core.validateInterface('ClientDataConnector', instance, [
+    /*  connector inferface on client */
+    function validateClientConnectorInterface(instance, validateMethodArguments) {
+        Core.validateInterface('ClientConnectorInterface', instance, [
             'OnOpen()',
             'OnClose()'
-        ], checkMethodArguments);
+        ], validateMethodArguments);
     }
-    Global.validateConnectorInterface = validateConnectorInterface;
+    Global.validateClientConnectorInterface = validateClientConnectorInterface;
+
+    /*  connector inferface on server  */
+    function validateServerConnectorInterface(instance, validateMethodArguments) {
+        Core.validateInterface('ServerConnectorInterface', instance, [
+            'OnOpen()',
+            'OnReopen()',
+            'OnClose()',
+            'OnDispose()'
+        ], validateMethodArguments);
+    }
+    Global.validateServerConnectorInterface = validateServerConnectorInterface;
 
     Object.freeze(Global);
     if (isNodeJS) {

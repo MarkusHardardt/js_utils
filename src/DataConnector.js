@@ -7,7 +7,6 @@
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
-    const { Global.validateConnectionInterface } = isNodeJS ? require('./WebSocketConnection.js') : { Global.validateConnectionInterface: root.Global.validateConnectionInterface };
 
     const compareTextsAndNumbers = Sorting.getTextsAndNumbersCompareFunction(true, false, true);
     function addId(ids, id) {
@@ -92,7 +91,7 @@
     class ClientDataConnector extends BaseDataConnector {
         constructor() {
             super();
-            Global.validateConnectorInterface(this, true);
+            Global.validateClientConnectorInterface(this, true);
             Global.validateEventPublisherInterface(this, true);
             this._callbacks = {};
             this._bufferedSubsciptions = [];
@@ -240,19 +239,10 @@
         }
     }
 
-    function validateServerDataConnector(instance, checkMethodArguments) {
-        Core.validateInterface('ServerDataConnector', instance, [
-            'OnOpen()',
-            'OnReopen()',
-            'OnClose()',
-            'OnDispose()'
-        ], checkMethodArguments);
-    }
-
     class ServerDataConnector extends BaseDataConnector {
         constructor() {
             super();
-            validateServerDataConnector(this, true);
+            Global.validateServerConnectorInterface(this, true);
             this._parent = null;
             this._callbacks = {};
             this._short2Id = null;
@@ -392,9 +382,8 @@
     }
 
     if (isNodeJS) {
-        module.exports = { ServerDataConnector, validateServerDataConnector };
+        module.exports = ServerDataConnector;
     } else {
         root.ClientDataConnector = ClientDataConnector;
-        root.Global.validateConnectorInterface = Global.validateConnectorInterface;
     }
 }(globalThis));

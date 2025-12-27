@@ -3,6 +3,8 @@
     const Core = {};
 
     const isNodeJS = typeof require === 'function';
+    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
+    const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
 
     /*  Returns a function witch on each call returns a number (radix 36, starting at zero). */
     function createIdGenerator(prefix = '') {
@@ -117,7 +119,7 @@
             }
         }
         const propertyRegex = /^\s*([_$a-z][_$a-z0-9]*)\s*:\s*([_a-z0-9]+)\s*/i;
-        function validateInterface(name, instance, attributes, checkMethodArguments) {
+        function validateInterface(name, instance, attributes, validateMethodArguments) {
             if (instance === undefined) {
                 throw new Error(`${name} is undefined!`);
             } if (instance === null) {
@@ -132,7 +134,7 @@
                         if (typeof method !== 'function') {
                             throw new Error(`${name} has no method '${attr}'`);
                         }
-                        if (checkMethodArguments !== true) {
+                        if (validateMethodArguments !== true) {
                             continue;
                         }
                         const expectedArgs = getArguments(methodMatch[2]);

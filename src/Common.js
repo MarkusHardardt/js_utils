@@ -5,10 +5,8 @@
     const isNodeJS = typeof require === 'function';
     const Core = isNodeJS ? require('./Core.js') : root.Core;
 
-    const dumpLibraryFileAccess = true; // TODO: Set true if topological sorting must be dumped to console
-    if (dumpLibraryFileAccess) {
-        // Get the topological sorting of the files contained in js_utils
-        console.log(Core.generateLibraryFileAccess({
+    (function () {
+        const js_utils_dependencies = {
             'Client': [],
             'Common': ['Regex', 'Executor'],
             'ContentManager': ['Utilities', 'jsonfx', 'Regex', 'Executor', 'Sorting', 'SqlHelper'],
@@ -30,7 +28,14 @@
             'Utilities': ['Common'],
             'WebServer': [],
             'WebSocketConnection': ['Common', 'Server'],
-        }));
+        };
+    }());
+
+    const dumpLibraryFileAccess = true; // TODO: Set true if topological sorting must be dumped to console
+    if (dumpLibraryFileAccess) {
+        // Get the topological sorting of the files contained in js_utils
+        console.log(Core.getTopologicalSorting(js_utils_dependencies));
+        console.log(Core.generateLibraryFileAccess(js_utils_dependencies));
     }
 
     Object.freeze(Common);
