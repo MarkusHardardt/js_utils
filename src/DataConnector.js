@@ -16,7 +16,7 @@
             ids.splice(idx, 0, id);
         }
     };
-    function removeId(ids, id) {
+    function removeId(ids, id) { // TODO: reuse or remove
         let idx = Sorting.getIndexOfFirstEqual(id, ids, compareTextsAndNumbers);
         if (idx >= 0) {
             ids.splice(idx, 1);
@@ -37,9 +37,9 @@
     const defaultOnError = error => console.error(error);
 
     const TransmissionType = Object.freeze({
-        Con2IdRequest: 1,
+        ShortToIdRequest: 1,
         SubscriptionRequest: 3,
-        SubscriptionResponse: 4,
+        SubscribedDataUpdate: 4,
         ReadRequest: 5,
         WriteRequest: 6
     });
@@ -58,7 +58,7 @@
                     this.connection.Unregister(this.receiver);
                     this.connection = null;
                 }
-                validateConnection(value);
+                validateConnection(value, true);
                 this.connection = value;
                 this.connection.Register(this.receiver, this._handler);
             } else if (this.connection) {
@@ -104,10 +104,11 @@
             this._callbacks = {};
             this._bufferedSubsciptions = [];
             this._bufferedUnsubsciptions = [];
-            this._con2Id = null;
-            this._id2Con = null;
+            this._short2Id = null;
+            this._id2Short = null;
             this._subscribtionDelay = false;
             this._subscribtionDelayTimer = null;
+            this._online = false;
         }
 
         set SubscribtionDelay(value) {
@@ -117,14 +118,19 @@
         OnOpen() {
             console.log('ClientDataConnector.OnOpen()');
             validateConnection(this.connection);
-            this.connection.Send(this.receiver, { type: TransmissionType.Con2IdRequest }, con2Id => {
-                this._con2Id = con2Id;
-                this._id2Con = invert(con2Id);
+            this.connection.Send(this.receiver, { type: TransmissionType.ShortToIdRequest }, short2Id => {
+                this._short2Id = short2Id;
+                this._id2Short = invert(short2Id);
+                this._online = true;
+                this._sendSubscriptionRequest();
             }, error => this.onError(error));
         }
 
         OnClose() {
             console.log('ClientDataConnector.OnClose()');
+            this._online = false;
+            clearTimeout(this._subscribtionDelayTimer);
+            this._subscribtionDelayTimer = null;
         }
 
         Subscribe(id, onEvent) {
@@ -157,21 +163,40 @@
 
         Read(id, onResponse, onError) {
             validateConnection(this.connection);
-            this.connection.Send(this.receiver, { type: TransmissionType.ReadRequest, id }, onResponse, onError);
+            if (!this._id2Short) {
+                throw new Error('Not available: this._id2Short');
+            } else if (!this._online) {
+                throw new Error('Cannot Read() because not connected');
+            }
+            const short = this._id2Short[id];
+            if (!short) {
+                throw new Error(`Unexpected id ${id} to Read()`);
+            }
+            this.connection.Send(this.receiver, { type: TransmissionType.ReadRequest, short }, onResponse, onError);
         }
 
         Write(id, value) {
             validateConnection(this.connection);
-            this.connection.Send(this.receiver, { type: TransmissionType.WriteRequest, id, value });
+            if (!this._id2Short) {
+                throw new Error('Not available: this._id2Short');
+            } else if (!this._online) {
+                throw new Error('Cannot Write() because not connected');
+            }
+            const short = this._id2Short[id];
+            if (!short) {
+                throw new Error(`Unexpected id ${id} to Write()`);
+            }
+            this.connection.Send(this.receiver, { type: TransmissionType.WriteRequest, short, value });
         }
 
         handleReceived(data, onResponse, onError) {
             try {
                 switch (data.type) {
-                    case TransmissionType.SubscriptionResponse:
-                        for (const id in data.values) {
-                            if (data.values.hasOwnProperty(id)) {
-                                const value = data.values[id];
+                    case TransmissionType.SubscribedDataUpdate:
+                        for (const short in data.values) {
+                            if (data.values.hasOwnProperty(short)) {
+                                const id = this._short2Id[short];
+                                const value = data.values[short];
                                 const onEvent = this._callbacks[id];
                                 if (onEvent) {
                                     try {
@@ -204,20 +229,21 @@
 
         _sendSubscriptionRequest() {
             validateConnection(this.connection);
-            if (!this._id2Con) {
-                throw new Error('Not available: this._id2Con');
-            }
-            let subs = '';
-            for (const id in this._callbacks) {
-                if (this._callbacks.hasOwnProperty(id)) {
-                    const con = this._id2Con[id];
-                    if (!con) {
-                        throw new Error(`Unknown id: ${id}`);
+            if (!this._id2Short) {
+                throw new Error('Not available: this._id2Short');
+            } else if (this._online) {
+                let subs = '';
+                for (const id in this._callbacks) {
+                    if (this._callbacks.hasOwnProperty(id)) {
+                        const short = this._id2Short[id];
+                        if (!short) {
+                            throw new Error(`Unknown id: ${id}`);
+                        }
+                        subs += short;
                     }
-                    subs += con;
                 }
+                this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionRequest, subs });
             }
-            this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionRequest, subs });
         }
     }
 
@@ -236,8 +262,8 @@
             validateServerDataConnector(this, true);
             this._parent = null;
             this._callbacks = {};
-            this._con2Id = null;
-            this._id2Con = null;
+            this._short2Id = null;
+            this._id2Short = null;
             this._online = false;
         }
 
@@ -258,12 +284,12 @@
             for (const id of ids) {
                 addId(sorted, id);
             }
-            this._con2Id = {};
+            this._short2Id = {};
             const nextId = Common.idGenerator(idPrefix);
             for (const id of sorted) {
-                this._con2Id[nextId()] = id;
+                this._short2Id[nextId()] = id;
             }
-            this._id2Con = invert(this._con2Id);
+            this._id2Short = invert(this._short2Id);
         }
 
         OnOpen() {
@@ -288,10 +314,11 @@
             try {
                 validateEventPublisher(this._parent);
                 validateConnection(this.connection);
+                let id;
                 switch (data.type) {
-                    case TransmissionType.Con2IdRequest:
-                        if (this._con2Id) {
-                            onResponse(this._con2Id);
+                    case TransmissionType.ShortToIdRequest:
+                        if (this._short2Id) {
+                            onResponse(this._short2Id);
                         }
                         else {
                             onError('No ids available');
@@ -301,10 +328,24 @@
                         this._updateSubscriptions(data.subs);
                         break;
                     case TransmissionType.ReadRequest:
-                        this._parent.Read(data.id, onResponse, onError);
+                        if (!this._short2Id) {
+                            throw new Error('Short -> Id not available for read request');
+                        }
+                        id = this._short2Id[data.short];
+                        if (!id) {
+                            throw new Error('Unknown id for read request');
+                        }
+                        this._parent.Read(id, onResponse, onError);
                         break;
                     case TransmissionType.WriteRequest:
-                        this._parent.Write(data.id, data.value);
+                        if (!this._short2Id) {
+                            throw new Error('Short -> Id not available for write request');
+                        }
+                        id = this._short2Id[data.short];
+                        if (!id) {
+                            throw new Error('Unknown id for write request');
+                        }
+                        this._parent.Write(id, data.value);
                         break;
                     default:
                         throw new Error(`Invalid transmission type: ${data.type}`);
@@ -314,36 +355,37 @@
             }
         }
 
-        _updateSubscriptions(subCons) {
+        _updateSubscriptions(subscriptionShorts) {
             try {
                 validateEventPublisher(this._parent);
-                if (this._con2Id && this._id2Con) {
+                if (this._short2Id && this._id2Short) {
                     for (const id in this._callbacks) {
                         if (this._callbacks.hasOwnProperty(id)) {
-                            const con = this._id2Con[id];
-                            const onEvent = subCons.indexOf(con) < 0 ? this._callbacks[id] : false;
+                            const short = this._id2Short[id];
+                            const onEvent = subscriptionShorts.indexOf(short) < 0 ? this._callbacks[id] : false;
                             if (onEvent) {
                                 delete this._callbacks[id];
                                 this._parent.Unsubscribe(id, onEvent);
                             }
                         }
                     }
-                    Regex.each(conRegex, subCons, (start, end, match) => {
-                        const id = this._con2Id[match[0]];
+                    Regex.each(conRegex, subscriptionShorts, (start, end, match) => {
+                        const short = match[0];
+                        const id = this._short2Id[short];
                         if (id) {
                             if (!this._callbacks[id]) {
                                 const onEvent = value => {
                                     // console.log(`Updated id: '${id}', value: ${value}`);
                                     const values = {};
-                                    values[id] = value;
-                                    this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionResponse, values });
+                                    values[short] = value;
+                                    this.connection.Send(this.receiver, { type: TransmissionType.SubscribedDataUpdate, values });
                                 };
                                 this._callbacks[id] = onEvent;
                                 this._parent.Subscribe(id, onEvent);
                             }
                         }
                         else {
-                            this.onError(`Cannot subscribe: ${match[0]}`);
+                            this.onError(`Cannot subscribe: ${short}`);
                         }
                     }, true);
                 }
