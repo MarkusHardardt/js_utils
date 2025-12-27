@@ -89,9 +89,19 @@
     const idPrefix = '#';
     const conRegex = /#[a-z0-9]+\b/g;
 
+    function validateServerDataConnector(instance, checkMethodArguments) {
+        Common.validateInterface('ServerDataConnector', instance, [
+            'OnOpen()',
+            'OnReopen()',
+            'OnClose()',
+            'OnDispose()'
+        ], checkMethodArguments);
+    }
+
     class ServerDataConnector extends BaseDataConnector {
         constructor() {
             super();
+            validateServerDataConnector(this, true);
             this._parent = null;
             this._callbacks = {};
             this._con2Id = null;
@@ -214,9 +224,17 @@
         }
     }
 
+    function validateClientDataConnector(instance, checkMethodArguments) {
+        Common.validateInterface('ClientDataConnector', instance, [
+            'OnOpen()',
+            'OnClose()'
+        ], checkMethodArguments);
+    }
+
     class ClientDataConnector extends BaseDataConnector {
         constructor() {
             super();
+            validateClientDataConnector(this, true);
             validateEventPublisher(this, true);
             this._callbacks = {};
             this._bufferedSubsciptions = [];
@@ -339,8 +357,9 @@
     }
 
     if (isNodeJS) {
-        module.exports = { ServerDataConnector };
+        module.exports = { ServerDataConnector, validateServerDataConnector };
     } else {
         root.ClientDataConnector = ClientDataConnector;
+        root.validateClientDataConnector = validateClientDataConnector;
     }
 }(globalThis));

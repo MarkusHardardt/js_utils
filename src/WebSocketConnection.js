@@ -20,20 +20,14 @@
         ErrorResponse: 5
     });
 
-    function validateConnection(con) {
-        if (!con) {
-            throw new Error('Invalid connection: Is null or undefined');
-        } else if (typeof con.Ping !== 'function') {
-            throw new Error('Invalid connection: Missing method Ping(onResponse, onError)');
-        } else if (typeof con.Register !== 'function') {
-            throw new Error('Invalid connection: Missing method Register(receiver, handler)');
-        } else if (typeof con.Unregister !== 'function') {
-            throw new Error('Invalid connection: Missing method Unregister(receiver)');
-        } else if (typeof con.Send !== 'function') {
-            throw new Error('Invalid connection: Missing method Send(receiver, data, onResponse, onError)');
-        }
+    function validateConnection(instance, checkMethodArguments) {
+        Common.validateInterface('Connection', instance, [
+            'Ping(onResponse, onError)',
+            'Register(receiver, handler)',
+            'Unregister(receiver)',
+            'Send(receiver, data, onResponse, onError)'
+        ], checkMethodArguments);
     }
-
     /*  The BaseConnection constructor requires the following arguments:
         - sessionId: received from web server (using ajax)
         - options: {
@@ -50,7 +44,7 @@
         - Send(): sends data to receiver on other side an waits optionally for response (pong)    */
     class BaseConnection {
         constructor(sessionId, options) {
-            validateConnection(this);
+            validateConnection(this, true);
             this._sessionId = sessionId;
             this._handlers = {};
             this._callbacks = {};
