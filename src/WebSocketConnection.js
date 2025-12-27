@@ -2,9 +2,11 @@
     "use strict";
     const WebSocketConnection = {};
 
+    // access to other components in node js and browser:
     const isNodeJS = typeof require === 'function';
+    const Server = isNodeJS ? require('./Server.js') : root.Server;
     const Core = isNodeJS ? require('./Core.js') : root.Core;
-    const Server = isNodeJS ? require('./Server.js') : null;
+    const Global = isNodeJS ? require('./Global.js') : root.Global;
     const WebSocket = isNodeJS ? require('ws') : root.WebSocket;
 
     const FORMATED_SESSION_ID_PART_LENGTH = 6;
