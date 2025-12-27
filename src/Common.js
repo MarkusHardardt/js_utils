@@ -3,6 +3,7 @@
 
     const isNodeJS = typeof require === 'function';
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
+    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
 
     function idGenerator(prefix = '#') {
         let id = 0;
@@ -111,35 +112,121 @@
         }
     }
 
-    const testAttributes = [
-        'Foo()',
-        'Baz(a)',
-        'Bar(b,c)',
-        'State:boolean',
-        'Answer:number',
-        'Text:string'
-    ];
+    // Perform some tests
+    const tasks = [];
+    tasks.push((onSuccess, onError) => {
+        try {
+            const testAttributes = [
+                'Foo()',
+                'Baz(a)',
+                'Bar(b,c)',
+                'State:boolean',
+                'Answer:number',
+                'Text:string'
+            ];
+            validateInterface('Test1', {
+                Foo: function () { },
+                Baz: function (a) { },
+                Bar: function (b, c) { },
+                State: true,
+                Answer: 42,
+                Text: 'Hello world'
+            }, testAttributes, true);
+            validateInterface('Test2', {
+                Foo: () => { },
+                Baz: a => { },
+                Bar: (b, c) => { },
+                State: true,
+                Answer: 42,
+                Text: 'Hello world'
+            }, testAttributes, true);
+            onSuccess();
+        } catch (error) {
+            onError(error);
+        }
+    });
+    tasks.push((onSuccess, onError) => {
+        try {
+            validateInterface('Test3', {
+                Foo: arg => { }
+            }, [
+                'Foo(arg)'
+            ], true);
+            onSuccess();
+        } catch (error) {
+            onError(error);
+        }
+    });
+    // TODO: Add tests for each check
+    Executor.run(tasks, () => console.log('validateInterface() tested successfully'), error => {
+        throw new Error(error);
+    });
 
-    validateInterface('Object1', {
-        Foo: function () { },
-        Baz: function (a) { },
-        Bar: function (b, c) { },
-        State: true,
-        Answer: 42,
-        Text: 'Hello world'
-    }, testAttributes);
-    validateInterface('Object2', {
-        Foo: () => { },
-        Baz: a => { },
-        Bar: (b, c) => { },
-        State: true,
-        Answer: 42,
-        Text: 'Hello world'
-    }, testAttributes);
+    /*  Kahn's algorithm  */
+    function getTopologicalSorting(dependencies) {
+        const graph = new Map();
+        const inDegree = new Map();
+        const queue = [];
+        const result = [];
+        for (const node in dependencies) {
+            if (!inDegree.has(node))
+                inDegree.set(node, 0);
+            for (const dep of dependencies[node]) {
+                graph.set(dep, (graph.get(dep) || []).concat(node));
+                inDegree.set(node, (inDegree.get(node) || 0) + 1);
+            }
+        }
+        for (const [node, degree] of inDegree.entries()) {
+            if (degree === 0) queue.push(node);
+        }
+        while (queue.length > 0) {
+            const node = queue.shift();
+            result.push(node);
+            for (const neighbor of graph.get(node) || []) {
+                inDegree.set(neighbor, inDegree.get(neighbor) - 1);
+                if (inDegree.get(neighbor) === 0) {
+                    queue.push(neighbor);
+                }
+            }
+        }
+        if (result.length !== inDegree.size) {
+            throw new Error("Cyclical dependency detected!");
+        }
+        return result;
+    };
+
+    const showTopologicalSorting = true; // TODO: Set true if topological sorting must be dumped to console
+    if (showTopologicalSorting) {
+        // Get the topological sorting of the files contained in js_utils
+        const topo = getTopologicalSorting({
+            'Client': [],
+            'Common': ['Regex', 'Executor'],
+            'ContentManager': ['Utilities', 'jsonfx', 'Regex', 'Executor', 'Sorting', 'SqlHelper'],
+            'DataConnector': ['Common', 'Sorting', 'Regex', 'EventPublisher', 'WebSocketConnection'],
+            'EventPublisher': ['Common'],
+            'Executor': [],
+            'HashLists': ['Utilities'],
+            'hmi_object': ['Regex', 'Executor', 'math', 'ObjectPositionSystem'],
+            'jsonfx': [],
+            'math': [],
+            'ObjectPositionSystem': [],
+            'Regex': [],
+            'Server': [],
+            'Sorting': ['Utilities'],
+            'SqlHelper': ['Executor'],
+            'TargetSystemAdapter': ['EventPublisher'],
+            'Utilities': ['Common'],
+            'WebServer': [],
+            'WebSocketConnection': ['Common', 'Server']
+        });
+        console.log(`Topological sorting of the files contained in js_utils: ${JSON.stringify(topo, undefined, 2)}`);
+    }
 
     const Common = {
         idGenerator,
-        handleNotFound
+        handleNotFound,
+        validateInterface,
+        getTopologicalSorting
     };
 
     if (isNodeJS) {

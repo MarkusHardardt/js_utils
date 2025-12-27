@@ -2,6 +2,9 @@
     "use strict";
 
     const isNodeJS = typeof require === 'function';
+    if (!isNodeJS) {
+        throw new Error('WebServer is not available on client');
+    }
 
     const js_rx = /\.js$/i;
     const css_rx = /\.css$/i;

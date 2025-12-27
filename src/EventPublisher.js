@@ -2,19 +2,15 @@
     "use strict";
 
     const isNodeJS = typeof require === 'function';
+    const Common = isNodeJS ? require('./Common.js') : root.Common;
 
-    function validateEventPublisher(eventPublisher) {
-        if (!eventPublisher) {
-            throw new Error('Invalid event publisher: Is null or undefined');
-        } else if (typeof eventPublisher.Subscribe !== 'function') {
-            throw new Error('Invalid event publisher: Missing method Subscribe(id, onEvent)');
-        } else if (typeof eventPublisher.Unsubscribe !== 'function') {
-            throw new Error('Invalid event publisher: Missing method Unsubscribe(id, onEvent)');
-        } else if (typeof eventPublisher.Read !== 'function') {
-            throw new Error('Invalid event publisher: Missing method Read(id, onResponse, onError)');
-        } else if (typeof eventPublisher.Write !== 'function') {
-            throw new Error('Invalid event publisher: Missing method Write(id, value)');
-        }
+    function validateEventPublisher(instance, checkMethodArguments) {
+        Common.validateInterface('EventPublisher', instance, [
+            'Subscribe(id, onEvent)',
+            'Unsubscribe(id, onEvent)',
+            'Read(id, onResponse, onError)',
+            'Write(id, value)'
+        ], checkMethodArguments);
     }
 
     const defaultEqual = (v1, v2) => v1 === v2;
@@ -22,7 +18,7 @@
 
     class EventPublisher {
         constructor() {
-            validateEventPublisher(this);
+            validateEventPublisher(this, true);
             this._parent = null;
             this._equal = defaultEqual;
             this._onError = defaultOnError;
