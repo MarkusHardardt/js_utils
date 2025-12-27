@@ -8,7 +8,7 @@
     const showTopologicalSorting = true; // TODO: Set true if topological sorting must be dumped to console
     if (showTopologicalSorting) {
         // Get the topological sorting of the files contained in js_utils
-        const topo = Core.getTopologicalSorting({
+        console.log(Core.generateLibraryFileAccess({
             'Client': [],
             'Common': ['Regex', 'Executor'],
             'ContentManager': ['Utilities', 'jsonfx', 'Regex', 'Executor', 'Sorting', 'SqlHelper'],
@@ -30,8 +30,7 @@
             'Utilities': ['Common'],
             'WebServer': [],
             'WebSocketConnection': ['Common', 'Server'],
-        });
-        console.log(`Topological sorting of the files contained in js_utils:\nconst jsUtilsTopologicalSorting = ${JSON.stringify(topo, undefined, 2)};`);
+        }));
     }
 
 
