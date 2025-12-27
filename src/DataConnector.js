@@ -4,6 +4,7 @@
     const isNodeJS = typeof require === 'function';
 
     const Common = isNodeJS ? require('./Common.js') : root.Common;
+    const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
     const { validateEventPublisher } = isNodeJS ? require('./EventPublisher.js') : { validateEventPublisher: root.validateEventPublisher };
@@ -285,7 +286,7 @@
                 addId(sorted, id);
             }
             this._short2Id = {};
-            const nextId = Common.idGenerator(idPrefix);
+            const nextId = Core.createIdGenerator(idPrefix);
             for (const id of sorted) {
                 this._short2Id[nextId()] = id;
             }

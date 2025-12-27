@@ -1,14 +1,39 @@
 (function (root) {
     "use strict";
-
     const isNodeJS = typeof require === 'function';
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
     const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
+    const Core = isNodeJS ? require('./Core.js') : root.Core;
 
-    function idGenerator(prefix = '#') {
-        let id = 0;
-        return () => `${prefix}${(id++).toString(36)}`;
+    const showTopologicalSorting = true; // TODO: Set true if topological sorting must be dumped to console
+    if (showTopologicalSorting) {
+        // Get the topological sorting of the files contained in js_utils
+        const topo = Core.getTopologicalSorting({
+            'Client': [],
+            'Common': ['Regex', 'Executor'],
+            'ContentManager': ['Utilities', 'jsonfx', 'Regex', 'Executor', 'Sorting', 'SqlHelper'],
+            'Core': [],
+            'DataConnector': ['Common', 'Sorting', 'Regex', 'EventPublisher', 'WebSocketConnection'],
+            'EventPublisher': ['Common'],
+            'Executor': [],
+            'Global': ['Core'],
+            'HashLists': ['Utilities'],
+            'hmi_object': ['Regex', 'Executor', 'math', 'ObjectPositionSystem', 'Sorting'],
+            'jsonfx': [],
+            'math': [],
+            'ObjectPositionSystem': [],
+            'Regex': [],
+            'Server': [],
+            'Sorting': ['Utilities'],
+            'SqlHelper': ['Executor'],
+            'TargetSystemAdapter': ['EventPublisher'],
+            'Utilities': ['Common'],
+            'WebServer': [],
+            'WebSocketConnection': ['Common', 'Server'],
+        });
+        console.log(`Topological sorting of the files contained in js_utils:\nconst jsUtilsTopologicalSorting = ${JSON.stringify(topo, undefined, 2)};`);
     }
+
 
     function handleNotFound(sources, targets, equal, onNotFound, backward) {
         let sidx, slen = sources.length, tidx, tlen = targets.length;
@@ -171,10 +196,9 @@
     });
 
     const Common = {
-        idGenerator,
+        createIdGenerator,
         handleNotFound,
-        validateInterface,
-        getTopologicalSorting
+        validateInterface
     };
 
     Object.freeze(Common);

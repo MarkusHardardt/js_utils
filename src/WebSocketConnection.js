@@ -28,7 +28,7 @@
             'Send(receiver, data, onResponse, onError)'
         ], checkMethodArguments);
     }
-    /*  The BaseConnection constructor requires the following arguments:
+    /*  The Connection constructor requires the following arguments:
         - sessionId: received from web server (using ajax)
         - options: {
             OnOpen(): will be called when socket connection has been established
@@ -42,7 +42,7 @@
         - Register(): registers receiver for data
         - Unregister(): unregisters receiver for data
         - Send(): sends data to receiver on other side an waits optionally for response (pong)    */
-    class BaseConnection {
+    class Connection {
         constructor(sessionId, options) {
             validateConnection(this, true);
             this._sessionId = sessionId;
@@ -75,7 +75,7 @@
                     }
                 }
             };
-            this._nextId = Common.idGenerator('#');
+            this._nextId = Common.createIdGenerator('#');
             this._remoteMediumUTC = 0;
             this._remoteToLocalOffsetMillis = 0;
         }
@@ -94,7 +94,7 @@
                 this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC: Date.now(), onResponse, onError };
                 this._webSocket.send(JSON.stringify(telegram));
             } else {
-                throw new Error('BaseConnection.Ping(): cannot send ping request when disconnected!');
+                throw new Error('Connection.Ping(): cannot send ping request when disconnected!');
             }
         }
         _handlePingRequest(callback) {
@@ -136,20 +136,20 @@
         }
         Register(receiver, handler) {
             if (typeof receiver !== 'string') {
-                throw new Error('BaseConnection.Register(receiver, handler): receiver must be a string!');
+                throw new Error('Connection.Register(receiver, handler): receiver must be a string!');
             } else if (typeof handler !== 'function') {
-                throw new Error('BaseConnection.Register(receiver, handler): handler must be a function!');
+                throw new Error('Connection.Register(receiver, handler): handler must be a function!');
             } else if (this._handlers[receiver]) {
-                throw new Error(`BaseConnection.Register(receiver, handler): handler "${receiver}" already registered!`);
+                throw new Error(`Connection.Register(receiver, handler): handler "${receiver}" already registered!`);
             } else {
                 this._handlers[receiver] = handler;
             }
         }
         Unregister(receiver) {
             if (typeof receiver !== 'string') {
-                throw new Error('BaseConnection.Unregister(receiver): receiver must be a string!');
+                throw new Error('Connection.Unregister(receiver): receiver must be a string!');
             } else if (this._handlers[receiver] === undefined) {
-                throw new Error(`BaseConnection.Unregister(receiver): "${receiver}" not registered!`);
+                throw new Error(`Connection.Unregister(receiver): "${receiver}" not registered!`);
             } else {
                 delete this._handlers[receiver];
             }
@@ -163,7 +163,7 @@
                 this._webSocket.send(JSON.stringify(telegram));
                 return true;
             } else {
-                throw new Error('BaseConnection.Send(): cannot send data request when disconnected!');
+                throw new Error('Connection.Send(): cannot send data request when disconnected!');
             }
         }
         _handleDataRequest(callback, requestData, receiver) {
@@ -280,7 +280,7 @@
     const DEFAULT_RECONNECT_START_INTERVAL = 1000;
     const DEFAULT_RECONNECT_MAX_INTERVAL = 32000;
 
-    /*  WebSocketClientConnection extends BaseConnection and the constructor requires the following arguments:
+    /*  WebSocketClientConnection extends Connection and the constructor requires the following arguments:
         - hostname: taken from url (using document.location.hostname)
         - config: { received as stuct from web server (using ajax)
             sessionId: the session id
@@ -300,8 +300,8 @@
         A client connection has the following public interface:
         - Start(): triggers connection attempts
         - Stop(): triggers disconnection
-        Read comment for BaseConnection for more properties and methods.    */
-    class WebSocketClientConnection extends BaseConnection {
+        Read comment for Connection for more properties and methods.    */
+    class WebSocketClientConnection extends Connection {
         constructor(hostname, config, options = {}) {
             super(config.sessionId, options);
             this._url = `${(config.secure ? 'wss' : 'ws')}://${hostname}:${config.port}?sessionId=${config.sessionId}`;
@@ -409,15 +409,15 @@
         }
     }
 
-    /*  WebSocketServerConnection extends BaseConnection and the constructor requires the following arguments:
+    /*  WebSocketServerConnection extends Connection and the constructor requires the following arguments:
         - sessionId: received from web server (using ajax)
         - options: {
             OnOpen(): will be called when socket connection has been established
             OnClose(): will be called when socket connection has been lost
             OnError(error): will be called when an error occurred
           }
-        Read comment for BaseConnection for more properties and methods.    */
-    class WebSocketServerConnection extends BaseConnection {
+        Read comment for Connection for more properties and methods.    */
+    class WebSocketServerConnection extends Connection {
         constructor(sessionId, options) {
             super(sessionId, options);
             this._socket = null;

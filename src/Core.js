@@ -37,8 +37,16 @@
     }
     Core.getTopologicalSorting = getTopologicalSorting;
 
-    Object.freeze(Core);
+    /*  Returns a function witch on each call returns a number (radix 36, starting at zero). */
+    function createIdGenerator(prefix = '') {
+        let id = 0;
+        return () => `${prefix}${(id++).toString(36)}`;
+    }
+    Core.createIdGenerator = createIdGenerator;
 
+
+
+    Object.freeze(Core);
     if (isNodeJS) {
         module.exports = Core;
     } else {
