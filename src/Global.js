@@ -4,11 +4,22 @@
     const isNodeJS = typeof require === 'function';
     const Core = isNodeJS ? require('./Core.js') : root.Core;
 
+    /*  operational state inferface  */
+    function validateOperationalStateInterface(instance, validateMethodArguments) {
+        Core.validateInterface('OperationalState', instance, [
+            'IsOperational:boolean',
+            'SubscribeOperationalState(onOperationalStateChanged)',
+            'UnsubscribeOperationalState(onOperationalStateChanged)'
+        ], validateMethodArguments);
+    }
+    Global.validateEventPublisherInterface = validateEventPublisherInterface;
+
     /*  event publisher inferface  */
     function validateEventPublisherInterface(instance, validateMethodArguments) {
-        Core.validateInterface('EventPublisherInterface', instance, [
-            'Subscribe(id, onEvent)',
-            'Unsubscribe(id, onEvent)',
+        // TODO: use validateOperationalStateInterface(instance, validateMethodArguments);
+        Core.validateInterface('EventPublisher', instance, [
+            'Subscribe(id, onEvent)', // TODO SubscribeEvent
+            'Unsubscribe(id, onEvent)', // TODO: UnsubscribeEvent
             'Read(id, onResponse, onError)',
             'Write(id, value)'
         ], validateMethodArguments);
@@ -17,7 +28,7 @@
 
     /*  connection inferface  */
     function validateConnectionInterface(instance, validateMethodArguments) {
-        Core.validateInterface('ConnectionInterface', instance, [
+        Core.validateInterface('Connection', instance, [
             'Ping(onResponse, onError)',
             'Register(receiver, handler)',
             'Unregister(receiver)',
@@ -28,7 +39,7 @@
 
     /*  connector inferface on client */
     function validateClientConnectorInterface(instance, validateMethodArguments) {
-        Core.validateInterface('ClientConnectorInterface', instance, [
+        Core.validateInterface('ClientConnector', instance, [
             'OnOpen()',
             'OnClose()'
         ], validateMethodArguments);
@@ -37,7 +48,7 @@
 
     /*  connector inferface on server  */
     function validateServerConnectorInterface(instance, validateMethodArguments) {
-        Core.validateInterface('ServerConnectorInterface', instance, [
+        Core.validateInterface('ServerConnector', instance, [
             'OnOpen()',
             'OnReopen()',
             'OnClose()',
