@@ -3,12 +3,11 @@
 
     const isNodeJS = typeof require === 'function';
 
-    const Common = isNodeJS ? require('./Common.js') : root.Common;
+    const Global = isNodeJS ? require('./Global.js') : root.Global;
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
-    const { validateEventPublisher } = isNodeJS ? require('./EventPublisher.js') : { validateEventPublisher: root.validateEventPublisher };
-    const { validateConnection } = isNodeJS ? require('./WebSocketConnection.js') : { validateConnection: root.validateConnection };
+    const { Global.validateConnectionInterface } = isNodeJS ? require('./WebSocketConnection.js') : { Global.validateConnectionInterface: root.Global.validateConnectionInterface };
 
     const compareTextsAndNumbers = Sorting.getTextsAndNumbersCompareFunction(true, false, true);
     function addId(ids, id) {
@@ -59,7 +58,7 @@
                     this.connection.Unregister(this.receiver);
                     this.connection = null;
                 }
-                validateConnection(value, true);
+                Global.validateConnectionInterface(value, true);
                 this.connection = value;
                 this.connection.Register(this.receiver, this._handler);
             } else if (this.connection) {
@@ -90,18 +89,11 @@
     const idPrefix = '#';
     const conRegex = /#[a-z0-9]+\b/g;
 
-    function validateClientDataConnector(instance, checkMethodArguments) {
-        Common.validateInterface('ClientDataConnector', instance, [
-            'OnOpen()',
-            'OnClose()'
-        ], checkMethodArguments);
-    }
-
     class ClientDataConnector extends BaseDataConnector {
         constructor() {
             super();
-            validateClientDataConnector(this, true);
-            validateEventPublisher(this, true);
+            Global.validateConnectorInterface(this, true);
+            Global.validateEventPublisherInterface(this, true);
             this._callbacks = {};
             this._bufferedSubsciptions = [];
             this._bufferedUnsubsciptions = [];
@@ -118,7 +110,7 @@
 
         OnOpen() {
             console.log('ClientDataConnector.OnOpen()');
-            validateConnection(this.connection);
+            Global.validateConnectionInterface(this.connection);
             this.connection.Send(this.receiver, { type: TransmissionType.ShortToIdRequest }, short2Id => {
                 this._short2Id = short2Id;
                 this._id2Short = invert(short2Id);
@@ -135,7 +127,7 @@
         }
 
         Subscribe(id, onEvent) {
-            validateConnection(this.connection);
+            Global.validateConnectionInterface(this.connection);
             if (typeof id !== 'string') {
                 throw new Error(`Invalid subscription id: ${id}`);
             } else if (typeof onEvent !== 'function') {
@@ -148,7 +140,7 @@
         }
 
         Unsubscribe(id, onEvent) {
-            validateConnection(this.connection);
+            Global.validateConnectionInterface(this.connection);
             if (typeof id !== 'string') {
                 throw new Error(`Invalid unsubscription id: ${id}`);
             } else if (typeof onEvent !== 'function') {
@@ -163,7 +155,7 @@
         }
 
         Read(id, onResponse, onError) {
-            validateConnection(this.connection);
+            Global.validateConnectionInterface(this.connection);
             if (!this._id2Short) {
                 throw new Error('Not available: this._id2Short');
             } else if (!this._online) {
@@ -177,7 +169,7 @@
         }
 
         Write(id, value) {
-            validateConnection(this.connection);
+            Global.validateConnectionInterface(this.connection);
             if (!this._id2Short) {
                 throw new Error('Not available: this._id2Short');
             } else if (!this._online) {
@@ -229,7 +221,7 @@
         }
 
         _sendSubscriptionRequest() {
-            validateConnection(this.connection);
+            Global.validateConnectionInterface(this.connection);
             if (!this._id2Short) {
                 throw new Error('Not available: this._id2Short');
             } else if (this._online) {
@@ -249,7 +241,7 @@
     }
 
     function validateServerDataConnector(instance, checkMethodArguments) {
-        Common.validateInterface('ServerDataConnector', instance, [
+        Core.validateInterface('ServerDataConnector', instance, [
             'OnOpen()',
             'OnReopen()',
             'OnClose()',
@@ -270,7 +262,7 @@
 
         set Parent(value) {
             if (value) {
-                validateEventPublisher(value, true);
+                Global.validateEventPublisherInterface(value, true);
                 this._parent = value;
             } else {
                 this._parent = null;
@@ -313,8 +305,8 @@
 
         handleReceived(data, onResponse, onError) {
             try {
-                validateEventPublisher(this._parent);
-                validateConnection(this.connection);
+                Global.validateEventPublisherInterface(this._parent);
+                Global.validateConnectionInterface(this.connection);
                 let id;
                 switch (data.type) {
                     case TransmissionType.ShortToIdRequest:
@@ -358,7 +350,7 @@
 
         _updateSubscriptions(subscriptionShorts) {
             try {
-                validateEventPublisher(this._parent);
+                Global.validateEventPublisherInterface(this._parent);
                 if (this._short2Id && this._id2Short) {
                     for (const id in this._callbacks) {
                         if (this._callbacks.hasOwnProperty(id)) {
@@ -403,6 +395,6 @@
         module.exports = { ServerDataConnector, validateServerDataConnector };
     } else {
         root.ClientDataConnector = ClientDataConnector;
-        root.validateClientDataConnector = validateClientDataConnector;
+        root.Global.validateConnectorInterface = Global.validateConnectorInterface;
     }
 }(globalThis));

@@ -3,7 +3,7 @@
 
     const isNodeJS = typeof require === 'function';
 
-    const Common = isNodeJS ? require('./Common.js') : root.Common;
+    const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Server = isNodeJS ? require('./Server.js') : null;
     const WebSocket = isNodeJS ? require('ws') : root.WebSocket;
 
@@ -20,14 +20,6 @@
         ErrorResponse: 5
     });
 
-    function validateConnection(instance, checkMethodArguments) {
-        Common.validateInterface('Connection', instance, [
-            'Ping(onResponse, onError)',
-            'Register(receiver, handler)',
-            'Unregister(receiver)',
-            'Send(receiver, data, onResponse, onError)'
-        ], checkMethodArguments);
-    }
     /*  The Connection constructor requires the following arguments:
         - sessionId: received from web server (using ajax)
         - options: {
@@ -44,7 +36,7 @@
         - Send(): sends data to receiver on other side an waits optionally for response (pong)    */
     class Connection {
         constructor(sessionId, options) {
-            validateConnection(this, true);
+            Global.validateConnectionInterface(this, true);
             this._sessionId = sessionId;
             this._handlers = {};
             this._callbacks = {};
@@ -75,7 +67,7 @@
                     }
                 }
             };
-            this._nextId = Common.createIdGenerator('#');
+            this._nextId = Core.createIdGenerator('#');
             this._remoteMediumUTC = 0;
             this._remoteToLocalOffsetMillis = 0;
         }
@@ -574,9 +566,9 @@
     }
 
     if (isNodeJS) {
-        module.exports = { validateConnection, WebSocketServer, formatSesionId };
+        module.exports = { Global.validateConnectionInterface, WebSocketServer, formatSesionId };
     } else {
-        root.validateConnection = validateConnection;
+        root.Global.validateConnectionInterface = Global.validateConnectionInterface;
         root.WebSocketClientConnection = WebSocketClientConnection;
         root.formatSesionId = formatSesionId;
     }

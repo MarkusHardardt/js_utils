@@ -2,17 +2,16 @@
     "use strict";
 
     const isNodeJS = typeof require === 'function';
-
-    const { validateEventPublisher } = isNodeJS ? require('./EventPublisher.js') : { validateEventPublisher: root.validateEventPublisher };
+    const Global = isNodeJS ? require('./Global.js') : root.Global;
 
     class TargetSystemAdapter {
         constructor() {
-            validateEventPublisher(this, true);
+            Global.validateEventPublisherInterface(this, true);
             this._targetSystems = {};
         }
 
         Register(target, system) {
-            validateEventPublisher(system, true);
+            Global.validateEventPublisherInterface(system, true);
             if (typeof target !== 'string') {
                 throw new Error(`Invalid target '${target}' for Register(target, system)`);
             } else if (this._targetSystems[target] !== undefined) {
@@ -23,7 +22,7 @@
         }
 
         Unregister(target, system) {
-            validateEventPublisher(system, true);
+            Global.validateEventPublisherInterface(system, true);
             if (typeof target !== 'string') {
                 throw new Error(`Invalid target '${target}' for Unregister(target, system)`);
             } else if (this._targetSystems[target] === undefined) {

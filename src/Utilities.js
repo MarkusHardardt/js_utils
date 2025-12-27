@@ -2,7 +2,7 @@
     "use strict";
 
     const isNodeJS = typeof require === 'function';
-    const Common = isNodeJS ? require('./Common.js') : root.Common;
+    const Core = isNodeJS ? require('./Core.js') : root.Core;
 
     var get_first_index_of_identical = function (i_array, i_value) {
         for (var i = 0, l = i_array.length; i < l; i++) {
@@ -388,8 +388,6 @@
             }
             return array;
         },
-        // TODO: Use common method
-        handleNotFound: (sources, targets, equal, onNotFound, backward) => Common.handleNotFound(sources, targets, equal, onNotFound, backward),
         // provider for unique ids
         getUniqueId: () => {
             return 'uid' + (_unique_id++);

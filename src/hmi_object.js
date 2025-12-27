@@ -36,6 +36,7 @@
     // var jsonfx = typeof require === 'function' ? require('./jsonfx.js') :
     // window.jsonfx;
     var Regex = isNodeJS ? require('./Regex.js') : root.Regex;
+    var Core = isNodeJS ? require('./Core.js') : root.Core;
     var Executor = isNodeJS ? require('./Executor.js') : root.Executor;
     var math = isNodeJS ? require('./math.js') : root.math;
     var ObjectPositionSystem = isNodeJS ? require('./ObjectPositionSystem.js') : root.ObjectPositionSystem;
@@ -2855,12 +2856,12 @@
                     if (Array.isArray(current)) {
                         // collect all nodes not longer exists
                         var removed = [];
-                        Utilities.handleNotFound(current, loaded, equal_tree_nodes, function (i_removed) {
+                        Core.handleNotFound(current, loaded, equal_tree_nodes, function (i_removed) {
                             removed.push(i_removed);
                         });
                         // collect all nodes newly added
                         var added = [];
-                        Utilities.handleNotFound(loaded, current, equal_tree_nodes, function (i_added) {
+                        Core.handleNotFound(loaded, current, equal_tree_nodes, function (i_added) {
                             added.push(i_added);
                         });
                         // remove tree nodes no longer exists

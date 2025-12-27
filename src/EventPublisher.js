@@ -2,23 +2,14 @@
     "use strict";
 
     const isNodeJS = typeof require === 'function';
-    const Common = isNodeJS ? require('./Common.js') : root.Common;
-
-    function validateEventPublisher(instance, checkMethodArguments) {
-        Common.validateInterface('EventPublisher', instance, [
-            'Subscribe(id, onEvent)',
-            'Unsubscribe(id, onEvent)',
-            'Read(id, onResponse, onError)',
-            'Write(id, value)'
-        ], checkMethodArguments);
-    }
+    const Global = isNodeJS ? require('./Global.js') : root.Global;
 
     const defaultEqual = (v1, v2) => v1 === v2;
     const defaultOnError = error => console.error(error);
 
     class EventPublisher {
         constructor() {
-            validateEventPublisher(this, true);
+            Global.validateEventPublisherInterface(this, true);
             this._parent = null;
             this._equal = defaultEqual;
             this._onError = defaultOnError;
@@ -28,7 +19,7 @@
 
         set Parent(value) {
             if (value) {
-                validateEventPublisher(value, true);
+                Global.validateEventPublisherInterface(value, true);
                 this._parent = value;
             }
             else {
@@ -55,7 +46,7 @@
         }
 
         Subscribe(id, onEvent) {
-            validateEventPublisher(this._parent);
+            Global.validateEventPublisherInterface(this._parent);
             if (typeof id !== 'string') {
                 throw new Error(`Invalid subscription id: ${id}`);
             } else if (typeof onEvent !== 'function') {
@@ -84,7 +75,7 @@
         }
 
         Unsubscribe(id, onEvent) {
-            validateEventPublisher(this._parent);
+            Global.validateEventPublisherInterface(this._parent);
             if (typeof id !== 'string') {
                 throw new Error(`Invalid unsubscription id: ${id}`);
             } else if (typeof onEvent !== 'function') {
@@ -114,7 +105,7 @@
         }
 
         Read(id, onResponse, onError) {
-            validateEventPublisher(this._parent);
+            Global.validateEventPublisherInterface(this._parent);
             this._parent.Read(id, value => {
                 try {
                     onResponse(value);
@@ -130,7 +121,7 @@
         }
 
         Write(id, value) {
-            validateEventPublisher(this._parent);
+            Global.validateEventPublisherInterface(this._parent);
             this._parent.Write(id, value);
             let event = this._events[id];
             if (!event) {
@@ -164,9 +155,8 @@
     }
 
     if (isNodeJS) {
-        module.exports = { EventPublisher, validateEventPublisher };
+        module.exports = EventPublisher;
     } else {
         root.EventPublisher = EventPublisher;
-        root.validateEventPublisher = validateEventPublisher;
     }
 }(globalThis));
