@@ -94,7 +94,7 @@
                 super();
                 Global.validateClientConnectorInterface(this, true);
                 Global.validateDataPublisherInterface(this, true);
-                this._onEventCallbacks = {};
+                this._datas = null;
                 this._short2Id = null;
                 this._id2Short = null;
                 this._subscribtionDelay = false;
@@ -111,12 +111,43 @@
                 this.connection.Send(this.receiver, { type: TransmissionType.ShortToIdRequest }, short2Id => {
                     this._short2Id = short2Id;
                     this._id2Short = invert(short2Id);
+                    const datas = this._datas;
+                    this._datas = {};
+                    for (const dataId in this._id2Short) {
+                        if (this._id2Short.hasOwnProperty(dataId)) {
+                            const data = datas ? datas[dataId] : null;
+                            if (data) {
+                                this._datas[dataId] = data;
+                                delete datas[dataId];
+                            }
+                            else {
+                                this._datas[dataId] = { value: null, onDataUpdate: null };
+                            }
+                        }
+                    }
+                    if (datas) {
+                        for (const dataId in datas) {
+                            if (datas.hasOwnProperty(dataId)) { // TODO: Must be handled somehow?
+                                this.onError(`Data '${dataId}' not exists anymore`);
+                                delete datas[dataId];
+                            }
+                        }
+                    }
                     this._online = true;
                     this._sendSubscriptionRequest();
                     this.IsOperational = true;
                 }, error => {
                     this.IsOperational = false;
                     this.onError(error);
+                    if (this._datas) {
+                        for (const dataId in this._datas) {
+                            if (this._datas.hasOwnProperty(dataId)) { // TODO: Must be handled somehow?
+                                this.onError(`Data '${dataId}' not exists anymore`);
+                                delete this._datas[dataId];
+                            }
+                        }
+                        this._datas = null;
+                    }
                 });
             }
 
@@ -130,28 +161,32 @@
             SubscribeData(dataId, onDataUpdate) {
                 Global.validateConnectionInterface(this.connection);
                 if (typeof dataId !== 'string') {
-                    throw new Error(`Invalid subscription id: ${dataId}`);
+                    throw new Error(`Invalid subscription data id: '${dataId}'`);
                 } else if (typeof onDataUpdate !== 'function') {
-                    throw new Error(`Subscriber for subscription id ${dataId} is not a function`);
-                } else if (this._onEventCallbacks[dataId] !== undefined) {
-                    throw new Error(`Key ${dataId} is already subscribed`);
+                    throw new Error(`Subscriber for subscription data id '${dataId}' is not a function`);
+                } else if (this._datas[dataId] === undefined) {
+                    throw new Error(`Unknowd data id '${dataId}' for subscription`);
+                } else if (this._datas[dataId].onDataUpdate) {
+                    throw new Error(`Data for data id '${dataId}' is already subscribed`);
                 }
-                this._onEventCallbacks[dataId] = onDataUpdate;
+                this._datas[dataId].onDataUpdate = onDataUpdate;
                 this._subscriptionsChanged();
             }
 
             UnsubscribeData(dataId, onDataUpdate) {
                 Global.validateConnectionInterface(this.connection);
                 if (typeof dataId !== 'string') {
-                    throw new Error(`Invalid unsubscription id: ${dataId}`);
+                    throw new Error(`Invalid unsubscription data id: '${dataId}'`);
                 } else if (typeof onDataUpdate !== 'function') {
-                    throw new Error(`Subscriber for unsubscription id ${dataId} is not a function`);
-                } else if (this._onEventCallbacks[dataId] === undefined) {
-                    throw new Error(`Key ${dataId} is already subscribed`);
-                } else if (this._onEventCallbacks[dataId] !== onDataUpdate) {
-                    throw new Error(`Unexpected onDataUpdate for id ${dataId} to unsubscribe`);
+                    throw new Error(`Subscriber for unsubscription id '${dataId}' is not a function`);
+                } else if (this._datas[dataId] === undefined) {
+                    throw new Error(`Unknowd data id '${dataId}' for unsubscription`);
+                } else if (!this._datas[dataId].onDataUpdate) {
+                    throw new Error(`Data for data id '${dataId}' is already unsubscribed`);
+                } else if (this._datas[dataId].onDataUpdate !== onDataUpdate) {
+                    throw new Error(`Unexpected onDataUpdate for data id '${dataId}' to unsubscribe`);
                 }
-                delete this._onEventCallbacks[dataId];
+                this._datas[dataId].onDataUpdate = null;
                 this._subscriptionsChanged();
             }
 
@@ -189,14 +224,14 @@
                         case TransmissionType.SubscribedDataUpdate:
                             for (const short in data.values) {
                                 if (data.values.hasOwnProperty(short)) {
-                                    const id = this._short2Id[short];
-                                    const value = data.values[short];
-                                    const onDataUpdate = this._onEventCallbacks[id];
-                                    if (onDataUpdate) {
+                                    const dataId = this._short2Id[short];
+                                    const value = data.values[short]; // TODO: What if invalid
+                                    const data = this._datas[dataId];
+                                    if (data && data.onDataUpdate) {
                                         try {
-                                            onDataUpdate(value);
+                                            data.onDataUpdate(value);
                                         } catch (error) {
-                                            this.onError(`Failed calling onDataUpdate() for id: ${id}: ${error}`);
+                                            this.onError(`Failed calling onDataUpdate() for data id: ${dataId}: ${error}`);
                                         }
                                     }
                                 }
@@ -228,13 +263,16 @@
                 } else if (this._online) {
                     // Build a string with all short ids of the currently stored onDataUpdate callbacks and send to server
                     let subs = '';
-                    for (const id in this._onEventCallbacks) {
-                        if (this._onEventCallbacks.hasOwnProperty(id)) {
-                            const short = this._id2Short[id];
+                    for (const dataId in this._datas) {
+                        if (this._datas.hasOwnProperty(dataId)) {
+                            const short = this._id2Short[dataId];
                             if (!short) {
-                                throw new Error(`Unknown id: ${id}`);
+                                throw new Error(`Unknown data id: ${dataId}`);
                             }
-                            subs += short;
+                            const data = this._datas[dataId];
+                            if (data.onDataUpdate) {
+                                subs += short;
+                            }
                         }
                     }
                     this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionRequest, subs });
