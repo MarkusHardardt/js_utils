@@ -37,7 +37,7 @@
     const defaultOnError = error => console.error(error);
 
     const TransmissionType = Object.freeze({
-        ShortToIdRequest: 1,
+        ConfigRequest: 1,
         SubscriptionRequest: 3,
         SubscribedDataUpdate: 4,
         ReadRequest: 5,
@@ -97,20 +97,17 @@
                 this._datas = null;
                 this._short2Id = null;
                 this._id2Short = null;
-                this._subscribtionDelay = false;
-                this._subscribtionDelayTimer = null;
+                this._subscribeDelay = false;
+                this._subscribeDelayTimer = null;
                 this._online = false;
-            }
-
-            set SubscribtionDelay(value) {
-                this._subscribtionDelay = typeof value === 'number' && value > 0 ? value : false;
             }
 
             OnOpen() {
                 Global.validateConnectionInterface(this.connection);
-                this.connection.Send(this.receiver, { type: TransmissionType.ShortToIdRequest }, short2Id => {
-                    this._short2Id = short2Id;
-                    this._id2Short = invert(short2Id);
+                this.connection.Send(this.receiver, { type: TransmissionType.ConfigRequest }, config => {
+                    this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
+                    this._short2Id = config.short2Id;
+                    this._id2Short = invert(config.short2Id);
                     const datas = this._datas;
                     this._datas = {};
                     for (const dataId in this._id2Short) {
@@ -137,6 +134,9 @@
                     this._sendSubscriptionRequest();
                     this.IsOperational = true;
                 }, error => {
+                    this._subscribeDelay = false;
+                    this._short2Id = null;
+                    this._id2Short = null;
                     this.IsOperational = false;
                     this.onError(error);
                     if (this._datas) {
@@ -154,8 +154,11 @@
             OnClose() {
                 this.IsOperational = false;
                 this._online = false;
-                clearTimeout(this._subscribtionDelayTimer);
-                this._subscribtionDelayTimer = null;
+                this._subscribeDelay = false;
+                this._short2Id = null;
+                this._id2Short = null;
+                clearTimeout(this._subscribeDelayTimer);
+                this._subscribeDelayTimer = null;
             }
 
             SubscribeData(dataId, onDataUpdate) {
@@ -250,13 +253,13 @@
             }
 
             _subscriptionsChanged() {
-                if (!this._subscribtionDelay) {
+                if (!this._subscribeDelay) {
                     this._sendSubscriptionRequest();
-                } else if (!this._subscribtionDelayTimer) {
-                    this._subscribtionDelayTimer = setTimeout(() => {
+                } else if (!this._subscribeDelayTimer) {
+                    this._subscribeDelayTimer = setTimeout(() => {
                         this._sendSubscriptionRequest();
-                        this._subscribtionDelayTimer = null;
-                    }, this._subscribtionDelay);
+                        this._subscribeDelayTimer = null;
+                    }, this._subscribeDelay);
                 }
             }
 
@@ -297,6 +300,7 @@
                 this._id2Short = null;
                 this._online = false;
                 this._values = null;
+                this._subscribeDelay = false;
                 this._sendDelay = false;
                 this._sendDelayTimer = null;
             }
@@ -313,6 +317,10 @@
 
             set SendDelay(value) {
                 this._sendDelay = typeof value === 'number' && value > 0 ? value : false;
+            }
+
+            set SubscribeDelay(value) {
+                this._subscribeDelay = typeof value === 'number' && value > 0 ? value : false;
             }
 
             SetIds(ids) {
@@ -358,9 +366,9 @@
                     Global.validateConnectionInterface(this.connection);
                     let id;
                     switch (data.type) {
-                        case TransmissionType.ShortToIdRequest:
+                        case TransmissionType.ConfigRequest:
                             if (this._short2Id) {
-                                onResponse(this._short2Id);
+                                onResponse({ subscribeDelay: this._subscribeDelay, short2Id: this._short2Id });
                             }
                             else {
                                 onError('No ids available');
