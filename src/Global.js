@@ -4,7 +4,7 @@
     const isNodeJS = typeof require === 'function';
     const Core = isNodeJS ? require('./Core.js') : root.Core;
 
-    /*  operational state inferface  */
+    /*  operational state interface  */
     function validateOperationalStateInterface(instance, validateMethodArguments) {
         Core.validateInterface('OperationalState', instance, [
             'IsOperational:boolean',
