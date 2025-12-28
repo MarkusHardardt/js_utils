@@ -10,8 +10,8 @@
             this._isOperational = false;
             this._parentOperationalState = null;
             this._onError = Core.defaultOnError;
-            this._unsubscribeDelay = false;
-            this._unsubscribeDelayTimer = null;
+            this._unsubscribeOpStateDelay = false;
+            this._unsubscribeOpStateDelayTimer = null;
             this._onOperationalStateChangedCallbacks = [];
             this._onOperationalStateChanged = isOperational => this._setOperationalState(isOperational);
         }
@@ -33,8 +33,8 @@
             this._onError = value;
         }
 
-        set UnsubscribeDelay(value) {
-            this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
+        set UnsubscribeOperationalStateDelay(value) {
+            this._unsubscribeOpStateDelay = typeof value === 'number' && value > 0 ? value : false;
         }
 
         get IsOperational() {
@@ -57,9 +57,9 @@
             }
             this._onOperationalStateChangedCallbacks.push(onOperationalStateChanged);
             if (this._onOperationalStateChangedCallbacks.length === 1) {
-                if (this._unsubscribeDelayTimer) {
-                    clearTimeout(this._unsubscribeDelayTimer);
-                    this._unsubscribeDelayTimer = null;
+                if (this._unsubscribeOpStateDelayTimer) {
+                    clearTimeout(this._unsubscribeOpStateDelayTimer);
+                    this._unsubscribeOpStateDelayTimer = null;
                 }
                 else {
                     this._parentOperationalState.SubscribeOperationalState(this._onOperationalStateChanged);
@@ -76,11 +76,11 @@
                 if (this._onOperationalStateChangedCallbacks[i] === onOperationalStateChanged) {
                     this._onOperationalStateChangedCallbacks.splice(i, 1);
                     if (this._onOperationalStateChangedCallbacks.length === 0) {
-                        if (this._unsubscribeDelay) {
-                            this._unsubscribeDelayTimer = setTimeout(() => {
+                        if (this._unsubscribeOpStateDelay) {
+                            this._unsubscribeOpStateDelayTimer = setTimeout(() => {
                                 this._parentOperationalState.UnsubscribeOperationalState(this._onOperationalStateChanged);
-                                this._unsubscribeDelayTimer = null;
-                            }, this._unsubscribeDelay);
+                                this._unsubscribeOpStateDelayTimer = null;
+                            }, this._unsubscribeOpStateDelay);
                         } else {
                             this._parentOperationalState.UnsubscribeOperationalState(this._onOperationalStateChanged);
                         }

@@ -11,7 +11,7 @@
             this._parentDataPublisher = null;
             this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
-            this._unsubscribeDelay = false;
+            this._unsubscribeDataDelay = false;
             this._onDataUpdateCallbacks = {};
         }
 
@@ -39,8 +39,8 @@
             this._onError = value;
         }
 
-        set UnsubscribeDelay(value) {
-            this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
+        set UnsubscribeDataDelay(value) {
+            this._unsubscribeDataDelay = typeof value === 'number' && value > 0 ? value : false;
         }
 
         SubscribeData(dataId, onDataUpdate) {
@@ -87,11 +87,11 @@
                 if (event.callbacks[i] === onDataUpdate) {
                     event.callbacks.splice(i, 1);
                     if (event.callbacks.length === 0) {
-                        if (this._unsubscribeDelay) {
+                        if (this._unsubscribeDataDelay) {
                             event.unsubscribeDelayTimer = setTimeout(() => {
                                 this._parentDataPublisher.UnsubscribeData(event.id, event.onDataUpdate);
                                 event.unsubscribeDelayTimer = null;
-                            }, this._unsubscribeDelay);
+                            }, this._unsubscribeDataDelay);
                         } else {
                             this._parentDataPublisher.UnsubscribeData(event.id, event.onDataUpdate);
                         }
