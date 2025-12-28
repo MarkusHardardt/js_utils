@@ -7097,19 +7097,19 @@
                 _onEventCallbacks = [];
                 for (var i = 0; i < _watch.length; i++) {
                     (function () {
-                        const id = _watch[i];
+                        const dataId = _watch[i];
                         const type = undefined; // TODO: Handle ElementTypes.TEXTS_TYPE ???
-                        const onEvent = value => {
+                        const onDataUpdate = value => {
                             try {
                                 if (typeof that.handleDataUpdate === 'function') {
-                                    that.handleDataUpdate(id, value, type);
+                                    that.handleDataUpdate(dataId, value, type);
                                 } else if (type === ElementTypes.TEXTS_TYPE) {
                                     if (that.hmi_html) {
                                         that.hmi_html(value);
                                     }
                                 } else if (that.hmi_text) {
                                     if (typeof that.formatValue === 'function') {
-                                        var value = that.formatValue(id, value);
+                                        var value = that.formatValue(dataId, value);
                                         that.hmi_text(value);
                                     } else if (typeof value === 'number') {
                                         var value = typeof that.factor === 'number' ? that.factor * value : value;
@@ -7122,8 +7122,8 @@
                                 console.error('EXCEPTION: ' + exc);
                             }
                         };
-                        _onEventCallbacks.push(onEvent);
-                        that.hmi.env.data.SubscribeEvent(id, onEvent);
+                        _onEventCallbacks.push(onDataUpdate);
+                        that.hmi.env.data.SubscribeData(dataId, onDataUpdate);
                     }());
                 }
             }
@@ -7165,7 +7165,7 @@
             }
             if (Array.isArray(_watch)) {
                 for (var i = _watch.length - 1; i >= 0; i--) {
-                    that.hmi.env.data.UnsubscribeEvent(_watch[i], _onEventCallbacks[i]);
+                    that.hmi.env.data.UnsubscribeData(_watch[i], _onEventCallbacks[i]);
                 }
                 _watch.splice(0, _watch.length);
                 _watch = undefined;

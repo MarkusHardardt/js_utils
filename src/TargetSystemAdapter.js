@@ -34,8 +34,30 @@
             }
         }
 
-        Read(id, onResponse, onError) {
-            const { target, nodeId } = this._getTargetAndNodeId(id);
+        SubscribeData(dataId, onDataUpdate) {
+            const { target, nodeId } = this._getTargetAndNodeId(dataId);
+            if (typeof target !== 'string') {
+                throw new Error(`Invalid target '${target}' for SubscribeData(dataId, onDataUpdate)`);
+            } else if (this._targetSystems[target] === undefined) {
+                throw new Error(`Target '${target}' not registered for SubscribeData(dataId, onDataUpdate)`);
+            } else {
+                this._targetSystems[target].SubscribeData(nodeId, onDataUpdate);
+            }
+        }
+
+        UnsubscribeData(dataId, onDataUpdate) {
+            const { target, nodeId } = this._getTargetAndNodeId(dataId);
+            if (typeof target !== 'string') {
+                throw new Error(`Invalid target '${target}' for UnsubscribeData(dataId, onDataUpdate)`);
+            } else if (this._targetSystems[target] === undefined) {
+                throw new Error(`Target '${target}' not registered for UnsubscribeData(dataId, onDataUpdate)`);
+            } else {
+                this._targetSystems[target].UnsubscribeData(nodeId, onDataUpdate);
+            }
+        }
+
+        Read(dataId, onResponse, onError) {
+            const { target, nodeId } = this._getTargetAndNodeId(dataId);
             if (typeof target !== 'string') {
                 throw new Error(`Invalid target '${target}' for Read(id, onResponse, onError)`);
             } else if (this._targetSystems[target] === undefined) {
@@ -45,36 +67,14 @@
             }
         }
 
-        Write(id, value) {
-            const { target, nodeId } = this._getTargetAndNodeId(id);
+        Write(dataId, value) {
+            const { target, nodeId } = this._getTargetAndNodeId(dataId);
             if (typeof target !== 'string') {
                 throw new Error(`Invalid target '${target}' for Write(id, value)`);
             } else if (this._targetSystems[target] === undefined) {
                 throw new Error(`Target '${target}' not registered for Write()`);
             } else {
                 this._targetSystems[target].Write(nodeId, value);
-            }
-        }
-
-        SubscribeEvent(id, onEvent) {
-            const { target, nodeId } = this._getTargetAndNodeId(id);
-            if (typeof target !== 'string') {
-                throw new Error(`Invalid target '${target}' for SubscribeEvent(id, onEvent)`);
-            } else if (this._targetSystems[target] === undefined) {
-                throw new Error(`Target '${target}' not registered for SubscribeEvent(id, onEvent)`);
-            } else {
-                this._targetSystems[target].SubscribeEvent(nodeId, onEvent);
-            }
-        }
-
-        UnsubscribeEvent(id, onEvent) {
-            const { target, nodeId } = this._getTargetAndNodeId(id);
-            if (typeof target !== 'string') {
-                throw new Error(`Invalid target '${target}' for UnsubscribeEvent(id, onEvent)`);
-            } else if (this._targetSystems[target] === undefined) {
-                throw new Error(`Target '${target}' not registered for UnsubscribeEvent(id, onEvent)`);
-            } else {
-                this._targetSystems[target].UnsubscribeEvent(nodeId, onEvent);
             }
         }
 

@@ -19,10 +19,10 @@
         // TODO: use validateOperationalStateInterface(instance, validateMethodArguments);
         Core.validateInterface('DataPublisher', instance, [
             // TODO dataId
-            'SubscribeEvent(id, onEvent)',
-            'UnsubscribeEvent(id, onEvent)',
-            'Read(id, onResponse, onError)',
-            'Write(id, value)'
+            'SubscribeData(dataId, onDataUpdate)',
+            'UnsubscribeData(dataId, onDataUpdate)',
+            'Read(dataId, onResponse, onError)',
+            'Write(dataId, value)'
         ], validateMethodArguments);
     }
     Global.validateDataPublisherInterface = validateDataPublisherInterface;

@@ -45,87 +45,87 @@
             this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
         }
 
-        SubscribeEvent(id, onEvent) {
+        SubscribeData(dataId, onDataUpdate) {
             Global.validateDataPublisherInterface(this._parent);
-            if (typeof id !== 'string') {
-                throw new Error(`Invalid subscription id: ${id}`);
-            } else if (typeof onEvent !== 'function') {
-                throw new Error(`onEvent() for id '${id}' is not a function`);
+            if (typeof dataId !== 'string') {
+                throw new Error(`Invalid subscription id: ${dataId}`);
+            } else if (typeof onDataUpdate !== 'function') {
+                throw new Error(`onDataUpdate() for id '${dataId}' is not a function`);
             }
-            let event = this._events[id];
+            let event = this._events[dataId];
             if (event) {
                 for (const callback of event.callbacks) {
-                    if (callback === onEvent) {
-                        throw new Error(`onEvent() for id '${id}' is already contained`);
+                    if (callback === onDataUpdate) {
+                        throw new Error(`onDataUpdate() for id '${dataId}' is already contained`);
                     }
                 }
             } else {
-                this._events[id] = event = this._createEvent(id);
+                this._events[dataId] = event = this._createEvent(dataId);
             }
-            event.callbacks.push(onEvent);
+            event.callbacks.push(onDataUpdate);
             if (event.callbacks.length === 1) {
                 if (event.unsubscribeDelayTimer) {
                     clearTimeout(event.unsubscribeDelayTimer);
                     event.unsubscribeDelayTimer = null;
                 }
                 else {
-                    this._parent.SubscribeEvent(event.id, event.onEvent);
+                    this._parent.SubscribeData(event.id, event.onDataUpdate);
                 }
             }
         }
 
-        UnsubscribeEvent(id, onEvent) {
+        UnsubscribeData(dataId, onDataUpdate) {
             Global.validateDataPublisherInterface(this._parent);
-            if (typeof id !== 'string') {
-                throw new Error(`Invalid unsubscription id: ${id}`);
-            } else if (typeof onEvent !== 'function') {
-                throw new Error(`onEvent() for id '${id}' is not a function`);
+            if (typeof dataId !== 'string') {
+                throw new Error(`Invalid unsubscription id: ${dataId}`);
+            } else if (typeof onDataUpdate !== 'function') {
+                throw new Error(`onDataUpdate() for id '${dataId}' is not a function`);
             }
-            let event = this._events[id];
+            let event = this._events[dataId];
             if (!event) {
-                throw new Error(`Cannot unsubscribe for unknown id: ${id}`);
+                throw new Error(`Cannot unsubscribe for unknown id: ${dataId}`);
             }
             for (let i = 0; i < event.callbacks.length; i++) {
-                if (event.callbacks[i] === onEvent) {
+                if (event.callbacks[i] === onDataUpdate) {
                     event.callbacks.splice(i, 1);
                     if (event.callbacks.length === 0) {
                         if (this._unsubscribeDelay) {
                             event.unsubscribeDelayTimer = setTimeout(() => {
-                                this._parent.UnsubscribeEvent(event.id, event.onEvent);
+                                this._parent.UnsubscribeData(event.id, event.onDataUpdate);
                                 event.unsubscribeDelayTimer = null;
                             }, this._unsubscribeDelay);
                         } else {
-                            this._parent.UnsubscribeEvent(event.id, event.onEvent);
+                            this._parent.UnsubscribeData(event.id, event.onDataUpdate);
                         }
                     }
                     return;
                 }
             }
-            throw new Error(`onEvent() for id: ${id} is not contained`);
+            throw new Error(`onDataUpdate() for id: ${dataId} is not contained`);
         }
 
-        Read(id, onResponse, onError) {
+        Read(dataId, onResponse, onError) {
             Global.validateDataPublisherInterface(this._parent);
-            this._parent.Read(id, value => {
+            this._parent.Read(dataId, value => {
                 try {
                     onResponse(value);
                 } catch (error) {
-                    this._onError(`Failed calling onResponse() for id: ${id}: ${error}`);
+                    this._onError(`Failed calling onResponse() for id: ${dataId}: ${error}`);
                 }
-                let event = this._events[id];
+                let event = this._events[dataId];
                 if (!event) {
-                    this._events[id] = event = this._createEvent(id);
+                    this._events[dataId] = event = this._createEvent(dataId);
                 }
                 event.SetValue(value);
             }, onError);
         }
 
-        Write(id, value) {
+        Write(dataId, value) {
             Global.validateDataPublisherInterface(this._parent);
-            this._parent.Write(id, value);
-            let event = this._events[id];
+            this._parent.Write(dataId, value);
+            let event = this._events[dataId];
             if (!event) {
-                this._events[id] = event = this._createEvent(id);
+                this._events[dataId] = event = this._createEvent(dataId);
             }
             event.SetValue(value);
         }
@@ -141,12 +141,12 @@
                             try {
                                 callback(value);
                             } catch (error) {
-                                this._onError(`Failed calling onEvent(value) for id: ${event.id}: ${error}`);
+                                this._onError(`Failed calling onDataUpdate(value) for id: ${event.id}: ${error}`);
                             }
                         }
                     }
                 },
-                onEvent: value => event.SetValue(value),
+                onDataUpdate: value => event.SetValue(value),
                 callbacks: [],
                 unsubscribeDelayTimer: null
             };

@@ -122,58 +122,58 @@
                 this._subscribtionDelayTimer = null;
             }
 
-            SubscribeEvent(id, onEvent) {
+            SubscribeData(dataId, onDataUpdate) {
                 Global.validateConnectionInterface(this.connection);
-                if (typeof id !== 'string') {
-                    throw new Error(`Invalid subscription id: ${id}`);
-                } else if (typeof onEvent !== 'function') {
-                    throw new Error(`Subscriber for subscription id ${id} is not a function`);
-                } else if (this._onEventCallbacks[id] !== undefined) {
-                    throw new Error(`Key ${id} is already subscribed`);
+                if (typeof dataId !== 'string') {
+                    throw new Error(`Invalid subscription id: ${dataId}`);
+                } else if (typeof onDataUpdate !== 'function') {
+                    throw new Error(`Subscriber for subscription id ${dataId} is not a function`);
+                } else if (this._onEventCallbacks[dataId] !== undefined) {
+                    throw new Error(`Key ${dataId} is already subscribed`);
                 }
-                this._onEventCallbacks[id] = onEvent;
+                this._onEventCallbacks[dataId] = onDataUpdate;
                 this._subscriptionsChanged();
             }
 
-            UnsubscribeEvent(id, onEvent) {
+            UnsubscribeData(dataId, onDataUpdate) {
                 Global.validateConnectionInterface(this.connection);
-                if (typeof id !== 'string') {
-                    throw new Error(`Invalid unsubscription id: ${id}`);
-                } else if (typeof onEvent !== 'function') {
-                    throw new Error(`Subscriber for unsubscription id ${id} is not a function`);
-                } else if (this._onEventCallbacks[id] === undefined) {
-                    throw new Error(`Key ${id} is already subscribed`);
-                } else if (this._onEventCallbacks[id] !== onEvent) {
-                    throw new Error(`Unexpected onEvent for id ${id} to unsubscribe`);
+                if (typeof dataId !== 'string') {
+                    throw new Error(`Invalid unsubscription id: ${dataId}`);
+                } else if (typeof onDataUpdate !== 'function') {
+                    throw new Error(`Subscriber for unsubscription id ${dataId} is not a function`);
+                } else if (this._onEventCallbacks[dataId] === undefined) {
+                    throw new Error(`Key ${dataId} is already subscribed`);
+                } else if (this._onEventCallbacks[dataId] !== onDataUpdate) {
+                    throw new Error(`Unexpected onDataUpdate for id ${dataId} to unsubscribe`);
                 }
-                delete this._onEventCallbacks[id];
+                delete this._onEventCallbacks[dataId];
                 this._subscriptionsChanged();
             }
 
-            Read(id, onResponse, onError) {
+            Read(dataId, onResponse, onError) {
                 Global.validateConnectionInterface(this.connection);
                 if (!this._id2Short) {
                     throw new Error('Not available: this._id2Short');
                 } else if (!this._online) {
                     throw new Error('Cannot Read() because not connected');
                 }
-                const short = this._id2Short[id];
+                const short = this._id2Short[dataId];
                 if (!short) {
-                    throw new Error(`Unexpected id ${id} to Read()`);
+                    throw new Error(`Unexpected id ${dataId} to Read()`);
                 }
                 this.connection.Send(this.receiver, { type: TransmissionType.ReadRequest, short }, onResponse, onError);
             }
 
-            Write(id, value) {
+            Write(dataId, value) {
                 Global.validateConnectionInterface(this.connection);
                 if (!this._id2Short) {
                     throw new Error('Not available: this._id2Short');
                 } else if (!this._online) {
                     throw new Error('Cannot Write() because not connected');
                 }
-                const short = this._id2Short[id];
+                const short = this._id2Short[dataId];
                 if (!short) {
-                    throw new Error(`Unexpected id ${id} to Write()`);
+                    throw new Error(`Unexpected id ${dataId} to Write()`);
                 }
                 this.connection.Send(this.receiver, { type: TransmissionType.WriteRequest, short, value });
             }
@@ -186,12 +186,12 @@
                                 if (data.values.hasOwnProperty(short)) {
                                     const id = this._short2Id[short];
                                     const value = data.values[short];
-                                    const onEvent = this._onEventCallbacks[id];
-                                    if (onEvent) {
+                                    const onDataUpdate = this._onEventCallbacks[id];
+                                    if (onDataUpdate) {
                                         try {
-                                            onEvent(value);
+                                            onDataUpdate(value);
                                         } catch (error) {
-                                            this.onError(`Failed calling onEvent() for id: ${id}: ${error}`);
+                                            this.onError(`Failed calling onDataUpdate() for id: ${id}: ${error}`);
                                         }
                                     }
                                 }
@@ -221,7 +221,7 @@
                 if (!this._id2Short) {
                     throw new Error('Not available: this._id2Short');
                 } else if (this._online) {
-                    // Build a string with all short ids of the currently stored onEvent callbacks and send to server
+                    // Build a string with all short ids of the currently stored onDataUpdate callbacks and send to server
                     let subs = '';
                     for (const id in this._onEventCallbacks) {
                         if (this._onEventCallbacks.hasOwnProperty(id)) {
@@ -355,31 +355,31 @@
                 try {
                     Global.validateDataPublisherInterface(this._parent);
                     if (this._short2Id && this._id2Short) {
-                        for (const id in this._onEventCallbacks) {
-                            if (this._onEventCallbacks.hasOwnProperty(id)) {
-                                const short = this._id2Short[id];
-                                const onEvent = subscriptionShorts.indexOf(short) < 0 ? this._onEventCallbacks[id] : false;
-                                if (onEvent) {
-                                    delete this._onEventCallbacks[id];
-                                    this._parent.UnsubscribeEvent(id, onEvent);
+                        for (const dataId in this._onEventCallbacks) {
+                            if (this._onEventCallbacks.hasOwnProperty(dataId)) {
+                                const short = this._id2Short[dataId];
+                                const onDataUpdate = subscriptionShorts.indexOf(short) < 0 ? this._onEventCallbacks[dataId] : false;
+                                if (onDataUpdate) {
+                                    delete this._onEventCallbacks[dataId];
+                                    this._parent.UnsubscribeData(dataId, onDataUpdate);
                                 }
                             }
                         }
                         Regex.each(/#[a-z0-9]+\b/g, subscriptionShorts, (start, end, match) => {
-                            // we are in a closure -> short/id will be available in onEvent()
+                            // we are in a closure -> short/id will be available in onDataUpdate()
                             const short = match[0];
-                            const id = this._short2Id[short];
-                            if (id) {
-                                if (!this._onEventCallbacks[id]) {
-                                    const onEvent = value => {
+                            const dataId = this._short2Id[short];
+                            if (dataId) {
+                                if (!this._onEventCallbacks[dataId]) {
+                                    const onDataUpdate = value => {
                                         if (!this._values) {
                                             this._values = {};
                                         }
                                         this._values[short] = value;
                                         this._valuesChanged();
                                     };
-                                    this._onEventCallbacks[id] = onEvent;
-                                    this._parent.SubscribeEvent(id, onEvent);
+                                    this._onEventCallbacks[dataId] = onDataUpdate;
+                                    this._parent.SubscribeData(dataId, onDataUpdate);
                                 }
                             }
                             else {
