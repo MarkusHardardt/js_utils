@@ -2,19 +2,17 @@
     "use strict";
 
     const isNodeJS = typeof require === 'function';
+    const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Global = isNodeJS ? require('./Global.js') : root.Global;
-
-    const defaultEqual = (v1, v2) => v1 === v2;
-    const defaultOnError = error => console.error(error);
 
     class DataPublisher {
         constructor() {
             Global.validateDataPublisherInterface(this, true);
             this._parent = null;
-            this._equal = defaultEqual;
-            this._onError = defaultOnError;
+            this._equal = Core.defaultEqual;
+            this._onError = Core.defaultOnError;
             this._unsubscribeDelay = false;
-            this._events = {};
+            this._onDataUpdateCallbacks = {};
         }
 
         set Parent(value) {
@@ -52,15 +50,15 @@
             } else if (typeof onDataUpdate !== 'function') {
                 throw new Error(`onDataUpdate() for id '${dataId}' is not a function`);
             }
-            let event = this._events[dataId];
+            let event = this._onDataUpdateCallbacks[dataId];
             if (event) {
                 for (const callback of event.callbacks) {
                     if (callback === onDataUpdate) {
-                        throw new Error(`onDataUpdate() for id '${dataId}' is already contained`);
+                        throw new Error(`onDataUpdate() for id '${dataId}' is already subscribed`);
                     }
                 }
             } else {
-                this._events[dataId] = event = this._createEvent(dataId);
+                this._onDataUpdateCallbacks[dataId] = event = this._createData(dataId);
             }
             event.callbacks.push(onDataUpdate);
             if (event.callbacks.length === 1) {
@@ -81,7 +79,7 @@
             } else if (typeof onDataUpdate !== 'function') {
                 throw new Error(`onDataUpdate() for id '${dataId}' is not a function`);
             }
-            let event = this._events[dataId];
+            let event = this._onDataUpdateCallbacks[dataId];
             if (!event) {
                 throw new Error(`Cannot unsubscribe for unknown id: ${dataId}`);
             }
@@ -101,7 +99,7 @@
                     return;
                 }
             }
-            throw new Error(`onDataUpdate() for id: ${dataId} is not contained`);
+            throw new Error(`onDataUpdate() for id: ${dataId} is not subscribed`);
         }
 
         Read(dataId, onResponse, onError) {
@@ -112,9 +110,9 @@
                 } catch (error) {
                     this._onError(`Failed calling onResponse() for id: ${dataId}: ${error}`);
                 }
-                let event = this._events[dataId];
+                let event = this._onDataUpdateCallbacks[dataId];
                 if (!event) {
-                    this._events[dataId] = event = this._createEvent(dataId);
+                    this._onDataUpdateCallbacks[dataId] = event = this._createData(dataId);
                 }
                 event.SetValue(value);
             }, onError);
@@ -123,34 +121,34 @@
         Write(dataId, value) {
             Global.validateDataPublisherInterface(this._parent);
             this._parent.Write(dataId, value);
-            let event = this._events[dataId];
+            let event = this._onDataUpdateCallbacks[dataId];
             if (!event) {
-                this._events[dataId] = event = this._createEvent(dataId);
+                this._onDataUpdateCallbacks[dataId] = event = this._createData(dataId);
             }
             event.SetValue(value);
         }
 
-        _createEvent(id) {
-            const event = {
-                id,
+        _createData(dataId) {
+            const data = {
+                id: dataId,
                 value: null,
                 SetValue: value => {
-                    if (!this._equal(value, event.value)) {
-                        event.value = value;
-                        for (const callback of event.callbacks) {
+                    if (!this._equal(value, data.value)) {
+                        data.value = value;
+                        for (const callback of data.callbacks) {
                             try {
                                 callback(value);
                             } catch (error) {
-                                this._onError(`Failed calling onDataUpdate(value) for id: ${event.id}: ${error}`);
+                                this._onError(`Failed calling onDataUpdate(value) for id: ${data.id}: ${error}`);
                             }
                         }
                     }
                 },
-                onDataUpdate: value => event.SetValue(value),
+                onDataUpdate: value => data.SetValue(value),
                 callbacks: [],
                 unsubscribeDelayTimer: null
             };
-            return event;
+            return data;
         }
     }
 

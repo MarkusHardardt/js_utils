@@ -13,6 +13,10 @@
     }
     Core.createIdGenerator = createIdGenerator;
 
+    Core.defaultEqual = (v1, v2) => v1 === v2;
+    
+    Core.defaultOnError = error => console.error(error);
+
     /*  Kahn's algorithm  */
     function getTopologicalSorting(dependencies) {
         const graph = new Map();
