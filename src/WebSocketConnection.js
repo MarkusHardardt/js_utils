@@ -6,7 +6,7 @@
     const isNodeJS = typeof require === 'function';
     const Server = isNodeJS ? require('./Server.js') : root.Server;
     const Core = isNodeJS ? require('./Core.js') : root.Core;
-    const Global = isNodeJS ? require('./Global.js') : root.Global;
+    const Common = isNodeJS ? require('./Common.js') : root.Common;
     const WebSocket = isNodeJS ? require('ws') : root.WebSocket;
 
     const FORMATED_SESSION_ID_PART_LENGTH = 6;
@@ -39,7 +39,7 @@
         - Send(): sends data to receiver on other side an waits optionally for response (pong)    */
     class Connection {
         constructor(sessionId, options) {
-            Global.validateConnectionInterface(this, true);
+            Common.validateConnectionInterface(this, true);
             this._sessionId = sessionId;
             this._handlers = {};
             this._callbacks = {};

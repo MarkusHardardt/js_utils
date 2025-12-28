@@ -61,6 +61,8 @@
         for (const file in dependencies) {
             if (dependencies.hasOwnProperty(file)) {
                 txt += `    // ==> file: '${file}.js':\n`;
+                txt += `    "use strict";\n`;
+                txt += `    const ${file} = {};\n`;
                 txt += `    // access to other components in node js and browser:\n`;
                 txt += `    const isNodeJS = typeof require === 'function';\n`;
                 const used = dependencies[file];

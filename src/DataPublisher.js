@@ -1,13 +1,14 @@
 (function (root) {
+    // ==> file: 'DataPublisher.js':
     "use strict";
-
+    // access to other components in node js and browser:
     const isNodeJS = typeof require === 'function';
     const Core = isNodeJS ? require('./Core.js') : root.Core;
-    const Global = isNodeJS ? require('./Global.js') : root.Global;
+    const Common = isNodeJS ? require('./Common.js') : root.Common;
 
     class DataPublisher {
         constructor() {
-            Global.validateDataPublisherInterface(this, true);
+            Common.validateDataPublisherInterface(this, true);
             this._isOperational = false;
             this._parent = null;
             this._equal = Core.defaultEqual;
@@ -22,7 +23,7 @@
         set Parent(value) {
             this.ParentOperationalState = value;
             if (value) {
-                Global.validateDataPublisherInterface(value, true);
+                Common.validateDataPublisherInterface(value, true);
                 this._parent = value;
             }
             else {
@@ -50,14 +51,14 @@
 
         get IsOperational() {
             if (this._parent) {
-                Global.validateDataPublisherInterface(this._parent);
+                Common.validateDataPublisherInterface(this._parent);
                 return this._parent.IsOperational;
             }
             return false;
         }
 
         SubscribeOperationalState(onOperationalStateChanged) {
-            Global.validateDataPublisherInterface(this._parent);
+            Common.validateDataPublisherInterface(this._parent);
             if (typeof onOperationalStateChanged !== 'function') {
                 throw new Error('onOperationalStateChanged() is not a function');
             }
@@ -86,7 +87,7 @@
         }
 
         UnsubscribeOperationalState(onOperationalStateChanged) {
-            Global.validateDataPublisherInterface(this._parent);
+            Common.validateDataPublisherInterface(this._parent);
             if (typeof onOperationalStateChanged !== 'function') {
                 throw new Error('onOperationalStateChanged() is not a function');
             }
@@ -123,7 +124,7 @@
         }
 
         SubscribeData(dataId, onDataUpdate) {
-            Global.validateDataPublisherInterface(this._parent);
+            Common.validateDataPublisherInterface(this._parent);
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid subscription dataId: ${dataId}`);
             } else if (typeof onDataUpdate !== 'function') {
@@ -159,7 +160,7 @@
         }
 
         UnsubscribeData(dataId, onDataUpdate) {
-            Global.validateDataPublisherInterface(this._parent);
+            Common.validateDataPublisherInterface(this._parent);
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid unsubscription dataId: ${dataId}`);
             } else if (typeof onDataUpdate !== 'function') {
@@ -189,7 +190,7 @@
         }
 
         Read(dataId, onResponse, onError) {
-            Global.validateDataPublisherInterface(this._parent);
+            Common.validateDataPublisherInterface(this._parent);
             this._parent.Read(dataId, value => {
                 try {
                     onResponse(value);
@@ -205,7 +206,7 @@
         }
 
         Write(dataId, value) {
-            Global.validateDataPublisherInterface(this._parent);
+            Common.validateDataPublisherInterface(this._parent);
             this._parent.Write(dataId, value);
             let data = this._datas[dataId];
             if (!data) {

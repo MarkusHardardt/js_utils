@@ -7,12 +7,13 @@
 // See: DataPublisher, DataConnector, TargetSystemAdapter, PlcAdapterMock
 (function (root) {
     "use strict";
+    // access to other components in node js and browser:
     const isNodeJS = typeof require === 'function';
-    const Global = isNodeJS ? require('./Global.js') : root.Global;
+    const Common = isNodeJS ? require('./Common.js') : root.Common;
 
     class OperationalState {
         constructor() {
-            Global.validateOperationalStateInterface(this, true);
+            Common.validateOperationalStateInterface(this, true);
             this._isOperational = false;
             this._onOperationalStateChanged = null;
         }

@@ -1,13 +1,13 @@
 (function (root) {
     "use strict";
     const DataConnector = {};
+    // access to other components in node js and browser:
     const isNodeJS = typeof require === 'function';
-
-    const Core = isNodeJS ? require('./Core.js') : root.Core;
-    const Global = isNodeJS ? require('./Global.js') : root.Global;
-    const OperationalState = isNodeJS ? require('./OperationalState.js') : root.OperationalState;
-    const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
+    const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
+    const Core = isNodeJS ? require('./Core.js') : root.Core;
+    const Common = isNodeJS ? require('./Common.js') : root.Common;
+    const OperationalState = isNodeJS ? require('./OperationalState.js') : root.OperationalState;
 
     const compareTextsAndNumbers = Sorting.getTextsAndNumbersCompareFunction(true, false, true);
     function addId(ids, id) {
@@ -57,7 +57,7 @@
                     this.connection.Unregister(this.receiver);
                     this.connection = null;
                 }
-                Global.validateConnectionInterface(value, true);
+                Common.validateConnectionInterface(value, true);
                 this.connection = value;
                 this.connection.Register(this.receiver, this._handler);
             } else if (this.connection) {
@@ -90,8 +90,8 @@
         class ClientDataConnector extends Connector {
             constructor() {
                 super();
-                Global.validateClientConnectorInterface(this, true);
-                Global.validateDataPublisherInterface(this, true);
+                Common.validateClientConnectorInterface(this, true);
+                Common.validateDataPublisherInterface(this, true);
                 this._isOpen = false;
                 this._datas = null;
                 this._short2Id = null;
@@ -101,7 +101,7 @@
             }
 
             OnOpen() {
-                Global.validateConnectionInterface(this.connection);
+                Common.validateConnectionInterface(this.connection);
                 this.connection.Send(this.receiver, { type: TransmissionType.ConfigRequest }, config => {
                     this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
                     this._short2Id = config.short2Id;
@@ -161,7 +161,7 @@
             }
 
             SubscribeData(dataId, onDataUpdate) {
-                Global.validateConnectionInterface(this.connection);
+                Common.validateConnectionInterface(this.connection);
                 if (typeof dataId !== 'string') {
                     throw new Error(`Invalid subscription data id: '${dataId}'`);
                 } else if (typeof onDataUpdate !== 'function') {
@@ -176,7 +176,7 @@
             }
 
             UnsubscribeData(dataId, onDataUpdate) {
-                Global.validateConnectionInterface(this.connection);
+                Common.validateConnectionInterface(this.connection);
                 if (typeof dataId !== 'string') {
                     throw new Error(`Invalid unsubscription data id: '${dataId}'`);
                 } else if (typeof onDataUpdate !== 'function') {
@@ -193,7 +193,7 @@
             }
 
             Read(dataId, onResponse, onError) {
-                Global.validateConnectionInterface(this.connection);
+                Common.validateConnectionInterface(this.connection);
                 if (!this._isOpen) {
                     throw new Error('Cannot Read() because not connected');
                 }
@@ -205,7 +205,7 @@
             }
 
             Write(dataId, value) {
-                Global.validateConnectionInterface(this.connection);
+                Common.validateConnectionInterface(this.connection);
                 if (!this._isOpen) {
                     throw new Error('Cannot Write() because not connected');
                 }
@@ -259,7 +259,7 @@
             }
 
             _sendSubscriptionRequest() {
-                Global.validateConnectionInterface(this.connection);
+                Common.validateConnectionInterface(this.connection);
                 if (this._isOpen) {
                     // Build a string with all short ids of the currently stored onDataUpdate callbacks and send to server
                     let subs = '';
@@ -290,7 +290,7 @@
         class ServerDataConnector extends Connector {
             constructor() {
                 super();
-                Global.validateServerConnectorInterface(this, true);
+                Common.validateServerConnectorInterface(this, true);
                 this._isOpen = false;
                 this._parent = null;
                 this._onEventCallbacks = {};
@@ -305,7 +305,7 @@
             set Parent(value) {
                 this.ParentOperationalState = value;
                 if (value) {
-                    Global.validateDataPublisherInterface(value, true);
+                    Common.validateDataPublisherInterface(value, true);
                     this._parent = value;
                 } else {
                     this._parent = null;
@@ -361,8 +361,8 @@
                 if (!this._isOpen) {
                     this.onError('Received data but connection is closed');
                 } else {
-                    Global.validateDataPublisherInterface(this._parent);
-                    Global.validateConnectionInterface(this.connection);
+                    Common.validateDataPublisherInterface(this._parent);
+                    Common.validateConnectionInterface(this.connection);
                     let dataId;
                     switch (data.type) {
                         case TransmissionType.ConfigRequest:
@@ -395,7 +395,7 @@
 
             _updateSubscriptions(subscriptionShorts) {
                 if (this._isOpen) {
-                    Global.validateDataPublisherInterface(this._parent);
+                    Common.validateDataPublisherInterface(this._parent);
                     for (const dataId in this._onEventCallbacks) {
                         if (this._onEventCallbacks.hasOwnProperty(dataId)) {
                             const short = this._id2Short[dataId];
@@ -442,7 +442,7 @@
 
             _sendValues() {
                 if (this._isOpen && this._values) {
-                    Global.validateConnectionInterface(this.connection);
+                    Common.validateConnectionInterface(this.connection);
                     this.connection.Send(this.receiver, { type: TransmissionType.SubscribedDataUpdate, values: this._values });
                     this._values = null;
                 }

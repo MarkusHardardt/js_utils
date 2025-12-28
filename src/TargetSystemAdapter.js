@@ -2,18 +2,18 @@
     "use strict";
 
     const isNodeJS = typeof require === 'function';
-    const Global = isNodeJS ? require('./Global.js') : root.Global;
+    const Common = isNodeJS ? require('./Common.js') : root.Common;
     const OperationalState = isNodeJS ? require('./OperationalState.js') : root.OperationalState;
 
     class TargetSystemAdapter extends OperationalState {
         constructor() {
             super();
-            Global.validateDataPublisherInterface(this, true);
+            Common.validateDataPublisherInterface(this, true);
             this._targetSystems = {};
         }
 
         Register(target, system) {
-            Global.validateDataPublisherInterface(system, true);
+            Common.validateDataPublisherInterface(system, true);
             if (typeof target !== 'string') {
                 throw new Error(`Invalid target '${target}' for Register(target, system)`);
             } else if (this._targetSystems[target] !== undefined) {
@@ -24,7 +24,7 @@
         }
 
         Unregister(target, system) {
-            Global.validateDataPublisherInterface(system, true);
+            Common.validateDataPublisherInterface(system, true);
             if (typeof target !== 'string') {
                 throw new Error(`Invalid target '${target}' for Unregister(target, system)`);
             } else if (this._targetSystems[target] === undefined) {
