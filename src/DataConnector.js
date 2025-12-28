@@ -3,8 +3,9 @@
     const DataConnector = {};
     const isNodeJS = typeof require === 'function';
 
-    const Global = isNodeJS ? require('./Global.js') : root.Global;
     const Core = isNodeJS ? require('./Core.js') : root.Core;
+    const Global = isNodeJS ? require('./Global.js') : root.Global;
+    const OperationalState = isNodeJS ? require('./OperationalState.js') : root.OperationalState;
     const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
 
@@ -43,8 +44,10 @@
         WriteRequest: 6
     });
 
-    class Connector {
+    class Connector extends OperationalState {
         constructor() {
+            super();
+            Global.validateOperationalStateInterface(this, true);
             this.connection = null;
             this.onError = defaultOnError;
             this.receiver = DEFAULT_DATA_CONNECTION_RECEIVER;

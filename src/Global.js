@@ -16,9 +16,8 @@
 
     /*  event publisher inferface  */
     function validateDataPublisherInterface(instance, validateMethodArguments) {
-        // TODO: use validateOperationalStateInterface(instance, validateMethodArguments);
+        validateOperationalStateInterface(instance, validateMethodArguments);
         Core.validateInterface('DataPublisher', instance, [
-            // TODO dataId
             'SubscribeData(dataId, onDataUpdate)',
             'UnsubscribeData(dataId, onDataUpdate)',
             'Read(dataId, onResponse, onError)',

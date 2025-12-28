@@ -20,11 +20,11 @@
     const Common = isNodeJS ? require('./src/Common.js') : root.Common;
     const Global = isNodeJS ? require('./src/Global.js') : root.Global;
     const hmi_object = isNodeJS ? require('./src/hmi_object.js') : root.hmi_object;
+    const OperationalState = isNodeJS ? require('./src/OperationalState.js') : root.OperationalState;
+    const WebSocketConnection = isNodeJS ? require('./src/WebSocketConnection.js') : root.WebSocketConnection;
     const DataConnector = isNodeJS ? require('./src/DataConnector.js') : root.DataConnector;
     const DataPublisher = isNodeJS ? require('./src/DataPublisher.js') : root.DataPublisher;
-    const OperationalState = isNodeJS ? require('./src/OperationalState.js') : root.OperationalState;
     const TargetSystemAdapter = isNodeJS ? require('./src/TargetSystemAdapter.js') : root.TargetSystemAdapter;
-    const WebSocketConnection = isNodeJS ? require('./src/WebSocketConnection.js') : root.WebSocketConnection;
 
     const js_utils = {
         Client,
@@ -44,11 +44,11 @@
         Common,
         Global,
         hmi_object,
+        OperationalState,
+        WebSocketConnection,
         DataConnector,
         DataPublisher,
-        OperationalState,
-        TargetSystemAdapter,
-        WebSocketConnection
+        TargetSystemAdapter
     };
 
     Object.seal(js_utils);

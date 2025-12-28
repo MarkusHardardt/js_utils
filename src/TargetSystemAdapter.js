@@ -3,9 +3,11 @@
 
     const isNodeJS = typeof require === 'function';
     const Global = isNodeJS ? require('./Global.js') : root.Global;
+    const OperationalState = isNodeJS ? require('./OperationalState.js') : root.OperationalState;
 
-    class TargetSystemAdapter {
+    class TargetSystemAdapter extends OperationalState {
         constructor() {
+            super();
             Global.validateDataPublisherInterface(this, true);
             this._targetSystems = {};
         }

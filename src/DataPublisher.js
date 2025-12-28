@@ -4,9 +4,11 @@
     const isNodeJS = typeof require === 'function';
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Global = isNodeJS ? require('./Global.js') : root.Global;
+    const OperationalState = isNodeJS ? require('./OperationalState.js') : root.OperationalState;
 
-    class DataPublisher {
+    class DataPublisher extends OperationalState {
         constructor() {
+            super();
             Global.validateDataPublisherInterface(this, true);
             this._parentDataPublisher = null;
             this._equal = Core.defaultEqual;
