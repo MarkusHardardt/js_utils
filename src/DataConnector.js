@@ -47,7 +47,6 @@
     class Connector extends OperationalState {
         constructor() {
             super();
-            Global.validateOperationalStateInterface(this, true);
             this.connection = null;
             this.onError = defaultOnError;
             this.receiver = DEFAULT_DATA_CONNECTION_RECEIVER;
@@ -248,7 +247,7 @@
             constructor() {
                 super();
                 Global.validateServerConnectorInterface(this, true);
-                this._parentDataPublisher = null;
+                this._parent = null;
                 this._onEventCallbacks = {};
                 this._short2Id = null;
                 this._id2Short = null;
@@ -258,13 +257,13 @@
                 this._sendDelayTimer = null;
             }
 
-            set ParentDataPublisher(value) {
+            set Parent(value) {
                 this.ParentOperationalState = value;
                 if (value) {
                     Global.validateDataPublisherInterface(value, true);
-                    this._parentDataPublisher = value;
+                    this._parent = value;
                 } else {
-                    this._parentDataPublisher = null;
+                    this._parent = null;
                 }
             }
 
@@ -312,7 +311,7 @@
 
             handleReceived(data, onResponse, onError) {
                 try {
-                    Global.validateDataPublisherInterface(this._parentDataPublisher);
+                    Global.validateDataPublisherInterface(this._parent);
                     Global.validateConnectionInterface(this.connection);
                     let id;
                     switch (data.type) {
@@ -335,7 +334,7 @@
                             if (!id) {
                                 throw new Error('Unknown id for read request');
                             }
-                            this._parentDataPublisher.Read(id, onResponse, onError);
+                            this._parent.Read(id, onResponse, onError);
                             break;
                         case TransmissionType.WriteRequest:
                             if (!this._short2Id) {
@@ -345,7 +344,7 @@
                             if (!id) {
                                 throw new Error('Unknown id for write request');
                             }
-                            this._parentDataPublisher.Write(id, data.value);
+                            this._parent.Write(id, data.value);
                             break;
                         default:
                             throw new Error(`Invalid transmission type: ${data.type}`);
@@ -357,7 +356,7 @@
 
             _updateSubscriptions(subscriptionShorts) {
                 try {
-                    Global.validateDataPublisherInterface(this._parentDataPublisher);
+                    Global.validateDataPublisherInterface(this._parent);
                     if (this._short2Id && this._id2Short) {
                         for (const dataId in this._onEventCallbacks) {
                             if (this._onEventCallbacks.hasOwnProperty(dataId)) {
@@ -365,7 +364,7 @@
                                 const onDataUpdate = subscriptionShorts.indexOf(short) < 0 ? this._onEventCallbacks[dataId] : false;
                                 if (onDataUpdate) {
                                     delete this._onEventCallbacks[dataId];
-                                    this._parentDataPublisher.UnsubscribeData(dataId, onDataUpdate);
+                                    this._parent.UnsubscribeData(dataId, onDataUpdate);
                                 }
                             }
                         }
@@ -383,7 +382,7 @@
                                         this._valuesChanged();
                                     };
                                     this._onEventCallbacks[dataId] = onDataUpdate;
-                                    this._parentDataPublisher.SubscribeData(dataId, onDataUpdate);
+                                    this._parent.SubscribeData(dataId, onDataUpdate);
                                 }
                             }
                             else {
