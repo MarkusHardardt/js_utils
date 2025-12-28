@@ -8,8 +8,8 @@
         constructor() {
             Global.validateDataPublisherInterface(this, true);
             this._isOperational = false;
-            this._targetSystems = {};
             this._onOperationalStateChanged = null;
+            this._targetSystems = {};
         }
 
         get IsOperational() {

@@ -1,3 +1,10 @@
+// TODO: Question about '_parentOperationalState':
+// In TargetSystemAdapter we do not extend OperationalState because there is no parent and instead we build the state local.
+// For DataConnector we max use the connection.
+// For PlcAdapterMock it depends on opc ua.
+// Only DataPublisher provides subscribing of multiple clients.
+// Maybe we need a simple thing to extend DataConnector, TargetSystemAdapter, PlcAdapterMock and something like the implemented for DataPublisher???
+// See: DataPublisher, DataConnector, TargetSystemAdapter, PlcAdapterMock
 (function (root) {
     "use strict";
     const isNodeJS = typeof require === 'function';
