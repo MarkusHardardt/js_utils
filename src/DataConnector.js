@@ -91,7 +91,7 @@
             constructor() {
                 super();
                 Global.validateClientConnectorInterface(this, true);
-                Global.validateEventPublisherInterface(this, true);
+                Global.validateDataPublisherInterface(this, true);
                 this._onEventCallbacks = {};
                 this._short2Id = null;
                 this._id2Short = null;
@@ -122,7 +122,7 @@
                 this._subscribtionDelayTimer = null;
             }
 
-            Subscribe(id, onEvent) {
+            SubscribeEvent(id, onEvent) {
                 Global.validateConnectionInterface(this.connection);
                 if (typeof id !== 'string') {
                     throw new Error(`Invalid subscription id: ${id}`);
@@ -135,7 +135,7 @@
                 this._subscriptionsChanged();
             }
 
-            Unsubscribe(id, onEvent) {
+            UnsubscribeEvent(id, onEvent) {
                 Global.validateConnectionInterface(this.connection);
                 if (typeof id !== 'string') {
                     throw new Error(`Invalid unsubscription id: ${id}`);
@@ -257,7 +257,7 @@
 
             set Parent(value) {
                 if (value) {
-                    Global.validateEventPublisherInterface(value, true);
+                    Global.validateDataPublisherInterface(value, true);
                     this._parent = value;
                 } else {
                     this._parent = null;
@@ -308,7 +308,7 @@
 
             handleReceived(data, onResponse, onError) {
                 try {
-                    Global.validateEventPublisherInterface(this._parent);
+                    Global.validateDataPublisherInterface(this._parent);
                     Global.validateConnectionInterface(this.connection);
                     let id;
                     switch (data.type) {
@@ -353,7 +353,7 @@
 
             _updateSubscriptions(subscriptionShorts) {
                 try {
-                    Global.validateEventPublisherInterface(this._parent);
+                    Global.validateDataPublisherInterface(this._parent);
                     if (this._short2Id && this._id2Short) {
                         for (const id in this._onEventCallbacks) {
                             if (this._onEventCallbacks.hasOwnProperty(id)) {
@@ -361,7 +361,7 @@
                                 const onEvent = subscriptionShorts.indexOf(short) < 0 ? this._onEventCallbacks[id] : false;
                                 if (onEvent) {
                                     delete this._onEventCallbacks[id];
-                                    this._parent.Unsubscribe(id, onEvent);
+                                    this._parent.UnsubscribeEvent(id, onEvent);
                                 }
                             }
                         }
@@ -379,7 +379,7 @@
                                         this._valuesChanged();
                                     };
                                     this._onEventCallbacks[id] = onEvent;
-                                    this._parent.Subscribe(id, onEvent);
+                                    this._parent.SubscribeEvent(id, onEvent);
                                 }
                             }
                             else {

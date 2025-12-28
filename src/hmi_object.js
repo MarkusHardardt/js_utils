@@ -7123,7 +7123,7 @@
                             }
                         };
                         _onEventCallbacks.push(onEvent);
-                        that.hmi.env.data.Subscribe(id, onEvent);
+                        that.hmi.env.data.SubscribeEvent(id, onEvent);
                     }());
                 }
             }
@@ -7165,7 +7165,7 @@
             }
             if (Array.isArray(_watch)) {
                 for (var i = _watch.length - 1; i >= 0; i--) {
-                    that.hmi.env.data.Unsubscribe(_watch[i], _onEventCallbacks[i]);
+                    that.hmi.env.data.UnsubscribeEvent(_watch[i], _onEventCallbacks[i]);
                 }
                 _watch.splice(0, _watch.length);
                 _watch = undefined;

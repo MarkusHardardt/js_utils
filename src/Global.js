@@ -12,20 +12,20 @@
             'UnsubscribeOperationalState(onOperationalStateChanged)'
         ], validateMethodArguments);
     }
-    Global.validateEventPublisherInterface = validateEventPublisherInterface;
+    Global.validateOperationalStateInterface = validateOperationalStateInterface;
 
     /*  event publisher inferface  */
-    function validateEventPublisherInterface(instance, validateMethodArguments) {
+    function validateDataPublisherInterface(instance, validateMethodArguments) {
         // TODO: use validateOperationalStateInterface(instance, validateMethodArguments);
-        Core.validateInterface('EventPublisher', instance, [
-            // TODO eventId
-            'Subscribe(id, onEvent)', // TODO -> SubscribeEvent
-            'Unsubscribe(id, onEvent)', // TODO: UnsubscribeEvent
+        Core.validateInterface('DataPublisher', instance, [
+            // TODO dataId
+            'SubscribeEvent(id, onEvent)',
+            'UnsubscribeEvent(id, onEvent)',
             'Read(id, onResponse, onError)',
             'Write(id, value)'
         ], validateMethodArguments);
     }
-    Global.validateEventPublisherInterface = validateEventPublisherInterface;
+    Global.validateDataPublisherInterface = validateDataPublisherInterface;
 
     /*  connection inferface  */
     function validateConnectionInterface(instance, validateMethodArguments) {

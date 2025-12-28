@@ -7,9 +7,9 @@
     const defaultEqual = (v1, v2) => v1 === v2;
     const defaultOnError = error => console.error(error);
 
-    class EventPublisher {
+    class DataPublisher {
         constructor() {
-            Global.validateEventPublisherInterface(this, true);
+            Global.validateDataPublisherInterface(this, true);
             this._parent = null;
             this._equal = defaultEqual;
             this._onError = defaultOnError;
@@ -19,7 +19,7 @@
 
         set Parent(value) {
             if (value) {
-                Global.validateEventPublisherInterface(value, true);
+                Global.validateDataPublisherInterface(value, true);
                 this._parent = value;
             }
             else {
@@ -45,8 +45,8 @@
             this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
         }
 
-        Subscribe(id, onEvent) {
-            Global.validateEventPublisherInterface(this._parent);
+        SubscribeEvent(id, onEvent) {
+            Global.validateDataPublisherInterface(this._parent);
             if (typeof id !== 'string') {
                 throw new Error(`Invalid subscription id: ${id}`);
             } else if (typeof onEvent !== 'function') {
@@ -69,13 +69,13 @@
                     event.unsubscribeDelayTimer = null;
                 }
                 else {
-                    this._parent.Subscribe(event.id, event.onEvent);
+                    this._parent.SubscribeEvent(event.id, event.onEvent);
                 }
             }
         }
 
-        Unsubscribe(id, onEvent) {
-            Global.validateEventPublisherInterface(this._parent);
+        UnsubscribeEvent(id, onEvent) {
+            Global.validateDataPublisherInterface(this._parent);
             if (typeof id !== 'string') {
                 throw new Error(`Invalid unsubscription id: ${id}`);
             } else if (typeof onEvent !== 'function') {
@@ -91,11 +91,11 @@
                     if (event.callbacks.length === 0) {
                         if (this._unsubscribeDelay) {
                             event.unsubscribeDelayTimer = setTimeout(() => {
-                                this._parent.Unsubscribe(event.id, event.onEvent);
+                                this._parent.UnsubscribeEvent(event.id, event.onEvent);
                                 event.unsubscribeDelayTimer = null;
                             }, this._unsubscribeDelay);
                         } else {
-                            this._parent.Unsubscribe(event.id, event.onEvent);
+                            this._parent.UnsubscribeEvent(event.id, event.onEvent);
                         }
                     }
                     return;
@@ -105,7 +105,7 @@
         }
 
         Read(id, onResponse, onError) {
-            Global.validateEventPublisherInterface(this._parent);
+            Global.validateDataPublisherInterface(this._parent);
             this._parent.Read(id, value => {
                 try {
                     onResponse(value);
@@ -121,7 +121,7 @@
         }
 
         Write(id, value) {
-            Global.validateEventPublisherInterface(this._parent);
+            Global.validateDataPublisherInterface(this._parent);
             this._parent.Write(id, value);
             let event = this._events[id];
             if (!event) {
@@ -155,8 +155,8 @@
     }
 
     if (isNodeJS) {
-        module.exports = EventPublisher;
+        module.exports = DataPublisher;
     } else {
-        root.EventPublisher = EventPublisher;
+        root.DataPublisher = DataPublisher;
     }
 }(globalThis));

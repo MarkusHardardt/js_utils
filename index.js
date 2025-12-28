@@ -22,7 +22,7 @@
     const hmi_object = isNodeJS ? require('./src/hmi_object.js') : root.hmi_object;
     const WebSocketConnection = isNodeJS ? require('./src/WebSocketConnection.js') : root.WebSocketConnection;
     const DataConnector = isNodeJS ? require('./src/DataConnector.js') : root.DataConnector;
-    const EventPublisher = isNodeJS ? require('./src/EventPublisher.js') : root.EventPublisher;
+    const DataPublisher = isNodeJS ? require('./src/DataPublisher.js') : root.DataPublisher;
     const TargetSystemAdapter = isNodeJS ? require('./src/TargetSystemAdapter.js') : root.TargetSystemAdapter;
 
     const js_utils = {
@@ -45,7 +45,7 @@
         hmi_object,
         WebSocketConnection,
         DataConnector,
-        EventPublisher,
+        DataPublisher,
         TargetSystemAdapter
     };
 

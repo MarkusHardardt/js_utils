@@ -14,7 +14,7 @@
                 'ContentManager': ['Utilities', 'jsonfx', 'Regex', 'Executor', 'Sorting', 'SqlHelper'],
                 'Core': ['Regex', 'Executor'],
                 'DataConnector': ['Global', 'Core', 'Sorting', 'Regex'],
-                'EventPublisher': ['Global'],
+                'DataPublisher': ['Global'],
                 'Executor': [],
                 'Global': ['Core'],
                 'HashLists': ['Utilities'],

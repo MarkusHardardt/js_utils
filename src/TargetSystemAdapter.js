@@ -6,12 +6,12 @@
 
     class TargetSystemAdapter {
         constructor() {
-            Global.validateEventPublisherInterface(this, true);
+            Global.validateDataPublisherInterface(this, true);
             this._targetSystems = {};
         }
 
         Register(target, system) {
-            Global.validateEventPublisherInterface(system, true);
+            Global.validateDataPublisherInterface(system, true);
             if (typeof target !== 'string') {
                 throw new Error(`Invalid target '${target}' for Register(target, system)`);
             } else if (this._targetSystems[target] !== undefined) {
@@ -22,7 +22,7 @@
         }
 
         Unregister(target, system) {
-            Global.validateEventPublisherInterface(system, true);
+            Global.validateDataPublisherInterface(system, true);
             if (typeof target !== 'string') {
                 throw new Error(`Invalid target '${target}' for Unregister(target, system)`);
             } else if (this._targetSystems[target] === undefined) {
@@ -56,25 +56,25 @@
             }
         }
 
-        Subscribe(id, onEvent) {
+        SubscribeEvent(id, onEvent) {
             const { target, nodeId } = this._getTargetAndNodeId(id);
             if (typeof target !== 'string') {
-                throw new Error(`Invalid target '${target}' for Subscribe(id, onEvent)`);
+                throw new Error(`Invalid target '${target}' for SubscribeEvent(id, onEvent)`);
             } else if (this._targetSystems[target] === undefined) {
-                throw new Error(`Target '${target}' not registered for Subscribe(id, onEvent)`);
+                throw new Error(`Target '${target}' not registered for SubscribeEvent(id, onEvent)`);
             } else {
-                this._targetSystems[target].Subscribe(nodeId, onEvent);
+                this._targetSystems[target].SubscribeEvent(nodeId, onEvent);
             }
         }
 
-        Unsubscribe(id, onEvent) {
+        UnsubscribeEvent(id, onEvent) {
             const { target, nodeId } = this._getTargetAndNodeId(id);
             if (typeof target !== 'string') {
-                throw new Error(`Invalid target '${target}' for Unsubscribe(id, onEvent)`);
+                throw new Error(`Invalid target '${target}' for UnsubscribeEvent(id, onEvent)`);
             } else if (this._targetSystems[target] === undefined) {
-                throw new Error(`Target '${target}' not registered for Unsubscribe(id, onEvent)`);
+                throw new Error(`Target '${target}' not registered for UnsubscribeEvent(id, onEvent)`);
             } else {
-                this._targetSystems[target].Unsubscribe(nodeId, onEvent);
+                this._targetSystems[target].UnsubscribeEvent(nodeId, onEvent);
             }
         }
 
