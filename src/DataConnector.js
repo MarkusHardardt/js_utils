@@ -219,17 +219,21 @@
             }
 
             handleReceived(data, onResponse, onError) {
-                try {
+                try { // TODO: Is this try/catch required on this place?
                     switch (data.type) {
                         case TransmissionType.SubscribedDataUpdate:
                             for (const short in data.values) {
                                 if (data.values.hasOwnProperty(short)) {
                                     const dataId = this._short2Id[short];
-                                    const value = data.values[short]; // TODO: What if invalid
-                                    const data = this._datas[dataId];
-                                    if (data && data.onDataUpdate) {
+                                    const dt = this._datas[dataId];
+                                    if (!dt) {
+                                        this.onError(`Unknown data id: ${dataId}`);
+                                        continue;
+                                    }
+                                    const value = data.values[short];
+                                    if (value !== null && dt.onDataUpdate) {
                                         try {
-                                            data.onDataUpdate(value);
+                                            dt.onDataUpdate(value);
                                         } catch (error) {
                                             this.onError(`Failed calling onDataUpdate() for data id: ${dataId}: ${error}`);
                                         }
@@ -269,8 +273,7 @@
                             if (!short) {
                                 throw new Error(`Unknown data id: ${dataId}`);
                             }
-                            const data = this._datas[dataId];
-                            if (data.onDataUpdate) {
+                            if (this._datas[dataId].onDataUpdate) {
                                 subs += short;
                             }
                         }
