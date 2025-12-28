@@ -245,7 +245,7 @@
             constructor() {
                 super();
                 Global.validateServerConnectorInterface(this, true);
-                this._parent = null;
+                this._parentDataPublisher = null;
                 this._onEventCallbacks = {};
                 this._short2Id = null;
                 this._id2Short = null;
@@ -255,12 +255,12 @@
                 this._sendDelayTimer = null;
             }
 
-            set Parent(value) {
+            set ParentDataPublisher(value) {
                 if (value) {
                     Global.validateDataPublisherInterface(value, true);
-                    this._parent = value;
+                    this._parentDataPublisher = value;
                 } else {
-                    this._parent = null;
+                    this._parentDataPublisher = null;
                 }
             }
 
@@ -308,7 +308,7 @@
 
             handleReceived(data, onResponse, onError) {
                 try {
-                    Global.validateDataPublisherInterface(this._parent);
+                    Global.validateDataPublisherInterface(this._parentDataPublisher);
                     Global.validateConnectionInterface(this.connection);
                     let id;
                     switch (data.type) {
@@ -331,7 +331,7 @@
                             if (!id) {
                                 throw new Error('Unknown id for read request');
                             }
-                            this._parent.Read(id, onResponse, onError);
+                            this._parentDataPublisher.Read(id, onResponse, onError);
                             break;
                         case TransmissionType.WriteRequest:
                             if (!this._short2Id) {
@@ -341,7 +341,7 @@
                             if (!id) {
                                 throw new Error('Unknown id for write request');
                             }
-                            this._parent.Write(id, data.value);
+                            this._parentDataPublisher.Write(id, data.value);
                             break;
                         default:
                             throw new Error(`Invalid transmission type: ${data.type}`);
@@ -353,7 +353,7 @@
 
             _updateSubscriptions(subscriptionShorts) {
                 try {
-                    Global.validateDataPublisherInterface(this._parent);
+                    Global.validateDataPublisherInterface(this._parentDataPublisher);
                     if (this._short2Id && this._id2Short) {
                         for (const dataId in this._onEventCallbacks) {
                             if (this._onEventCallbacks.hasOwnProperty(dataId)) {
@@ -361,7 +361,7 @@
                                 const onDataUpdate = subscriptionShorts.indexOf(short) < 0 ? this._onEventCallbacks[dataId] : false;
                                 if (onDataUpdate) {
                                     delete this._onEventCallbacks[dataId];
-                                    this._parent.UnsubscribeData(dataId, onDataUpdate);
+                                    this._parentDataPublisher.UnsubscribeData(dataId, onDataUpdate);
                                 }
                             }
                         }
@@ -379,7 +379,7 @@
                                         this._valuesChanged();
                                     };
                                     this._onEventCallbacks[dataId] = onDataUpdate;
-                                    this._parent.SubscribeData(dataId, onDataUpdate);
+                                    this._parentDataPublisher.SubscribeData(dataId, onDataUpdate);
                                 }
                             }
                             else {

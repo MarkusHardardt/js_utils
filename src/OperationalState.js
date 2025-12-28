@@ -8,7 +8,7 @@
         constructor() {
             Global.validateOperationalStateInterface(this, true);
             this._isOperational = false;
-            this._parent = null;
+            this._parentOperationalState = null;
             this._onError = Core.defaultOnError;
             this._unsubscribeDelay = false;
             this._unsubscribeDelayTimer = null;
@@ -16,13 +16,13 @@
             this._onOperationalStateChanged = isOperational => this._setOperationalState(isOperational);
         }
 
-        set Parent(value) {
+        set ParentOperationalState(value) {
             if (value) {
                 Global.validateOperationalStateInterface(value, true);
-                this._parent = value;
+                this._parentOperationalState = value;
             }
             else {
-                this._parent = null;
+                this._parentOperationalState = null;
             }
         }
 
@@ -38,15 +38,15 @@
         }
 
         get IsOperational() {
-            if (this._parent) {
-                Global.validateOperationalStateInterface(this._parent);
-                return this._parent.IsOperational;
+            if (this._parentOperationalState) {
+                Global.validateOperationalStateInterface(this._parentOperationalState);
+                return this._parentOperationalState.IsOperational;
             }
             return false;
         }
 
         SubscribeOperationalState(onOperationalStateChanged) {
-            Global.validateOperationalStateInterface(this._parent);
+            Global.validateOperationalStateInterface(this._parentOperationalState);
             if (typeof onOperationalStateChanged !== 'function') {
                 throw new Error('onOperationalStateChanged() is not a function');
             }
@@ -62,13 +62,13 @@
                     this._unsubscribeDelayTimer = null;
                 }
                 else {
-                    this._parent.SubscribeOperationalState(this._onOperationalStateChanged);
+                    this._parentOperationalState.SubscribeOperationalState(this._onOperationalStateChanged);
                 }
             }
         }
 
         UnsubscribeOperationalState(onOperationalStateChanged) {
-            Global.validateOperationalStateInterface(this._parent);
+            Global.validateOperationalStateInterface(this._parentOperationalState);
             if (typeof onOperationalStateChanged !== 'function') {
                 throw new Error('onOperationalStateChanged() is not a function');
             }
@@ -78,11 +78,11 @@
                     if (this._onOperationalStateChangedCallbacks.length === 0) {
                         if (this._unsubscribeDelay) {
                             this._unsubscribeDelayTimer = setTimeout(() => {
-                                this._parent.UnsubscribeOperationalState(this._onOperationalStateChanged);
+                                this._parentOperationalState.UnsubscribeOperationalState(this._onOperationalStateChanged);
                                 this._unsubscribeDelayTimer = null;
                             }, this._unsubscribeDelay);
                         } else {
-                            this._parent.UnsubscribeOperationalState(this._onOperationalStateChanged);
+                            this._parentOperationalState.UnsubscribeOperationalState(this._onOperationalStateChanged);
                         }
                     }
                     return;

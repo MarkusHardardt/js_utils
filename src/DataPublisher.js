@@ -8,20 +8,20 @@
     class DataPublisher {
         constructor() {
             Global.validateDataPublisherInterface(this, true);
-            this._parent = null;
+            this._parentDataPublisher = null;
             this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
             this._unsubscribeDelay = false;
             this._onDataUpdateCallbacks = {};
         }
 
-        set Parent(value) {
+        set ParentDataPublisher(value) {
             if (value) {
                 Global.validateDataPublisherInterface(value, true);
-                this._parent = value;
+                this._parentDataPublisher = value;
             }
             else {
-                this._parent = null;
+                this._parentDataPublisher = null;
             }
         }
 
@@ -44,7 +44,7 @@
         }
 
         SubscribeData(dataId, onDataUpdate) {
-            Global.validateDataPublisherInterface(this._parent);
+            Global.validateDataPublisherInterface(this._parentDataPublisher);
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid subscription id: ${dataId}`);
             } else if (typeof onDataUpdate !== 'function') {
@@ -67,13 +67,13 @@
                     event.unsubscribeDelayTimer = null;
                 }
                 else {
-                    this._parent.SubscribeData(event.id, event.onDataUpdate);
+                    this._parentDataPublisher.SubscribeData(event.id, event.onDataUpdate);
                 }
             }
         }
 
         UnsubscribeData(dataId, onDataUpdate) {
-            Global.validateDataPublisherInterface(this._parent);
+            Global.validateDataPublisherInterface(this._parentDataPublisher);
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid unsubscription id: ${dataId}`);
             } else if (typeof onDataUpdate !== 'function') {
@@ -89,11 +89,11 @@
                     if (event.callbacks.length === 0) {
                         if (this._unsubscribeDelay) {
                             event.unsubscribeDelayTimer = setTimeout(() => {
-                                this._parent.UnsubscribeData(event.id, event.onDataUpdate);
+                                this._parentDataPublisher.UnsubscribeData(event.id, event.onDataUpdate);
                                 event.unsubscribeDelayTimer = null;
                             }, this._unsubscribeDelay);
                         } else {
-                            this._parent.UnsubscribeData(event.id, event.onDataUpdate);
+                            this._parentDataPublisher.UnsubscribeData(event.id, event.onDataUpdate);
                         }
                     }
                     return;
@@ -103,8 +103,8 @@
         }
 
         Read(dataId, onResponse, onError) {
-            Global.validateDataPublisherInterface(this._parent);
-            this._parent.Read(dataId, value => {
+            Global.validateDataPublisherInterface(this._parentDataPublisher);
+            this._parentDataPublisher.Read(dataId, value => {
                 try {
                     onResponse(value);
                 } catch (error) {
@@ -119,8 +119,8 @@
         }
 
         Write(dataId, value) {
-            Global.validateDataPublisherInterface(this._parent);
-            this._parent.Write(dataId, value);
+            Global.validateDataPublisherInterface(this._parentDataPublisher);
+            this._parentDataPublisher.Write(dataId, value);
             let event = this._onDataUpdateCallbacks[dataId];
             if (!event) {
                 this._onDataUpdateCallbacks[dataId] = event = this._createData(dataId);
