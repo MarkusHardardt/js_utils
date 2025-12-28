@@ -199,27 +199,8 @@
                         }
                         const expectedArguments = getArguments(methodMatch[2]); // string array mit argument namen
                         const methodSource = method.toString();
-                        const standardFuncionMatch = standardFunctionRegex.exec(methodSource);
-                        if (standardFuncionMatch) {
-                            validateArguments(instanceType, methodName, standardFuncionMatch[1], expectedArguments);
-                            continue;
-                        }
-                        const lamdaFunctionMatch = lamdaFunctionRegex.exec(methodSource);
-                        if (lamdaFunctionMatch) {
-                            validateArguments(instanceType, methodName, lamdaFunctionMatch[1], expectedArguments);
-                            continue;
-                        }
-                        const lamdaFunctionSingleArgumentMatch = lamdaFunctionSingleArgumentRegex.exec(methodSource);
-                        if (lamdaFunctionSingleArgumentMatch) {
-                            validateArguments(instanceType, methodName, lamdaFunctionSingleArgumentMatch[1], expectedArguments);
-                            continue;
-                        }
-                        const classMethodMatch = classMethodRegex.exec(methodSource);
-                        if (classMethodMatch) {
-                            validateArguments(instanceType, methodName, classMethodMatch[2], expectedArguments);
-                            continue;
-                        }
-                        throw new Error(`${instanceType} instance has no method parameter: '${methodSource}'`);
+                        validateFunctionArguments(instanceType, methodName, methodSource, expectedArguments);
+                        continue;
                     }
                     const propertyMatch = attributePropertyRegex.exec(expectedItem);
                     if (propertyMatch) {
