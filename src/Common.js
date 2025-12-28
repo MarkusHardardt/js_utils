@@ -27,7 +27,7 @@
                 'Server': [],
                 'Sorting': [],
                 'SqlHelper': ['Executor'],
-                'TargetSystemAdapter': ['Global', 'OperationalState'],
+                'TargetSystemAdapter': ['Global'],
                 'Utilities': [],
                 'WebServer': ['Server'],
                 'WebSocketConnection': ['Global', 'Core', 'Server'],

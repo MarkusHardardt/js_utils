@@ -259,6 +259,7 @@
             }
 
             set ParentDataPublisher(value) {
+                this.ParentOperationalState = value;
                 if (value) {
                     Global.validateDataPublisherInterface(value, true);
                     this._parentDataPublisher = value;

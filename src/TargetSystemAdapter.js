@@ -3,13 +3,49 @@
 
     const isNodeJS = typeof require === 'function';
     const Global = isNodeJS ? require('./Global.js') : root.Global;
-    const OperationalState = isNodeJS ? require('./OperationalState.js') : root.OperationalState;
 
-    class TargetSystemAdapter extends OperationalState {
+    class TargetSystemAdapter {
         constructor() {
-            super();
             Global.validateDataPublisherInterface(this, true);
+            this._isOperational = false;
             this._targetSystems = {};
+            this._onOperationalStateChanged = null;
+        }
+
+        get IsOperational() {
+            return this._isOperational === true;
+        }
+
+        set IsOperational(value) {
+            const op = value === true;
+            if (op !== this._isOperational) {
+                this._isOperational = op;
+                if (this._onOperationalStateChanged) {
+                    try {
+                        this._onOperationalStateChanged(op);
+                    } catch (error) {
+                        console.error(error);
+                    }
+                }
+            }
+        }
+
+        SubscribeOperationalState(onOperationalStateChanged) {
+            if (typeof onOperationalStateChanged !== 'function') {
+                throw new Error('onOperationalStateChanged() is not a function');
+            } else if (this._onOperationalStateChanged === onOperationalStateChanged) {
+                throw new Error('onOperationalStateChanged() is already subscribed');
+            }
+            this._onOperationalStateChanged = onOperationalStateChanged;
+        }
+
+        UnsubscribeOperationalState(onOperationalStateChanged) {
+            if (typeof onOperationalStateChanged !== 'function') {
+                throw new Error('onOperationalStateChanged() is not a function');
+            } else if (this._onOperationalStateChanged !== onOperationalStateChanged) {
+                throw new Error('onOperationalStateChanged() is not subscribed');
+            }
+            this._onOperationalStateChanged = null;
         }
 
         Register(target, system) {
