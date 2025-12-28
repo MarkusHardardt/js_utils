@@ -18,7 +18,8 @@
     function validateEventPublisherInterface(instance, validateMethodArguments) {
         // TODO: use validateOperationalStateInterface(instance, validateMethodArguments);
         Core.validateInterface('EventPublisher', instance, [
-            'Subscribe(id, onEvent)', // TODO SubscribeEvent
+            // TODO eventId
+            'Subscribe(id, onEvent)', // TODO -> SubscribeEvent
             'Unsubscribe(id, onEvent)', // TODO: UnsubscribeEvent
             'Read(id, onResponse, onError)',
             'Write(id, value)'

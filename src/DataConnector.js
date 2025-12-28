@@ -92,9 +92,7 @@
                 super();
                 Global.validateClientConnectorInterface(this, true);
                 Global.validateEventPublisherInterface(this, true);
-                this._callbacks = {};
-                this._bufferedSubsciptions = [];
-                this._bufferedUnsubsciptions = [];
+                this._onEventCallbacks = {};
                 this._short2Id = null;
                 this._id2Short = null;
                 this._subscribtionDelay = false;
@@ -130,10 +128,10 @@
                     throw new Error(`Invalid subscription id: ${id}`);
                 } else if (typeof onEvent !== 'function') {
                     throw new Error(`Subscriber for subscription id ${id} is not a function`);
-                } else if (this._callbacks[id] !== undefined) {
+                } else if (this._onEventCallbacks[id] !== undefined) {
                     throw new Error(`Key ${id} is already subscribed`);
                 }
-                this._callbacks[id] = onEvent;
+                this._onEventCallbacks[id] = onEvent;
                 this._subscriptionsChanged();
             }
 
@@ -143,12 +141,12 @@
                     throw new Error(`Invalid unsubscription id: ${id}`);
                 } else if (typeof onEvent !== 'function') {
                     throw new Error(`Subscriber for unsubscription id ${id} is not a function`);
-                } else if (this._callbacks[id] === undefined) {
+                } else if (this._onEventCallbacks[id] === undefined) {
                     throw new Error(`Key ${id} is already subscribed`);
-                } else if (this._callbacks[id] !== onEvent) {
+                } else if (this._onEventCallbacks[id] !== onEvent) {
                     throw new Error(`Unexpected onEvent for id ${id} to unsubscribe`);
                 }
-                delete this._callbacks[id];
+                delete this._onEventCallbacks[id];
                 this._subscriptionsChanged();
             }
 
@@ -188,7 +186,7 @@
                                 if (data.values.hasOwnProperty(short)) {
                                     const id = this._short2Id[short];
                                     const value = data.values[short];
-                                    const onEvent = this._callbacks[id];
+                                    const onEvent = this._onEventCallbacks[id];
                                     if (onEvent) {
                                         try {
                                             onEvent(value);
@@ -223,9 +221,10 @@
                 if (!this._id2Short) {
                     throw new Error('Not available: this._id2Short');
                 } else if (this._online) {
+                    // Build a string with all short ids of the currently stored onEvent callbacks and send to server
                     let subs = '';
-                    for (const id in this._callbacks) {
-                        if (this._callbacks.hasOwnProperty(id)) {
+                    for (const id in this._onEventCallbacks) {
+                        if (this._onEventCallbacks.hasOwnProperty(id)) {
                             const short = this._id2Short[id];
                             if (!short) {
                                 throw new Error(`Unknown id: ${id}`);
@@ -247,10 +246,13 @@
                 super();
                 Global.validateServerConnectorInterface(this, true);
                 this._parent = null;
-                this._callbacks = {};
+                this._onEventCallbacks = {};
                 this._short2Id = null;
                 this._id2Short = null;
                 this._online = false;
+                this._values = null;
+                this._sendDelay = false;
+                this._sendDelayTimer = null;
             }
 
             set Parent(value) {
@@ -260,6 +262,10 @@
                 } else {
                     this._parent = null;
                 }
+            }
+
+            set SendDelay(value) {
+                this._sendDelay = typeof value === 'number' && value > 0 ? value : false;
             }
 
             SetIds(ids) {
@@ -280,20 +286,24 @@
 
             OnOpen() {
                 this._online = true;
+                this._sendValues();
             }
 
             OnReopen() {
                 this._online = true;
+                this._sendValues();
             }
 
             OnClose() {
                 this._online = false;
+                clearTimeout(this._sendDelayTimer);
+                this._sendDelayTimer = null;
                 this._updateSubscriptions('');
             }
 
             OnDispose() {
-                this._online = false;
-                this._updateSubscriptions('');
+                this.OnClose();
+                // TODO: Clean up
             }
 
             handleReceived(data, onResponse, onError) {
@@ -345,28 +355,30 @@
                 try {
                     Global.validateEventPublisherInterface(this._parent);
                     if (this._short2Id && this._id2Short) {
-                        for (const id in this._callbacks) {
-                            if (this._callbacks.hasOwnProperty(id)) {
+                        for (const id in this._onEventCallbacks) {
+                            if (this._onEventCallbacks.hasOwnProperty(id)) {
                                 const short = this._id2Short[id];
-                                const onEvent = subscriptionShorts.indexOf(short) < 0 ? this._callbacks[id] : false;
+                                const onEvent = subscriptionShorts.indexOf(short) < 0 ? this._onEventCallbacks[id] : false;
                                 if (onEvent) {
-                                    delete this._callbacks[id];
+                                    delete this._onEventCallbacks[id];
                                     this._parent.Unsubscribe(id, onEvent);
                                 }
                             }
                         }
                         Regex.each(/#[a-z0-9]+\b/g, subscriptionShorts, (start, end, match) => {
+                            // we are in a closure -> short/id will be available in onEvent()
                             const short = match[0];
                             const id = this._short2Id[short];
                             if (id) {
-                                if (!this._callbacks[id]) {
+                                if (!this._onEventCallbacks[id]) {
                                     const onEvent = value => {
-                                        // console.log(`Updated id: '${id}', value: ${value}`);
-                                        const values = {};
-                                        values[short] = value;
-                                        this.connection.Send(this.receiver, { type: TransmissionType.SubscribedDataUpdate, values });
+                                        if (!this._values) {
+                                            this._values = {};
+                                        }
+                                        this._values[short] = value;
+                                        this._valuesChanged();
                                     };
-                                    this._callbacks[id] = onEvent;
+                                    this._onEventCallbacks[id] = onEvent;
                                     this._parent.Subscribe(id, onEvent);
                                 }
                             }
@@ -380,6 +392,25 @@
                     }
                 } catch (error) {
                     this.onError(`Failed updating subscriptions: ${error}'`);
+                }
+            }
+
+            _valuesChanged() {
+                if (this._sendDelay && !this._sendDelayTimer) {
+                    this._sendDelayTimer = setTimeout(() => {
+                        this._sendValues();
+                        this._sendDelayTimer = null;
+                    }, this._sendDelay);
+                } else {
+                    this._sendValues();
+                }
+            }
+
+            _sendValues() {
+                if (this._online && this._values) {
+                    Global.validateConnectionInterface(this.connection);
+                    this.connection.Send(this.receiver, { type: TransmissionType.SubscribedDataUpdate, values: this._values });
+                    this._values = null;
                 }
             }
         }
