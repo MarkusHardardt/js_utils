@@ -178,26 +178,26 @@
             }
             throw new Error(`${instanceType} instance function '${functionName}' has no arguments: '${functionSource}'`);
         }
-        function validateInterface(instanceType, instance, expectedItems, validateMethodArguments) {
-            if (instance === undefined) {
+        function validateInterface(instanceType, objectInstance, expectedItems, validateMethodArguments) {
+            if (objectInstance === undefined) {
                 throw new Error(`${instanceType} is undefined!`);
-            } if (instance === null) {
+            } if (objectInstance === null) {
                 throw new Error(`${instanceType} is null`);
-            } else if (typeof instance !== 'object') {
+            } else if (typeof objectInstance !== 'object') {
                 throw new Error(`${instanceType} is not an object`);
             } else if (Array.isArray(expectedItems)) {
                 for (const expectedItem of expectedItems) {
                     const methodMatch = attributeMethodRegex.exec(expectedItem);
                     if (methodMatch) {
                         const methodName = methodMatch[1];
-                        const method = instance[methodName];
+                        const method = objectInstance[methodName];
                         if (typeof method !== 'function') {
                             throw new Error(`${instanceType} has no method '${methodName}'`);
                         }
                         if (validateMethodArguments !== true) {
                             continue;
                         }
-                        const expectedArguments = getArguments(methodMatch[2]); // string array mit argument namen
+                        const expectedArguments = getArguments(methodMatch[2]);
                         const methodSource = method.toString();
                         validateFunctionArguments(instanceType, methodName, methodSource, expectedArguments);
                         continue;
@@ -206,7 +206,7 @@
                     if (propertyMatch) {
                         const prop = propertyMatch[1];
                         const type = propertyMatch[2];
-                        const property = instance[prop];
+                        const property = objectInstance[prop];
                         if (property === undefined) {
                             throw new Error(`${instanceType} has no property '${prop}' of type '${type}'`);
                         } else if (typeof property !== type) {
@@ -219,6 +219,22 @@
             }
         }
         Core.validateInterface = validateInterface;
+
+        function validateFunction(instanceType, functionName, functionInstance, expectedItems) {
+            if (functionInstance === undefined) {
+                throw new Error(`${instanceType} is undefined!`);
+            } if (functionInstance === null) {
+                throw new Error(`${instanceType} is null`);
+            } else if (typeof functionInstance !== 'function') {
+                throw new Error(`${instanceType} is not a function`);
+            } else if (typeof expectedItems !== 'string') {
+                throw new Error('Expected argument list is no string');
+            }
+            const expectedArguments = getArguments(expectedItems);
+            const methodSource = functionInstance.toString();
+            validateFunctionArguments(instanceType, functionName, methodSource, expectedArguments);
+        }
+        Core.validateFunction = validateFunction;
 
         // Perform some tests
         const tasks = [];
