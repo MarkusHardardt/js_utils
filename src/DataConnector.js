@@ -250,13 +250,13 @@
             }
 
             _subscriptionsChanged() {
-                if (this._subscribtionDelay && !this._subscribtionDelayTimer) {
+                if (!this._subscribtionDelay) {
+                    this._sendSubscriptionRequest();
+                } else if (!this._subscribtionDelayTimer) {
                     this._subscribtionDelayTimer = setTimeout(() => {
                         this._sendSubscriptionRequest();
                         this._subscribtionDelayTimer = null;
                     }, this._subscribtionDelay);
-                } else {
-                    this._sendSubscriptionRequest();
                 }
             }
 
@@ -337,8 +337,7 @@
             }
 
             OnReopen() {
-                this._online = true;
-                this._sendValues();
+                this.OnOpen();
             }
 
             OnClose() {
@@ -443,13 +442,13 @@
             }
 
             _valuesChanged() {
-                if (this._sendDelay && !this._sendDelayTimer) {
+                if (!this._sendDelay) {
+                    this._sendValues();
+                } else if (!this._sendDelayTimer) {
                     this._sendDelayTimer = setTimeout(() => {
                         this._sendValues();
                         this._sendDelayTimer = null;
                     }, this._sendDelay);
-                } else {
-                    this._sendValues();
                 }
             }
 
