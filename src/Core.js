@@ -5,6 +5,7 @@
     const isNodeJS = typeof require === 'function';
     const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
+    const fs = isNodeJS ? require('fs') : undefined;
 
     /*  Returns a function witch on each call returns a number (radix 36, starting at zero). */
     function createIdGenerator(prefix = '') {
@@ -100,6 +101,47 @@
         return txt;
     }
     Core.generateLibraryFileAccess = generateLibraryFileAccess;
+
+    /*  analyse js_utils library */
+    function analyseLibrary(directory, output) {
+        // TODO: Must be modified if file structure changed. This is a very simple solution so far
+        const moduleNameRegex = /^([a-zA-Z][_a-zA-Z0-9]*)\.js$/;
+        const moduleRegex = /\bconst\s+([a-zA-Z][_a-zA-Z0-9]*)\s*=\s*isNodeJS\s*\?\s*require\s*\(\s*'\.\/\1\.js'\s*\)\s*:\s*root\s*\.\s*\1\s*;/g;
+        fs.readdir(directory, (error, files) => {
+            if (error) {
+                console.error(error);
+                return;
+            }
+            const dependencies = {};
+            for (let file of files) {
+                const match = moduleNameRegex.exec(file);
+                if (!match) {
+                    continue;
+                }
+                const moduleName = match[1];
+                dependencies[moduleName] = [];
+                const text = fs.readFileSync(`${directory}/${file}`, 'utf8');
+                Regex.each(moduleRegex, text, (start, end, match) => dependencies[moduleName].push(match[1]), true);
+            }
+            let txt = '/* js_utils dependencies */\n{\n';
+            for (const m in dependencies) {
+                if (dependencies.hasOwnProperty(m)) {
+                    txt += `  '${m}': [${dependencies[m].map(e => `'${e}'`).join(', ')}],\n`;
+                }
+            }
+            txt += '}\n\n';
+            txt += '/* topological sorting */\n';
+            const components = getTopologicalSorting(dependencies);
+            for (let component of components) {
+                txt += `- ${component}\n`;
+            }
+            txt += '\n\n/* source code samples */\n';
+            txt += Core.generateLibraryFileAccess(dependencies);
+            fs.writeFileSync(output, txt, 'utf8');
+            console.log('done');
+        });
+    }
+    Core.analyseLibrary = analyseLibrary;
 
     /*  Callack for all elements in the sources-array not found in the targets-array */
     function handleNotFound(sources, targets, equal, onNotFound, backward) {
