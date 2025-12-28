@@ -42,6 +42,11 @@
                 throw new Error('onOperationalStateChanged() is already subscribed');
             }
             this._onOperationalStateChanged = onOperationalStateChanged;
+            try { // TODO: is it correct to call this on subscription?
+                onOperationalStateChanged(this._isOperational);
+            } catch (error) {
+                console.error(error);
+            }
         }
 
         UnsubscribeOperationalState(onOperationalStateChanged) {

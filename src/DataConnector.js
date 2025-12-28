@@ -107,18 +107,21 @@
             }
 
             OnOpen() {
-                console.log('ClientDataConnector.OnOpen()');
                 Global.validateConnectionInterface(this.connection);
                 this.connection.Send(this.receiver, { type: TransmissionType.ShortToIdRequest }, short2Id => {
                     this._short2Id = short2Id;
                     this._id2Short = invert(short2Id);
                     this._online = true;
                     this._sendSubscriptionRequest();
-                }, error => this.onError(error));
+                    this.IsOperational = true;
+                }, error => {
+                    this.IsOperational = false;
+                    this.onError(error);
+                });
             }
 
             OnClose() {
-                console.log('ClientDataConnector.OnClose()');
+                this.IsOperational = false;
                 this._online = false;
                 clearTimeout(this._subscribtionDelayTimer);
                 this._subscribtionDelayTimer = null;

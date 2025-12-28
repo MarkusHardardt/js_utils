@@ -15,7 +15,11 @@
             this._unsubscribeDelay = false;
             this._unsubscribeOpStateDelayTimer = null;
             this._onOperationalStateChangedCallbacks = [];
-            this._onOperationalStateChanged = isOperational => this._setOperationalState(isOperational);
+            this._onOperationalStateChanged = isOperational => {
+                if (this._isOperational !== isOperational) {
+                    this._fireOperationalStateChanged(isOperational);
+                }
+            };
             this._onDataUpdateCallbacks = {};
         }
 
@@ -76,6 +80,7 @@
                     this._parent.SubscribeOperationalState(this._onOperationalStateChanged);
                 }
             }
+            this._fireOperationalStateChanged(this._isOperational);
         }
 
         UnsubscribeOperationalState(onOperationalStateChanged) {
@@ -102,20 +107,17 @@
             throw new Error('onOperationalStateChanged() is not subscribed');
         }
 
-        _setOperationalState(isOperational) {
-            if (this._isOperational !== isOperational) {
-                this._isOperational = isOperational;
-                for (const callback of this._onOperationalStateChangedCallbacks) {
-                    try {
-                        callback(value);
-                    } catch (error) {
-                        this._onError(`Failed calling onOperationalStateChanged(value): ${error}`);
-                    }
+        _fireOperationalStateChanged(isOperational) {
+            this._isOperational = isOperational === true;
+            for (const callback of this._onOperationalStateChangedCallbacks) {
+                try {
+                    callback(isOperational);
+                } catch (error) {
+                    this._onError(`Failed calling onOperationalStateChanged(value): ${error}`);
                 }
             }
-
         }
-        
+
         SubscribeData(dataId, onDataUpdate) {
             Global.validateDataPublisherInterface(this._parent);
             if (typeof dataId !== 'string') {
