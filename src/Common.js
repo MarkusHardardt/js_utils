@@ -22,6 +22,7 @@
                 'jsonfx': [],
                 'math': [],
                 'ObjectPositionSystem': [],
+                'OperationalState': ['Global'],
                 'Regex': [],
                 'Server': [],
                 'Sorting': [],

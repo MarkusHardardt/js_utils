@@ -68,8 +68,8 @@
             }
         }
         txt += `\n`;
-        // Code for js_utils index.js
-        txt += `    // ### js_utils index.js ###\n\n`;
+        // Code for js_utils.js
+        txt += `    // ### js_utils.js ###\n\n`;
         txt += `    // access to other components in node js and browser:\n`;
         txt += `    const isNodeJS = typeof require === 'function';\n`;
         for (let comp of components) {
@@ -83,9 +83,8 @@
             }
             txt += `        ${components[i]}`;
         }
-        txt += `    \n};\n\n`;
-        txt += `    // access from other projects to js_utils components on node js:\n`;
-        txt += `    const isNodeJS = typeof require === 'function';\n`;
+        txt += `\n    };\n\n`;
+        txt += `    // access js_utils components on node js:\n`;
         for (let comp of components) {
             txt += `    const ${comp} = require('@markus.hardardt/js_utils/src/${comp}.js');\n`;
         }
