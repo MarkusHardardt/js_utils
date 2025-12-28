@@ -34,8 +34,6 @@
 
     const DEFAULT_DATA_CONNECTION_RECEIVER = 'dcr';
 
-    const defaultOnError = error => console.error(error);
-
     const TransmissionType = Object.freeze({
         ConfigRequest: 1,
         SubscriptionRequest: 3,
@@ -48,7 +46,7 @@
         constructor() {
             super();
             this.connection = null;
-            this.onError = defaultOnError;
+            this.onError = Core.defaultOnError;
             this.receiver = DEFAULT_DATA_CONNECTION_RECEIVER;
             this._handler = (data, onResponse, onError) => this.handleReceived(data, onResponse, onError);
         }
@@ -94,12 +92,12 @@
                 super();
                 Global.validateClientConnectorInterface(this, true);
                 Global.validateDataPublisherInterface(this, true);
+                this._isOpen = false;
                 this._datas = null;
                 this._short2Id = null;
                 this._id2Short = null;
                 this._subscribeDelay = false;
                 this._subscribeDelayTimer = null;
-                this._online = false;
             }
 
             OnOpen() {
@@ -130,14 +128,14 @@
                             }
                         }
                     }
-                    this._online = true;
+                    this._isOpen = true;
                     this._sendSubscriptionRequest();
                     this.IsOperational = true;
                 }, error => {
+                    this._isOpen = false;
                     this._subscribeDelay = false;
                     this._short2Id = null;
                     this._id2Short = null;
-                    this.IsOperational = false;
                     this.onError(error);
                     if (this._datas) {
                         for (const dataId in this._datas) {
@@ -148,17 +146,18 @@
                         }
                         this._datas = null;
                     }
+                    this.IsOperational = false;
                 });
             }
 
             OnClose() {
-                this.IsOperational = false;
-                this._online = false;
-                this._subscribeDelay = false;
+                this._isOpen = false;
                 this._short2Id = null;
                 this._id2Short = null;
+                this._subscribeDelay = false;
                 clearTimeout(this._subscribeDelayTimer);
                 this._subscribeDelayTimer = null;
+                this.IsOperational = false;
             }
 
             SubscribeData(dataId, onDataUpdate) {
@@ -195,9 +194,7 @@
 
             Read(dataId, onResponse, onError) {
                 Global.validateConnectionInterface(this.connection);
-                if (!this._id2Short) {
-                    throw new Error('Not available: this._id2Short');
-                } else if (!this._online) {
+                if (!this._isOpen) {
                     throw new Error('Cannot Read() because not connected');
                 }
                 const short = this._id2Short[dataId];
@@ -209,9 +206,7 @@
 
             Write(dataId, value) {
                 Global.validateConnectionInterface(this.connection);
-                if (!this._id2Short) {
-                    throw new Error('Not available: this._id2Short');
-                } else if (!this._online) {
+                if (!this._isOpen) {
                     throw new Error('Cannot Write() because not connected');
                 }
                 const short = this._id2Short[dataId];
@@ -222,7 +217,9 @@
             }
 
             handleReceived(data, onResponse, onError) {
-                try { // TODO: Is this try/catch required on this place?
+                if (!this._isOpen) {
+                    this.onError('Received data but connection is closed');
+                } else {
                     switch (data.type) {
                         case TransmissionType.SubscribedDataUpdate:
                             for (const short in data.values) {
@@ -245,10 +242,8 @@
                             }
                             break;
                         default:
-                            throw new Error(`Invalid transmission type: ${data.type}`);
+                            this.onError(`Invalid transmission type: ${data.type}`);
                     }
-                } catch (error) {
-                    this.onError(`Failed handleReceived(): ${error}`);
                 }
             }
 
@@ -265,9 +260,7 @@
 
             _sendSubscriptionRequest() {
                 Global.validateConnectionInterface(this.connection);
-                if (!this._id2Short) {
-                    throw new Error('Not available: this._id2Short');
-                } else if (this._online) {
+                if (this._isOpen) {
                     // Build a string with all short ids of the currently stored onDataUpdate callbacks and send to server
                     let subs = '';
                     for (const dataId in this._datas) {
@@ -290,15 +283,19 @@
 
     // Server
     if (isNodeJS) {
+
+        const SHORT_ID_PREFIX = '#';
+        const subscribeRequestShortIdRegex = /#[a-z0-9]+\b/g;
+
         class ServerDataConnector extends Connector {
             constructor() {
                 super();
                 Global.validateServerConnectorInterface(this, true);
+                this._isOpen = false;
                 this._parent = null;
                 this._onEventCallbacks = {};
                 this._short2Id = null;
                 this._id2Short = null;
-                this._online = false;
                 this._values = null;
                 this._subscribeDelay = false;
                 this._sendDelay = false;
@@ -332,7 +329,7 @@
                     addId(sorted, id);
                 }
                 this._short2Id = {};
-                const nextId = Core.createIdGenerator('#');
+                const nextId = Core.createIdGenerator(SHORT_ID_PREFIX);
                 for (const id of sorted) {
                     this._short2Id[nextId()] = id;
                 }
@@ -340,7 +337,7 @@
             }
 
             OnOpen() {
-                this._online = true;
+                this._isOpen = true;
                 this._sendValues();
             }
 
@@ -349,7 +346,7 @@
             }
 
             OnClose() {
-                this._online = false;
+                this._isOpen = false;
                 clearTimeout(this._sendDelayTimer);
                 this._sendDelayTimer = null;
                 this._updateSubscriptions('');
@@ -361,91 +358,74 @@
             }
 
             handleReceived(data, onResponse, onError) {
-                try {
+                if (!this._isOpen) {
+                    this.onError('Received data but connection is closed');
+                } else {
                     Global.validateDataPublisherInterface(this._parent);
                     Global.validateConnectionInterface(this.connection);
-                    let id;
+                    let dataId;
                     switch (data.type) {
                         case TransmissionType.ConfigRequest:
-                            if (this._short2Id) {
-                                onResponse({ subscribeDelay: this._subscribeDelay, short2Id: this._short2Id });
-                            }
-                            else {
-                                onError('No ids available');
-                            }
+                            onResponse({ subscribeDelay: this._subscribeDelay, short2Id: this._short2Id });
                             break;
                         case TransmissionType.SubscriptionRequest:
                             this._updateSubscriptions(data.subs);
                             break;
                         case TransmissionType.ReadRequest:
-                            if (!this._short2Id) {
-                                throw new Error('Short -> Id not available for read request');
+                            dataId = this._short2Id[data.short];
+                            if (!dataId) {
+                                this.onError('Unknown id for read request');
+                                return;
                             }
-                            id = this._short2Id[data.short];
-                            if (!id) {
-                                throw new Error('Unknown id for read request');
-                            }
-                            this._parent.Read(id, onResponse, onError);
+                            this._parent.Read(dataId, onResponse, onError);
                             break;
                         case TransmissionType.WriteRequest:
-                            if (!this._short2Id) {
-                                throw new Error('Short -> Id not available for write request');
+                            dataId = this._short2Id[data.short];
+                            if (!dataId) {
+                                this.onError('Unknown id for write request');
+                                return;
                             }
-                            id = this._short2Id[data.short];
-                            if (!id) {
-                                throw new Error('Unknown id for write request');
-                            }
-                            this._parent.Write(id, data.value);
+                            this._parent.Write(dataId, data.value);
                             break;
                         default:
-                            throw new Error(`Invalid transmission type: ${data.type}`);
+                            this.onError(`Invalid transmission type: ${data.type}`);
                     }
-                } catch (error) {
-                    this.onError(`Failed handling received data: ${error}'`);
                 }
             }
 
             _updateSubscriptions(subscriptionShorts) {
-                try {
+                if (this._isOpen) {
                     Global.validateDataPublisherInterface(this._parent);
-                    if (this._short2Id && this._id2Short) {
-                        for (const dataId in this._onEventCallbacks) {
-                            if (this._onEventCallbacks.hasOwnProperty(dataId)) {
-                                const short = this._id2Short[dataId];
-                                const onDataUpdate = subscriptionShorts.indexOf(short) < 0 ? this._onEventCallbacks[dataId] : false;
-                                if (onDataUpdate) {
-                                    delete this._onEventCallbacks[dataId];
-                                    this._parent.UnsubscribeData(dataId, onDataUpdate);
-                                }
+                    for (const dataId in this._onEventCallbacks) {
+                        if (this._onEventCallbacks.hasOwnProperty(dataId)) {
+                            const short = this._id2Short[dataId];
+                            const onDataUpdate = subscriptionShorts.indexOf(short) < 0 ? this._onEventCallbacks[dataId] : false;
+                            if (onDataUpdate) {
+                                delete this._onEventCallbacks[dataId];
+                                this._parent.UnsubscribeData(dataId, onDataUpdate);
                             }
                         }
-                        Regex.each(/#[a-z0-9]+\b/g, subscriptionShorts, (start, end, match) => {
-                            // we are in a closure -> short/id will be available in onDataUpdate()
-                            const short = match[0];
-                            const dataId = this._short2Id[short];
-                            if (dataId) {
-                                if (!this._onEventCallbacks[dataId]) {
-                                    const onDataUpdate = value => {
-                                        if (!this._values) {
-                                            this._values = {};
-                                        }
-                                        this._values[short] = value;
-                                        this._valuesChanged();
-                                    };
-                                    this._onEventCallbacks[dataId] = onDataUpdate;
-                                    this._parent.SubscribeData(dataId, onDataUpdate);
-                                }
-                            }
-                            else {
-                                this.onError(`Cannot subscribe: ${short}`);
-                            }
-                        }, true);
                     }
-                    else {
-                        this.onError('No ids available');
-                    }
-                } catch (error) {
-                    this.onError(`Failed updating subscriptions: ${error}'`);
+                    Regex.each(subscribeRequestShortIdRegex, subscriptionShorts, (start, end, match) => {
+                        // we are in a closure -> short/id will be available in onDataUpdate()
+                        const short = match[0];
+                        const dataId = this._short2Id[short];
+                        if (dataId) {
+                            if (!this._onEventCallbacks[dataId]) {
+                                const onDataUpdate = value => {
+                                    if (!this._values) {
+                                        this._values = {};
+                                    }
+                                    this._values[short] = value;
+                                    this._valuesChanged();
+                                };
+                                this._onEventCallbacks[dataId] = onDataUpdate;
+                                this._parent.SubscribeData(dataId, onDataUpdate);
+                            }
+                        } else {
+                            this.onError(`Cannot subscribe: ${short}`);
+                        }
+                    }, true);
                 }
             }
 
@@ -461,7 +441,7 @@
             }
 
             _sendValues() {
-                if (this._online && this._values) {
+                if (this._isOpen && this._values) {
                     Global.validateConnectionInterface(this.connection);
                     this.connection.Send(this.receiver, { type: TransmissionType.SubscribedDataUpdate, values: this._values });
                     this._values = null;
