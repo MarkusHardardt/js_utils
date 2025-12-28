@@ -15,12 +15,8 @@
             this._unsubscribeDelay = false;
             this._unsubscribeOpStateDelayTimer = null;
             this._onOperationalStateChangedCallbacks = [];
-            this._onOperationalStateChanged = isOperational => {
-                if (this._isOperational !== isOperational) {
-                    this._fireOperationalStateChanged(isOperational);
-                }
-            };
-            this._onDataUpdateCallbacks = {};
+            this._onOperationalStateChanged = isOperational => this._handleOperationalStateChanged(isOperational === true);
+            this._datas = {};
         }
 
         set Parent(value) {
@@ -72,15 +68,21 @@
             }
             this._onOperationalStateChangedCallbacks.push(onOperationalStateChanged);
             if (this._onOperationalStateChangedCallbacks.length === 1) {
+                // If first subscription we subscribe on our parent which should result in firering the event.
                 if (this._unsubscribeOpStateDelayTimer) {
                     clearTimeout(this._unsubscribeOpStateDelayTimer);
                     this._unsubscribeOpStateDelayTimer = null;
-                }
-                else {
+                } else {
                     this._parent.SubscribeOperationalState(this._onOperationalStateChanged);
                 }
+            } else {
+                // If another subscription we fire the event manually.
+                try {
+                    onOperationalStateChanged(this._isOperational);
+                } catch (error) {
+                    this._onError(`Failed calling onOperationalStateChanged(value): ${error}`);
+                }
             }
-            this._fireOperationalStateChanged(this._isOperational);
         }
 
         UnsubscribeOperationalState(onOperationalStateChanged) {
@@ -107,13 +109,15 @@
             throw new Error('onOperationalStateChanged() is not subscribed');
         }
 
-        _fireOperationalStateChanged(isOperational) {
-            this._isOperational = isOperational === true;
-            for (const callback of this._onOperationalStateChangedCallbacks) {
-                try {
-                    callback(isOperational);
-                } catch (error) {
-                    this._onError(`Failed calling onOperationalStateChanged(value): ${error}`);
+        _handleOperationalStateChanged(isOperational) {
+            if (this._isOperational !== isOperational) {
+                this._isOperational = isOperational;
+                for (const callback of this._onOperationalStateChangedCallbacks) {
+                    try {
+                        callback(isOperational);
+                    } catch (error) {
+                        this._onError(`Failed calling onOperationalStateChanged(value): ${error}`);
+                    }
                 }
             }
         }
@@ -121,28 +125,35 @@
         SubscribeData(dataId, onDataUpdate) {
             Global.validateDataPublisherInterface(this._parent);
             if (typeof dataId !== 'string') {
-                throw new Error(`Invalid subscription id: ${dataId}`);
+                throw new Error(`Invalid subscription dataId: ${dataId}`);
             } else if (typeof onDataUpdate !== 'function') {
-                throw new Error(`onDataUpdate() for id '${dataId}' is not a function`);
+                throw new Error(`onDataUpdate() for dataId '${dataId}' is not a function`);
             }
-            let event = this._onDataUpdateCallbacks[dataId];
-            if (event) {
-                for (const callback of event.callbacks) {
+            let data = this._datas[dataId];
+            if (data) {
+                for (const callback of data.callbacks) {
                     if (callback === onDataUpdate) {
-                        throw new Error(`onDataUpdate() for id '${dataId}' is already subscribed`);
+                        throw new Error(`onDataUpdate() for dataId '${dataId}' is already subscribed`);
                     }
                 }
             } else {
-                this._onDataUpdateCallbacks[dataId] = event = this._createData(dataId);
+                this._datas[dataId] = data = this._createData(dataId);
             }
-            event.callbacks.push(onDataUpdate);
-            if (event.callbacks.length === 1) {
-                if (event.unsubscribeDelayTimer) {
-                    clearTimeout(event.unsubscribeDelayTimer);
-                    event.unsubscribeDelayTimer = null;
+            data.callbacks.push(onDataUpdate);
+            if (data.callbacks.length === 1) {
+                // If first subscription we subscribe on our parent which should result in firering the event.
+                if (data.unsubscribeDelayTimer) {
+                    clearTimeout(data.unsubscribeDelayTimer);
+                    data.unsubscribeDelayTimer = null;
+                } else {
+                    this._parent.SubscribeData(data.dataId, data.onDataUpdate);
                 }
-                else {
-                    this._parent.SubscribeData(event.id, event.onDataUpdate);
+            } else if (data.value !== null) {
+                // If another subscription we fire the event manually.
+                try {
+                    onDataUpdate(data.value);
+                } catch (error) {
+                    this._onError(`Failed calling onDataUpdate(): ${error}`);
                 }
             }
         }
@@ -150,31 +161,31 @@
         UnsubscribeData(dataId, onDataUpdate) {
             Global.validateDataPublisherInterface(this._parent);
             if (typeof dataId !== 'string') {
-                throw new Error(`Invalid unsubscription id: ${dataId}`);
+                throw new Error(`Invalid unsubscription dataId: ${dataId}`);
             } else if (typeof onDataUpdate !== 'function') {
-                throw new Error(`onDataUpdate() for id '${dataId}' is not a function`);
+                throw new Error(`onDataUpdate() for dataId '${dataId}' is not a function`);
             }
-            let event = this._onDataUpdateCallbacks[dataId];
-            if (!event) {
-                throw new Error(`Cannot unsubscribe for unknown id: ${dataId}`);
+            let data = this._datas[dataId];
+            if (!data) {
+                throw new Error(`Cannot unsubscribe for unknown dataId: ${dataId}`);
             }
-            for (let i = 0; i < event.callbacks.length; i++) {
-                if (event.callbacks[i] === onDataUpdate) {
-                    event.callbacks.splice(i, 1);
-                    if (event.callbacks.length === 0) {
+            for (let i = 0; i < data.callbacks.length; i++) {
+                if (data.callbacks[i] === onDataUpdate) {
+                    data.callbacks.splice(i, 1);
+                    if (data.callbacks.length === 0) {
                         if (this._unsubscribeDelay) {
-                            event.unsubscribeDelayTimer = setTimeout(() => {
-                                this._parent.UnsubscribeData(event.id, event.onDataUpdate);
-                                event.unsubscribeDelayTimer = null;
+                            data.unsubscribeDelayTimer = setTimeout(() => {
+                                this._parent.UnsubscribeData(data.dataId, data.onDataUpdate);
+                                data.unsubscribeDelayTimer = null;
                             }, this._unsubscribeDelay);
                         } else {
-                            this._parent.UnsubscribeData(event.id, event.onDataUpdate);
+                            this._parent.UnsubscribeData(data.dataId, data.onDataUpdate);
                         }
                     }
                     return;
                 }
             }
-            throw new Error(`onDataUpdate() for id: ${dataId} is not subscribed`);
+            throw new Error(`onDataUpdate() for dataId: ${dataId} is not subscribed`);
         }
 
         Read(dataId, onResponse, onError) {
@@ -183,29 +194,29 @@
                 try {
                     onResponse(value);
                 } catch (error) {
-                    this._onError(`Failed calling onResponse() for id: ${dataId}: ${error}`);
+                    this._onError(`Failed calling onResponse() for dataId: ${dataId}: ${error}`);
                 }
-                let event = this._onDataUpdateCallbacks[dataId];
-                if (!event) {
-                    this._onDataUpdateCallbacks[dataId] = event = this._createData(dataId);
+                let data = this._datas[dataId];
+                if (!data) {
+                    this._datas[dataId] = data = this._createData(dataId);
                 }
-                event.SetValue(value);
+                data.SetValue(value);
             }, onError);
         }
 
         Write(dataId, value) {
             Global.validateDataPublisherInterface(this._parent);
             this._parent.Write(dataId, value);
-            let event = this._onDataUpdateCallbacks[dataId];
-            if (!event) {
-                this._onDataUpdateCallbacks[dataId] = event = this._createData(dataId);
+            let data = this._datas[dataId];
+            if (!data) {
+                this._datas[dataId] = data = this._createData(dataId);
             }
-            event.SetValue(value);
+            data.SetValue(value);
         }
 
         _createData(dataId) {
             const data = {
-                id: dataId,
+                dataId,
                 value: null,
                 SetValue: value => {
                     if (!this._equal(value, data.value)) {
@@ -214,7 +225,7 @@
                             try {
                                 callback(value);
                             } catch (error) {
-                                this._onError(`Failed calling onDataUpdate(value) for id: ${data.id}: ${error}`);
+                                this._onError(`Failed calling onDataUpdate(value) for dataId: ${data.dataId}: ${error}`);
                             }
                         }
                     }
