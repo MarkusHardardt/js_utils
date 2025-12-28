@@ -125,9 +125,9 @@
     }
     Core.handleNotFound = handleNotFound;
 
-    /*  Interface validation */
+    /*  Function and object interface validation */
     (function () {
-        // This is a pattern matching valid javascript names: [_$a-zA-Z][_$a-zA-Z0-9]*
+        // This pattern matches valid javascript identifiers: [_$a-zA-Z][_$a-zA-Z0-9]*
         const attributeMethodRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*$/;
         const attributePropertyRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*:\s*([_a-zA-Z0-9]+)\s*$/;
         const standardFunctionRegex = /^\s*function\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)/m;
@@ -135,49 +135,61 @@
         const lamdaFunctionSingleArgumentRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*=>/m;
         const classMethodRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)/m;
         const argumentRegex = /(?:\s*,\s*)?([_$a-zA-Z][_$a-zA-Z0-9]*)\s*/mg;
-        function getArguments(argumentsSource) {
+        function getArgumentsArray(argumentsSource) {
             const a = [];
             if (argumentsSource) {
-                Regex.each(argumentRegex, argumentsSource, (start, end, match) => {
-                    a.push(match[1]);
-                }, true);
+                Regex.each(argumentRegex, argumentsSource, (start, end, match) => a.push(match[1]), true);
             }
             return a;
         }
-        function validateArguments(functionName, actualArgumentsSource, expectedArguments) {
-            const actualArguments = getArguments(actualArgumentsSource);
-            if (expectedArguments.length !== actualArguments.length) {
-                throw new Error(`'${functionName}' expects ${expectedArguments.length} arguments but instance has ${actualArguments.length}: expected: [${expectedArguments.join(',')}], found: [${actualArguments.join(',')}]`);
+        function validateArguments(argumentsSource, expectedArgumentsArray) {
+            const actualArgumentsArray = getArgumentsArray(argumentsSource);
+            if (expectedArgumentsArray.length !== actualArgumentsArray.length) {
+                throw new Error(`invalid number of arguments (expected: ${expectedArgumentsArray.length}, actual: ${actualArgumentsArray.length})`);
             }
-            for (let i = 0; i < expectedArguments.length; i++) {
-                if (expectedArguments[i] !== actualArguments[i]) {
-                    throw new Error(`'${functionName}' expects as argument ${(i + 1)} '${expectedArguments[i]}' but instance has '${actualArguments[i]}': expected: [${expectedArguments.join(',')}], found: [${actualArguments.join(',')}]`);
+            for (let i = 0; i < expectedArgumentsArray.length; i++) {
+                if (expectedArgumentsArray[i] !== actualArgumentsArray[i]) {
+                    throw new Error(`invalid argument (${(i + 1)}) name (expected: '${expectedArgumentsArray[i]}', actual: '${actualArgumentsArray[i]}')`);
                 }
             }
         }
-        function validateFunctionArguments(functionName, functionSource, expectedArguments) {
+        function validateFunction(functionInstance, expectedArguments, validateMethodArguments) {
+            if (functionInstance === undefined) {
+                throw new Error('is undefined!');
+            } if (functionInstance === null) {
+                throw new Error('is null');
+            } else if (typeof functionInstance !== 'function') {
+                throw new Error('is not a function');
+            }
+            if (validateMethodArguments !== true) {
+                return;
+            }
+            const functionSource = functionInstance.toString();
+            const expectedArgumentsArray = getArgumentsArray(expectedArguments);
             const standardFuncionMatch = standardFunctionRegex.exec(functionSource);
             if (standardFuncionMatch) {
-                validateArguments(functionName, standardFuncionMatch[1], expectedArguments);
+                validateArguments(standardFuncionMatch[1], expectedArgumentsArray);
                 return;
             }
             const lamdaFunctionMatch = lamdaFunctionRegex.exec(functionSource);
             if (lamdaFunctionMatch) {
-                validateArguments(functionName, lamdaFunctionMatch[1], expectedArguments);
+                validateArguments(lamdaFunctionMatch[1], expectedArgumentsArray);
                 return;
             }
             const lamdaFunctionSingleArgumentMatch = lamdaFunctionSingleArgumentRegex.exec(functionSource);
             if (lamdaFunctionSingleArgumentMatch) {
-                validateArguments(functionName, lamdaFunctionSingleArgumentMatch[1], expectedArguments);
+                validateArguments(lamdaFunctionSingleArgumentMatch[1], expectedArgumentsArray);
                 return;
             }
             const classMethodMatch = classMethodRegex.exec(functionSource);
             if (classMethodMatch) {
-                validateArguments(functionName, classMethodMatch[2], expectedArguments);
+                validateArguments(classMethodMatch[2], expectedArgumentsArray);
                 return;
             }
-            throw new Error(`'${functionName}' has no arguments: '${functionSource}'`);
+            throw new Error(`has no arguments: '${functionSource}'`);
         }
+        Core.validateFunction = validateFunction;
+
         function validateInterface(instanceType, objectInstance, expectedItems, validateMethodArguments) {
             if (objectInstance === undefined) {
                 throw new Error(`${instanceType} is undefined!`);
@@ -190,55 +202,30 @@
                     const methodMatch = attributeMethodRegex.exec(expectedItem);
                     if (methodMatch) {
                         const methodName = methodMatch[1];
-                        const method = objectInstance[methodName];
-                        if (typeof method !== 'function') {
-                            throw new Error(`${instanceType} has no method '${methodName}'`);
-                        }
-                        if (validateMethodArguments !== true) {
-                            continue;
-                        }
-                        const expectedArguments = getArguments(methodMatch[2]);
-                        const methodSource = method.toString();
                         try {
-                            validateFunctionArguments(methodName, methodSource, expectedArguments);
+                            validateFunction(objectInstance[methodName], methodMatch[2], validateMethodArguments)
                         } catch (error) {
-                            throw new Error(`${instanceType} method ${error.message}`);
+                            throw new Error(`${instanceType} method '${methodName}' ${error.message}`);
                         }
                         continue;
                     }
                     const propertyMatch = attributePropertyRegex.exec(expectedItem);
                     if (propertyMatch) {
-                        const prop = propertyMatch[1];
-                        const type = propertyMatch[2];
-                        const property = objectInstance[prop];
-                        if (property === undefined) {
-                            throw new Error(`${instanceType} has no property '${prop}' of type '${type}'`);
-                        } else if (typeof property !== type) {
-                            throw new Error(`${instanceType} property '${prop}' has invalid type '${(typeof property)}' (expected: '${type})'`);
+                        const propertyName = propertyMatch[1];
+                        const expectedType = propertyMatch[2];
+                        const actualPropertyValue = objectInstance[propertyName];
+                        if (actualPropertyValue === undefined) {
+                            throw new Error(`${instanceType} has no property '${propertyName}'`);
+                        } else if (typeof actualPropertyValue !== expectedType) {
+                            throw new Error(`${instanceType} property '${propertyName}' has invalid type (expected: '${expectedType}', actual: '${(typeof actualPropertyValue)}')`);
                         }
                         continue;
                     }
-                    throw new Error(`Invalid method/property pattern: '${expectedItem}'`);
+                    throw new Error(`Invalid method/property check pattern: '${expectedItem}'`);
                 }
             }
         }
         Core.validateInterface = validateInterface;
-
-        function validateFunction(functionName, functionInstance, expectedItems) {
-            if (functionInstance === undefined) {
-                throw new Error(`Function '${functionName}' is undefined!`);
-            } if (functionInstance === null) {
-                throw new Error(`Function '${functionName}' is null`);
-            } else if (typeof functionInstance !== 'function') {
-                throw new Error(`Function '${functionName}' is not a function`);
-            } else if (typeof expectedItems !== 'string') {
-                throw new Error('Expected argument list is no string');
-            }
-            const expectedArguments = getArguments(expectedItems);
-            const methodSource = functionInstance.toString();
-            validateFunctionArguments(functionName, methodSource, expectedArguments);
-        }
-        Core.validateFunction = validateFunction;
 
         // Perform some tests
         const tasks = [];
