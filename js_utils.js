@@ -23,7 +23,7 @@
         WebSocketConnection: require('./src/WebSocketConnection.js'),
         OperationalState: require('./src/OperationalState.js'),
         DataConnector: require('./src/DataConnector.js'),
-        TargetSystemAdapter: require('./src/TargetSystemAdapter.js')
+        TargetSystem: require('./src/TargetSystem.js')
     };
     Object.seal(js_utils);
     module.exports = js_utils;

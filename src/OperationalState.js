@@ -1,10 +1,10 @@
 // TODO: Question about '_parentOperationalState':
-// In TargetSystemAdapter we do not extend OperationalState because there is no parent and instead we build the state local.
+// In TargetSystem we do not extend OperationalState because there is no parent and instead we build the state local.
 // For DataConnector we max use the connection.
 // For PlcAdapterMock it depends on opc ua.
 // Only DataPoint provides subscribing of multiple clients.
-// Maybe we need a simple thing to extend DataConnector, TargetSystemAdapter, PlcAdapterMock and something like the implemented for DataPoint???
-// See: DataPoint, DataConnector, TargetSystemAdapter, PlcAdapterMock
+// Maybe we need a simple thing to extend DataConnector, TargetSystem, PlcAdapterMock and something like the implemented for DataPoint???
+// See: DataPoint, DataConnector, TargetSystem, PlcAdapterMock
 (function (root) {
     "use strict";
     const OperationalState = {};
