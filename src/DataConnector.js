@@ -217,9 +217,7 @@
             }
 
             handleReceived(data, onResponse, onError) {
-                if (!this._isOpen) {
-                    this.onError('Received data but connection is closed');
-                } else {
+                if (this._isOpen) {
                     switch (data.type) {
                         case TransmissionType.SubscribedDataUpdate:
                             for (const short in data.values) {
@@ -303,7 +301,6 @@
             }
 
             set Parent(value) {
-                this.ParentOperationalState = value;
                 if (value) {
                     Common.validateDataPublisherInterface(value, true);
                     this._parent = value;
@@ -358,9 +355,7 @@
             }
 
             handleReceived(data, onResponse, onError) {
-                if (!this._isOpen) {
-                    this.onError('Received data but connection is closed');
-                } else {
+                if (this._isOpen) {
                     Common.validateDataPublisherInterface(this._parent);
                     Common.validateConnectionInterface(this.connection);
                     let dataId;
