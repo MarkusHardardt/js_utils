@@ -8,7 +8,6 @@
 (function (root) {
     "use strict";
     const OperationalState = {};
-    // access to other components in node js and browser:
     const isNodeJS = typeof require === 'function';
     const Common = isNodeJS ? require('./Common.js') : root.Common;
     const DataPoint = isNodeJS ? require('./DataPoint.js') : root.DataPoint;

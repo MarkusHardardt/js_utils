@@ -1,27 +1,17 @@
 (function (root) {
     "use strict";
     const Common = {};
-
     const isNodeJS = typeof require === 'function';
     const Core = isNodeJS ? require('./Core.js') : root.Core;
 
-    const DataType = Object.freeze({
-        Null: 0,
-        Boolean: 1,
-        Int8: 2,
-        UInt8: 3,
-        Int16: 4,
-        UInt16: 5,
-        Int32: 6,
-        UInt32: 7,
-        Int64: 8,
-        UInt64: 9,
-        Float: 10,
-        Double: 11,
-        String: 12,
-        Unknown: -1
-    });
-    Common.DataType = DataType;
+    /*  subscribable inferface  */
+    function validateSubscribableInterface(instance, validateMethodArguments) {
+        Core.validateInterface('Subscribable', instance, [
+            'Subscribe(onRefresh)',
+            'Unsubscribe(onRefresh)',
+        ], validateMethodArguments);
+    }
+    Common.validateSubscribableInterface = validateSubscribableInterface;
 
     /*  operational state interface  */
     function validateOperationalStateInterface(instance, validateMethodArguments) {
@@ -32,15 +22,6 @@
         ], validateMethodArguments);
     }
     Common.validateOperationalStateInterface = validateOperationalStateInterface;
-
-    /*  subscribable inferface  */
-    function validateSubscribableInterface(instance, validateMethodArguments) {
-        Core.validateInterface('Subscribable', instance, [
-            'Subscribe(onRefresh)',
-            'Unsubscribe(onRefresh)',
-        ], validateMethodArguments);
-    }
-    Common.validateSubscribableInterface = validateSubscribableInterface;
 
     /*  event publisher inferface  */
     function validateDataPointCollectionInterface(instance, validateMethodArguments) {

@@ -7,6 +7,25 @@
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
     const fs = isNodeJS ? require('fs') : undefined;
 
+    /*  Standard datatypes */
+    const DataType = Object.freeze({
+        Null: 0,
+        Boolean: 1,
+        Int8: 2,
+        UInt8: 3,
+        Int16: 4,
+        UInt16: 5,
+        Int32: 6,
+        UInt32: 7,
+        Int64: 8,
+        UInt64: 9,
+        Float: 10,
+        Double: 11,
+        String: 12,
+        Unknown: -1
+    });
+    Common.DataType = DataType;
+
     /*  Returns a function witch on each call returns a number (radix 36, starting at zero). */
     function createIdGenerator(prefix = '') {
         let id = 0;
@@ -18,15 +37,26 @@
 
     Core.defaultOnError = (message, error) => console.error(message, error);
 
-    function getInvertedKeyValueObject(source, valueToKey) {
+    /*  Look at this sample to understand what is returned:
+        object = { 
+            'a': '1',
+            'b': '2',
+            'c': '3'
+        }
+        inverted: {
+            '1': 'a',
+            '2': 'b',
+            '3': 'c'
+        }  */
+    function getInvertedKeyValueObject(object, valueToKey) {
         const v2k = typeof valueToKey === 'function';
-        const target = {};
-        for (const s in source) {
-            if (source.hasOwnProperty(s)) {
-                target[v2k ? valueToKey(source[s]) : source[s]] = s;
+        const inverted = {};
+        for (const src in object) {
+            if (object.hasOwnProperty(src)) {
+                inverted[v2k ? valueToKey(object[src]) : object[src]] = src;
             }
         }
-        return target;
+        return inverted;
     }
     Core.getInvertedKeyValueObject = getInvertedKeyValueObject;
 
