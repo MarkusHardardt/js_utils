@@ -61,7 +61,6 @@
         for (const file in dependencies) {
             if (dependencies.hasOwnProperty(file)) {
                 txt += `    // ==> file: '${file}.js':\n`;
-                txt += `    "use strict";\n`;
                 txt += `    const ${file} = {};\n`;
                 txt += `    // access to other components in node js and browser:\n`;
                 txt += `    const isNodeJS = typeof require === 'function';\n`;
@@ -79,6 +78,9 @@
         txt += `    // ### js_utils.js ###\n\n`;
         txt += `    // access to other components in node js and browser:\n`;
         txt += `    const isNodeJS = typeof require === 'function';\n`;
+        txt += `    // compact:\n`;
+        txt += `    const { ${components.join(', ')} } = require('@markus.hardardt/js_utils/js_utils.js');\n`;
+        txt += `    // separated:\n`;
         for (let comp of components) {
             txt += `    const ${comp} = isNodeJS ? require('./src/${comp}.js') : root.${comp};\n`;
         }
