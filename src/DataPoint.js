@@ -204,12 +204,10 @@
         SubscribeData(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid subscription dataId: ${dataId}`);
-            } else if (typeof onRefresh !== 'function') {
-                throw new Error(`onRefresh() for dataId '${dataId}' is not a function`);
             }
             let data = this._datas[dataId];
             if (!data) {
-                this._datas[dataId] = data = this._createData(dataId);
+                this._datas[dataId] = data = this._createDataForId(dataId);
             }
             data.node.Subscribe(onRefresh);
         }
@@ -217,8 +215,6 @@
         UnsubscribeData(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid unsubscription dataId: ${dataId}`);
-            } else if (typeof onRefresh !== 'function') {
-                throw new Error(`onRefresh() for dataId '${dataId}' is not a function`);
             }
             let data = this._datas[dataId];
             if (!data) {
@@ -236,27 +232,22 @@
                     this._onError(`Failed calling onResponse() for dataId: ${dataId}: ${error.message}`, error);
                 }
                 let data = this._datas[dataId];
-                if (!data) {
-                    this._datas[dataId] = data = this._createData(dataId);
+                if (data) {
+                    data.node.Value = value;
                 }
-                data.SetValue(value);
             }, onError);
         }
 
         Write(dataId, value) {
             Common.validateDataPointCollectionInterface(this._parent);
             this._parent.Write(dataId, value);
-            let data = this._datas[dataId];
-            if (!data) {
-                this._datas[dataId] = data = this._createData(dataId);
-            }
-            data.SetValue(value);
         }
 
-        _createData(dataId) {
+        _createDataForId(dataId) {
             const node = new Node();
-            const data = {
+            const subscribableData = {
                 node,
+                // Not: The following 'onRefresh' function is the local instance inside our node created above.
                 Subscribe: onRefresh => {
                     if (this._parent) {
                         this._parent.SubscribeData(dataId, onRefresh);
@@ -266,15 +257,21 @@
                     if (this._parent) {
                         this._parent.UnsubscribeData(dataId, onRefresh);
                     }
-                },
-                onRefresh: value => node.Value = value // TODO: What is this for?
+                }
             };
             node.UnsubscribeDelay = this._unsubscribeDelay;
             node.Equal = this._equal;
             node.OnError = this._onError;
             node.Value = null;
-            node.Subscribable = data;
-            return data;
+            node.Subscribable = subscribableData;
+            return subscribableData;
+        }
+
+        _destroyData(data) { // TODO: Use ore remove
+            const node = data.node;
+            node.Value = null;
+            node.Subscribable = null;
+            delete data.node;
         }
     }
     DataPoint.Collection = Collection;
