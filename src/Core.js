@@ -73,7 +73,7 @@
     Core.generateIndexJs = generateIndexJs;
 
     /*  Helps writing new moduls*/
-    function generateLibraryFileAccess(dependencies) {
+    function generateLibraryFileAccess(dependencies, scope = '@markus.hardardt/') {
         const components = getTopologicalSorting(dependencies);
         let txt = ``;
         // Code usable js_utils internal
@@ -94,33 +94,21 @@
             }
         }
         txt += `\n`;
-        // Code for js_utils.js
-        txt += `    // ### js_utils.js ###\n\n`;
-        txt += `    // access to other components in node js and browser:\n`;
-        txt += `    const isNodeJS = typeof require === 'function';\n`;
-        for (let comp of components) {
-            txt += `    const ${comp} = isNodeJS ? require('./src/${comp}.js') : root.${comp};\n`;
-        }
-        txt += `\n`;
-        txt += `    const js_utils = {\n`;
-        for (let i = 0; i < components.length; i++) {
-            if (i > 0) {
-                txt += `,\n`;
-            }
-            txt += `        ${components[i]}`;
-        }
-        txt += `\n    };\n\n`;
         txt += `    // access js_utils components on node js:\n`;
         txt += `    // compact:\n`;
-        txt += `    const { ${components.join(', ')} } = require('@markus.hardardt/js_utils/js_utils.js');\n`;
+        txt += `    const {\n` 
+        for (let i = 0; i < components.length; i++) {
+            txt += `        ${components[i]}${(i < components.length - 1 ? ',' : '')} // direct access: const ${components[i]} = require('${scope}js_utils/src/${components[i]}.js');\n`;
+        }
+        txt += `} = require('${scope}js_utils/js_utils.js');\n`;
         txt += `    // separated:\n`;
         for (let comp of components) {
-            txt += `    const ${comp} = require('@markus.hardardt/js_utils/src/${comp}.js');\n`;
+            txt += `    const ${comp} = require('${scope}js_utils/src/${comp}.js');\n`;
         }
         txt += `\n`;
         txt += `    // js_utils files for browser provided by webserver:\n`;
         for (let comp of components) {
-            txt += `    webServer.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/${comp}.js');\n`;
+            txt += `    webServer.AddStaticFile('./node_modules/${scope}js_utils/src/${comp}.js');\n`;
         }
         return txt;
     }
@@ -148,10 +136,10 @@
                 Regex.each(moduleRegex, text, (start, end, match) => dependencies[moduleName].push(match[1]), true);
             }
             const topologicalSortedComponents = getTopologicalSorting(dependencies);
-            let txt = `/* analyse directory: ${directory} */\n\n`;
             const index = generateIndexJs('js_utils', topologicalSortedComponents);
-            txt += index;
-            txt += '\n/* js_utils dependencies */\nconst dependencies = {\n';
+            let txt = `/* analyse directory: ${directory} */\n\n`;
+            txt += '/* js_utils dependencies */\n';
+            txt += 'const dependencies = {\n';
             for (const m in dependencies) {
                 if (dependencies.hasOwnProperty(m)) {
                     txt += `  '${m}': [${dependencies[m].map(e => `'${e}'`).join(', ')}],\n`;
@@ -159,11 +147,18 @@
             }
             txt += '};\n\n';
             txt += '/* topological sorting */\n';
-            for (let component of topologicalSortedComponents) {
-                txt += `- ${component}\n`;
+            txt += 'const topologicalSortedComponents = [\n';
+            for (let i = 0; i < topologicalSortedComponents.length; i++) {
+                if(i > 0) {
+                    txt += ',\n';
+                }
+                txt += `   ${topologicalSortedComponents[i]}`;
             }
-            txt += '\n\n/* source code samples */\n';
+            txt += '\n];\n\n';
+            txt += '/* source code samples */\n';
             txt += Core.generateLibraryFileAccess(dependencies);
+            txt += `\n\n/* ${index_js} */\n`;
+            txt += index;
             fs.writeFileSync(output, txt, 'utf8');
             if (index_js) {
                 fs.writeFileSync(index_js, index, 'utf8');
