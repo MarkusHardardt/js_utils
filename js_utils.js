@@ -21,8 +21,8 @@
         hmi_object: require('./src/hmi_object.js'),
         DataPoint: require('./src/DataPoint.js'),
         WebSocketConnection: require('./src/WebSocketConnection.js'),
-        OperationalState: require('./src/OperationalState.js'),
         DataConnector: require('./src/DataConnector.js'),
+        OperationalState: require('./src/OperationalState.js'),
         TargetSystem: require('./src/TargetSystem.js')
     };
     Object.seal(js_utils);

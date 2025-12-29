@@ -6,7 +6,7 @@
     const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Common = isNodeJS ? require('./Common.js') : root.Common;
-    const OperationalState = isNodeJS ? require('./OperationalState.js') : root.OperationalState;
+    const DataPoint = isNodeJS ? require('./DataPoint.js') : root.DataPoint;
 
     const compareTextsAndNumbers = Sorting.getTextsAndNumbersCompareFunction(true, false, true);
     function addId(ids, id) {
@@ -73,7 +73,9 @@
         class ClientDataConnector extends Connector {
             constructor() {
                 super();
-                this._isOpen = false;
+                this._operational = new DataPoint.Node();
+                this._operational.Value = false;
+                this._operational.Subscribable = null;
                 this._datas = null;
                 this._short2Id = null;
                 this._id2Short = null;
@@ -81,6 +83,23 @@
                 this._subscribeDelayTimer = null;
                 Common.validateClientConnectorInterface(this, true);
                 Common.validateDataPointCollectionInterface(this, true);
+            }
+
+            set OnError(value) {
+                super.OnError = value;
+                this._operational.OnError = value;
+            }
+
+            get IsOperational() {
+                return this._operational.Value;
+            }
+
+            SubscribeOperationalState(onOperationalStateChanged) {
+                this._operational.Subscribe(onOperationalStateChanged);
+            }
+
+            UnsubscribeOperationalState(onOperationalStateChanged) {
+                this._operational.Unsubscribe(onOperationalStateChanged);
             }
 
             OnOpen() {
@@ -111,11 +130,10 @@
                             }
                         }
                     }
-                    this._isOpen = true;
+                    this._operational.Value = true;
                     this._sendSubscriptionRequest();
-                    this.IsOperational = true;
                 }, error => {
-                    this._isOpen = false;
+                    this._operational.Value = false;
                     this._subscribeDelay = false;
                     this._short2Id = null;
                     this._id2Short = null;
@@ -129,18 +147,25 @@
                         }
                         this._datas = null;
                     }
-                    this.IsOperational = false;
                 });
             }
 
             OnClose() {
-                this._isOpen = false;
+                this._operational.Value = false;
                 this._short2Id = null;
                 this._id2Short = null;
                 this._subscribeDelay = false;
                 clearTimeout(this._subscribeDelayTimer);
                 this._subscribeDelayTimer = null;
-                this.IsOperational = false;
+            }
+
+            GetType(dataId) {
+                if (typeof dataId !== 'string') {
+                    throw new Error(`Invalid data id: '${dataId}'`);
+                } else if (this._datas[dataId] === undefined) {
+                    throw new Error(`Unknowd data id '${dataId}'`);
+                }
+                return this._datas[dataId].type;
             }
 
             SubscribeData(dataId, onRefresh) {
@@ -177,7 +202,7 @@
 
             Read(dataId, onResponse, onError) {
                 Common.validateConnectionInterface(this.connection);
-                if (!this._isOpen) {
+                if (!this._operational.Value) {
                     throw new Error('Cannot Read() because not connected');
                 }
                 const short = this._id2Short[dataId];
@@ -189,7 +214,7 @@
 
             Write(dataId, value) {
                 Common.validateConnectionInterface(this.connection);
-                if (!this._isOpen) {
+                if (!this._operational.Value) {
                     throw new Error('Cannot Write() because not connected');
                 }
                 const short = this._id2Short[dataId];
@@ -200,7 +225,7 @@
             }
 
             handleReceived(data, onResponse, onError) {
-                if (this._isOpen) {
+                if (this._operational.Value) {
                     switch (data.type) {
                         case TransmissionType.SubscribedDataUpdate:
                             for (const short in data.values) {
@@ -241,7 +266,7 @@
 
             _sendSubscriptionRequest() {
                 Common.validateConnectionInterface(this.connection);
-                if (this._isOpen) {
+                if (this._operational.Value) {
                     // Build a string with all short ids of the currently stored onRefresh callbacks and send to server
                     let subs = '';
                     for (const dataId in this._datas) {
