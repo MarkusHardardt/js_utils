@@ -6,7 +6,7 @@
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Common = isNodeJS ? require('./Common.js') : root.Common;
 
-    class DataNode { // TODO Use or remove
+    class DataNode {
         constructor() {
             this._data = null;
             this._onSubscriptionChanged = null;
@@ -19,7 +19,7 @@
         }
 
         set OnSubscriptionChanged(value) {
-            if (typeof value !== 'function') {
+            if (value && typeof value !== 'function') {
                 throw new Error('Set value for OnSubscriptionChanged(subscribe, onChanged) is not a function');
             }
             if (this._onSubscriptionChanged && this._onDataChangedCallbacks.length > 0) {
@@ -45,7 +45,7 @@
             this._onError = value;
         }
 
-        set UnsubscribeDataDelay(value) {
+        set UnsubscribeDelay(value) {
             this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
         }
 
@@ -54,7 +54,7 @@
         }
 
         set Data(value) {
-            this._data = value;
+            this._handleDataChanged(value);
         }
 
         Subscribe(onChanged) {
@@ -72,13 +72,13 @@
                 if (this._unsubscribeDelayTimer) {
                     clearTimeout(this._unsubscribeDelayTimer);
                     this._unsubscribeDelayTimer = null;
-                } else {
+                } else if (this._onSubscriptionChanged) {
                     this._onSubscriptionChanged(true, this._onDataChanged);
                 }
             } else {
                 // If another subscription we fire the event manually.
                 try {
-                    onChanged(this._isOperational);
+                    onChanged(this._data);
                 } catch (error) {
                     this._onError(`Failed calling onChanged(value): ${error}`);
                 }
@@ -92,7 +92,7 @@
             for (let i = 0; i < this._onDataChangedCallbacks.length; i++) {
                 if (this._onDataChangedCallbacks[i] === onChanged) {
                     this._onDataChangedCallbacks.splice(i, 1);
-                    if (this._onDataChangedCallbacks.length === 0) {
+                    if (this._onSubscriptionChanged && this._onDataChangedCallbacks.length === 0) {
                         if (this._unsubscribeDelay) {
                             this._unsubscribeDelayTimer = setTimeout(() => {
                                 this._onSubscriptionChanged(false, this._onDataChanged);
@@ -125,18 +125,19 @@
     class DataPublisher {
         constructor() {
             Common.validateDataPublisherInterface(this, true);
-            this._isOperational = false;
+            this._operational = new DataNode();
+            this._operational.Data = false;
             this._parent = null;
             this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
             this._unsubscribeDelay = false;
-            this._unsubscribeOpStateDelayTimer = null;
-            this._onOperationalStateChangedCallbacks = [];
-            this._onOperationalStateChanged = isOperational => this._handleOperationalStateChanged(isOperational === true);
             this._datas = {};
         }
 
         set Parent(value) {
+            if (this._parent) {
+                this._parent.UnsubscribeOperationalState(this._operational); TODO: Go on here
+            }
             if (value) {
                 Common.validateDataPublisherInterface(value, true);
                 this._parent = value;
@@ -158,10 +159,12 @@
                 throw new Error('Set value for OnError(error) is not a function');
             }
             this._onError = value;
+            this._operational.OnError = value;
         }
 
         set UnsubscribeDataDelay(value) {
             this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
+            this._operational.UnsubscribeDelay = value;
         }
 
         get IsOperational() {
@@ -174,68 +177,12 @@
 
         SubscribeOperationalState(onOperationalStateChanged) {
             Common.validateDataPublisherInterface(this._parent);
-            if (typeof onOperationalStateChanged !== 'function') {
-                throw new Error('onOperationalStateChanged() is not a function');
-            }
-            for (const callback of this._onOperationalStateChangedCallbacks) {
-                if (callback === onOperationalStateChanged) {
-                    throw new Error('onOperationalStateChanged() is already subscribed');
-                }
-            }
-            this._onOperationalStateChangedCallbacks.push(onOperationalStateChanged);
-            if (this._onOperationalStateChangedCallbacks.length === 1) {
-                // If first subscription we subscribe on our parent which should result in firering the event.
-                if (this._unsubscribeOpStateDelayTimer) {
-                    clearTimeout(this._unsubscribeOpStateDelayTimer);
-                    this._unsubscribeOpStateDelayTimer = null;
-                } else {
-                    this._parent.SubscribeOperationalState(this._onOperationalStateChanged);
-                }
-            } else {
-                // If another subscription we fire the event manually.
-                try {
-                    onOperationalStateChanged(this._isOperational);
-                } catch (error) {
-                    this._onError(`Failed calling onOperationalStateChanged(value): ${error}`);
-                }
-            }
+            this._operational.Subscribe(onOperationalStateChanged);
         }
 
         UnsubscribeOperationalState(onOperationalStateChanged) {
             Common.validateDataPublisherInterface(this._parent);
-            if (typeof onOperationalStateChanged !== 'function') {
-                throw new Error('onOperationalStateChanged() is not a function');
-            }
-            for (let i = 0; i < this._onOperationalStateChangedCallbacks.length; i++) {
-                if (this._onOperationalStateChangedCallbacks[i] === onOperationalStateChanged) {
-                    this._onOperationalStateChangedCallbacks.splice(i, 1);
-                    if (this._onOperationalStateChangedCallbacks.length === 0) {
-                        if (this._unsubscribeDelay) {
-                            this._unsubscribeOpStateDelayTimer = setTimeout(() => {
-                                this._parent.UnsubscribeOperationalState(this._onOperationalStateChanged);
-                                this._unsubscribeOpStateDelayTimer = null;
-                            }, this._unsubscribeDelay);
-                        } else {
-                            this._parent.UnsubscribeOperationalState(this._onOperationalStateChanged);
-                        }
-                    }
-                    return;
-                }
-            }
-            throw new Error('onOperationalStateChanged() is not subscribed');
-        }
-
-        _handleOperationalStateChanged(isOperational) {
-            if (this._isOperational !== isOperational) {
-                this._isOperational = isOperational;
-                for (const callback of this._onOperationalStateChangedCallbacks) {
-                    try {
-                        callback(isOperational);
-                    } catch (error) {
-                        this._onError(`Failed calling onOperationalStateChanged(value): ${error}`);
-                    }
-                }
-            }
+            this._operational.Unsubscribe(onOperationalStateChanged);
         }
 
         SubscribeData(dataId, onDataUpdate) {
