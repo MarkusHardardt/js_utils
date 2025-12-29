@@ -16,21 +16,6 @@
             ids.splice(idx, 0, id);
         }
     };
-    function removeId(ids, id) { // TODO: reuse or remove
-        let idx = Sorting.getIndexOfFirstEqual(id, ids, compareTextsAndNumbers);
-        if (idx >= 0) {
-            ids.splice(idx, 1);
-        }
-    };
-    function invert(source) {
-        const target = {};
-        for (const s in source) {
-            if (source.hasOwnProperty(s)) {
-                target[source[s]] = s;
-            }
-        }
-        return target;
-    }
 
     const DEFAULT_DATA_CONNECTION_RECEIVER = 'dcr';
 
@@ -105,7 +90,7 @@
                 this.connection.Send(this.receiver, { type: TransmissionType.ConfigRequest }, config => {
                     this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
                     this._short2Id = config.short2Id;
-                    this._id2Short = invert(config.short2Id);
+                    this._id2Short = Core.getInvertedKeyValueObject(config.short2Id);
                     const datas = this._datas;
                     this._datas = {};
                     for (const dataId in this._id2Short) {
@@ -330,7 +315,7 @@
                 for (const id of sorted) {
                     this._short2Id[nextId()] = id;
                 }
-                this._id2Short = invert(this._short2Id);
+                this._id2Short = Core.getInvertedKeyValueObject(this._short2Id);
             }
 
             OnOpen() {

@@ -18,6 +18,18 @@
 
     Core.defaultOnError = (message, error) => console.error(message, error);
 
+    function getInvertedKeyValueObject(source, valueToKey) {
+        const v2k = typeof valueToKey === 'function';
+        const target = {};
+        for (const s in source) {
+            if (source.hasOwnProperty(s)) {
+                target[v2k ? valueToKey(source[s]) : source[s]] = s;
+            }
+        }
+        return target;
+    }
+    Core.getInvertedKeyValueObject = getInvertedKeyValueObject;
+
     /*  Kahn's algorithm  */
     function getTopologicalSorting(dependencies) {
         const graph = new Map();
