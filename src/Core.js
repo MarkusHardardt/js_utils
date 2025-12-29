@@ -163,7 +163,7 @@
             if (index_js) {
                 fs.writeFileSync(index_js, index, 'utf8');
             }
-            console.log('done');
+            console.log(`done (dumped: '${output}', exported: '${index_js}')`);
         });
     }
     Core.analyseLibrary = analyseLibrary;
