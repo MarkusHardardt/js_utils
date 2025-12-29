@@ -91,7 +91,7 @@
             constructor() {
                 super();
                 Common.validateClientConnectorInterface(this, true);
-                Common.validateDataPublisherInterface(this, true);
+                Common.validateDataPointInterface(this, true);
                 this._isOpen = false;
                 this._datas = null;
                 this._short2Id = null;
@@ -116,7 +116,7 @@
                                 delete datas[dataId];
                             }
                             else {
-                                this._datas[dataId] = { value: null, onDataUpdate: null };
+                                this._datas[dataId] = { value: null, onRefresh: null };
                             }
                         }
                     }
@@ -160,35 +160,35 @@
                 this.IsOperational = false;
             }
 
-            SubscribeData(dataId, onDataUpdate) {
+            SubscribeData(dataId, onRefresh) {
                 Common.validateConnectionInterface(this.connection);
                 if (typeof dataId !== 'string') {
                     throw new Error(`Invalid subscription data id: '${dataId}'`);
-                } else if (typeof onDataUpdate !== 'function') {
+                } else if (typeof onRefresh !== 'function') {
                     throw new Error(`Subscriber for subscription data id '${dataId}' is not a function`);
                 } else if (this._datas[dataId] === undefined) {
                     throw new Error(`Unknowd data id '${dataId}' for subscription`);
-                } else if (this._datas[dataId].onDataUpdate) {
+                } else if (this._datas[dataId].onRefresh) {
                     throw new Error(`Data for data id '${dataId}' is already subscribed`);
                 }
-                this._datas[dataId].onDataUpdate = onDataUpdate;
+                this._datas[dataId].onRefresh = onRefresh;
                 this._subscriptionsChanged();
             }
 
-            UnsubscribeData(dataId, onDataUpdate) {
+            UnsubscribeData(dataId, onRefresh) {
                 Common.validateConnectionInterface(this.connection);
                 if (typeof dataId !== 'string') {
                     throw new Error(`Invalid unsubscription data id: '${dataId}'`);
-                } else if (typeof onDataUpdate !== 'function') {
+                } else if (typeof onRefresh !== 'function') {
                     throw new Error(`Subscriber for unsubscription id '${dataId}' is not a function`);
                 } else if (this._datas[dataId] === undefined) {
                     throw new Error(`Unknowd data id '${dataId}' for unsubscription`);
-                } else if (!this._datas[dataId].onDataUpdate) {
+                } else if (!this._datas[dataId].onRefresh) {
                     throw new Error(`Data for data id '${dataId}' is already unsubscribed`);
-                } else if (this._datas[dataId].onDataUpdate !== onDataUpdate) {
-                    throw new Error(`Unexpected onDataUpdate for data id '${dataId}' to unsubscribe`);
+                } else if (this._datas[dataId].onRefresh !== onRefresh) {
+                    throw new Error(`Unexpected onRefresh for data id '${dataId}' to unsubscribe`);
                 }
-                this._datas[dataId].onDataUpdate = null;
+                this._datas[dataId].onRefresh = null;
                 this._subscriptionsChanged();
             }
 
@@ -229,11 +229,11 @@
                                         continue;
                                     }
                                     const value = data.values[short];
-                                    if (value !== null && dt.onDataUpdate) {
+                                    if (value !== null && dt.onRefresh) {
                                         try {
-                                            dt.onDataUpdate(value);
+                                            dt.onRefresh(value);
                                         } catch (error) {
-                                            this.onError(`Failed calling onDataUpdate() for data id: ${dataId}: ${error}`);
+                                            this.onError(`Failed calling onRefresh() for data id: ${dataId}: ${error}`);
                                         }
                                     }
                                 }
@@ -259,7 +259,7 @@
             _sendSubscriptionRequest() {
                 Common.validateConnectionInterface(this.connection);
                 if (this._isOpen) {
-                    // Build a string with all short ids of the currently stored onDataUpdate callbacks and send to server
+                    // Build a string with all short ids of the currently stored onRefresh callbacks and send to server
                     let subs = '';
                     for (const dataId in this._datas) {
                         if (this._datas.hasOwnProperty(dataId)) {
@@ -267,7 +267,7 @@
                             if (!short) {
                                 throw new Error(`Unknown data id: ${dataId}`);
                             }
-                            if (this._datas[dataId].onDataUpdate) {
+                            if (this._datas[dataId].onRefresh) {
                                 subs += short;
                             }
                         }
@@ -302,7 +302,7 @@
 
             set Parent(value) {
                 if (value) {
-                    Common.validateDataPublisherInterface(value, true);
+                    Common.validateDataPointInterface(value, true);
                     this._parent = value;
                 } else {
                     this._parent = null;
@@ -356,7 +356,7 @@
 
             handleReceived(data, onResponse, onError) {
                 if (this._isOpen) {
-                    Common.validateDataPublisherInterface(this._parent);
+                    Common.validateDataPointInterface(this._parent);
                     Common.validateConnectionInterface(this.connection);
                     let dataId;
                     switch (data.type) {
@@ -390,32 +390,32 @@
 
             _updateSubscriptions(subscriptionShorts) {
                 if (this._isOpen) {
-                    Common.validateDataPublisherInterface(this._parent);
+                    Common.validateDataPointInterface(this._parent);
                     for (const dataId in this._onEventCallbacks) {
                         if (this._onEventCallbacks.hasOwnProperty(dataId)) {
                             const short = this._id2Short[dataId];
-                            const onDataUpdate = subscriptionShorts.indexOf(short) < 0 ? this._onEventCallbacks[dataId] : false;
-                            if (onDataUpdate) {
+                            const onRefresh = subscriptionShorts.indexOf(short) < 0 ? this._onEventCallbacks[dataId] : false;
+                            if (onRefresh) {
                                 delete this._onEventCallbacks[dataId];
-                                this._parent.UnsubscribeData(dataId, onDataUpdate);
+                                this._parent.UnsubscribeData(dataId, onRefresh);
                             }
                         }
                     }
                     Regex.each(subscribeRequestShortIdRegex, subscriptionShorts, (start, end, match) => {
-                        // we are in a closure -> short/id will be available in onDataUpdate()
+                        // we are in a closure -> short/id will be available in onRefresh()
                         const short = match[0];
                         const dataId = this._short2Id[short];
                         if (dataId) {
                             if (!this._onEventCallbacks[dataId]) {
-                                const onDataUpdate = value => {
+                                const onRefresh = value => {
                                     if (!this._values) {
                                         this._values = {};
                                     }
                                     this._values[short] = value;
                                     this._valuesChanged();
                                 };
-                                this._onEventCallbacks[dataId] = onDataUpdate;
-                                this._parent.SubscribeData(dataId, onDataUpdate);
+                                this._onEventCallbacks[dataId] = onRefresh;
+                                this._parent.SubscribeData(dataId, onRefresh);
                             }
                         } else {
                             this.onError(`Cannot subscribe: ${short}`);

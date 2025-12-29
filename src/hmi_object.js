@@ -7099,7 +7099,7 @@
                     (function () {
                         const dataId = _watch[i];
                         const type = undefined; // TODO: Handle ElementTypes.TEXTS_TYPE ???
-                        const onDataUpdate = value => {
+                        const onRefresh = value => {
                             try {
                                 if (typeof that.handleDataUpdate === 'function') {
                                     that.handleDataUpdate(dataId, value, type);
@@ -7122,8 +7122,8 @@
                                 console.error('EXCEPTION: ' + exc);
                             }
                         };
-                        _onEventCallbacks.push(onDataUpdate);
-                        that.hmi.env.data.SubscribeData(dataId, onDataUpdate);
+                        _onEventCallbacks.push(onRefresh);
+                        that.hmi.env.data.SubscribeData(dataId, onRefresh);
                     }());
                 }
             }

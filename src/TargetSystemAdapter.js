@@ -8,12 +8,12 @@
     class TargetSystemAdapter extends OperationalState {
         constructor() {
             super();
-            Common.validateDataPublisherInterface(this, true);
+            Common.validateDataPointInterface(this, true);
             this._targetSystems = {};
         }
 
         Register(target, system) {
-            Common.validateDataPublisherInterface(system, true);
+            Common.validateDataPointInterface(system, true);
             if (typeof target !== 'string') {
                 throw new Error(`Invalid target '${target}' for Register(target, system)`);
             } else if (this._targetSystems[target] !== undefined) {
@@ -24,7 +24,7 @@
         }
 
         Unregister(target, system) {
-            Common.validateDataPublisherInterface(system, true);
+            Common.validateDataPointInterface(system, true);
             if (typeof target !== 'string') {
                 throw new Error(`Invalid target '${target}' for Unregister(target, system)`);
             } else if (this._targetSystems[target] === undefined) {
@@ -36,25 +36,25 @@
             }
         }
 
-        SubscribeData(dataId, onDataUpdate) {
+        SubscribeData(dataId, onRefresh) {
             const { target, nodeId } = this._getTargetAndNodeId(dataId);
             if (typeof target !== 'string') {
-                throw new Error(`Invalid target '${target}' for SubscribeData(dataId, onDataUpdate)`);
+                throw new Error(`Invalid target '${target}' for SubscribeData(dataId, onRefresh)`);
             } else if (this._targetSystems[target] === undefined) {
-                throw new Error(`Target '${target}' not registered for SubscribeData(dataId, onDataUpdate)`);
+                throw new Error(`Target '${target}' not registered for SubscribeData(dataId, onRefresh)`);
             } else {
-                this._targetSystems[target].SubscribeData(nodeId, onDataUpdate);
+                this._targetSystems[target].SubscribeData(nodeId, onRefresh);
             }
         }
 
-        UnsubscribeData(dataId, onDataUpdate) {
+        UnsubscribeData(dataId, onRefresh) {
             const { target, nodeId } = this._getTargetAndNodeId(dataId);
             if (typeof target !== 'string') {
-                throw new Error(`Invalid target '${target}' for UnsubscribeData(dataId, onDataUpdate)`);
+                throw new Error(`Invalid target '${target}' for UnsubscribeData(dataId, onRefresh)`);
             } else if (this._targetSystems[target] === undefined) {
-                throw new Error(`Target '${target}' not registered for UnsubscribeData(dataId, onDataUpdate)`);
+                throw new Error(`Target '${target}' not registered for UnsubscribeData(dataId, onRefresh)`);
             } else {
-                this._targetSystems[target].UnsubscribeData(nodeId, onDataUpdate);
+                this._targetSystems[target].UnsubscribeData(nodeId, onRefresh);
             }
         }
 

@@ -20,7 +20,7 @@
     const ContentManager = isNodeJS ? require('./src/ContentManager.js') : root.ContentManager;
     const Common = isNodeJS ? require('./src/Common.js') : root.Common;
     const hmi_object = isNodeJS ? require('./src/hmi_object.js') : root.hmi_object;
-    const DataPublisher = isNodeJS ? require('./src/DataPublisher.js') : root.DataPublisher;
+    const DataPoint = isNodeJS ? require('./src/DataPoint.js') : root.DataPoint;
     const OperationalState = isNodeJS ? require('./src/OperationalState.js') : root.OperationalState;
     const WebSocketConnection = isNodeJS ? require('./src/WebSocketConnection.js') : root.WebSocketConnection;
     const DataConnector = isNodeJS ? require('./src/DataConnector.js') : root.DataConnector;
@@ -44,7 +44,7 @@
         ContentManager,
         Common,
         hmi_object,
-        DataPublisher,
+        DataPoint,
         OperationalState,
         WebSocketConnection,
         DataConnector,

@@ -5,7 +5,6 @@
     const isNodeJS = typeof require === 'function';
     const Core = isNodeJS ? require('./Core.js') : root.Core;
 
-
     /*  operational state interface  */
     function validateOperationalStateInterface(instance, validateMethodArguments) {
         Core.validateInterface('OperationalState', instance, [
@@ -16,17 +15,26 @@
     }
     Common.validateOperationalStateInterface = validateOperationalStateInterface;
 
+    /*  subscribable inferface  */
+    function validateSubscribableInterface(instance, validateMethodArguments) {
+        Core.validateInterface('Subscribable', instance, [
+            'Subscribe(onRefresh)',
+            'Unsubscribe(onRefresh)',
+        ], validateMethodArguments);
+    }
+    Common.validateSubscribableInterface = validateSubscribableInterface;
+
     /*  event publisher inferface  */
-    function validateDataPublisherInterface(instance, validateMethodArguments) {
+    function validateDataPointInterface(instance, validateMethodArguments) {
         validateOperationalStateInterface(instance, validateMethodArguments);
-        Core.validateInterface('DataPublisher', instance, [
-            'SubscribeData(dataId, onDataUpdate)',
-            'UnsubscribeData(dataId, onDataUpdate)',
+        Core.validateInterface('DataPoint', instance, [
+            'SubscribeData(dataId, onRefresh)',
+            'UnsubscribeData(dataId, onRefresh)',
             'Read(dataId, onResponse, onError)',
             'Write(dataId, value)'
         ], validateMethodArguments);
     }
-    Common.validateDataPublisherInterface = validateDataPublisherInterface;
+    Common.validateDataPointInterface = validateDataPointInterface;
 
     /*  connection inferface  */
     function validateConnectionInterface(instance, validateMethodArguments) {
