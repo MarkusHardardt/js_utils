@@ -39,7 +39,6 @@
         - Send(): sends data to receiver on other side an waits optionally for response (pong)    */
     class Connection {
         constructor(sessionId, options) {
-            Common.validateConnectionInterface(this, true);
             this._sessionId = sessionId;
             this._handlers = {};
             this._callbacks = {};
@@ -73,6 +72,7 @@
             this._nextId = Core.createIdGenerator('#');
             this._remoteMediumUTC = 0;
             this._remoteToLocalOffsetMillis = 0;
+            Common.validateConnectionInterface(this, true);
         }
         get SessionId() {
             return this._sessionId;

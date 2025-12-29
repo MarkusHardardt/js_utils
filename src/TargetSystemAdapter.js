@@ -8,8 +8,8 @@
     class TargetSystemAdapter extends OperationalState {
         constructor() {
             super();
-            Common.validateDataPointCollectionInterface(this, true);
             this._targetSystems = {};
+            Common.validateDataPointCollectionInterface(this, true);
         }
 
         Register(target, system) {

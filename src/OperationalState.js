@@ -13,9 +13,9 @@
 
     class OperationalState {
         constructor() {
-            Common.validateOperationalStateInterface(this, true);
             this._isOperational = false;
             this._onOperationalStateChanged = null;
+            Common.validateOperationalStateInterface(this, true);
         }
 
         get IsOperational() {

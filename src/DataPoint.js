@@ -9,7 +9,6 @@
 
     class Node {
         constructor() {
-            Common.validateSubscribableInterface(this, true);
             this._value = null;
             this._subscribable = null;
             this._equal = Core.defaultEqual;
@@ -18,6 +17,7 @@
             this._unsubscribeDelayTimer = null;
             this._subscriptions = [];
             this._onRefresh = value => this._refresh(value);
+            Common.validateSubscribableInterface(this, true);
         }
 
         set Subscribable(value) {
@@ -131,7 +131,6 @@
 
     class Collection {
         constructor() {
-            Common.validateDataPointCollectionInterface(this, true);
             this._operational = new Node();
             this._onOperationalStateChanged = operational => this._operational.Value = operational;
             this._operational.Value = false;
@@ -140,6 +139,7 @@
             this._onError = Core.defaultOnError;
             this._unsubscribeDelay = false;
             this._datas = {};
+            Common.validateDataPointCollectionInterface(this, true);
         }
 
         set Parent(value) { // TODO: 

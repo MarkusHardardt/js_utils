@@ -90,14 +90,14 @@
         class ClientDataConnector extends Connector {
             constructor() {
                 super();
-                Common.validateClientConnectorInterface(this, true);
-                Common.validateDataPointCollectionInterface(this, true);
                 this._isOpen = false;
                 this._datas = null;
                 this._short2Id = null;
                 this._id2Short = null;
                 this._subscribeDelay = false;
                 this._subscribeDelayTimer = null;
+                Common.validateClientConnectorInterface(this, true);
+                Common.validateDataPointCollectionInterface(this, true);
             }
 
             OnOpen() {
@@ -288,7 +288,6 @@
         class ServerDataConnector extends Connector {
             constructor() {
                 super();
-                Common.validateServerConnectorInterface(this, true);
                 this._isOpen = false;
                 this._parent = null;
                 this._onEventCallbacks = {};
@@ -298,6 +297,7 @@
                 this._subscribeDelay = false;
                 this._sendDelay = false;
                 this._sendDelayTimer = null;
+                Common.validateServerConnectorInterface(this, true);
             }
 
             set Parent(value) {
