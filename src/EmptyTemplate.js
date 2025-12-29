@@ -1,7 +1,7 @@
 (function (root) {
     "use strict";
-    const isNodeJS = typeof require === 'function';
     const Template = {};
+    const isNodeJS = typeof require === 'function';
 
     // TODO: Add content
     Template.content = {};

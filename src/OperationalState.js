@@ -1,10 +1,3 @@
-// TODO: Question about '_parentOperationalState':
-// In TargetSystem we do not extend OperationalState because there is no parent and instead we build the state local.
-// For DataConnector we max use the connection.
-// For PlcAdapterMock it depends on opc ua.
-// Only DataPoint provides subscribing of multiple clients.
-// Maybe we need a simple thing to extend DataConnector, TargetSystem, PlcAdapterMock and something like the implemented for DataPoint???
-// See: DataPoint, DataConnector, TargetSystem, PlcAdapterMock
 (function (root) {
     "use strict";
     const OperationalState = {};
@@ -21,9 +14,6 @@
         }
 
         set OnError(value) {
-            if (typeof value !== 'function') {
-                throw new Error('Set value for OnError(error) is not a function');
-            }
             this._operational.OnError = value;
         }
 

@@ -27,6 +27,7 @@
     function validateDataPointCollectionInterface(instance, validateMethodArguments) {
         validateOperationalStateInterface(instance, validateMethodArguments);
         Core.validateInterface('DataPointCollection', instance, [
+            'GetType(dataId)',
             'SubscribeData(dataId, onRefresh)',
             'UnsubscribeData(dataId, onRefresh)',
             'Read(dataId, onResponse, onError)',

@@ -71,7 +71,7 @@
     }
     TargetSystem.convertNodeOpcUaBasicTypeToCommonType = convertNodeOpcUaBasicTypeToCommonType;
 
-    class Adapter extends OperationalState.Node {
+    class Router extends OperationalState.Node {
         constructor() {
             super();
             this._targetSystems = {};
@@ -99,6 +99,17 @@
                 throw new Error(`Other target '${target}' registered`);
             } else {
                 delete this._targetSystems[target];
+            }
+        }
+
+        GetType(dataId) {
+            const { target, nodeId } = this._getTargetAndNodeId(dataId);
+            if (typeof target !== 'string') {
+                throw new Error(`Invalid target '${target}' for GetType(dataId)`);
+            } else if (this._targetSystems[target] === undefined) {
+                throw new Error(`Target '${target}' not registered for GetType(dataId)`);
+            } else {
+                return this._targetSystems[target].GetType(nodeId);
             }
         }
 
@@ -151,7 +162,7 @@
             return { target: match ? match[1] : null, nodeId: match ? match[2] : id };
         }
     }
-    TargetSystem.Adapter = Adapter;
+    TargetSystem.Adapter = Router;
 
     Object.freeze(TargetSystem);
     if (isNodeJS) {

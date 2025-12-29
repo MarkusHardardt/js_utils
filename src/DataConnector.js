@@ -1,7 +1,6 @@
 (function (root) {
     "use strict";
     const DataConnector = {};
-    // access to other components in node js and browser:
     const isNodeJS = typeof require === 'function';
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
     const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
@@ -27,9 +26,8 @@
         WriteRequest: 6
     });
 
-    class Connector extends OperationalState.Node {
+    class Connector {
         constructor() {
-            super();
             this.connection = null;
             this.onError = Core.defaultOnError;
             this.receiver = DEFAULT_DATA_CONNECTION_RECEIVER;

@@ -2,7 +2,6 @@
     // ==> file: 'DataPoint.js':
     "use strict";
     const DataPoint = {};
-    // access to other components in node js and browser:
     const isNodeJS = typeof require === 'function';
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Common = isNodeJS ? require('./Common.js') : root.Common;
@@ -129,9 +128,9 @@
     }
     DataPoint.Node = Node;
 
-    class Collection {
+    class Collection { // TODO  extends OperationalState.Node
         constructor() {
-            this._operational = new Node();
+            this._operational = new Node(); // TODO  extends OperationalState.Node
             this._operational.Value = false;
             this._operational.Subscribable = {
                 // Not: The following 'onRefresh' function is the local instance inside our node created above.
@@ -152,6 +151,7 @@
             this._unsubscribeDelay = false;
             this._datas = {};
             Common.validateDataPointCollectionInterface(this, true);
+            Common.validateOperationalStateInterface(this, true);
         }
 
         set Parent(value) { // TODO: 
@@ -211,6 +211,11 @@
 
         UnsubscribeOperationalState(onOperationalStateChanged) {
             this._operational.Unsubscribe(onOperationalStateChanged);
+        }
+
+        GetType(dataId) {
+            Common.validateDataPointCollectionInterface(this._parent);
+            return this._parent.GetType(dataId);
         }
 
         SubscribeData(dataId, onRefresh) {

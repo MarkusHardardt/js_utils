@@ -24,7 +24,7 @@
         String: 12,
         Unknown: -1
     });
-    Common.DataType = DataType;
+    Core.DataType = DataType;
 
     /*  Returns a function witch on each call returns a number (radix 36, starting at zero). */
     function createIdGenerator(prefix = '') {
@@ -124,7 +124,6 @@
             if (dependencies.hasOwnProperty(file)) {
                 txt += `    // ==> file: '${file}.js':\n`;
                 txt += `    const ${file} = {};\n`;
-                txt += `    // access to other components in node js and browser:\n`;
                 txt += `    const isNodeJS = typeof require === 'function';\n`;
                 const used = dependencies[file];
                 for (let comp of components) {
