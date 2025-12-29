@@ -4,6 +4,7 @@
  */
 (function (root) {
     "use strict";
+    const Regex = {};
 
     const isNodeJS = typeof require === 'function';
 
@@ -35,6 +36,7 @@
             callback(off, text.length);
         }
     }
+    Regex.each = each;
 
     function replace(rx, text, replacement) {
         let res, off = 0, txt = '', idx, len;
@@ -61,6 +63,7 @@
         // return the resulting text
         return txt;
     }
+    Regex.replace = replace;
 
     function getNextMatch(text, elements, elementIndex, rx) {
         if (rx.global !== true) {
@@ -220,48 +223,14 @@
         // done
         return final;
     }
+    Regex.analyse = analyse;
 
     function escape(text) {
         return text.replace(/[-\/\\^$*+?.()|\[\]{}]/g, '\\$&');
     }
+    Regex.escape = escape;
 
-    const Regex = {
-        /**
-         * @param i_regex:
-         *          regular expression
-         * @param i_text:
-         *          text to proceed
-         * @param i_callback:
-         *          function that will be called depending on the results
-         * @param i_matches:
-         *          if true only matches, if false only the part between the
-         *          matches, or in all other cases both type of results will be
-         *          called back
-         */
-        each,
-        /**
-         * @param i_regex:
-         *          regular expression
-         * @param i_text:
-         *          text to proceed
-         * @param i_replacement:
-         *          the replacement string or function that will be called
-         */
-        replace,
-        /**
-         * @param i_config:
-         *          regular expression configuration containing "comment", "first"
-         *          and "next" and an optional "convertMatchToId"
-         * @param i_text:
-         *          text to analyse TODO add some more info
-         */
-        analyse,
-        /**
-         * Escape string for usage inside Regex
-         */
-        escape
-    };
-
+    Object.freeze(Regex);
     if (isNodeJS) {
         module.exports = Regex;
     } else {

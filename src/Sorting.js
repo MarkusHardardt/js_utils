@@ -1,5 +1,6 @@
 (function (root) {
     "use strict";
+    const Sorting = {};
 
     const isNodeJS = typeof require === 'function';
 
@@ -8,6 +9,21 @@
         Equal: 0,
         Smaller: -1
     });
+    Sorting.CompareResult = CompareResult;
+    Sorting.BIGGER = CompareResult.Bigger;
+    Sorting.SMALLER = CompareResult.Smaller;
+    Sorting.EQUAL = CompareResult.Equal;
+
+    function compareNumber(n1, n2) {
+        if (n1 > n2) {
+            return CompareResult.Bigger;
+        } else if (n1 < n2) {
+            return CompareResult.Smaller;
+        } else {
+            return CompareResult.Equal;
+        }
+    }
+    Sorting.compareNumber = compareNumber;
 
     function compareObjects(o1, o2, compare) {
         if (o1 === o2) {
@@ -94,6 +110,24 @@
                 return idx;
         }
     }
+    Sorting.getInsertionIndex = getInsertionIndex;
+
+    // first equal
+    function getIndexOfFirstEqual(value, array, compare) {
+        var idx = getInsertionIndex(value, array, true, compare);
+        return idx < 0 ? idx + array.length : -1;
+    }
+    Sorting.getIndexOfFirstEqual = getIndexOfFirstEqual;
+
+    function getFirstIndexOfIdentical(array, value) {
+        for (let i = 0, l = array.length; i < l; i++) {
+            if (array[i] === value) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    Sorting.getFirstIndexOfIdentical = getFirstIndexOfIdentical;
 
     function _quicksort(array, compare, low, high) {
         var i = low;
@@ -128,6 +162,7 @@
         }
         return array;
     }
+    Sorting.quicksort = quicksort;
 
     function compareStringsIgnorecase(s1, s2) {
         var idx = 0, l1 = s1.length, l2 = s2.length, c1, c2;
@@ -145,6 +180,7 @@
         var dl = l1 - l2;
         return dl > 0 ? CompareResult.Bigger : (dl < 0 ? CompareResult.Smaller : CompareResult.Equal);
     }
+    Sorting.compareStringsIgnorecase = compareStringsIgnorecase;
 
     const MINUS = 45;
     const ZERO = 48;
@@ -285,15 +321,27 @@
         var dl = l1 - l2;
         return dl > 0 ? CompareResult.Bigger : (dl < 0 ? CompareResult.Smaller : CompareResult.Equal);
     }
+    Sorting.compareTextsAndNumbers = compareTextsAndNumbers;
 
-    function getFirstIndexOfIdentical(array, value) {
-        for (let i = 0, l = array.length; i < l; i++) {
-            if (array[i] === value) {
-                return i;
-            }
-        }
-        return -1;
+    function getTextsAndNumbersCompareFunction(ignoreCase, signed, upward) {
+        return function (s1, s2) {
+            var res = compareTextsAndNumbers(s1, s2, ignoreCase, signed);
+            return upward !== false ? res : -res;
+        };
     }
+    Sorting.getTextsAndNumbersCompareFunction = getTextsAndNumbersCompareFunction;
+    function compareDates(d1, d2) {
+        var time1 = d1.getTime();
+        var time2 = d2.getTime();
+        if (time1 < time2) {
+            return CompareResult.Smaller;
+        } else if (time1 > time2) {
+            return CompareResult.Bigger;
+        } else {
+            return CompareResult.Equal;
+        }
+    }
+    Sorting.compareDates = compareDates;
 
     class SortedSet {
         constructor(noEqualObjectsAllowed, compare) {
@@ -347,56 +395,12 @@
             array.splice(offset, length);
         }
     }
+    Sorting.SortedSet = SortedSet;
 
-    var exp = {
-        BIGGER: CompareResult.Bigger,
-        SMALLER: CompareResult.Smaller,
-        EQUAL: CompareResult.Equal,
-        compareNumber: function (n1, n2) {
-            if (n1 > n2) {
-                return CompareResult.Bigger;
-            } else if (n1 < n2) {
-                return CompareResult.Smaller;
-            } else {
-                return CompareResult.Equal;
-            }
-        },
-        // get the insertion index
-        getInsertionIndex,
-        // first equal
-        getIndexOfFirstEqual: (value, array, compare) => {
-            var idx = getInsertionIndex(value, array, true, compare);
-            return idx < 0 ? idx + array.length : -1;
-        },
-        // perform a quick sort
-        quicksort,
-        // texts and numbers comparison
-        compareStringsIgnorecase,
-        compareTextsAndNumbers,
-        getTextsAndNumbersCompareFunction: (ignoreCase, signed, upward) => {
-            return function (s1, s2) {
-                var res = compareTextsAndNumbers(s1, s2, ignoreCase, signed);
-                return upward !== false ? res : -res;
-            };
-        },
-        compareDates: (d1, d2) => {
-            var time1 = d1.getTime();
-            var time2 = d2.getTime();
-            if (time1 < time2) {
-                return CompareResult.Smaller;
-            } else if (time1 > time2) {
-                return CompareResult.Bigger;
-            } else {
-                return CompareResult.Equal;
-            }
-        },
-        // create sorted set
-        SortedSet
-    };
-
+    Object.freeze(Sorting);
     if (isNodeJS) {
-        module.exports = exp;
+        module.Sorting = Sorting;
     } else {
-        root.Sorting = exp;
+        root.Sorting = Sorting;
     }
 }(globalThis));

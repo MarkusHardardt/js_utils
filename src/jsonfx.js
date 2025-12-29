@@ -1,5 +1,6 @@
 (function (root) {
     "use strict";
+    const jsonfx = {};
 
     const isNodeJS = typeof require === 'function';
 
@@ -156,6 +157,7 @@
         });
         return _pretty ? beautify_js(str, _beautify_opts) : str;
     }
+    jsonfx.stringify = stringify;
 
     function reconstruct(object) {
         if (object !== undefined && object !== null) {
@@ -195,6 +197,7 @@
         }
         return object;
     }
+    jsonfx.reconstruct = reconstruct;
 
     function parse(text, sourceIsPretty, doReconstruct) {
         // Parsing happens in four stages. In the first stage, we replace certain
@@ -245,12 +248,9 @@
         // If the text is not JSON parseable, then a SyntaxError is thrown.
         throw new SyntaxError('jsonfx.parse systax error');
     }
+    jsonfx.parse = parse;
 
-    const jsonfx = {
-        stringify,
-        parse,
-        reconstruct
-    };
+    Object.freeze(jsonfx);
     if (isNodeJS) {
         module.exports = jsonfx;
     }
