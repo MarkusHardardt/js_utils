@@ -78,9 +78,6 @@
         txt += `    // ### js_utils.js ###\n\n`;
         txt += `    // access to other components in node js and browser:\n`;
         txt += `    const isNodeJS = typeof require === 'function';\n`;
-        txt += `    // compact:\n`;
-        txt += `    const { ${components.join(', ')} } = require('@markus.hardardt/js_utils/js_utils.js');\n`;
-        txt += `    // separated:\n`;
         for (let comp of components) {
             txt += `    const ${comp} = isNodeJS ? require('./src/${comp}.js') : root.${comp};\n`;
         }
@@ -94,6 +91,9 @@
         }
         txt += `\n    };\n\n`;
         txt += `    // access js_utils components on node js:\n`;
+        txt += `    // compact:\n`;
+        txt += `    const { ${components.join(', ')} } = require('@markus.hardardt/js_utils/js_utils.js');\n`;
+        txt += `    // separated:\n`;
         for (let comp of components) {
             txt += `    const ${comp} = require('@markus.hardardt/js_utils/src/${comp}.js');\n`;
         }
