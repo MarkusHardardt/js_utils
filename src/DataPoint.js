@@ -132,8 +132,20 @@
     class Collection {
         constructor() {
             this._operational = new Node();
-            this._onOperationalStateChanged = operational => this._operational.Value = operational;
             this._operational.Value = false;
+            this._operational.Subscribable = {
+                // Not: The following 'onRefresh' function is the local instance inside our node created above.
+                Subscribe: onRefresh => {
+                    if (this._parent) {
+                        this._parent.SubscribeOperationalState(onRefresh);
+                    }
+                },
+                Unsubscribe: onRefresh => {
+                    if (this._parent) {
+                        this._parent.UnsubscribeOperationalState(onRefresh);
+                    }
+                }
+            };
             this._parent = null;
             this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
@@ -179,7 +191,7 @@
             }
         }
 
-        set UnsubscribeDataDelay(value) {
+        set UnsubscribeDelay(value) {
             this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
             this._operational.UnsubscribeDelay = value;
             for (const dataId in this._datas) {
