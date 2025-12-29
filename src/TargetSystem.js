@@ -71,7 +71,7 @@
     }
     TargetSystem.convertNodeOpcUaBasicTypeToCommonType = convertNodeOpcUaBasicTypeToCommonType;
 
-    class Adapter extends OperationalState {
+    class Adapter extends OperationalState.Node {
         constructor() {
             super();
             this._targetSystems = {};

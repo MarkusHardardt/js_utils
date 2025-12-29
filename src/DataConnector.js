@@ -27,7 +27,7 @@
         WriteRequest: 6
     });
 
-    class Connector extends OperationalState {
+    class Connector extends OperationalState.Node {
         constructor() {
             super();
             this.connection = null;
