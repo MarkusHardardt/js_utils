@@ -1,9 +1,9 @@
 (function (root) {
     "use strict";
-
+    const Utilities = {};
     const isNodeJS = typeof require === 'function';
 
-    var equals = function (i_value1, i_value2, i_compareFunctions) {
+    function equals(i_value1, i_value2, i_compareFunctions) {
         if (typeof i_value1 !== typeof i_value2) {
             return false;
         }
@@ -21,11 +21,9 @@
         else if (typeof i_value1 === 'object') {
             if (i_value1 === null) {
                 return i_value2 === null;
-            }
-            else if (i_value2 === null) {
+            } else if (i_value2 === null) {
                 return false;
-            }
-            else {
+            } else {
                 var attr;
                 for (attr in i_value1) {
                     if (i_value1.hasOwnProperty(attr)) {
@@ -43,73 +41,92 @@
                 }
                 return true;
             }
-        }
-        else if (typeof i_value1 === 'function') {
+        } else if (typeof i_value1 === 'function') {
             return typeof i_compareFunctions === 'function' ? i_compareFunctions(i_value1, i_value2) : true;
-        }
-        else {
+        } else {
             return i_value1 === i_value2;
         }
-    };
+    }
+    Utilities.equals = equals;
 
     /** The place holder object */
     var DNYNAMIC_LIST_DUMMY = {};
 
-    var DynamicList = function (i_create) {
-        this._create = i_create;
-        this._array = [];
-    };
-
-    DynamicList.prototype = {
+    class DynamicList {
+        constructor(create) {
+            this._create = create;
+            this._array = [];
+        }
         /**
          * Get the object with the given index. If not exists it will be created
          * by calling the creators create method
-         * 
-         * @param i_index
+         *
+         * @param index
          *          The index (must not be zero)
          * @return The object
          */
-        get: function (i_index) {
+        get(index) {
             var array = this._array;
-            if (i_index < 0) {
-                throw new Error('EXCEPTION! Invalid index: ' + i_index);
+            if (index < 0) {
+                throw new Error('EXCEPTION! Invalid index: ' + index);
             }
-            while (i_index >= array.length) {
+            while (index >= array.length) {
                 array.push(DNYNAMIC_LIST_DUMMY);
             }
-            var object = array[i_index];
+            var object = array[index];
             if (object === DNYNAMIC_LIST_DUMMY) {
                 try {
                     object = this._create();
                     if (object === undefined || object === null || typeof object !== 'object') {
                         throw new Error('Exception! Create method returns null!');
                     }
-                    array.splice(i_index, 1, object);
-                }
-                catch (exc) {
+                    array.splice(index, 1, object);
+                } catch (exc) {
                     throw new Error('EXCEPTION! Cannot create_' + exc);
                 }
             }
             return object;
-        },
-        remove: function (i_index) {
+        }
+        remove(index) {
             var array = this._array;
-            if (i_index >= 0 && i_index < array.length) {
-                var object = array.splice(i_index, 1);
+            if (index >= 0 && index < array.length) {
+                var object = array.splice(index, 1);
                 return object !== DNYNAMIC_LIST_DUMMY ? object : undefined;
-            }
-            else {
+            } else {
                 return undefined;
             }
-        },
-        clear: function () {
+        }
+        clear() {
             var array = this._array;
             array.splice(0, array.length);
-        },
-        getCurrentSize: function () {
+        }
+        getCurrentSize() {
             return this._array.length;
         }
-    };
+    }
+    Utilities.DynamicList = DynamicList;
+
+    function getObjectProperties(object, properties) {
+        const props = properties ? properties : [];
+        for (var id in object) {
+            if (object.hasOwnProperty(id)) {
+                props.push(id);
+            }
+        }
+        return props;
+    }
+    Utilities.getObjectProperties = getObjectProperties;
+    function getObjectAttributes(object, attributes) {
+        let attrs = attributes.split('.'), idx = 0, len = attrs.length, obj = object;
+        while (idx < len) {
+            if (obj === null || typeof obj !== 'object') {
+                return undefined;
+            }
+            obj = obj[attrs[idx++]];
+        }
+        return obj;
+    }
+    Utilities.getObjectAttributes = getObjectAttributes;
 
     // //////////////////////////////////////////////////////////////////////////////////////////
     // TRANSFER PROPERTIES
@@ -135,7 +152,7 @@
      *          i_source An optional object for storing replaced attributes from
      *          our included object
      */
-    var transfer_property = function (i_arrayMode, i_source, i_target, i_key, i_pre_include_source) {
+    function transfer_property(i_arrayMode, i_source, i_target, i_key, i_pre_include_source) {
         var srcval = i_source[i_key];
         var tgtval = i_target[i_key];
         if (Array.isArray(srcval)) {
@@ -143,57 +160,48 @@
             if (Array.isArray(tgtval)) {
                 // #2
                 transferProperties(srcval, tgtval);
-            }
-            else {
+            } else {
                 // #3
                 if (i_arrayMode) {
                     i_target[i_key] = srcval;
-                }
-                else {
+                } else {
                     if (i_pre_include_source && tgtval !== undefined) {
                         i_pre_include_source[i_key] = tgtval;
                     }
                     i_target[i_key] = srcval;
                 }
             }
-        }
-        else if (typeof srcval === 'object') {
+        } else if (typeof srcval === 'object') {
             // #4
             if (Array.isArray(tgtval)) {
                 // #5
                 if (i_arrayMode) {
                     i_target[i_key] = srcval;
-                }
-                else {
+                } else {
                     if (i_pre_include_source && tgtval !== undefined) {
                         i_pre_include_source[i_key] = tgtval;
                     }
                     i_target[i_key] = srcval;
                 }
-            }
-            else if (typeof tgtval === 'object') {
+            } else if (typeof tgtval === 'object') {
                 // #6
                 transferProperties(srcval, tgtval);
-            }
-            else {
+            } else {
                 // #7
                 if (i_arrayMode) {
                     i_target[i_key] = srcval;
-                }
-                else {
+                } else {
                     if (i_pre_include_source && tgtval !== undefined) {
                         i_pre_include_source[i_key] = tgtval;
                     }
                     i_target[i_key] = srcval;
                 }
             }
-        }
-        else if (srcval !== undefined) {
+        } else if (srcval !== undefined) {
             // #8
             if (i_arrayMode) {
                 i_target[i_key] = srcval;
-            }
-            else {
+            } else {
                 if (i_pre_include_source && tgtval !== undefined) {
                     i_pre_include_source[i_key] = tgtval;
                 }
@@ -215,14 +223,13 @@
      * @param {Object}
      *          pre_include_source Storage object for included sources
      */
-    function transferProperties (source, target, pre_include_source) {
+    function transferProperties(source, target, pre_include_source) {
         const arrayMode = Array.isArray(source) && Array.isArray(target);
         if (arrayMode) {
             for (let key = 0, len = source.length; key < len; key++) {
                 transfer_property(arrayMode, source, target, key, pre_include_source);
             }
-        }
-        else if (typeof source === 'object' && source !== null && typeof target === 'object' && target !== null) {
+        } else if (typeof source === 'object' && source !== null && typeof target === 'object' && target !== null) {
             for (let key in source) {
                 if (source.hasOwnProperty(key)) {
                     transfer_property(arrayMode, source, target, key, pre_include_source);
@@ -230,91 +237,150 @@
             }
         }
     }
+    Utilities.transferProperties = transferProperties;
 
     var md5 = isNodeJS ? require('md5') : function (i_string, i_options) {
         return CryptoJS.MD5(i_string, i_options).toString(CryptoJS.enc.Hex);
     };
+    Utilities.md5 = md5; // TODO: Replace with Server.createSHA256()  !!! WILL ONLY RUN ON SERVER SIDE !!!
 
-    // this is used for building unique ID's
-    var _unique_id = 0;
+    function copyArray(source, target) {
+        let array = target || [], i, l = source.length;
+        for (i = 0; i < l; i++) {
+            array[i] = source[i];
+        }
+        return array;
+    }
+    Utilities.copyArray = copyArray;
 
-    var ScrollHandler = function () {
-        // nop
-    };
+    // provider for unique ids
+    let _unique_id = 0;
+    function getUniqueId() {
+        return `uid${(_unique_id++)}`;
+    }
+    Utilities.getUniqueId = getUniqueId; // replace usage with Core.createIdGenerator(prefix)
 
-    ScrollHandler.prototype = {
-        prepare: function (i_scrollContainer, i_element) {
-            this._prevContWidth = i_scrollContainer.width();
-            this._prevContHeight = i_scrollContainer.height();
-            this._prevElemWidth = i_element.width();
-            this._prevElemHeight = i_element.height();
-            this._prevScrollLeft = i_scrollContainer.scrollLeft();
-            this._prevScrollTop = i_scrollContainer.scrollTop();
-        },
-        restore: function (i_scrollContainer, i_element) {
+    class ScrollHandler {
+        constructor() { }
+        prepare(scrollContainer, element) {
+            this._prevContWidth = scrollContainer.width();
+            this._prevContHeight = scrollContainer.height();
+            this._prevElemWidth = element.width();
+            this._prevElemHeight = element.height();
+            this._prevScrollLeft = scrollContainer.scrollLeft();
+            this._prevScrollTop = scrollContainer.scrollTop();
+        }
+        restore(scrollContainer, element) {
             // restore horizontal scroll position
             if (this._prevScrollLeft <= 0) {
-                i_scrollContainer.scrollLeft(0);
-            }
-            else if (this._prevScrollLeft >= this._prevElemWidth - this._prevContWidth) {
-                i_scrollContainer.scrollLeft(i_element.width() - i_scrollContainer.width());
-            }
-            else {
-                var curr = i_element.width() - i_scrollContainer.width();
+                scrollContainer.scrollLeft(0);
+            } else if (this._prevScrollLeft >= this._prevElemWidth - this._prevContWidth) {
+                scrollContainer.scrollLeft(element.width() - scrollContainer.width());
+            } else {
+                var curr = element.width() - scrollContainer.width();
                 var prev = this._prevElemWidth - this._prevContWidth;
-                i_scrollContainer.scrollLeft(Math.floor(1.0 * this._prevScrollLeft / prev * curr));
+                scrollContainer.scrollLeft(Math.floor(1.0 * this._prevScrollLeft / prev * curr));
             }
             // restore vertical scroll position
             if (this._prevScrollTop <= 0) {
-                i_scrollContainer.scrollTop(0);
-            }
-            else if (this._prevScrollTop >= this._prevElemHeight - this._prevContHeight) {
-                i_scrollContainer.scrollTop(i_element.height() - i_scrollContainer.height());
-            }
-            else {
-                var curr = i_element.height() - i_scrollContainer.height();
+                scrollContainer.scrollTop(0);
+            } else if (this._prevScrollTop >= this._prevElemHeight - this._prevContHeight) {
+                scrollContainer.scrollTop(element.height() - scrollContainer.height());
+            } else {
+                var curr = element.height() - scrollContainer.height();
                 var prev = this._prevElemHeight - this._prevContHeight;
-                i_scrollContainer.scrollTop(Math.floor(1.0 * this._prevScrollTop / prev * curr));
+                scrollContainer.scrollTop(Math.floor(1.0 * this._prevScrollTop / prev * curr));
             }
         }
-    };
+    }
+    Utilities.ScrollHandler = ScrollHandler;
 
-    var createRelativeParts = function (i_param) {
+    function createRelativeParts(param) {
         // here we store the resulting coordinates
         var coor = [];
         // if our parameter is just a simple number we create an array containig
         // equidistant parts
-        if (typeof i_param === 'number') {
-            var len = i_param > 0 ? i_param : 1;
+        if (typeof param === 'number') {
+            var len = param > 0 ? param : 1;
             var part = 1.0 / len;
             for (var i = 0; i < len; i++) {
                 coor.push(part);
             }
         }
         // in case of an array we add relative parts
-        else if (i_param !== undefined && i_param !== null && $.isArray(i_param) && i_param.length > 0) {
+        else if (param !== undefined && param !== null && $.isArray(param) && param.length > 0) {
             var validMaximaCnt = 0;
             var maximum = 0.0;
-            for (var i = 0; i < i_param.length; i++) {
-                if (i_param[i] > 0.0) {
+            for (var i = 0; i < param.length; i++) {
+                if (param[i] > 0.0) {
                     validMaximaCnt++;
-                    maximum += i_param[i];
+                    maximum += param[i];
                 }
             }
-            var invalidPart = 1.0 / i_param.length;
+            var invalidPart = 1.0 / param.length;
             var validMaxima = validMaximaCnt * invalidPart;
-            for (var i = 0; i < i_param.length; i++) {
-                var part = i_param[i] > 0.0 && maximum > 0 ? i_param[i] / maximum * validMaxima : invalidPart;
+            for (var i = 0; i < param.length; i++) {
+                var part = param[i] > 0.0 && maximum > 0 ? param[i] / maximum * validMaxima : invalidPart;
                 coor.push(part);
             }
-        }
-        else {
+        } else {
             coor.push(1.0);
         }
         return coor;
-    };
+    }
+    Utilities.createRelativeParts = createRelativeParts;
 
-    const utf8Symbols = {
+    function formatTimestamp(date, hideMillis) {
+        let txt = ('0000' + date.getFullYear()).slice(-4);
+        txt += '-';
+        txt += ('00' + (date.getMonth() + 1)).slice(-2);
+        txt += '-';
+        txt += ('00' + date.getDate()).slice(-2);
+        txt += ' ';
+        txt += ('00' + date.getHours()).slice(-2);
+        txt += ':';
+        txt += ('00' + date.getMinutes()).slice(-2);
+        txt += ':';
+        txt += ('00' + date.getSeconds()).slice(-2);
+        if (!hideMillis) {
+            txt += '.';
+            txt += ('000' + date.getMilliseconds()).slice(-3);
+        }
+        return txt;
+    }
+    Utilities.formatTimestamp = formatTimestamp;
+
+    function formatNumber(value, postDecimalPositions) {
+        if (postDecimalPositions < 1 || postDecimalPositions > 14) {
+            return value;
+        }
+        let e = Math.pow(10, postDecimalPositions);
+        let k = (Math.round(value * e) / e).toString();
+        if (k.indexOf('.') == -1) {
+            k += '.';
+        }
+        k += e.toString().substring(1);
+        return k.substring(0, k.indexOf('.') + postDecimalPositions + 1);
+    }
+    Utilities.formatNumber = formatNumber;
+
+    function loadClientTextFile(onResponse) {
+        // Note: This next code looks really ugly but unfortunatelly there
+        // seems to be be no other solluting for loading an client side text
+        // file into the browser.
+        let input = $('<input type="file" style="display: none" />');
+        input.on('change', function (i_change) {
+            var reader = new FileReader();
+            reader.onload = function () {
+                onResponse(reader.result);
+            };
+            reader.readAsText(i_change.target.files[0]);
+        });
+        input.trigger("click");
+    }
+    Utilities.loadClientTextFile = loadClientTextFile;
+
+    Utilities.utf8Symbols = {
         ok: '✅',
         error: '❌',
         check: '✔️',
@@ -331,112 +397,13 @@
         phone: '☎️',
         checkboxOn: '☑️',
         checkboxOff: '☐'
-    };
+    }
 
-    // export
-    var exp = {
-        equals,
-        getObjectProperties: (object, properties) => {
-            const props = properties ? properties : [];
-            for (var id in object) {
-                if (object.hasOwnProperty(id)) {
-                    props.push(id);
-                }
-            }
-            return props;
-        },
-        getObjectAttributes: (object, attributes) => {
-            let attrs = attributes.split('.'), idx = 0, len = attrs.length, obj = object;
-            while (idx < len) {
-                if (obj === null || typeof obj !== 'object') {
-                    return undefined;
-                }
-                obj = obj[attrs[idx++]];
-            }
-            return obj;
-        },
-        DynamicList,
-        /**
-         * This method transfers all attributes from the source to the target. If
-         * source and target are both arrays we iterate over all elements. If
-         * source and target are both objects we iterate over all attributes. In
-         * any other case, no data will be transfered.
-         */
-        transferProperties,
-        /**
-         * Conpute message digest (md5 algorithm)
-         */
-        md5,
-        /**
-         * Copy array
-         */
-        copyArray: (source, target) => {
-            let array = target || [], i, l = source.length;
-            for (i = 0; i < l; i++) {
-                array[i] = source[i];
-            }
-            return array;
-        },
-        // provider for unique ids
-        getUniqueId: () => {
-            return 'uid' + (_unique_id++);
-        },
-        // scrolling
-        ScrollHandler,
-        // ???
-        createRelativeParts,
-        // timestamp
-        formatTimestamp: (date, hideMillis) => {
-            let txt = ('0000' + date.getFullYear()).slice(-4);
-            txt += '-';
-            txt += ('00' + (date.getMonth() + 1)).slice(-2);
-            txt += '-';
-            txt += ('00' + date.getDate()).slice(-2);
-            txt += ' ';
-            txt += ('00' + date.getHours()).slice(-2);
-            txt += ':';
-            txt += ('00' + date.getMinutes()).slice(-2);
-            txt += ':';
-            txt += ('00' + date.getSeconds()).slice(-2);
-            if (!hideMillis) {
-                txt += '.';
-                txt += ('000' + date.getMilliseconds()).slice(-3);
-            }
-            return txt;
-        },
-        formatNumber: (value, postDecimalPositions) => {
-            if (postDecimalPositions < 1 || postDecimalPositions > 14) {
-                return value;
-            }
-            let e = Math.pow(10, postDecimalPositions);
-            let k = (Math.round(value * e) / e).toString();
-            if (k.indexOf('.') == -1) {
-                k += '.';
-            }
-            k += e.toString().substring(1);
-            return k.substring(0, k.indexOf('.') + postDecimalPositions + 1);
-        },
-        loadClientTextFile: onResponse => {
-            // Note: This next code looks really ugly but unfortunatelly there
-            // seems to be be no other solluting for loading an client side text
-            // file into the browser.
-            let input = $('<input type="file" style="display: none" />');
-            input.on('change', function (i_change) {
-                var reader = new FileReader();
-                reader.onload = function () {
-                    onResponse(reader.result);
-                };
-                reader.readAsText(i_change.target.files[0]);
-            });
-            input.trigger("click");
-        },
-        utf8Symbols: utf8Symbols
-    };
-
+    Object.freeze(Utilities);
     if (isNodeJS) {
-        module.exports = exp;
+        module.Utilities = Utilities;
     }
     else {
-        root.Utilities = exp;
+        root.Utilities = Utilities;
     }
 }(globalThis));

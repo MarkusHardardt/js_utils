@@ -1,5 +1,6 @@
 (function (root) {
     "use strict";
+    const WebServer = {};
 
     const isNodeJS = typeof require === 'function';
     if (!isNodeJS) {
@@ -16,7 +17,7 @@
     const express = require('express');
     const bodyParser = require('body-parser');
 
-    class WebServer {
+    class WebSrv {
         constructor(options = {}) {
             this._scripts = [];
             this._styles = [];
@@ -150,7 +151,9 @@
             this._server.listen(port, onResponse);
         }
     }
+    WebServer.Server = WebSrv;
 
+    Object.freeze(WebServer);
     if (isNodeJS) {
         module.exports = WebServer;
     }
