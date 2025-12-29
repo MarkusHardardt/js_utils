@@ -11,53 +11,41 @@
     // access to other components in node js and browser:
     const isNodeJS = typeof require === 'function';
     const Common = isNodeJS ? require('./Common.js') : root.Common;
+    const DataPoint = isNodeJS ? require('./DataPoint.js') : root.DataPoint;
 
     class Node {
         constructor() {
-            this._isOperational = false;
-            this._onOperationalStateChanged = null;
+            this._operational = new DataPoint.Node();
+            this._operational.Value = false;
+            this._operational.Subscribable = null;
             Common.validateOperationalStateInterface(this, true);
         }
 
+        set OnError(value) {
+            if (typeof value !== 'function') {
+                throw new Error('Set value for OnError(error) is not a function');
+            }
+            this._operational.OnError = value;
+        }
+
+        set UnsubscribeDelay(value) {
+            this._operational.UnsubscribeDelay = value;
+        }
+
         get IsOperational() {
-            return this._isOperational === true;
+            return this._operational.Value;
         }
 
         set IsOperational(value) {
-            const op = value === true;
-            if (op !== this._isOperational) {
-                this._isOperational = op;
-                if (this._onOperationalStateChanged) {
-                    try {
-                        this._onOperationalStateChanged(op);
-                    } catch (error) {
-                        console.error(error);
-                    }
-                }
-            }
+            this._operational.Value = value;
         }
 
         SubscribeOperationalState(onOperationalStateChanged) {
-            if (typeof onOperationalStateChanged !== 'function') {
-                throw new Error('onOperationalStateChanged() is not a function');
-            } else if (this._onOperationalStateChanged === onOperationalStateChanged) {
-                throw new Error('onOperationalStateChanged() is already subscribed');
-            }
-            this._onOperationalStateChanged = onOperationalStateChanged;
-            try {
-                onOperationalStateChanged(this._isOperational);
-            } catch (error) {
-                console.error(error);
-            }
+            this._operational.Subscribe(onOperationalStateChanged);
         }
 
         UnsubscribeOperationalState(onOperationalStateChanged) {
-            if (typeof onOperationalStateChanged !== 'function') {
-                throw new Error('onOperationalStateChanged() is not a function');
-            } else if (this._onOperationalStateChanged !== onOperationalStateChanged) {
-                throw new Error('onOperationalStateChanged() is not subscribed');
-            }
-            this._onOperationalStateChanged = null;
+            this._operational.Unsubscribe(onOperationalStateChanged);
         }
     }
     OperationalState.Node = Node;

@@ -6,7 +6,7 @@
     var Executor = isNodeJS ? require('./Executor') : root.Executor;
     var mysql = isNodeJS ? require('mysql') : false;
 
-    var SqlHelper = function (i_config, i_verbose) {
+    function SqlHelper(i_config, i_verbose) {
         var that = this;
         if (mysql) {
             var helper = mysql.createPool(i_config);
@@ -48,7 +48,7 @@
         return mysql ? mysql.escape(i_value) : window.SqlString.escape(i_value);
     };
 
-    var Proxy = function (i_url, i_callback) {
+    function Proxy(i_url, i_callback) {
         this._url = i_url;
         var that = this;
         $.ajax({
@@ -126,7 +126,7 @@
         }
     };
 
-    var Adapter = function (i_connection, i_verbose) {
+    function Adapter(i_connection, i_verbose) {
         this._con = i_connection;
         this._verbose = i_verbose === true;
         this._columns = [];
