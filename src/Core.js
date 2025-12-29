@@ -16,7 +16,7 @@
 
     Core.defaultEqual = (v1, v2) => v1 === v2;
 
-    Core.defaultOnError = error => console.error(error);
+    Core.defaultOnError = (message, error) => console.error(message, error);
 
     /*  Kahn's algorithm  */
     function getTopologicalSorting(dependencies) {

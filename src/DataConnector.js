@@ -91,7 +91,7 @@
             constructor() {
                 super();
                 Common.validateClientConnectorInterface(this, true);
-                Common.validateDataPointInterface(this, true);
+                Common.validateDataPointCollectionInterface(this, true);
                 this._isOpen = false;
                 this._datas = null;
                 this._short2Id = null;
@@ -302,7 +302,7 @@
 
             set Parent(value) {
                 if (value) {
-                    Common.validateDataPointInterface(value, true);
+                    Common.validateDataPointCollectionInterface(value, true);
                     this._parent = value;
                 } else {
                     this._parent = null;
@@ -356,7 +356,7 @@
 
             handleReceived(data, onResponse, onError) {
                 if (this._isOpen) {
-                    Common.validateDataPointInterface(this._parent);
+                    Common.validateDataPointCollectionInterface(this._parent);
                     Common.validateConnectionInterface(this.connection);
                     let dataId;
                     switch (data.type) {
@@ -390,7 +390,7 @@
 
             _updateSubscriptions(subscriptionShorts) {
                 if (this._isOpen) {
-                    Common.validateDataPointInterface(this._parent);
+                    Common.validateDataPointCollectionInterface(this._parent);
                     for (const dataId in this._onEventCallbacks) {
                         if (this._onEventCallbacks.hasOwnProperty(dataId)) {
                             const short = this._id2Short[dataId];

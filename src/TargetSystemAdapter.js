@@ -8,12 +8,12 @@
     class TargetSystemAdapter extends OperationalState {
         constructor() {
             super();
-            Common.validateDataPointInterface(this, true);
+            Common.validateDataPointCollectionInterface(this, true);
             this._targetSystems = {};
         }
 
         Register(target, system) {
-            Common.validateDataPointInterface(system, true);
+            Common.validateDataPointCollectionInterface(system, true);
             if (typeof target !== 'string') {
                 throw new Error(`Invalid target '${target}' for Register(target, system)`);
             } else if (this._targetSystems[target] !== undefined) {
@@ -24,7 +24,7 @@
         }
 
         Unregister(target, system) {
-            Common.validateDataPointInterface(system, true);
+            Common.validateDataPointCollectionInterface(system, true);
             if (typeof target !== 'string') {
                 throw new Error(`Invalid target '${target}' for Unregister(target, system)`);
             } else if (this._targetSystems[target] === undefined) {
