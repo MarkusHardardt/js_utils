@@ -401,7 +401,7 @@
 
     Object.freeze(Utilities);
     if (isNodeJS) {
-        module.Utilities = Utilities;
+        module.exports = Utilities;
     }
     else {
         root.Utilities = Utilities;

@@ -330,6 +330,7 @@
         };
     }
     Sorting.getTextsAndNumbersCompareFunction = getTextsAndNumbersCompareFunction;
+
     function compareDates(d1, d2) {
         var time1 = d1.getTime();
         var time2 = d2.getTime();
@@ -399,7 +400,7 @@
 
     Object.freeze(Sorting);
     if (isNodeJS) {
-        module.Sorting = Sorting;
+        module.exports = Sorting;
     } else {
         root.Sorting = Sorting;
     }

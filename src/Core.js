@@ -112,7 +112,7 @@
         for (let i = 0; i < components.length; i++) {
             txt += `        ${components[i]}${(i < components.length - 1 ? ',' : '')} // direct access: const ${components[i]} = require('${scope}js_utils/src/${components[i]}.js');\n`;
         }
-        txt += `} = require('${scope}js_utils/js_utils.js');\n`;
+        txt += `    } = require('${scope}js_utils/js_utils.js');\n`;
         txt += `    // separated:\n`;
         for (let comp of components) {
             txt += `    const ${comp} = require('${scope}js_utils/src/${comp}.js');\n`;
