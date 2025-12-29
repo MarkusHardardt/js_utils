@@ -7,11 +7,12 @@
 // See: DataPoint, DataConnector, TargetSystemAdapter, PlcAdapterMock
 (function (root) {
     "use strict";
+    const OperationalState = {};
     // access to other components in node js and browser:
     const isNodeJS = typeof require === 'function';
     const Common = isNodeJS ? require('./Common.js') : root.Common;
 
-    class OperationalState {
+    class Node {
         constructor() {
             this._isOperational = false;
             this._onOperationalStateChanged = null;
@@ -59,7 +60,9 @@
             this._onOperationalStateChanged = null;
         }
     }
+    OperationalState.Node = Node;
 
+    Object.freeze(OperationalState);
     if (isNodeJS) {
         module.exports = OperationalState;
     } else {

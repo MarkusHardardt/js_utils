@@ -1,6 +1,6 @@
 (function (root) {
     "use strict";
-
+    const Executor = {};
     const isNodeJS = typeof require === 'function';
 
     function exec(object, onSuccess, onError, timeout, millis) {
@@ -149,7 +149,7 @@
         else {
             onError('Cannot execute! Object is not a function and no array: ' + object);
         }
-    };
+    }
 
     function run() {
         // init callbacks and helpers
@@ -195,6 +195,7 @@
             on_success(result);
         }
     }
+    Executor.run = run;
 
     function pipe() {
         // init callbacks and helpers
@@ -292,6 +293,7 @@
             }
         };
     }
+    Executor.pipe = pipe;
 
     function decouple() {
         // init callbacks and times
@@ -348,6 +350,7 @@
             }
         } : trigger;
     }
+    Executor.decouple = decouple;
 
     function unstress() {
         // init callbacks and helpers
@@ -420,12 +423,9 @@
         };
         return run;
     }
-
-    const Executor = { run, pipe, decouple, unstress };
+    Executor.unstress = unstress;
 
     Object.seal(Executor);
-
-    // export
     if (isNodeJS) {
         module.exports = Executor;
     } else {
