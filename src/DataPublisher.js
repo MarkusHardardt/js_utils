@@ -8,14 +8,14 @@
 
     class DataNode { // TODO Use or remove
         constructor() {
-            this._value = null;
+            this._data = null;
             this._onSubscriptionChanged = null;
             this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
             this._unsubscribeDelay = false;
             this._unsubscribeDelayTimer = null;
             this._onDataChangedCallbacks = [];
-            this._onDataChanged = value => this._handleDataChanged(value);
+            this._onDataChanged = data => this._handleDataChanged(data);
         }
 
         set OnSubscriptionChanged(value) {
@@ -49,12 +49,12 @@
             this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
         }
 
-        get Value() {
-            return this._value;
+        get Data() {
+            return this._data;
         }
 
-        set Value(value) {
-            this._value = value;
+        set Data(value) {
+            this._data = value;
         }
 
         Subscribe(onChanged) {
@@ -108,12 +108,12 @@
             throw new Error('onChanged() is not subscribed');
         }
 
-        _handleDataChanged(isOperational) {
-            if (this._isOperational !== isOperational) {
-                this._isOperational = isOperational;
+        _handleDataChanged(data) {
+            if (!this._equal(this._data, data)) {
+                this._data = data;
                 for (const onChanged of this._onDataChangedCallbacks) {
                     try {
-                        onChanged(isOperational);
+                        onChanged(data);
                     } catch (error) {
                         this._onError(`Failed calling onChanged(value): ${error}`);
                     }
