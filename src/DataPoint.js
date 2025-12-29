@@ -255,22 +255,25 @@
 
         _createData(dataId) {
             const node = new Node();
-            node.Value = null;
+            const data = {
+                node,
+                Subscribe: onRefresh => {
+                    if (this._parent) {
+                        this._parent.SubscribeData(dataId, onRefresh);
+                    }
+                },
+                Unsubscribe: onRefresh => {
+                    if (this._parent) {
+                        this._parent.UnsubscribeData(dataId, onRefresh);
+                    }
+                },
+                onRefresh: value => node.Value = value // TODO: What is this for?
+            };
             node.UnsubscribeDelay = this._unsubscribeDelay;
             node.Equal = this._equal;
             node.OnError = this._onError;
-            const data = {
-                dataId,
-                node,
-                onRefresh: value => node.Value = value,
-                SubscribeData: (dataId, onRefresh) => {},
-                UnsubscribeData: (dataId, onRefresh) => {},
-                Read: (dataId, onResponse, onError) => {},
-                Write: (dataId, value) => {},
-
-                callbacks: [],
-                unsubscribeDelayTimer: null
-            };
+            node.Value = null;
+            node.Subscribable = data;
             return data;
         }
     }
