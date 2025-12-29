@@ -1,6 +1,6 @@
 (function () {
-    const Core = require('./src/Core.js');
-    Core.analyseLibrary('./src', '../js_utils_dependencies.txt');
+    const Core = require('../src/Core.js');
+    Core.analyseLibrary('./src', '../js_utils_dependencies.js', './js_utils.js');
 
     // Edited manually 2025-12-27
     const js_utils_dependencies = {
