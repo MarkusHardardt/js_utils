@@ -247,11 +247,11 @@
         // [_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*
         const attributeMethodRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*$/;
         const attributePropertyRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*:\s*([_a-zA-Z0-9]+)\s*$/;
-        const standardFunctionRegex = /^\s*function\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)/m;
-        const lamdaFunctionRegex = /^\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*=>/m;
-        const lamdaFunctionSingleArgumentRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*=>/m;
-        const classMethodRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)/m;
-        const argumentRegex = /(?:\s*,\s*)?([_$a-zA-Z][_$a-zA-Z0-9]*)\s*/mg;
+        const standardFunctionRegex = /^\s*function\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)/;
+        const lamdaFunctionRegex = /^\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*=>/;
+        const lamdaFunctionSingleArgumentRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*=>/;
+        const classMethodRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)/;
+        const argumentRegex = /(?:\s*,\s*)?([_$a-zA-Z][_$a-zA-Z0-9]*)\s*/g;
         function getArgumentsArray(argumentsSource) {
             const a = [];
             if (argumentsSource) {
@@ -283,9 +283,9 @@
             }
             const functionSource = functionInstance.toString();
             const expectedArgumentsArray = getArgumentsArray(expectedArguments);
-            const standardFuncionMatch = standardFunctionRegex.exec(functionSource);
-            if (standardFuncionMatch) {
-                validateArguments(standardFuncionMatch[1], expectedArgumentsArray);
+            const standardFunctionMatch = standardFunctionRegex.exec(functionSource);
+            if (standardFunctionMatch) {
+                validateArguments(standardFunctionMatch[1], expectedArgumentsArray);
                 return;
             }
             const lamdaFunctionMatch = lamdaFunctionRegex.exec(functionSource);
