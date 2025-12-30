@@ -13,7 +13,7 @@
             this._onError = Core.defaultOnError;
             this._onRefresh = value => this._refresh(value);
             this._subscriptions = [];
-            this._subscribable = null;
+            this._subscribable = null; // TODO: Find better name
             this._unsubscribeDelay = false;
             this._unsubscribeDelayTimer = null;
             Common.validateSubscribableInterface(this, true);
@@ -66,26 +66,36 @@
             if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh() is not a function');
             }
+            let alreadySubscribed = false;
             for (const callback of this._subscriptions) {
                 if (callback === onRefresh) {
-                    throw new Error('onRefresh() is already subscribed');
+                    alreadySubscribed = true;
+                    this._onError('onRefresh() is already subscribed');
                 }
             }
-            this._subscriptions.push(onRefresh);
-            if (!this._subscribable || this._subscriptions.length > 1) {
-                // If we cannot subscribe or it is not the first subscription we fire the event manually.
+            if (alreadySubscribed) {
                 try {
                     onRefresh(this._value);
                 } catch (error) {
                     this._onError(`Failed calling onRefresh(value): ${error}`);
                 }
             } else {
-                // If first subscription we subscribe on our parent which should result in firering the event.
-                if (this._unsubscribeDelayTimer) {
-                    clearTimeout(this._unsubscribeDelayTimer);
-                    this._unsubscribeDelayTimer = null;
+                this._subscriptions.push(onRefresh);
+                if (!this._subscribable || this._subscriptions.length > 1) {
+                    // If we cannot subscribe or it is not the first subscription we fire the event manually.
+                    try {
+                        onRefresh(this._value);
+                    } catch (error) {
+                        this._onError(`Failed calling onRefresh(value): ${error}`);
+                    }
                 } else {
-                    this._subscribable.Subscribe(this._onRefresh);
+                    // If first subscription we subscribe on our parent which should result in firering the event.
+                    if (this._unsubscribeDelayTimer) {
+                        clearTimeout(this._unsubscribeDelayTimer);
+                        this._unsubscribeDelayTimer = null;
+                    } else {
+                        this._subscribable.Subscribe(this._onRefresh);
+                    }
                 }
             }
         }
@@ -110,7 +120,7 @@
                     return;
                 }
             }
-            throw new Error('onRefresh() is not subscribed');
+            this._onError('onRefresh() is not subscribed');
         }
 
         _refresh(value) {
@@ -128,7 +138,7 @@
     }
     DataPoint.Node = Node;
 
-    class Collection { // TODO  extends OperationalState.Node
+    class Collection { // TODO  extends OperationalState.Node ???
         constructor() {
             this._operational = new Node(); // TODO  extends OperationalState.Node
             this._operational.Value = false;
@@ -149,9 +159,8 @@
             this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
             this._unsubscribeDelay = false;
-            this._datas = {};
+            this._dataPointsByDataId = {};
             Common.validateDataPointCollectionInterface(this, true);
-            Common.validateOperationalStateInterface(this, true);
         }
 
         set Parent(value) { // TODO: 
@@ -171,9 +180,9 @@
                 throw new Error('Set value for Equal(e1, e2) is not a function');
             }
             this._equal = value;
-            for (const dataId in this._datas) {
-                if (this._datas.hasOwnProperty(dataId)) {
-                    this._datas[dataId].node.Equal = value;
+            for (const dataId in this._dataPointsByDataId) {
+                if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
+                    this._dataPointsByDataId[dataId].node.Equal = value;
                 }
             }
         }
@@ -184,9 +193,9 @@
             }
             this._onError = value;
             this._operational.OnError = value;
-            for (const dataId in this._datas) {
-                if (this._datas.hasOwnProperty(dataId)) {
-                    this._datas[dataId].node.OnError = value;
+            for (const dataId in this._dataPointsByDataId) {
+                if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
+                    this._dataPointsByDataId[dataId].node.OnError = value;
                 }
             }
         }
@@ -194,9 +203,9 @@
         set UnsubscribeDelay(value) {
             this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
             this._operational.UnsubscribeDelay = value;
-            for (const dataId in this._datas) {
-                if (this._datas.hasOwnProperty(dataId)) {
-                    this._datas[dataId].node.UnsubscribeDelay = value;
+            for (const dataId in this._dataPointsByDataId) {
+                if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
+                    this._dataPointsByDataId[dataId].node.UnsubscribeDelay = value;
                 }
             }
         }
@@ -222,9 +231,9 @@
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid subscription dataId: ${dataId}`);
             }
-            let data = this._datas[dataId];
+            let data = this._dataPointsByDataId[dataId];
             if (!data) {
-                this._datas[dataId] = data = this._createDataForId(dataId);
+                this._dataPointsByDataId[dataId] = data = this._createDataForId(dataId);
             }
             data.node.Subscribe(onRefresh);
         }
@@ -233,7 +242,7 @@
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid unsubscription dataId: ${dataId}`);
             }
-            let data = this._datas[dataId];
+            let data = this._dataPointsByDataId[dataId];
             if (!data) {
                 throw new Error(`Cannot unsubscribe for unknown dataId: ${dataId}`);
             }
@@ -248,7 +257,7 @@
                 } catch (error) {
                     this._onError(`Failed calling onResponse() for dataId: ${dataId}: ${error.message}`, error);
                 }
-                let data = this._datas[dataId];
+                let data = this._dataPointsByDataId[dataId];
                 if (data) {
                     data.node.Value = value;
                 }
