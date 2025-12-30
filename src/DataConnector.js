@@ -76,7 +76,7 @@
                 this._operational.Subscribable = null;
                 this._equal = Core.defaultEqual;
                 this._dataPointConfigsByShortId = null;
-                this._dataPointsByDataId = null;
+                this._dataPointsByDataId = {};
                 this._subscribeDelay = false;
                 this._subscribeDelayTimer = null;
                 this._unsubscribeDelay = false;
@@ -132,7 +132,7 @@
                 if (typeof dataId !== 'string') {
                     throw new Error(`Invalid data id: '${dataId}'`);
                 } else if (this._dataPointsByDataId[dataId] === undefined) {
-                    throw new Error(`Unknowd data id '${dataId}'`);
+                    throw new Error(`Unknown data point for id '${dataId}' to get type`);
                 }
                 return this._dataPointsByDataId[dataId].type;
             }
@@ -142,12 +142,12 @@
                     throw new Error(`Invalid subscription data id: '${dataId}'`);
                 } else if (typeof onRefresh !== 'function') {
                     throw new Error(`Subscriber for subscription data id '${dataId}' is not a function`);
-                } else if (this._dataPointsByDataId[dataId] === undefined) {
-                    throw new Error(`Unknowd data id '${dataId}' for subscription`);
-                } else if (this._dataPointsByDataId[dataId].onRefresh) {
-                    throw new Error(`Data for data id '${dataId}' is already subscribed`);
                 }
-                this._dataPointsByDataId[dataId].onRefresh = onRefresh;
+                const dataPoint = this._dataPointsByDataId[dataId];
+                if (!dataPoint) {
+                    throw new Error(`Unknown data point for id '${dataId}' for subscription`);
+                }
+                dataPoint.node.Subscribe(onRefresh);
                 this._subscriptionsChanged();
             }
 
@@ -156,39 +156,53 @@
                     throw new Error(`Invalid unsubscription data id: '${dataId}'`);
                 } else if (typeof onRefresh !== 'function') {
                     throw new Error(`Subscriber for unsubscription id '${dataId}' is not a function`);
-                } else if (this._dataPointsByDataId[dataId] === undefined) {
-                    throw new Error(`Unknowd data id '${dataId}' for unsubscription`);
-                } else if (!this._dataPointsByDataId[dataId].onRefresh) {
-                    throw new Error(`Data for data id '${dataId}' is already unsubscribed`);
-                } else if (this._dataPointsByDataId[dataId].onRefresh !== onRefresh) {
-                    throw new Error(`Unexpected onRefresh for data id '${dataId}' to unsubscribe`);
                 }
-                this._dataPointsByDataId[dataId].onRefresh = null;
+                const dataPoint = this._dataPointsByDataId[dataId];
+                if (!dataPoint) {
+                    throw new Error(`Unknown data point for id '${dataId}' for subscription`);
+                }
+                dataPoint.node.Unsubscribe(onRefresh);
                 this._subscriptionsChanged();
             }
 
             Read(dataId, onResponse, onError) {
-                Common.validateConnectionInterface(this.connection);
                 if (!this._operational.Value) {
                     throw new Error('Cannot Read() because not connected');
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
-                    throw new Error(`Unexpected data id ${dataId} to Read()`);
+                    throw new Error(`Unknown data point for id ${dataId} to Read()`);
                 }
-                this.connection.Send(this.receiver, { type: TransmissionType.ReadRequest, shortId: dataPoint.shortId }, onResponse, onError);
+                Common.validateConnectionInterface(this.connection);
+                this.connection.Send(this.receiver,
+                    { type: TransmissionType.ReadRequest, shortId: dataPoint.shortId },
+                    value => {
+                        try {
+                            onResponse(value);
+                        } catch (error) {
+                            this._onError(`Failed calling onResponse() for dataId: ${dataId}: ${error.message}`, error);
+                        }
+                        const dataPoint = this._dataPointsByDataId[dataId];
+                        if (dataPoint) {
+                            dataPoint.node.Value = value;
+                        }
+                    },
+                    onError
+                );
             }
 
             Write(dataId, value) {
-                Common.validateConnectionInterface(this.connection);
                 if (!this._operational.Value) {
                     throw new Error('Cannot Write() because not connected');
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
-                    throw new Error(`Unexpected data id ${dataId} to Write()`);
+                    throw new Error(`Unknown data point for id ${dataId} to Write()`);
                 }
-                this.connection.Send(this.receiver, { type: TransmissionType.WriteRequest, shortId: dataPoint.shortId, value });
+                Common.validateConnectionInterface(this.connection);
+                this.connection.Send(this.receiver,
+                    { type: TransmissionType.WriteRequest, shortId: dataPoint.shortId, value }
+                );
             }
 
             OnOpen() {

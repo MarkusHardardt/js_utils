@@ -62,6 +62,10 @@
             this._refresh(value);
         }
 
+        get SubscriptionsCount() {
+            return this._subscriptions.length;
+        }
+
         Subscribe(onRefresh) {
             if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh() is not a function');
