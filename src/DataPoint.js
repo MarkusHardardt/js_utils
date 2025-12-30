@@ -16,7 +16,7 @@
             this._subscribable = null; // TODO: Find better name
             this._unsubscribeDelay = false;
             this._unsubscribeDelayTimer = null;
-            Common.validateSubscribableInterface(this, true);
+            Common.validateAsObservable(this, true);
         }
 
         set Subscribable(value) {
@@ -25,7 +25,7 @@
                     this._subscribable.Unsubscribe(this._onRefresh);
                 }
                 if (value) {
-                    Common.validateSubscribableInterface(value, true);
+                    Common.validateAsObservable(value, true);
                     this._subscribable = value;
                 } else {
                     this._subscribable = null;
@@ -147,7 +147,7 @@
             this._operational = new DataPoint.Node();
             this._operational.Value = false;
             this._operational.Subscribable = null;
-            Common.validateOperationalStateInterface(this, true);
+            Common.validateAsOperationalState(this, true);
         }
 
         set OnError(value) {
@@ -186,7 +186,7 @@
             this._onError = Core.defaultOnError; // TODO: Used?
             this._targets = {};
             this._splitIntoTargetAndDataId = null;
-            Common.validateDataPointCollectionInterface(this, true);
+            Common.validateAsDataAccessObject(this, true);
         }
 
         set OnError(value) {
@@ -202,7 +202,7 @@
         }
 
         Register(targetId, target) {
-            Common.validateDataPointCollectionInterface(target, true);
+            Common.validateAsDataAccessObject(target, true);
             if (typeof targetId !== 'string') {
                 throw new Error(`Invalid target '${targetId}' for Register(target, system)`);
             } else if (this._targets[targetId] !== undefined) {
@@ -212,7 +212,7 @@
         }
 
         Unregister(targetId, target) {
-            Common.validateDataPointCollectionInterface(target, true);
+            Common.validateAsDataAccessObject(target, true);
             if (typeof targetId !== 'string') {
                 throw new Error(`Invalid target '${targetId}' for Unregister(target, system)`);
             } else if (this._targets[targetId] === undefined) {
@@ -351,13 +351,13 @@
             this._onError = Core.defaultOnError;
             this._unsubscribeDelay = false;
             this._dataPointsByDataId = {};
-            Common.validateDataPointCollectionInterface(this, true);
+            Common.validateAsDataAccessObject(this, true);
         }
 
         set Parent(value) { // TODO: 
             if (this._parent !== value) { // TODO: unsubscribe and re-subscribe existing subscriptions
                 if (value) {
-                    Common.validateDataPointCollectionInterface(value, true);
+                    Common.validateAsDataAccessObject(value, true);
                     this._parent = value;
                 }
                 else {
@@ -399,7 +399,7 @@
         }
 
         GetType(dataId) {
-            Common.validateDataPointCollectionInterface(this._parent);
+            Common.validateAsDataAccessObject(this._parent);
             return this._parent.GetType(dataId);
         }
 
@@ -426,7 +426,7 @@
         }
 
         Read(dataId, onResponse, onError) {
-            Common.validateDataPointCollectionInterface(this._parent);
+            Common.validateAsDataAccessObject(this._parent);
             this._parent.Read(dataId, value => {
                 try {
                     onResponse(value);
@@ -441,7 +441,7 @@
         }
 
         Write(dataId, value) {
-            Common.validateDataPointCollectionInterface(this._parent);
+            Common.validateAsDataAccessObject(this._parent);
             this._parent.Write(dataId, value);
         }
 

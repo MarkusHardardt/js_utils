@@ -308,7 +308,7 @@
         }
         Core.validateFunction = validateFunction;
 
-        function validateInterface(instanceType, objectInstance, expectedItems, validateMethodArguments) {
+        function validateAs(instanceType, objectInstance, expectedItems, validateMethodArguments) {
             if (objectInstance === undefined) {
                 throw new Error(`${instanceType} is undefined!`);
             } if (objectInstance === null) {
@@ -343,7 +343,7 @@
                 }
             }
         }
-        Core.validateInterface = validateInterface;
+        Core.validateAs = validateAs;
 
         // Perform some tests
         const tasks = [];
@@ -357,7 +357,7 @@
                     'Answer:number',
                     'Text:string'
                 ];
-                validateInterface('Test1', {
+                validateAs('Test1', {
                     Foo: function () { },
                     Baz: function (a) { },
                     Bar: function (b, c) { }, // b, c
@@ -365,7 +365,7 @@
                     Answer: 42,
                     Text: 'Hello world'
                 }, testAttributes, true);
-                validateInterface('Test2', {
+                validateAs('Test2', {
                     Foo: () => { },
                     Baz: a => { },
                     Bar: (b, c) => { },
@@ -380,7 +380,7 @@
         });
         tasks.push((onSuccess, onError) => {
             try {
-                validateInterface('Test3', {
+                validateAs('Test3', {
                     Foo: arg => { }
                 }, [
                     'Foo(arg)'
@@ -391,7 +391,7 @@
             }
         });
         // TODO: Add tests for each check
-        Executor.run(tasks, () => console.log('validateInterface() tested successfully'), error => {
+        Executor.run(tasks, () => console.log('validateAs() tested successfully'), error => {
             throw new Error(error);
         });
     }());

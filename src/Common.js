@@ -4,29 +4,29 @@
     const isNodeJS = typeof require === 'function';
     const Core = isNodeJS ? require('./Core.js') : root.Core;
 
-    /*  subscribable inferface  */
-    function validateSubscribableInterface(instance, validateMethodArguments) {
-        Core.validateInterface('Subscribable', instance, [
+    /*  Observable inferface  */
+    function validateAsObservable(instance, validateMethodArguments) {
+        Core.validateAs('Observable', instance, [
             'Subscribe(onRefresh)',
             'Unsubscribe(onRefresh)',
         ], validateMethodArguments);
     }
-    Common.validateSubscribableInterface = validateSubscribableInterface;
+    Common.validateAsObservable = validateAsObservable;
 
-    /*  operational state interface  */
-    function validateOperationalStateInterface(instance, validateMethodArguments) {
-        Core.validateInterface('OperationalState', instance, [
+    /*  OperationalState interface  */
+    function validateAsOperationalState(instance, validateMethodArguments) {
+        Core.validateAs('OperationalState', instance, [
             'IsOperational:boolean', // property getter returns true if operational
             'SubscribeOperationalState(onOperationalStateChanged)',
             'UnsubscribeOperationalState(onOperationalStateChanged)'
         ], validateMethodArguments);
     }
-    Common.validateOperationalStateInterface = validateOperationalStateInterface;
+    Common.validateAsOperationalState = validateAsOperationalState;
 
-    /*  event publisher inferface  */
-    function validateDataPointCollectionInterface(instance, validateMethodArguments) {
-        validateOperationalStateInterface(instance, validateMethodArguments);
-        Core.validateInterface('DataPointCollection', instance, [
+    /*  DataAccessObject inferface  */
+    function validateAsDataAccessObject(instance, validateMethodArguments) {
+        validateAsOperationalState(instance, validateMethodArguments);
+        Core.validateAs('DataAccessObject', instance, [
             'GetType(dataId)',
             'SubscribeData(dataId, onRefresh)',
             'UnsubscribeData(dataId, onRefresh)',
@@ -34,38 +34,38 @@
             'Write(dataId, value)'
         ], validateMethodArguments);
     }
-    Common.validateDataPointCollectionInterface = validateDataPointCollectionInterface;
+    Common.validateAsDataAccessObject = validateAsDataAccessObject;
 
-    /*  connection inferface  */
-    function validateConnectionInterface(instance, validateMethodArguments) {
-        Core.validateInterface('Connection', instance, [
+    /*  Connection inferface  */
+    function validateAsConnection(instance, validateMethodArguments) {
+        Core.validateAs('Connection', instance, [
             'Ping(onResponse, onError)',
             'Register(receiver, handler)',
             'Unregister(receiver)',
             'Send(receiver, data, onResponse, onError)'
         ], validateMethodArguments);
     }
-    Common.validateConnectionInterface = validateConnectionInterface;
+    Common.validateAsConnection = validateAsConnection;
 
-    /*  connector inferface on client */
-    function validateClientConnectorInterface(instance, validateMethodArguments) {
-        Core.validateInterface('ClientConnector', instance, [
+    /*  ClientConnector inferface */
+    function validateAsClientConnector(instance, validateMethodArguments) {
+        Core.validateAs('ClientConnector', instance, [
             'OnOpen()',
             'OnClose()'
         ], validateMethodArguments);
     }
-    Common.validateClientConnectorInterface = validateClientConnectorInterface;
+    Common.validateAsClientConnector = validateAsClientConnector;
 
-    /*  connector inferface on server  */
-    function validateServerConnectorInterface(instance, validateMethodArguments) {
-        Core.validateInterface('ServerConnector', instance, [
+    /*  ServerConnector inferface  */
+    function validateAsServerConnector(instance, validateMethodArguments) {
+        Core.validateAs('ServerConnector', instance, [
             'OnOpen()',
             'OnReopen()',
             'OnClose()',
             'OnDispose()'
         ], validateMethodArguments);
     }
-    Common.validateServerConnectorInterface = validateServerConnectorInterface;
+    Common.validateAsServerConnector = validateAsServerConnector;
 
     Object.freeze(Common);
     if (isNodeJS) {

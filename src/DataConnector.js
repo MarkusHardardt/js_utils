@@ -32,7 +32,7 @@
                     this.connection.Unregister(this.receiver);
                     this.connection = null;
                 }
-                Common.validateConnectionInterface(value, true);
+                Common.validateAsConnection(value, true);
                 this.connection = value;
                 this.connection.Register(this.receiver, this._handler);
             } else if (this.connection) {
@@ -81,8 +81,8 @@
                 this._subscribeDelay = false;
                 this._subscribeDelayTimer = null;
                 this._unsubscribeDelay = false;
-                Common.validateDataPointCollectionInterface(this, true);
-                Common.validateClientConnectorInterface(this, true);
+                Common.validateAsDataAccessObject(this, true);
+                Common.validateAsClientConnector(this, true);
             }
 
             set Equal(value) {
@@ -164,7 +164,7 @@
                 if (!dataPoint) {
                     throw new Error(`Unknown data point for id ${dataId} to Read()`);
                 }
-                Common.validateConnectionInterface(this.connection);
+                Common.validateAsConnection(this.connection);
                 this.connection.Send(this.receiver,
                     { type: TransmissionType.ReadRequest, shortId: dataPoint.shortId },
                     value => {
@@ -190,7 +190,7 @@
                 if (!dataPoint) {
                     throw new Error(`Unknown data point for id ${dataId} to Write()`);
                 }
-                Common.validateConnectionInterface(this.connection);
+                Common.validateAsConnection(this.connection);
                 this.connection.Send(this.receiver,
                     { type: TransmissionType.WriteRequest, shortId: dataPoint.shortId, value }
                 );
@@ -236,7 +236,7 @@
             }
 
             _loadConfiguration() {
-                Common.validateConnectionInterface(this.connection);
+                Common.validateAsConnection(this.connection);
                 this.connection.Send(this.receiver, { type: TransmissionType.ConfigurationRequest }, config => {
                     this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
                     this._unsubscribeDelay = typeof config.unsubscribeDelay === 'number' && config.unsubscribeDelay > 0 ? config.unsubscribeDelay : false;
@@ -306,7 +306,7 @@
             }
 
             _sendSubscriptionRequest() {
-                Common.validateConnectionInterface(this.connection);
+                Common.validateAsConnection(this.connection);
                 if (this._operational.Value) {
                     // Build a string with all short ids of the currently subscribed data point and send to server
                     let subs = '';
@@ -344,12 +344,12 @@
                 this._unsubscribeDelay = false;
                 this._sendDelay = false;
                 this._sendDelayTimer = null;
-                Common.validateServerConnectorInterface(this, true);
+                Common.validateAsServerConnector(this, true);
             }
 
             set Parent(value) {
                 if (value) {
-                    Common.validateDataPointCollectionInterface(value, true);
+                    Common.validateAsDataAccessObject(value, true);
                     this._parent = value;
                 } else {
                     this._parent = null;
@@ -385,7 +385,7 @@
                 this._dataPointsByDataId = getAsDataPointsByDataId(dataPointConfigsByShortId);
                 this._dataPointConfigsByShortId = dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
                 if (this._isOpen) {
-                    Common.validateConnectionInterface(this.connection);
+                    Common.validateAsConnection(this.connection);
                     this.connection.Send(this.receiver, { type: TransmissionType.ReloadConfigurationRequest });
                 }
             }
@@ -413,7 +413,7 @@
 
             handleReceived(data, onResponse, onError) {
                 if (this._isOpen) {
-                    Common.validateDataPointCollectionInterface(this._parent);
+                    Common.validateAsDataAccessObject(this._parent);
                     switch (data.type) {
                         case TransmissionType.ConfigurationRequest:
                             onResponse({ 
@@ -449,7 +449,7 @@
 
             _updateSubscriptions(subscriptionShorts) {
                 if (this._isOpen) {
-                    Common.validateDataPointCollectionInterface(this._parent);
+                    Common.validateAsDataAccessObject(this._parent);
                     for (const dataId in this._onEventCallbacks) {
                         if (this._onEventCallbacks.hasOwnProperty(dataId)) {
                             const shortId = this._dataPointsByDataId[dataId];
@@ -496,7 +496,7 @@
 
             _sendValues() {
                 if (this._isOpen && this._values) {
-                    Common.validateConnectionInterface(this.connection);
+                    Common.validateAsConnection(this.connection);
                     this.connection.Send(this.receiver, { type: TransmissionType.DataRefresh, values: this._values });
                     this._values = null;
                 }

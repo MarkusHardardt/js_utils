@@ -70,7 +70,7 @@
             this._nextId = Core.createIdGenerator('#');
             this._remoteMediumUTC = 0;
             this._remoteToLocalOffsetMillis = 0;
-            Common.validateConnectionInterface(this, true);
+            Common.validateAsConnection(this, true);
         }
         get SessionId() {
             return this._sessionId;
