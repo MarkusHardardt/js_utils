@@ -392,7 +392,7 @@
                         const shortId = match[0];
                         const dataPoint = this._shortIdDataPoints[shortId];
                         if (dataPoint) {
-                            if (!this._onEventCallbacks[dataPoint.dataId]) {
+                            if (!this._onEventCallbacks[dataPoint.id]) {
                                 const onRefresh = value => {
                                     if (!this._values) {
                                         this._values = {};
@@ -400,8 +400,8 @@
                                     this._values[shortId] = value;
                                     this._valuesChanged();
                                 };
-                                this._onEventCallbacks[dataPoint.dataId] = onRefresh;
-                                this._parent.SubscribeData(dataPoint.dataId, onRefresh);
+                                this._onEventCallbacks[dataPoint.id] = onRefresh;
+                                this._parent.SubscribeData(dataPoint.id, onRefresh);
                             }
                         } else {
                             this.onError(`Cannot subscribe: ${shortId}`);
