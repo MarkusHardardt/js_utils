@@ -20,9 +20,9 @@
         Common: require('./src/Common.js'),
         hmi_object: require('./src/hmi_object.js'),
         DataPoint: require('./src/DataPoint.js'),
+        TargetSystem: require('./src/TargetSystem.js'),
         WebSocketConnection: require('./src/WebSocketConnection.js'),
-        DataConnector: require('./src/DataConnector.js'),
-        TargetSystem: require('./src/TargetSystem.js')
+        DataConnector: require('./src/DataConnector.js')
     };
     Object.seal(js_utils);
     module.exports = js_utils;
