@@ -226,20 +226,20 @@
     class Collection extends OperationalState { // NOTE: Remove if after some time still not required
         constructor() {
             super();
-            Observable = {
+            Observable = { // What happens here? We call the OperationalState.Observable setter
                 // Not: The following 'onRefresh' function is the local instance inside our node created above.
                 Subscribe: onRefresh => {
-                    if (this._parent) {
-                        this._parent.SubscribeOperationalState(onRefresh);
+                    if (this._parentDataAccessObject) {
+                        this._parentDataAccessObject.SubscribeOperationalState(onRefresh);
                     }
                 },
                 Unsubscribe: onRefresh => {
-                    if (this._parent) {
-                        this._parent.UnsubscribeOperationalState(onRefresh);
+                    if (this._parentDataAccessObject) {
+                        this._parentDataAccessObject.UnsubscribeOperationalState(onRefresh);
                     }
                 }
             };
-            this._parent = null;
+            this._parentDataAccessObject = null;
             this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
             this._unsubscribeDelay = false;
@@ -248,13 +248,13 @@
         }
 
         set Parent(value) { // TODO: 
-            if (this._parent !== value) { // TODO: unsubscribe and re-subscribe existing subscriptions
+            if (this._parentDataAccessObject !== value) { // TODO: unsubscribe and re-subscribe existing subscriptions
                 if (value) {
                     Common.validateAsDataAccessObject(value, true);
-                    this._parent = value;
+                    this._parentDataAccessObject = value;
                 }
                 else {
-                    this._parent = null;
+                    this._parentDataAccessObject = null;
                 }
             }
         }
@@ -292,8 +292,7 @@
         }
 
         GetType(dataId) {
-            Common.validateAsDataAccessObject(this._parent);
-            return this._parent.GetType(dataId);
+            return Common.validateAsDataAccessObject(this._parentDataAccessObject).GetType(dataId);
         }
 
         SubscribeData(dataId, onRefresh) {
@@ -319,8 +318,7 @@
         }
 
         Read(dataId, onResponse, onError) {
-            Common.validateAsDataAccessObject(this._parent);
-            this._parent.Read(dataId, value => {
+            Common.validateAsDataAccessObject(this._parentDataAccessObject).Read(dataId, value => {
                 try {
                     onResponse(value);
                 } catch (error) {
@@ -334,8 +332,7 @@
         }
 
         Write(dataId, value) {
-            Common.validateAsDataAccessObject(this._parent);
-            this._parent.Write(dataId, value);
+            Common.validateAsDataAccessObject(this._parentDataAccessObject).Write(dataId, value);
         }
 
         _createDataForId(dataId) {
@@ -344,13 +341,13 @@
                 node,
                 // Not: The following 'onRefresh' function is the local instance inside our node created above.
                 Subscribe: onRefresh => {
-                    if (this._parent) {
-                        this._parent.SubscribeData(dataId, onRefresh);
+                    if (this._parentDataAccessObject) {
+                        this._parentDataAccessObject.SubscribeData(dataId, onRefresh);
                     }
                 },
                 Unsubscribe: onRefresh => {
-                    if (this._parent) {
-                        this._parent.UnsubscribeData(dataId, onRefresh);
+                    if (this._parentDataAccessObject) {
+                        this._parentDataAccessObject.UnsubscribeData(dataId, onRefresh);
                     }
                 }
             };
