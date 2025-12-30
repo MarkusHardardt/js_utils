@@ -103,7 +103,7 @@
                     this._shortIdDataPoints = config.shortIdDataPoints; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
                     const oldDataIdDataPoints = this._dataIdDataPoints;
                     this._dataIdDataPoints = getAsDataIdDataPoints(config.shortIdDataPoints);
-                    // Check for all received data points if an old data point exists and copy the content
+                    // Check for all received data points if an old data point exists and if the case copy the content
                     for (const dataId in this._dataIdDataPoints) {
                         if (this._dataIdDataPoints.hasOwnProperty(dataId)) {
                             const dataPoint = this._dataIdDataPoints[dataId];
@@ -119,38 +119,16 @@
                             }
                         }
                     }
-                    if (oldDataIdDataPoints) {
-                        for (const dataId in oldDataIdDataPoints) {
-                            if (oldDataIdDataPoints.hasOwnProperty(dataId)) { // TODO: Must be handled somehow?
-                                this.onError(`Data '${dataId}' not exists anymore`);
-                                delete oldDataIdDataPoints[dataId];
-                            }
-                        }
-                    }
                     this._operational.Value = true;
                     this._sendSubscriptionRequest();
                 }, error => {
                     this._operational.Value = false;
-                    this._subscribeDelay = false;
-                    if (this._dataIdDataPoints) {
-                        for (const dataId in this._dataIdDataPoints) {
-                            if (this._dataIdDataPoints.hasOwnProperty(dataId)) { // TODO: Must be handled somehow?
-                                this.onError(`Data '${dataId}' not exists anymore`);
-                                delete this._dataIdDataPoints[dataId];
-                            }
-                        }
-                    }
-                    this._shortIdDataPoints = null;
-                    this._dataIdDataPoints = null;
                     this.onError(error);
                 });
             }
 
             OnClose() {
                 this._operational.Value = false;
-                this._shortIdDataPoints = null;
-                this._dataIdDataPoints = null;
-                this._subscribeDelay = false;
                 clearTimeout(this._subscribeDelayTimer);
                 this._subscribeDelayTimer = null;
             }
