@@ -11,6 +11,7 @@
 
     const TransmissionType = Object.freeze({
         ConfigurationRequest: 1,
+        ReloadConfigurationRequest: 2,
         SubscriptionRequest: 3,
         DataRefresh: 4,
         ReadRequest: 5,
@@ -196,9 +197,48 @@
             }
 
             OnOpen() {
+                this._loadConfiguration();
+            }
+
+            OnClose() {
+                this._operational.Value = false;
+                clearTimeout(this._subscribeDelayTimer);
+                this._subscribeDelayTimer = null;
+            }
+
+            handleReceived(data, onResponse, onError) {
+                if (this._operational.Value) {
+                    switch (data.type) {
+                        case TransmissionType.ReloadConfigurationRequest:
+                            this._loadConfiguration();
+                            break;
+                        case TransmissionType.DataRefresh:
+                            for (const shortId in data.values) {
+                                if (data.values.hasOwnProperty(shortId)) {
+                                    const dpConfByShortId = this._dataPointConfigsByShortId[shortId];
+                                    if (!dpConfByShortId) {
+                                        this.onError(`Unexpected short id: ${shortId}`);
+                                        continue;
+                                    }
+                                    const dataPoint = this._dataPointsByDataId[dpConfByShortId.dataId];
+                                    if (!dataPoint) {
+                                        this.onError(`Unknown data id: ${dpConfByShortId.dataId}`);
+                                        continue;
+                                    }
+                                    dataPoint.node.Value = data.values[shortId];
+                                }
+                            }
+                            break;
+                        default:
+                            this.onError(`Invalid transmission type: ${data.type}`);
+                    }
+                }
+            }
+
+            _loadConfiguration() {
                 Common.validateConnectionInterface(this.connection);
                 this.connection.Send(this.receiver, { type: TransmissionType.ConfigurationRequest }, config => {
-                    this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false; // TODO: Do we have to assign it to some objects?
+                    this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
                     this._unsubscribeDelay = typeof config.unsubscribeDelay === 'number' && config.unsubscribeDelay > 0 ? config.unsubscribeDelay : false;
                     this._operational.UnsubscribeDelay = this._unsubscribeDelay;
                     this._dataPointConfigsByShortId = config.dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
@@ -225,38 +265,6 @@
                     this._operational.Value = false;
                     this.onError(error);
                 });
-            }
-
-            OnClose() {
-                this._operational.Value = false;
-                clearTimeout(this._subscribeDelayTimer);
-                this._subscribeDelayTimer = null;
-            }
-
-            handleReceived(data, onResponse, onError) {
-                if (this._operational.Value) {
-                    switch (data.type) {
-                        case TransmissionType.DataRefresh:
-                            for (const shortId in data.values) {
-                                if (data.values.hasOwnProperty(shortId)) {
-                                    const dpConfByShortId = this._dataPointConfigsByShortId[shortId];
-                                    if (!dpConfByShortId) {
-                                        this.onError(`Unexpected short id: ${shortId}`);
-                                        continue;
-                                    }
-                                    const dataPoint = this._dataPointsByDataId[dpConfByShortId.dataId];
-                                    if (!dataPoint) {
-                                        this.onError(`Unknown data id: ${dpConfByShortId.dataId}`);
-                                        continue;
-                                    }
-                                    dataPoint.node.Value = data.values[shortId];
-                                }
-                            }
-                            break;
-                        default:
-                            this.onError(`Invalid transmission type: ${data.type}`);
-                    }
-                }
             }
 
             _prepareDataPoint(dataId, dataPoint, oldDataPointsByDataId) {
@@ -376,6 +384,10 @@
                 }
                 this._dataPointsByDataId = getAsDataPointsByDataId(dataPointConfigsByShortId);
                 this._dataPointConfigsByShortId = dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
+                if (this._isOpen) {
+                    Common.validateConnectionInterface(this.connection);
+                    this.connection.Send(this.receiver, { type: TransmissionType.ReloadConfigurationRequest });
+                }
             }
 
             OnOpen() {
@@ -402,7 +414,6 @@
             handleReceived(data, onResponse, onError) {
                 if (this._isOpen) {
                     Common.validateDataPointCollectionInterface(this._parent);
-                    Common.validateConnectionInterface(this.connection);
                     switch (data.type) {
                         case TransmissionType.ConfigurationRequest:
                             onResponse({ 
