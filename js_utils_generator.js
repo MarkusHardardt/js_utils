@@ -12,6 +12,7 @@
         tasks.push((onSuccess, onError) => {
             Helper.loadDependencies(options.directory, options.ignorables, result => {
                 dependencies = result;
+                console.log(Helper.formatDependencies(dependencies));
                 onSuccess();
             }, onError)
         });
@@ -19,6 +20,7 @@
         tasks.push((onSuccess, onError) => {
             try {
                 topologicalSortedComponents = Core.getTopologicalSorting(dependencies);
+                console.log(Helper.formatTopologicalSortedComponents(topologicalSortedComponents));
                 onSuccess();
             } catch (error) {
                 onError(error);
@@ -28,8 +30,10 @@
         tasks.push((onSuccess, onError) => {
             try {
                 const indexJs = Helper.generateIndexJs(options.name, options.scope, topologicalSortedComponents, options.browserIgnorables);
+                console.log(indexJs);
                 if (options.index_js_outputFile) {
                     fs.writeFileSync(options.index_js_outputFile, indexJs, 'utf8');
+                    console.log(`==> EXPORTED: ${options.index_js_outputFile}`);
                 }
                 onSuccess();
             } catch (error) {
@@ -37,33 +41,16 @@
             }
         });
         tasks.push((onSuccess, onError) => {
+            console.log(Helper.generateInternalImports(dependencies, topologicalSortedComponents))
             onSuccess();
 
         });
         tasks.push((onSuccess, onError) => {
+            console.log(Helper.generateExternalImports(options.scope, topologicalSortedComponents));
             onSuccess();
 
         });
-        tasks.push((onSuccess, onError) => {
-
-            onSuccess();
-        });
-        tasks.push((onSuccess, onError) => {
-
-            onSuccess();
-        });
-        tasks.push((onSuccess, onError) => {
-
-            onSuccess();
-        });
-        tasks.push((onSuccess, onError) => {
-
-            onSuccess();
-        });
-
-        Executor.run(tasks, () => console.log('server started successfully'), error => console.error(error));
-
-        //require('./src/Core.js').analyseLibrary('./src', '../js_utils_dependencies.js', './js_utils.js');
+        Executor.run(tasks, () => console.log('done'), error => console.error(error));
     }
 
     generate({

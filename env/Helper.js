@@ -4,7 +4,6 @@
     const isNodeJS = typeof require === 'function';
     const fs = isNodeJS ? require('fs') : undefined;
     const Regex = isNodeJS ? require('../src/Regex.js') : undefined;
-    const Core = isNodeJS ? require('../src/Core.js') : undefined;
 
     // TODO: Must be modified if file structure changed. This is a very simple solution so far
     const moduleNameRegex = /^([a-zA-Z][_a-zA-Z0-9]*)\.js$/;
@@ -23,7 +22,7 @@
                     continue;
                 }
                 const moduleName = match[1];
-                if (ignorables.indexOf(moduleName) >= 0 )  {
+                if (ignorables.indexOf(moduleName) >= 0) {
                     continue;
                 }
                 dependencies[moduleName] = [];
@@ -35,6 +34,18 @@
     }
     Helper.loadDependencies = loadDependencies;
 
+    function formatDependencies(dependencies) {
+        let txt = '';
+        txt += 'const dependencies = {\n';
+        for (const m in dependencies) {
+            if (dependencies.hasOwnProperty(m)) {
+                txt += `  '${m}': [${dependencies[m].map(e => `'${e}'`).join(', ')}],\n`;
+            }
+        }
+        txt += '};\n';
+        return txt;
+    }
+    Helper.formatDependencies = formatDependencies;
 
     /*  Generates index.js */
     function generateIndexJs(name, scope, components, browserIgnorables) {
@@ -62,27 +73,29 @@
     }
     Helper.generateIndexJs = generateIndexJs;
 
-    /*  Helps writing new moduls*/
-    function generateLibraryFileAccess(dependencies, scope = '@markus.hardardt/') {
-        const components = Core.getTopologicalSorting(dependencies);
+    function generateInternalImports(dependencies, components) {
         let txt = ``;
-        // Code usable js_utils internal
         txt += `    // ### inside js_utils ###\n\n`;
         for (const file in dependencies) {
             if (dependencies.hasOwnProperty(file)) {
-                txt += `    // ==> file: '${file}.js':\n`;
+                txt += `    // file: '${file}.js':\n`;
                 txt += `    const ${file} = {};\n`;
                 txt += `    const isNodeJS = typeof require === 'function';\n`;
                 const used = dependencies[file];
-                for (let comp of components) {
-                    if (used.indexOf(comp) >= 0) {
-                        txt += `    const ${comp} = isNodeJS ? require('./${comp}.js') : root.${comp};\n`;
+                for (let component of components) {
+                    if (used.indexOf(component) >= 0) {
+                        txt += `    const ${component} = isNodeJS ? require('./${component}.js') : root.${component};\n`;
                     }
                 }
                 txt += `\n`;
             }
         }
-        txt += `\n`;
+        return txt;
+    }
+    Helper.generateInternalImports = generateInternalImports;
+
+    function generateExternalImports(scope, components) {
+        let txt = ``;
         txt += `    // access js_utils components on node js:\n`;
         txt += `    // compact:\n`;
         txt += `    const {\n`
@@ -94,52 +107,24 @@
         for (let comp of components) {
             txt += `    const ${comp} = require('${scope}js_utils/src/${comp}.js');\n`;
         }
-        txt += `\n`;
-        txt += `    // js_utils files for browser provided by webserver:\n`;
-        for (let comp of components) {
-            txt += `    webServer.AddStaticFile('./node_modules/${scope}js_utils/src/${comp}.js');\n`;
-        }
         return txt;
     }
-    Helper.generateLibraryFileAccess = generateLibraryFileAccess;
+    Helper.generateExternalImports = generateExternalImports;
 
-    /*  analyse js_utils library */
-    function analyseLibrary(directory, output, index_js) {
-        // TODO: Must be modified if file structure changed. This is a very simple solution so far
-        const moduleNameRegex = /^([a-zA-Z][_a-zA-Z0-9]*)\.js$/;
-        const moduleRegex = /\bconst\s+([a-zA-Z][_a-zA-Z0-9]*)\s*=\s*isNodeJS\s*\?\s*require\s*\(\s*'\.\/\1\.js'\s*\)\s*:\s*root\s*\.\s*\1\s*;/g;
-        fs.readdir(directory, (error, files) => {
-
-            let txt = `/* analyse directory: ${directory} */\n\n`;
-            txt += '/* js_utils dependencies */\n';
-            txt += 'const dependencies = {\n';
-            for (const m in dependencies) {
-                if (dependencies.hasOwnProperty(m)) {
-                    txt += `  '${m}': [${dependencies[m].map(e => `'${e}'`).join(', ')}],\n`;
-                }
+    function formatTopologicalSortedComponents(components) {
+        let txt = '';
+        txt += '/* topological sorting */\n';
+        txt += 'const topologicalSortedComponents = [\n';
+        for (let i = 0; i < components.length; i++) {
+            if (i > 0) {
+                txt += ',\n';
             }
-            txt += '};\n\n';
-            txt += '/* topological sorting */\n';
-            txt += 'const topologicalSortedComponents = [\n';
-            for (let i = 0; i < topologicalSortedComponents.length; i++) {
-                if (i > 0) {
-                    txt += ',\n';
-                }
-                txt += `   ${topologicalSortedComponents[i]}`;
-            }
-            txt += '\n];\n\n';
-            txt += '/* source code samples */\n';
-            txt += generateLibraryFileAccess(dependencies);
-            txt += `\n\n/* ${index_js} */\n`;
-            txt += index;
-            fs.writeFileSync(output, txt, 'utf8');
-            if (index_js) {
-                fs.writeFileSync(index_js, index, 'utf8');
-            }
-            console.log(`done (dumped: '${output}', exported: '${index_js}')`);
-        });
+            txt += `   '${components[i]}'`;
+        }
+        txt += '\n];\n';
+        return txt;
     }
-    Helper.analyseLibrary = analyseLibrary;
+    Helper.formatTopologicalSortedComponents = formatTopologicalSortedComponents;
 
     Object.freeze(Helper);
     if (isNodeJS) {

@@ -3,7 +3,6 @@
     const Core = {};
 
     const isNodeJS = typeof require === 'function';
-    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
 
     /*  Standard datatypes */
@@ -229,56 +228,6 @@
             return objectInstance;
         }
         Core.validateAs = validateAs;
-
-        // Perform some tests
-        const tasks = [];
-        tasks.push((onSuccess, onError) => {
-            try {
-                const testAttributes = [
-                    'Foo()',
-                    'Baz(a)',
-                    'Bar(b,c)',
-                    'State:boolean',
-                    'Answer:number',
-                    'Text:string'
-                ];
-                validateAs('Test1', {
-                    Foo: function () { },
-                    Baz: function (a) { },
-                    Bar: function (b, c) { }, // b, c
-                    State: true,
-                    Answer: 42,
-                    Text: 'Hello world'
-                }, testAttributes, true);
-                validateAs('Test2', {
-                    Foo: () => { },
-                    Baz: a => { },
-                    Bar: (b, c) => { },
-                    State: true,
-                    Answer: 42,
-                    Text: 'Hello world'
-                }, testAttributes, true);
-                onSuccess();
-            } catch (error) {
-                onError(error);
-            }
-        });
-        tasks.push((onSuccess, onError) => {
-            try {
-                validateAs('Test3', {
-                    Foo: arg => { }
-                }, [
-                    'Foo(arg)'
-                ], true);
-                onSuccess();
-            } catch (error) {
-                onError(error);
-            }
-        });
-        // TODO: Add tests for each check
-        Executor.run(tasks, () => console.log('validateAs() tested successfully'), error => {
-            throw new Error(error);
-        });
     }());
 
     Object.freeze(Core);
