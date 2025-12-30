@@ -47,7 +47,7 @@
     }
     Helper.formatDependencies = formatDependencies;
 
-    const addStaticWebServerFilesFunctionName = 'addStaticWebServerFiles';
+    const addStaticWebServerFilesFunctionName = 'addStaticWebServerJsUtilsFiles';
 
     /*  Generates index.js */
     function generateIndexJs(name, scope, components, browserIgnorables) {
@@ -102,7 +102,7 @@
         txt += `    // compact:\n`;
         txt += `    const {\n`
         for (let component of components) {
-            txt += `        ${component}$, // direct access: const ${component} = require('${scope}js_utils/src/${component}.js');\n`;
+            txt += `        ${component}, // direct access: const ${component} = require('${scope}js_utils/src/${component}.js');\n`;
         }
         txt += `        ${addStaticWebServerFilesFunctionName}\n`;
         txt += `    } = require('${scope}js_utils/js_utils.js');\n`;
