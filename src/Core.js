@@ -241,7 +241,10 @@
 
     /*  Function and object interface validation */
     (function () {
-        // This pattern matches valid javascript identifiers: [_$a-zA-Z][_$a-zA-Z0-9]*
+        // This pattern matches on valid javascript identifiers:
+        // [_$a-zA-Z][_$a-zA-Z0-9]*
+        // This pattern matches on a comma separated list of valid javascript identifiers:
+        // [_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*
         const attributeMethodRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*$/;
         const attributePropertyRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*:\s*([_a-zA-Z0-9]+)\s*$/;
         const standardFunctionRegex = /^\s*function\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)/m;
