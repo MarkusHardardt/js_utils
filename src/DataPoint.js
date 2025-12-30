@@ -9,13 +9,13 @@
     class Node {
         constructor() {
             this._value = null;
-            this._subscribable = null;
             this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
+            this._onRefresh = value => this._refresh(value);
+            this._subscriptions = [];
+            this._subscribable = null;
             this._unsubscribeDelay = false;
             this._unsubscribeDelayTimer = null;
-            this._subscriptions = [];
-            this._onRefresh = value => this._refresh(value);
             Common.validateSubscribableInterface(this, true);
         }
 
@@ -72,20 +72,20 @@
                 }
             }
             this._subscriptions.push(onRefresh);
-            if (this._subscriptions.length === 1) {
-                // If first subscription we subscribe on our parent which should result in firering the event.
-                if (this._unsubscribeDelayTimer) {
-                    clearTimeout(this._unsubscribeDelayTimer);
-                    this._unsubscribeDelayTimer = null;
-                } else if (this._subscribable) {
-                    this._subscribable.Subscribe(this._onRefresh);
-                }
-            } else {
-                // If another subscription we fire the event manually.
+            if (!this._subscribable || this._subscriptions.length > 1) {
+                // If we cannot subscribe or it is not the first subscription we fire the event manually.
                 try {
                     onRefresh(this._value);
                 } catch (error) {
                     this._onError(`Failed calling onRefresh(value): ${error}`);
+                }
+            } else {
+                // If first subscription we subscribe on our parent which should result in firering the event.
+                if (this._unsubscribeDelayTimer) {
+                    clearTimeout(this._unsubscribeDelayTimer);
+                    this._unsubscribeDelayTimer = null;
+                } else {
+                    this._subscribable.Subscribe(this._onRefresh);
                 }
             }
         }
