@@ -196,21 +196,20 @@
                 this.connection.Send(this.receiver, { type: TransmissionType.ConfigurationRequest }, config => {
                     this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
                     this._dataPointConfigsByShortId = config.dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
-                    const oldDataIdDataPoints = this._dataPointsByDataId;
+                    const oldDataPointsByDataId = this._dataPointsByDataId;
                     this._dataPointsByDataId = getAsDataPointsByDataId(config.dataPointConfigsByShortId);
                     // Check for all received data points if an old data point exists and if the case copy the content
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
-                            const dataPoint = this._dataPointsByDataId[dataId];
-                            const oldDataPoint = oldDataIdDataPoints ? oldDataIdDataPoints[dataId] : null;
-                            if (oldDataPoint) {
-                                dataPoint.value = oldDataPoint.value;
-                                dataPoint.onRefresh = oldDataPoint.onRefresh;
-                                delete oldDataIdDataPoints[dataId];
-                            }
-                            else {
-                                dataPoint.value = null;
-                                dataPoint.onRefresh = null;
+                            this._prepareDataPoint(dataId, this._dataPointsByDataId[dataId], oldDataPointsByDataId);
+                        }
+                    }
+                    // Clean up old data points not existing anymore
+                    if (oldDataPointsByDataId) {
+                        for (const dataId in oldDataPointsByDataId) {
+                            if (oldDataPointsByDataId.hasOwnProperty(dataId)) {
+                                this._destroyDataPoint(oldDataPointsByDataId[dataId]);
+                                delete oldDataPointsByDataId[dataId];
                             }
                         }
                     }
@@ -220,6 +219,37 @@
                     this._operational.Value = false;
                     this.onError(error);
                 });
+            }
+
+            _prepareDataPoint(dataId, dataPoint, oldDataPointsByDataId) {
+                const oldDataPoint = oldDataPointsByDataId ? oldDataPointsByDataId[dataId] : null;
+                if (!oldDataPoint) {
+                    const node = new DataPoint.Node();
+                    node.UnsubscribeDelay = this._unsubscribeDelay;
+                    node.Equal = this._equal;
+                    node.OnError = this.onError;
+                    node.Value = null;
+                    dataPoint.value = null; // TODO: Remove
+                    dataPoint.node = node;
+                    dataPoint.Subscribe = onRefresh => this.SubscribeData(dataId, onRefresh);
+                    dataPoint.Unsubscribe = onRefresh => this.UnsubscribeData(dataId, onRefresh);
+                    dataPoint.onRefresh = null; // TODO: Remove
+                } else {
+                    dataPoint.value = oldDataPoint.value; // TODO: Remove
+                    dataPoint.node = oldDataPoint.node;
+                    dataPoint.Subscribe = oldDataPoint.Subscribe;
+                    dataPoint.Unsubscribe = oldDataPoint.Unsubscribe;
+                    dataPoint.onRefresh = oldDataPoint.onRefresh; // TODO: Remove
+                    delete oldDataPointsByDataId[dataId];
+                }
+                dataPoint.node.Subscribable = dataPoint;
+            }
+
+            _destroyDataPoint(dataPoint) {
+                const node = dataPoint.node;
+                node.Value = null;
+                node.Subscribable = null;
+                delete dataPoint.node;
             }
 
             OnClose() {
