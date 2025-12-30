@@ -106,16 +106,6 @@
                 }
             }
 
-            set UnsubscribeDelay(value) {
-                this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
-                this._operational.UnsubscribeDelay = value;
-                for (const dataId in this._dataPointsByDataId) {
-                    if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
-                        this._dataPointsByDataId[dataId].node.UnsubscribeDelay = value;
-                    }
-                }
-            }
-
             get IsOperational() {
                 return this._operational.Value;
             }
@@ -208,7 +198,9 @@
             OnOpen() {
                 Common.validateConnectionInterface(this.connection);
                 this.connection.Send(this.receiver, { type: TransmissionType.ConfigurationRequest }, config => {
-                    this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
+                    this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false; // TODO: Do we have to assign it to some objects?
+                    this._unsubscribeDelay = typeof config.unsubscribeDelay === 'number' && config.unsubscribeDelay > 0 ? config.unsubscribeDelay : false;
+                    this._operational.UnsubscribeDelay = this._unsubscribeDelay;
                     this._dataPointConfigsByShortId = config.dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
                     const oldDataPointsByDataId = this._dataPointsByDataId;
                     this._dataPointsByDataId = getAsDataPointsByDataId(config.dataPointConfigsByShortId);
@@ -247,24 +239,17 @@
                         case TransmissionType.DataRefresh:
                             for (const shortId in data.values) {
                                 if (data.values.hasOwnProperty(shortId)) {
-                                    const dpConf = this._dataPointConfigsByShortId[shortId];
-                                    if (!dpConf) {
+                                    const dpConfByShortId = this._dataPointConfigsByShortId[shortId];
+                                    if (!dpConfByShortId) {
                                         this.onError(`Unexpected short id: ${shortId}`);
                                         continue;
                                     }
-                                    const dataPoint = this._dataPointsByDataId[dpConf.dataId];
+                                    const dataPoint = this._dataPointsByDataId[dpConfByShortId.dataId];
                                     if (!dataPoint) {
-                                        this.onError(`Unknown data id: ${dpConf.dataId}`);
+                                        this.onError(`Unknown data id: ${dpConfByShortId.dataId}`);
                                         continue;
                                     }
-                                    const value = data.values[shortId];
-                                    if (value !== null && dataPoint.onRefresh) {
-                                        try {
-                                            dataPoint.onRefresh(value);
-                                        } catch (error) {
-                                            this.onError(`Failed calling onRefresh() for data id: ${dpConf.dataId}: ${error}`);
-                                        }
-                                    }
+                                    dataPoint.node.Value = data.values[shortId];
                                 }
                             }
                             break;
@@ -278,23 +263,19 @@
                 const oldDataPoint = oldDataPointsByDataId ? oldDataPointsByDataId[dataId] : null;
                 if (!oldDataPoint) {
                     const node = new DataPoint.Node();
-                    node.UnsubscribeDelay = this._unsubscribeDelay;
                     node.Equal = this._equal;
                     node.OnError = this.onError;
                     node.Value = null;
-                    dataPoint.value = null; // TODO: Remove
                     dataPoint.node = node;
                     dataPoint.Subscribe = onRefresh => this.SubscribeData(dataId, onRefresh);
                     dataPoint.Unsubscribe = onRefresh => this.UnsubscribeData(dataId, onRefresh);
-                    dataPoint.onRefresh = null; // TODO: Remove
                 } else {
-                    dataPoint.value = oldDataPoint.value; // TODO: Remove
                     dataPoint.node = oldDataPoint.node;
                     dataPoint.Subscribe = oldDataPoint.Subscribe;
                     dataPoint.Unsubscribe = oldDataPoint.Unsubscribe;
-                    dataPoint.onRefresh = oldDataPoint.onRefresh; // TODO: Remove
                     delete oldDataPointsByDataId[dataId];
                 }
+                dataPoint.node.UnsubscribeDelay = this._unsubscribeDelay;
                 dataPoint.node.Subscribable = dataPoint;
             }
 
@@ -319,12 +300,12 @@
             _sendSubscriptionRequest() {
                 Common.validateConnectionInterface(this.connection);
                 if (this._operational.Value) {
-                    // Build a string with all short ids of the currently stored onRefresh callbacks and send to server
+                    // Build a string with all short ids of the currently subscribed data point and send to server
                     let subs = '';
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                             const dataPoint = this._dataPointsByDataId[dataId];
-                            if (dataPoint.onRefresh) {
+                            if (dataPoint.node.SubscriptionsCount > 0) {
                                 subs += dataPoint.shortId;
                             }
                         }
@@ -352,6 +333,7 @@
                 this._dataPointsByDataId = null;
                 this._values = null;
                 this._subscribeDelay = false;
+                this._unsubscribeDelay = false;
                 this._sendDelay = false;
                 this._sendDelayTimer = null;
                 Common.validateServerConnectorInterface(this, true);
@@ -372,6 +354,10 @@
 
             set SubscribeDelay(value) {
                 this._subscribeDelay = typeof value === 'number' && value > 0 ? value : false;
+            }
+
+            set UnsubscribeDelay(value) {
+                this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
             }
 
             SetDataPoints(dataPointConfigs) {
@@ -419,7 +405,11 @@
                     Common.validateConnectionInterface(this.connection);
                     switch (data.type) {
                         case TransmissionType.ConfigurationRequest:
-                            onResponse({ subscribeDelay: this._subscribeDelay, dataPointConfigsByShortId: this._dataPointConfigsByShortId });
+                            onResponse({ 
+                                subscribeDelay: this._subscribeDelay, 
+                                unsubscribeDelay: this._unsubscribeDelay, 
+                                dataPointConfigsByShortId: this._dataPointConfigsByShortId 
+                            });
                             break;
                         case TransmissionType.SubscriptionRequest:
                             this._updateSubscriptions(data.subs);
