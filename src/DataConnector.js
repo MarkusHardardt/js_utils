@@ -179,11 +179,11 @@
                 if (!this._operational.Value) {
                     throw new Error('Cannot Read() because not connected');
                 }
-                const short = this._dataIdDataPoints[dataId];
-                if (!short) {
+                const dataPoint = this._dataIdDataPoints[dataId];
+                if (!dataPoint) {
                     throw new Error(`Unexpected id ${dataId} to Read()`);
                 }
-                this.connection.Send(this.receiver, { type: TransmissionType.ReadRequest, short }, onResponse, onError);
+                this.connection.Send(this.receiver, { type: TransmissionType.ReadRequest, shortId: dataPoint.shortId }, onResponse, onError);
             }
 
             Write(dataId, value) {
@@ -191,11 +191,11 @@
                 if (!this._operational.Value) {
                     throw new Error('Cannot Write() because not connected');
                 }
-                const short = this._dataIdDataPoints[dataId];
-                if (!short) {
+                const dataPoint = this._dataIdDataPoints[dataId];
+                if (!dataPoint) {
                     throw new Error(`Unexpected id ${dataId} to Write()`);
                 }
-                this.connection.Send(this.receiver, { type: TransmissionType.WriteRequest, short, value });
+                this.connection.Send(this.receiver, { type: TransmissionType.WriteRequest, shortId: dataPoint.shortId, value });
             }
 
             handleReceived(data, onResponse, onError) {
@@ -353,20 +353,20 @@
                             this._updateSubscriptions(data.subs);
                             break;
                         case TransmissionType.ReadRequest:
-                            dataId = this._short2Id[data.short];
-                            if (!dataId) {
+                            let readDP = this._shortIdDataPoints[data.shortId];
+                            if (!readDP) {
                                 this.onError('Unknown id for read request');
                                 return;
                             }
-                            this._parent.Read(dataId, onResponse, onError);
+                            this._parent.Read(readDP.id, onResponse, onError);
                             break;
                         case TransmissionType.WriteRequest:
-                            dataId = this._short2Id[data.short];
-                            if (!dataId) {
+                            let writeDP = this._shortIdDataPoints[data.shortId];
+                            if (!writeDP) {
                                 this.onError('Unknown id for write request');
                                 return;
                             }
-                            this._parent.Write(dataId, data.value);
+                            this._parent.Write(writeDP.id, data.value);
                             break;
                         default:
                             this.onError(`Invalid transmission type: ${data.type}`);
@@ -379,8 +379,8 @@
                     Common.validateDataPointCollectionInterface(this._parent);
                     for (const dataId in this._onEventCallbacks) {
                         if (this._onEventCallbacks.hasOwnProperty(dataId)) {
-                            const short = this._dataIdDataPoints[dataId];
-                            const onRefresh = subscriptionShorts.indexOf(short) < 0 ? this._onEventCallbacks[dataId] : false;
+                            const shortId = this._dataIdDataPoints[dataId];
+                            const onRefresh = subscriptionShorts.indexOf(shortId) < 0 ? this._onEventCallbacks[dataId] : false;
                             if (onRefresh) {
                                 delete this._onEventCallbacks[dataId];
                                 this._parent.UnsubscribeData(dataId, onRefresh);
@@ -388,23 +388,23 @@
                         }
                     }
                     Regex.each(subscribeRequestShortIdRegex, subscriptionShorts, (start, end, match) => {
-                        // we are in a closure -> short/id will be available in onRefresh()
-                        const short = match[0];
-                        const dataId = this._short2Id[short];
-                        if (dataId) {
-                            if (!this._onEventCallbacks[dataId]) {
+                        // we are in a closure -> shortId/id will be available in onRefresh()
+                        const shortId = match[0];
+                        const dataPoint = this._shortIdDataPoints[shortId];
+                        if (dataPoint) {
+                            if (!this._onEventCallbacks[dataPoint.dataId]) {
                                 const onRefresh = value => {
                                     if (!this._values) {
                                         this._values = {};
                                     }
-                                    this._values[short] = value;
+                                    this._values[shortId] = value;
                                     this._valuesChanged();
                                 };
-                                this._onEventCallbacks[dataId] = onRefresh;
-                                this._parent.SubscribeData(dataId, onRefresh);
+                                this._onEventCallbacks[dataPoint.dataId] = onRefresh;
+                                this._parent.SubscribeData(dataPoint.dataId, onRefresh);
                             }
                         } else {
-                            this.onError(`Cannot subscribe: ${short}`);
+                            this.onError(`Cannot subscribe: ${shortId}`);
                         }
                     }, true);
                 }
