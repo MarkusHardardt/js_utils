@@ -11,7 +11,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}\\generator\\generate_js_utils.js"
+            "program": "${workspaceFolder}\\js_utils_generator.js"
         }
     ]
 }
