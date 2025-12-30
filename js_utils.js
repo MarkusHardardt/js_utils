@@ -22,7 +22,6 @@
         DataPoint: require('./src/DataPoint.js'),
         WebSocketConnection: require('./src/WebSocketConnection.js'),
         DataConnector: require('./src/DataConnector.js'),
-        OperationalState: require('./src/OperationalState.js'),
         TargetSystem: require('./src/TargetSystem.js')
     };
     Object.seal(js_utils);

@@ -142,6 +142,191 @@
     }
     DataPoint.Node = Node;
 
+    class OperationalState {
+        constructor() {
+            this._operational = new DataPoint.Node();
+            this._operational.Value = false;
+            this._operational.Subscribable = null;
+            Common.validateOperationalStateInterface(this, true);
+        }
+
+        set OnError(value) {
+            this._operational.OnError = value;
+        }
+
+        set UnsubscribeDelay(value) {
+            this._operational.UnsubscribeDelay = value;
+        }
+
+        get IsOperational() {
+            return this._operational.Value;
+        }
+
+        set IsOperational(value) {
+            this._operational.Value = value;
+        }
+
+        SubscribeOperationalState(onOperationalStateChanged) {
+            this._operational.Subscribe(onOperationalStateChanged);
+        }
+
+        UnsubscribeOperationalState(onOperationalStateChanged) {
+            this._operational.Unsubscribe(onOperationalStateChanged);
+        }
+    }
+    DataPoint.OperationalState = OperationalState;
+
+    class Router extends DataPoint.OperationalState {
+        constructor() {
+            super();
+            this._onError = Core.defaultOnError; // TODO: Used?
+            this._targets = {};
+            this._splitIntoTargetAndDataId = null;
+            Common.validateDataPointCollectionInterface(this, true);
+        }
+
+        set OnError(value) {
+            super.OnError = value;
+            this._onError = value;
+        }
+
+        set SplitIntoTargetAndDataId(value) {
+            if (typeof value !== 'function') {
+                throw new Error('Passed splitIntoTargetAndDataId(id) is not a function');
+            }
+            this._splitIntoTargetAndDataId = value;
+        }
+
+        Register(targetId, target) {
+            Common.validateDataPointCollectionInterface(target, true);
+            if (typeof targetId !== 'string') {
+                throw new Error(`Invalid target '${targetId}' for Register(target, system)`);
+            } else if (this._targets[targetId] !== undefined) {
+                throw new Error(`Target '${targetId}' already registered`);
+            }
+            this._targets[targetId] = target;
+        }
+
+        Unregister(targetId, target) {
+            Common.validateDataPointCollectionInterface(target, true);
+            if (typeof targetId !== 'string') {
+                throw new Error(`Invalid target '${targetId}' for Unregister(target, system)`);
+            } else if (this._targets[targetId] === undefined) {
+                throw new Error(`Target '${targetId}' not registered`);
+            } else if (this._targets[targetId] !== target) {
+                throw new Error(`Other target '${targetId}' registered`);
+            }
+            delete this._targets[targetId];
+        }
+
+        GetType(dataId) {
+            if (!this._splitIntoTargetAndDataId) {
+                throw new Error('Function splitIntoTargetAndDataId(id) is not available');
+            }
+            let target = null;
+            let subDataId = null;
+            this._splitIntoTargetAndDataId(dataId, (tId, dId) => {
+                target = tId;
+                subDataId = dId;
+            }, error => {
+                throw new Error(`Error splitting '${dataId}' into target and sub-id: ${error}`, error);
+            });
+            if (typeof target !== 'string') {
+                throw new Error(`Invalid target '${target}' for GetType(dataId)`);
+            } else if (this._targets[target] === undefined) {
+                throw new Error(`Target '${target}' not registered for GetType(dataId)`);
+            } else {
+                return this._targets[target].GetType(subDataId);
+            }
+        }
+
+        SubscribeData(dataId, onRefresh) {
+            if (!this._splitIntoTargetAndDataId) {
+                throw new Error('Function splitIntoTargetAndDataId(id) is not available');
+            }
+            let target = null;
+            let subDataId = null;
+            this._splitIntoTargetAndDataId(dataId, (tId, dId) => {
+                target = tId;
+                subDataId = dId;
+            }, error => {
+                throw new Error(`Error splitting '${dataId}' into target and sub-id: ${error}`, error);
+            });
+            if (typeof target !== 'string') {
+                throw new Error(`Invalid target '${target}' for SubscribeData(dataId, onRefresh)`);
+            } else if (this._targets[target] === undefined) {
+                throw new Error(`Target '${target}' not registered for SubscribeData(dataId, onRefresh)`);
+            } else {
+                this._targets[target].SubscribeData(subDataId, onRefresh);
+            }
+        }
+
+        UnsubscribeData(dataId, onRefresh) {
+            if (!this._splitIntoTargetAndDataId) {
+                throw new Error('Function splitIntoTargetAndDataId(id) is not available');
+            }
+            let target = null;
+            let subDataId = null;
+            this._splitIntoTargetAndDataId(dataId, (tId, dId) => {
+                target = tId;
+                subDataId = dId;
+            }, error => {
+                throw new Error(`Error splitting '${dataId}' into target and sub-id: ${error}`, error);
+            });
+            if (typeof target !== 'string') {
+                throw new Error(`Invalid target '${target}' for UnsubscribeData(dataId, onRefresh)`);
+            } else if (this._targets[target] === undefined) {
+                throw new Error(`Target '${target}' not registered for UnsubscribeData(dataId, onRefresh)`);
+            } else {
+                this._targets[target].UnsubscribeData(subDataId, onRefresh);
+            }
+        }
+
+        Read(dataId, onResponse, onError) {
+            if (!this._splitIntoTargetAndDataId) {
+                throw new Error('Function splitIntoTargetAndDataId(id) is not available');
+            }
+            let target = null;
+            let subDataId = null;
+            this._splitIntoTargetAndDataId(dataId, (tId, dId) => {
+                target = tId;
+                subDataId = dId;
+            }, error => {
+                throw new Error(`Error splitting '${dataId}' into target and sub-id: ${error}`, error);
+            });
+            if (typeof target !== 'string') {
+                throw new Error(`Invalid target '${target}' for Read(id, onResponse, onError)`);
+            } else if (this._targets[target] === undefined) {
+                throw new Error(`Target '${target}' not registered for Read()`);
+            } else {
+                this._targets[target].Read(subDataId, onResponse, onError);
+            }
+        }
+
+        Write(dataId, value) {
+            if (!this._splitIntoTargetAndDataId) {
+                throw new Error('Function splitIntoTargetAndDataId(id) is not available');
+            }
+            let target = null;
+            let subDataId = null;
+            this._splitIntoTargetAndDataId(dataId, (tId, dId) => {
+                target = tId;
+                subDataId = dId;
+            }, error => {
+                throw new Error(`Error splitting '${dataId}' into target and sub-id: ${error}`, error);
+            });
+            if (typeof target !== 'string') {
+                throw new Error(`Invalid target '${target}' for Write(id, value)`);
+            } else if (this._targets[target] === undefined) {
+                throw new Error(`Target '${target}' not registered for Write()`);
+            } else {
+                this._targets[target].Write(subDataId, value);
+            }
+        }
+    }
+    DataPoint.Router = Router;
+
+    // TODO: Still required ? 
     class Collection { // TODO  extends OperationalState.Node ???
         constructor() {
             this._operational = new Node(); // TODO  extends OperationalState.Node

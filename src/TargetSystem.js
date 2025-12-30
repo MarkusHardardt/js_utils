@@ -4,7 +4,7 @@
 
     const isNodeJS = typeof require === 'function';
     const Common = isNodeJS ? require('./Common.js') : root.Common;
-    const OperationalState = isNodeJS ? require('./OperationalState.js') : root.OperationalState;
+    const DataPoint = isNodeJS ? require('./DataPoint.js') : root.DataPoint;
 
     /*  node-opcua-basic-types */
     const NodeOpcUaBasicType = Object.freeze({
@@ -71,7 +71,7 @@
     }
     TargetSystem.convertNodeOpcUaBasicTypeToCommonType = convertNodeOpcUaBasicTypeToCommonType;
 
-    class Router extends OperationalState.Node {
+    class Router extends DataPoint.OperationalState {
         constructor() {
             super();
             this._targetSystems = {};
