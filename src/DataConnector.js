@@ -74,7 +74,7 @@
                 super();
                 this._operational = new DataPoint.Node();
                 this._operational.Value = false;
-                this._operational.Subscribable = null;
+                this._operational.Observable = null;
                 this._equal = Core.defaultEqual;
                 this._dataPointConfigsByShortId = null;
                 this._dataPointsByDataId = {};
@@ -284,13 +284,13 @@
                     delete oldDataPointsByDataId[dataId];
                 }
                 dataPoint.node.UnsubscribeDelay = this._unsubscribeDelay;
-                dataPoint.node.Subscribable = dataPoint;
+                dataPoint.node.Observable = dataPoint;
             }
 
             _destroyDataPoint(dataPoint) {
                 const node = dataPoint.node;
                 node.Value = null;
-                node.Subscribable = null;
+                node.Observable = null;
                 delete dataPoint.node;
             }
 

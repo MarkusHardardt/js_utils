@@ -22,7 +22,7 @@
         Float: 10,
         Double: 11,
         String: 12,
-        Struct: 23,
+        Object: 23,
         Unknown: -1
     });
     Core.DataType = DataType;

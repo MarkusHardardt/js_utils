@@ -12,26 +12,26 @@
             this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
             this._onRefresh = value => this._refresh(value);
-            this._subscriptions = [];
-            this._subscribable = null; // TODO: Find better name
+            this._observers = [];
+            this._observable = null;
             this._unsubscribeDelay = false;
             this._unsubscribeDelayTimer = null;
             Common.validateAsObservable(this, true);
         }
 
-        set Subscribable(value) {
-            if (this._subscribable !== value) {
-                if (this._subscribable && this._subscriptions.length > 0) {
-                    this._subscribable.Unsubscribe(this._onRefresh);
+        set Observable(value) {
+            if (this._observable !== value) {
+                if (this._observable && this._observers.length > 0) {
+                    this._observable.Unsubscribe(this._onRefresh);
                 }
                 if (value) {
                     Common.validateAsObservable(value, true);
-                    this._subscribable = value;
+                    this._observable = value;
                 } else {
-                    this._subscribable = null;
+                    this._observable = null;
                 }
-                if (this._subscribable && this._subscriptions.length > 0) {
-                    this._subscribable.Subscribe(this._onRefresh);
+                if (this._observable && this._observers.length > 0) {
+                    this._observable.Subscribe(this._onRefresh);
                 }
             }
         }
@@ -63,7 +63,7 @@
         }
 
         get SubscriptionsCount() {
-            return this._subscriptions.length;
+            return this._observers.length;
         }
 
         Subscribe(onRefresh) {
@@ -71,7 +71,7 @@
                 throw new Error('onRefresh() is not a function');
             }
             let alreadySubscribed = false;
-            for (const callback of this._subscriptions) {
+            for (const callback of this._observers) {
                 if (callback === onRefresh) {
                     alreadySubscribed = true;
                     this._onError('onRefresh() is already subscribed');
@@ -84,8 +84,8 @@
                     this._onError(`Failed calling onRefresh(value): ${error}`);
                 }
             } else {
-                this._subscriptions.push(onRefresh);
-                if (!this._subscribable || this._subscriptions.length > 1) {
+                this._observers.push(onRefresh);
+                if (!this._observable || this._observers.length > 1) {
                     // If we cannot subscribe or it is not the first subscription we fire the event manually.
                     try {
                         onRefresh(this._value);
@@ -98,7 +98,7 @@
                         clearTimeout(this._unsubscribeDelayTimer);
                         this._unsubscribeDelayTimer = null;
                     } else {
-                        this._subscribable.Subscribe(this._onRefresh);
+                        this._observable.Subscribe(this._onRefresh);
                     }
                 }
             }
@@ -108,17 +108,17 @@
             if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh() is not a function');
             }
-            for (let i = 0; i < this._subscriptions.length; i++) {
-                if (this._subscriptions[i] === onRefresh) {
-                    this._subscriptions.splice(i, 1);
-                    if (this._subscribable && this._subscriptions.length === 0) {
+            for (let i = 0; i < this._observers.length; i++) {
+                if (this._observers[i] === onRefresh) {
+                    this._observers.splice(i, 1);
+                    if (this._observable && this._observers.length === 0) {
                         if (this._unsubscribeDelay) {
                             this._unsubscribeDelayTimer = setTimeout(() => {
-                                this._subscribable.Unsubscribe(this._onRefresh);
+                                this._observable.Unsubscribe(this._onRefresh);
                                 this._unsubscribeDelayTimer = null;
                             }, this._unsubscribeDelay);
                         } else {
-                            this._subscribable.Unsubscribe(this._onRefresh);
+                            this._observable.Unsubscribe(this._onRefresh);
                         }
                     }
                     return;
@@ -130,7 +130,7 @@
         _refresh(value) {
             if (!this._equal(this._value, value)) {
                 this._value = value;
-                for (const onRefresh of this._subscriptions) {
+                for (const onRefresh of this._observers) {
                     try {
                         onRefresh(value);
                     } catch (error) {
@@ -146,7 +146,7 @@
         constructor() {
             this._operational = new DataPoint.Node();
             this._operational.Value = false;
-            this._operational.Subscribable = null;
+            this._operational.Observable = null;
             Common.validateAsOperationalState(this, true);
         }
 
@@ -154,8 +154,8 @@
             this._operational.OnError = value;
         }
 
-        set Subscribable(value) {
-            this._operational.Subscribable = value;
+        set Observable(value) {
+            this._operational.Observable = value;
         }
 
         set UnsubscribeDelay(value) {
@@ -183,149 +183,42 @@
     class Router extends OperationalState {
         constructor() {
             super();
-            this._onError = Core.defaultOnError; // TODO: Used?
-            this._targets = {};
-            this._splitIntoTargetAndDataId = null;
+            this._getDataAccessObject = null;
             Common.validateAsDataAccessObject(this, true);
         }
 
-        set OnError(value) {
-            super.OnError = value;
-            this._onError = value;
-        }
-
-        set SplitIntoTargetAndDataId(value) {
+        set GetDataAccessObject(value) {
             if (typeof value !== 'function') {
-                throw new Error('Passed splitIntoTargetAndDataId(id) is not a function');
+                throw new Error('Passed getDataAccessObject(dataId) is not a function');
             }
-            this._splitIntoTargetAndDataId = value;
-        }
-
-        Register(targetId, target) {
-            Common.validateAsDataAccessObject(target, true);
-            if (typeof targetId !== 'string') {
-                throw new Error(`Invalid target '${targetId}' for Register(target, system)`);
-            } else if (this._targets[targetId] !== undefined) {
-                throw new Error(`Target '${targetId}' already registered`);
-            }
-            this._targets[targetId] = target;
-        }
-
-        Unregister(targetId, target) {
-            Common.validateAsDataAccessObject(target, true);
-            if (typeof targetId !== 'string') {
-                throw new Error(`Invalid target '${targetId}' for Unregister(target, system)`);
-            } else if (this._targets[targetId] === undefined) {
-                throw new Error(`Target '${targetId}' not registered`);
-            } else if (this._targets[targetId] !== target) {
-                throw new Error(`Other target '${targetId}' registered`);
-            }
-            delete this._targets[targetId];
+            this._getDataAccessObject = value;
         }
 
         GetType(dataId) {
-            if (!this._splitIntoTargetAndDataId) {
-                throw new Error('Function splitIntoTargetAndDataId(id) is not available');
-            }
-            let target = null;
-            let subDataId = null;
-            this._splitIntoTargetAndDataId(dataId, (tId, dId) => {
-                target = tId;
-                subDataId = dId;
-            }, error => {
-                throw new Error(`Error splitting '${dataId}' into target and sub-id: ${error}`, error);
-            });
-            if (typeof target !== 'string') {
-                throw new Error(`Invalid target '${target}' for GetType(dataId)`);
-            } else if (this._targets[target] === undefined) {
-                throw new Error(`Target '${target}' not registered for GetType(dataId)`);
-            } else {
-                return this._targets[target].GetType(subDataId);
-            }
+            return this._dao(dataId).GetType(dataId);
         }
 
         SubscribeData(dataId, onRefresh) {
-            if (!this._splitIntoTargetAndDataId) {
-                throw new Error('Function splitIntoTargetAndDataId(id) is not available');
-            }
-            let target = null;
-            let subDataId = null;
-            this._splitIntoTargetAndDataId(dataId, (tId, dId) => {
-                target = tId;
-                subDataId = dId;
-            }, error => {
-                throw new Error(`Error splitting '${dataId}' into target and sub-id: ${error}`, error);
-            });
-            if (typeof target !== 'string') {
-                throw new Error(`Invalid target '${target}' for SubscribeData(dataId, onRefresh)`);
-            } else if (this._targets[target] === undefined) {
-                throw new Error(`Target '${target}' not registered for SubscribeData(dataId, onRefresh)`);
-            } else {
-                this._targets[target].SubscribeData(subDataId, onRefresh);
-            }
+            this._dao(dataId).SubscribeData(dataId, onRefresh);
         }
 
         UnsubscribeData(dataId, onRefresh) {
-            if (!this._splitIntoTargetAndDataId) {
-                throw new Error('Function splitIntoTargetAndDataId(id) is not available');
-            }
-            let target = null;
-            let subDataId = null;
-            this._splitIntoTargetAndDataId(dataId, (tId, dId) => {
-                target = tId;
-                subDataId = dId;
-            }, error => {
-                throw new Error(`Error splitting '${dataId}' into target and sub-id: ${error}`, error);
-            });
-            if (typeof target !== 'string') {
-                throw new Error(`Invalid target '${target}' for UnsubscribeData(dataId, onRefresh)`);
-            } else if (this._targets[target] === undefined) {
-                throw new Error(`Target '${target}' not registered for UnsubscribeData(dataId, onRefresh)`);
-            } else {
-                this._targets[target].UnsubscribeData(subDataId, onRefresh);
-            }
+            this._dao(dataId).UnsubscribeData(dataId, onRefresh);
         }
 
         Read(dataId, onResponse, onError) {
-            if (!this._splitIntoTargetAndDataId) {
-                throw new Error('Function splitIntoTargetAndDataId(id) is not available');
-            }
-            let target = null;
-            let subDataId = null;
-            this._splitIntoTargetAndDataId(dataId, (tId, dId) => {
-                target = tId;
-                subDataId = dId;
-            }, error => {
-                throw new Error(`Error splitting '${dataId}' into target and sub-id: ${error}`, error);
-            });
-            if (typeof target !== 'string') {
-                throw new Error(`Invalid target '${target}' for Read(id, onResponse, onError)`);
-            } else if (this._targets[target] === undefined) {
-                throw new Error(`Target '${target}' not registered for Read()`);
-            } else {
-                this._targets[target].Read(subDataId, onResponse, onError);
-            }
+            this._dao(dataId).Read(dataId, onResponse, onError);
         }
 
         Write(dataId, value) {
-            if (!this._splitIntoTargetAndDataId) {
-                throw new Error('Function splitIntoTargetAndDataId(id) is not available');
+            this._dao(dataId).Write(dataId, value);
+        }
+
+        _dao(dataId) {
+            if (!this._getDataAccessObject) {
+                throw new Error('Function getDataAccessObject(dataId) is not available');
             }
-            let target = null;
-            let subDataId = null;
-            this._splitIntoTargetAndDataId(dataId, (tId, dId) => {
-                target = tId;
-                subDataId = dId;
-            }, error => {
-                throw new Error(`Error splitting '${dataId}' into target and sub-id: ${error}`, error);
-            });
-            if (typeof target !== 'string') {
-                throw new Error(`Invalid target '${target}' for Write(id, value)`);
-            } else if (this._targets[target] === undefined) {
-                throw new Error(`Target '${target}' not registered for Write()`);
-            } else {
-                this._targets[target].Write(subDataId, value);
-            }
+            return Common.validateAsDataAccessObject(this._getDataAccessObject(dataId));
         }
     }
     DataPoint.Router = Router;
@@ -333,7 +226,7 @@
     class Collection extends OperationalState { // NOTE: Remove if after some time still not required
         constructor() {
             super();
-            Subscribable = {
+            Observable = {
                 // Not: The following 'onRefresh' function is the local instance inside our node created above.
                 Subscribe: onRefresh => {
                     if (this._parent) {
@@ -465,14 +358,14 @@
             node.Equal = this._equal;
             node.OnError = this._onError;
             node.Value = null;
-            node.Subscribable = subscribableData;
+            node.Observable = subscribableData;
             return subscribableData;
         }
 
         _destroyData(data) { // TODO: Use ore remove
             const node = data.node;
             node.Value = null;
-            node.Subscribable = null;
+            node.Observable = null;
             delete data.node;
         }
     }

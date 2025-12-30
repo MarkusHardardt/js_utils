@@ -10,6 +10,7 @@
             'Subscribe(onRefresh)',
             'Unsubscribe(onRefresh)',
         ], validateMethodArguments);
+        return instance;
     }
     Common.validateAsObservable = validateAsObservable;
 
@@ -20,6 +21,7 @@
             'SubscribeOperationalState(onOperationalStateChanged)',
             'UnsubscribeOperationalState(onOperationalStateChanged)'
         ], validateMethodArguments);
+        return instance;
     }
     Common.validateAsOperationalState = validateAsOperationalState;
 
@@ -33,6 +35,7 @@
             'Read(dataId, onResponse, onError)',
             'Write(dataId, value)'
         ], validateMethodArguments);
+        return instance;
     }
     Common.validateAsDataAccessObject = validateAsDataAccessObject;
 
@@ -44,6 +47,7 @@
             'Unregister(receiver)',
             'Send(receiver, data, onResponse, onError)'
         ], validateMethodArguments);
+        return instance;
     }
     Common.validateAsConnection = validateAsConnection;
 
@@ -53,6 +57,7 @@
             'OnOpen()',
             'OnClose()'
         ], validateMethodArguments);
+        return instance;
     }
     Common.validateAsClientConnector = validateAsClientConnector;
 
@@ -64,6 +69,7 @@
             'OnClose()',
             'OnDispose()'
         ], validateMethodArguments);
+        return instance;
     }
     Common.validateAsServerConnector = validateAsServerConnector;
 

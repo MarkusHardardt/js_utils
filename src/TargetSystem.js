@@ -65,7 +65,7 @@
             case NodeOpcUaBasicType.String:
                 return Common.DataType.String;
             case NodeOpcUaBasicType.DataValue:
-                return Common.DataType.Struct;
+                return Common.DataType.Object;
             default:
                 return Common.DataType.Unknown;
         }
