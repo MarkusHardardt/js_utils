@@ -154,6 +154,10 @@
             this._operational.OnError = value;
         }
 
+        set Subscribable(value) {
+            this._operational.Subscribable = value;
+        }
+
         set UnsubscribeDelay(value) {
             this._operational.UnsubscribeDelay = value;
         }
@@ -176,7 +180,7 @@
     }
     DataPoint.OperationalState = OperationalState;
 
-    class Router extends DataPoint.OperationalState {
+    class Router extends OperationalState {
         constructor() {
             super();
             this._onError = Core.defaultOnError; // TODO: Used?
@@ -326,12 +330,10 @@
     }
     DataPoint.Router = Router;
 
-    // TODO: Still required ? 
-    class Collection { // TODO  extends OperationalState.Node ???
+    class Collection extends OperationalState { // NOTE: Remove if after some time still not required
         constructor() {
-            this._operational = new Node(); // TODO  extends OperationalState.Node
-            this._operational.Value = false;
-            this._operational.Subscribable = {
+            super();
+            Subscribable = {
                 // Not: The following 'onRefresh' function is the local instance inside our node created above.
                 Subscribe: onRefresh => {
                     if (this._parent) {
@@ -377,11 +379,8 @@
         }
 
         set OnError(value) {
-            if (typeof value !== 'function') {
-                throw new Error('Set value for OnError(error) is not a function');
-            }
+            super.OnError = value;
             this._onError = value;
-            this._operational.OnError = value;
             for (const dataId in this._dataPointsByDataId) {
                 if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                     this._dataPointsByDataId[dataId].node.OnError = value;
@@ -390,25 +389,13 @@
         }
 
         set UnsubscribeDelay(value) {
+            super.UnsubscribeDelay = value;
             this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
-            this._operational.UnsubscribeDelay = value;
             for (const dataId in this._dataPointsByDataId) {
                 if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                     this._dataPointsByDataId[dataId].node.UnsubscribeDelay = value;
                 }
             }
-        }
-
-        get IsOperational() {
-            return this._operational.Value;
-        }
-
-        SubscribeOperationalState(onOperationalStateChanged) {
-            this._operational.Subscribe(onOperationalStateChanged);
-        }
-
-        UnsubscribeOperationalState(onOperationalStateChanged) {
-            this._operational.Unsubscribe(onOperationalStateChanged);
         }
 
         GetType(dataId) {
