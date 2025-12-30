@@ -235,37 +235,6 @@
                 });
             }
 
-            _prepareDataPoint(dataId, dataPoint, oldDataPointsByDataId) {
-                const oldDataPoint = oldDataPointsByDataId ? oldDataPointsByDataId[dataId] : null;
-                if (!oldDataPoint) {
-                    const node = new DataPoint.Node();
-                    node.UnsubscribeDelay = this._unsubscribeDelay;
-                    node.Equal = this._equal;
-                    node.OnError = this.onError;
-                    node.Value = null;
-                    dataPoint.value = null; // TODO: Remove
-                    dataPoint.node = node;
-                    dataPoint.Subscribe = onRefresh => this.SubscribeData(dataId, onRefresh);
-                    dataPoint.Unsubscribe = onRefresh => this.UnsubscribeData(dataId, onRefresh);
-                    dataPoint.onRefresh = null; // TODO: Remove
-                } else {
-                    dataPoint.value = oldDataPoint.value; // TODO: Remove
-                    dataPoint.node = oldDataPoint.node;
-                    dataPoint.Subscribe = oldDataPoint.Subscribe;
-                    dataPoint.Unsubscribe = oldDataPoint.Unsubscribe;
-                    dataPoint.onRefresh = oldDataPoint.onRefresh; // TODO: Remove
-                    delete oldDataPointsByDataId[dataId];
-                }
-                dataPoint.node.Subscribable = dataPoint;
-            }
-
-            _destroyDataPoint(dataPoint) {
-                const node = dataPoint.node;
-                node.Value = null;
-                node.Subscribable = null;
-                delete dataPoint.node;
-            }
-
             OnClose() {
                 this._operational.Value = false;
                 clearTimeout(this._subscribeDelayTimer);
@@ -303,6 +272,37 @@
                             this.onError(`Invalid transmission type: ${data.type}`);
                     }
                 }
+            }
+
+            _prepareDataPoint(dataId, dataPoint, oldDataPointsByDataId) {
+                const oldDataPoint = oldDataPointsByDataId ? oldDataPointsByDataId[dataId] : null;
+                if (!oldDataPoint) {
+                    const node = new DataPoint.Node();
+                    node.UnsubscribeDelay = this._unsubscribeDelay;
+                    node.Equal = this._equal;
+                    node.OnError = this.onError;
+                    node.Value = null;
+                    dataPoint.value = null; // TODO: Remove
+                    dataPoint.node = node;
+                    dataPoint.Subscribe = onRefresh => this.SubscribeData(dataId, onRefresh);
+                    dataPoint.Unsubscribe = onRefresh => this.UnsubscribeData(dataId, onRefresh);
+                    dataPoint.onRefresh = null; // TODO: Remove
+                } else {
+                    dataPoint.value = oldDataPoint.value; // TODO: Remove
+                    dataPoint.node = oldDataPoint.node;
+                    dataPoint.Subscribe = oldDataPoint.Subscribe;
+                    dataPoint.Unsubscribe = oldDataPoint.Unsubscribe;
+                    dataPoint.onRefresh = oldDataPoint.onRefresh; // TODO: Remove
+                    delete oldDataPointsByDataId[dataId];
+                }
+                dataPoint.node.Subscribable = dataPoint;
+            }
+
+            _destroyDataPoint(dataPoint) {
+                const node = dataPoint.node;
+                node.Value = null;
+                node.Subscribable = null;
+                delete dataPoint.node;
             }
 
             _subscriptionsChanged() {
