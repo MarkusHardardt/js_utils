@@ -43,22 +43,28 @@
             'b': '2',
             'c': '3'
         }
-        inverted: {
+        transformed: {
             '1': 'a',
             '2': 'b',
             '3': 'c'
         }  */
-    function getInvertedKeyValueObject(object, valueToKey) {
-        const v2k = typeof valueToKey === 'function';
-        const inverted = {};
-        for (const src in object) {
-            if (object.hasOwnProperty(src)) {
-                inverted[v2k ? valueToKey(object[src]) : object[src]] = src;
+    function getTransformedObject(object, getKey, getValue) {
+        const gk = typeof getKey === 'function';
+        const gv = typeof getValue === 'function';
+        const transformed = {};
+        for (const attr in object) {
+            if (object.hasOwnProperty(attr)) {
+                const value = object[attr];
+                const key = gk ? getKey(attr, value) : value;
+                if (transformed[key] !== undefined) {
+                    throw new Error(`Key '${key}' of attribute '${attr}' already exists`);
+                }
+                transformed[key] = gv ? getValue(attr, value) : attr;
             }
         }
-        return inverted;
+        return transformed;
     }
-    Core.getInvertedKeyValueObject = getInvertedKeyValueObject;
+    Core.getTransformedObject = getTransformedObject;
 
     /*  Kahn's algorithm  */
     function getTopologicalSorting(dependencies) {
