@@ -50,7 +50,7 @@
             txt += '"';
         }
         if (_escapable.test(test)) {
-            txt += test.replace(_escapable, a => {
+            txt += test.replace(_escapable, function (a) {
                 const c = _meta[a];
                 return typeof c === 'string' ? c : '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
             });
