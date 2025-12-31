@@ -1,5 +1,4 @@
 (function (root) {
-    // ==> file: 'DataPoint.js':
     "use strict";
     const DataPoint = {};
     const isNodeJS = typeof require === 'function';
@@ -11,7 +10,10 @@
             this._value = null;
             this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
-            this._onRefresh = value => this._refresh(value);
+            let that = this;
+            this._onRefresh = function (value) {
+                 that._refresh(value);
+            };
             this._observers = [];
             this._observable = null;
             this._unsubscribeDelay = false;
@@ -113,9 +115,10 @@
                     this._observers.splice(i, 1);
                     if (this._observable && this._observers.length === 0) {
                         if (this._unsubscribeDelay) {
-                            this._unsubscribeDelayTimer = setTimeout(() => {
-                                this._observable.Unsubscribe(this._onRefresh);
-                                this._unsubscribeDelayTimer = null;
+                            let that = this;
+                            this._unsubscribeDelayTimer = setTimeout(function () {
+                                that._observable.Unsubscribe(that._onRefresh);
+                                that._unsubscribeDelayTimer = null;
                             }, this._unsubscribeDelay);
                         } else {
                             this._observable.Unsubscribe(this._onRefresh);
@@ -226,16 +229,17 @@
     class Collection extends OperationalState { // NOTE: Remove if after some time still not required
         constructor() {
             super();
+            let that = this;
             Observable = { // What happens here? We call the OperationalState.Observable setter
                 // Not: The following 'onRefresh' function is the local instance inside our node created above.
-                Subscribe: onRefresh => {
-                    if (this._parentDataAccessObject) {
-                        this._parentDataAccessObject.SubscribeOperationalState(onRefresh);
+                Subscribe: function (onRefresh) {
+                    if (that._parentDataAccessObject) {
+                        that._parentDataAccessObject.SubscribeOperationalState(onRefresh);
                     }
                 },
-                Unsubscribe: onRefresh => {
-                    if (this._parentDataAccessObject) {
-                        this._parentDataAccessObject.UnsubscribeOperationalState(onRefresh);
+                Unsubscribe: function (onRefresh) {
+                    if (that._parentDataAccessObject) {
+                        that._parentDataAccessObject.UnsubscribeOperationalState(onRefresh);
                     }
                 }
             };
@@ -318,13 +322,14 @@
         }
 
         Read(dataId, onResponse, onError) {
-            Common.validateAsDataAccessObject(this._parentDataAccessObject).Read(dataId, value => {
+            let that = this;
+            Common.validateAsDataAccessObject(this._parentDataAccessObject).Read(dataId, function (value) {
                 try {
                     onResponse(value);
                 } catch (error) {
-                    this._onError(`Failed calling onResponse() for dataId: ${dataId}: ${error.message}`, error);
+                    that._onError(`Failed calling onResponse() for dataId: ${dataId}: ${error.message}`, error);
                 }
-                let data = this._dataPointsByDataId[dataId];
+                let data = that._dataPointsByDataId[dataId];
                 if (data) {
                     data.node.Value = value;
                 }
@@ -337,17 +342,18 @@
 
         _createDataForId(dataId) {
             const node = new Node();
+            let that = this;
             const subscribableData = {
                 node,
                 // Not: The following 'onRefresh' function is the local instance inside our node created above.
-                Subscribe: onRefresh => {
-                    if (this._parentDataAccessObject) {
-                        this._parentDataAccessObject.SubscribeData(dataId, onRefresh);
+                Subscribe: function(onRefresh) {
+                    if (that._parentDataAccessObject) {
+                        that._parentDataAccessObject.SubscribeData(dataId, onRefresh);
                     }
                 },
-                Unsubscribe: onRefresh => {
-                    if (this._parentDataAccessObject) {
-                        this._parentDataAccessObject.UnsubscribeData(dataId, onRefresh);
+                Unsubscribe: function(onRefresh) {
+                    if (that._parentDataAccessObject) {
+                        that._parentDataAccessObject.UnsubscribeData(dataId, onRefresh);
                     }
                 }
             };
