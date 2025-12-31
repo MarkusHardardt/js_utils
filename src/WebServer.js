@@ -88,7 +88,7 @@
             const id = this.AddStaticDir(directory);
             buffer.push(`/${id}/${name}`);
         }
-        AddStaticFile() {
+        AddStaticFile() { // Note: No not change to lambda function, because 'arguments' will not work anymore!
             const dir = arguments.length === 1 ? path.dirname(arguments[0]) : arguments[0];
             const name = arguments.length === 1 ? path.basename(arguments[0]) : arguments[1];
             if (typeof dir === 'string' && typeof name === 'string') {

@@ -5647,7 +5647,7 @@
             return result;
         };
 
-        this.hmi_getBounds = function () { // <- DO NOT CONVERT TO LAMBDA FUNCTION () => {}: arguments will not be available
+        this.hmi_getBounds = function () { // Note: No not change to lambda function, because 'arguments' will not work anymore!
             var recursive, bounds, arg;
             // try to read from arguments
             for (var i = 0, l = arguments.length; i < l; i++) {

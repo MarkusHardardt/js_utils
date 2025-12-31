@@ -151,7 +151,7 @@
         }
     }
 
-    function run() {
+    function run() { // Note: No not change to lambda function, because 'arguments' will not work anymore!
         // init callbacks and helpers
         let ai, al = arguments.length, ar;
         let on_success = al > 1 && typeof arguments[1] === 'function' ? arguments[1] : false;
@@ -197,7 +197,7 @@
     }
     Executor.run = run;
 
-    function pipe() {
+    function pipe() {// Note: No not change to lambda function, because 'arguments' will not work anymore!
         // init callbacks and helpers
         let ai, al = arguments.length, ar;
         let on_error = al > 0 && typeof arguments[0] === 'function' ? arguments[0] : false;
@@ -284,7 +284,7 @@
                 }
             }
         };
-        return () => {
+        return function () { // Note: No not change to lambda function, because 'arguments' will not work anymore!
             if (typeof arguments[0] === 'function') {
                 tasks.push(arguments[0]);
                 if (!running) {
@@ -295,7 +295,7 @@
     }
     Executor.pipe = pipe;
 
-    function decouple() {
+    function decouple() { // Note: No not change to lambda function, because 'arguments' will not work anymore!
         // init callbacks and times
         let action = false, delay = false, millis = false, ai, al = arguments.length, ar;
         for (ai = 0; ai < al; ai++) {
@@ -352,7 +352,7 @@
     }
     Executor.decouple = decouple;
 
-    function unstress() {
+    function unstress() { // Note: No not change to lambda function, because 'arguments' will not work anymore!
         // init callbacks and helpers
         let ai, al = arguments.length, ar;
         let on_error = al > 0 && typeof arguments[0] === 'function' ? arguments[0] : false;
