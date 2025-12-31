@@ -52,8 +52,9 @@
                 res.json({ error: err });
             });
             // this returns our main html document
+            let that = this;
             app.get('/', function (req, res) {
-                res.send(this._generate_html());
+                res.send(that._generate_html());
             });
         }
         get IsSecure() {
