@@ -18,6 +18,7 @@
   "homepage": "https://github.com/MarkusHardardt/js_utils#readme",
   "dependencies": {
     "body-parser": "^2.2.1",
+    "codemirror": "^5.52.2",
     "datatables.net": "^2.3.5",
     "datatables.net-dt": "^2.3.5",
     "express": "^5.2.1",
