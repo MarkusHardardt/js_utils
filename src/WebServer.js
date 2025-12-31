@@ -62,7 +62,7 @@
             // alternative url: "https://www.favicon-generator.org/"
             this._app.use('/favicon.ico', express.static(path));
         }
-        set RandomFileIdenabled(value) {
+        set RandomFileIdEnabled(value) {
             this._random_id = value === true;
         }
         AddStaticDir(directory, id) {
