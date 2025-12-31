@@ -40,7 +40,7 @@
                 extended: true,
                 parameterLimit: 50000
             }));
-            app.use((err, req, res, next) => {
+            app.use(function (err, req, res, next) {
                 console.log('>>>>>> ERROR: ' + err.message);
                 // set locals, only providing error in development
                 res.locals.message = err.message;
@@ -52,7 +52,9 @@
                 res.json({ error: err });
             });
             // this returns our main html document
-            app.get('/', (req, res) => res.send(this._generate_html()));
+            app.get('/', function (req, res) {
+                res.send(this._generate_html());
+            });
         }
         get IsSecure() {
             return this._secure;

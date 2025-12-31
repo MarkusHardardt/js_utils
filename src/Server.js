@@ -7,12 +7,19 @@
 
     if (isNodeJS) {
         /*   hash generation */
-        const createHash = (text, mode) => crypto.createHash(mode).update(text, 'utf8').digest('hex');
+        const createHash = function (text, mode) {
+            return crypto.createHash(mode).update(text, 'utf8').digest('hex');
+        };
         Server.createHash = createHash;
-        Server.createSHA256 = text => createHash(text, 'SHA-256');
-        Server.createSHA384 = text => createHash(text, 'SHA-384');
-        Server.createSHA512 = text => createHash(text, 'SHA-512');
-
+        Server.createSHA256 = function (text) {
+            return createHash(text, 'SHA-256');
+        };
+        Server.createSHA384 = function (text) {
+            return createHash(text, 'SHA-384');
+        };
+        Server.createSHA512 = function (text) {
+            return createHash(text, 'SHA-512');
+        };
         Object.freeze(Server);
         module.exports = Server;
     }
