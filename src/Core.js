@@ -28,13 +28,19 @@
     /*  Returns a function witch on each call returns a number (radix 36, starting at zero). */
     function createIdGenerator(prefix = '') {
         let id = 0;
-        return () => `${prefix}${(id++).toString(36)}`;
+        return function () {
+            return `${prefix}${(id++).toString(36)}`;
+        };
     }
     Core.createIdGenerator = createIdGenerator;
 
-    Core.defaultEqual = (v1, v2) => v1 === v2;
+    Core.defaultEqual = function (v1, v2) {
+        return v1 === v2;
+    };
 
-    Core.defaultOnError = (message, error) => console.error(message, error);
+    Core.defaultOnError = function (message, error) {
+        console.error(message, error);
+    };
 
     /*  Look at this sample to understand what is returned:
         object = { 
@@ -139,7 +145,9 @@
         function getArgumentsArray(argumentsSource) {
             const a = [];
             if (argumentsSource) {
-                Regex.each(argumentRegex, argumentsSource, (start, end, match) => a.push(match[1]), true);
+                Regex.each(argumentRegex, argumentsSource, function (start, end, match) {
+                    a.push(match[1]);
+                }, true);
             }
             return a;
         }

@@ -23,7 +23,10 @@
             this.connection = null;
             this.onError = Core.defaultOnError;
             this.receiver = DEFAULT_DATA_CONNECTION_RECEIVER;
-            this._handler = (data, onResponse, onError) => this.handleReceived(data, onResponse, onError);
+            let that = this;
+            this._handler = function (data, onResponse, onError) {
+                that.handleReceived(data, onResponse, onError);
+            };
         }
 
         set Connection(value) {
@@ -62,8 +65,11 @@
 
     function getAsDataPointsByDataId(dataPointConfigsByShortId) {
         return Core.getTransformedObject(dataPointConfigsByShortId,
-            (shortId, config) => config.dataId,
-            (shortId, dataPoint) => { return { shortId, type: dataPoint.type } }
+            function (shortId, config) {
+                return config.dataId;
+            }, function (shortId, dataPoint) {
+                return { shortId, type: dataPoint.type };
+            }
         );
     }
 
@@ -165,15 +171,16 @@
                     throw new Error(`Unknown data point for id ${dataId} to Read()`);
                 }
                 Common.validateAsConnection(this.connection);
+                let that = this;
                 this.connection.Send(this.receiver,
                     { type: TransmissionType.ReadRequest, shortId: dataPoint.shortId },
-                    value => {
+                    function (value) {
                         try {
                             onResponse(value);
                         } catch (error) {
-                            this._onError(`Failed calling onResponse() for dataId: ${dataId}: ${error.message}`, error);
+                            that._onError(`Failed calling onResponse() for dataId: ${dataId}: ${error.message}`, error);
                         }
-                        const dataPoint = this._dataPointsByDataId[dataId];
+                        const dataPoint = that._dataPointsByDataId[dataId];
                         if (dataPoint) {
                             dataPoint.node.Value = value;
                         }
@@ -237,33 +244,34 @@
 
             _loadConfiguration() {
                 Common.validateAsConnection(this.connection);
-                this.connection.Send(this.receiver, { type: TransmissionType.ConfigurationRequest }, config => {
-                    this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
-                    this._unsubscribeDelay = typeof config.unsubscribeDelay === 'number' && config.unsubscribeDelay > 0 ? config.unsubscribeDelay : false;
-                    this._operational.UnsubscribeDelay = this._unsubscribeDelay;
-                    this._dataPointConfigsByShortId = config.dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
-                    const oldDataPointsByDataId = this._dataPointsByDataId;
-                    this._dataPointsByDataId = getAsDataPointsByDataId(config.dataPointConfigsByShortId);
+                let that = this;
+                this.connection.Send(this.receiver, { type: TransmissionType.ConfigurationRequest }, function (config) {
+                    that._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
+                    that._unsubscribeDelay = typeof config.unsubscribeDelay === 'number' && config.unsubscribeDelay > 0 ? config.unsubscribeDelay : false;
+                    that._operational.UnsubscribeDelay = that._unsubscribeDelay;
+                    that._dataPointConfigsByShortId = config.dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
+                    const oldDataPointsByDataId = that._dataPointsByDataId;
+                    that._dataPointsByDataId = getAsDataPointsByDataId(config.dataPointConfigsByShortId);
                     // Check for all received data points if an old data point exists and if the case copy the content
-                    for (const dataId in this._dataPointsByDataId) {
-                        if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
-                            this._prepareDataPoint(dataId, this._dataPointsByDataId[dataId], oldDataPointsByDataId);
+                    for (const dataId in that._dataPointsByDataId) {
+                        if (that._dataPointsByDataId.hasOwnProperty(dataId)) {
+                            that._prepareDataPoint(dataId, that._dataPointsByDataId[dataId], oldDataPointsByDataId);
                         }
                     }
                     // Clean up old data points not existing anymore
                     if (oldDataPointsByDataId) {
                         for (const dataId in oldDataPointsByDataId) {
                             if (oldDataPointsByDataId.hasOwnProperty(dataId)) {
-                                this._destroyDataPoint(oldDataPointsByDataId[dataId]);
+                                that._destroyDataPoint(oldDataPointsByDataId[dataId]);
                                 delete oldDataPointsByDataId[dataId];
                             }
                         }
                     }
-                    this._operational.Value = true;
-                    this._sendSubscriptionRequest();
-                }, error => {
-                    this._operational.Value = false;
-                    this.onError(error);
+                    that._operational.Value = true;
+                    that._sendSubscriptionRequest();
+                }, function (error) {
+                    that._operational.Value = false;
+                    that.onError(error);
                 });
             }
 
@@ -275,8 +283,13 @@
                     node.OnError = this.onError;
                     node.Value = null;
                     dataPoint.node = node;
-                    dataPoint.Subscribe = onRefresh => this.SubscribeData(dataId, onRefresh);
-                    dataPoint.Unsubscribe = onRefresh => this.UnsubscribeData(dataId, onRefresh);
+                    let that = this;
+                    dataPoint.Subscribe = function (onRefresh) {
+                         that.SubscribeData(dataId, onRefresh);
+                    };
+                    dataPoint.Unsubscribe = function (onRefresh) {
+                         that.UnsubscribeData(dataId, onRefresh);
+                    };
                 } else {
                     dataPoint.node = oldDataPoint.node;
                     dataPoint.Subscribe = oldDataPoint.Subscribe;
@@ -298,7 +311,7 @@
                 if (!this._subscribeDelay) {
                     this._sendSubscriptionRequest();
                 } else if (!this._subscribeDelayTimer) {
-                    this._subscribeDelayTimer = setTimeout(() => {
+                    this._subscribeDelayTimer = setTimeout(function () {
                         this._sendSubscriptionRequest();
                         this._subscribeDelayTimer = null;
                     }, this._subscribeDelay);
@@ -416,10 +429,10 @@
                     Common.validateAsDataAccessObject(this._parent);
                     switch (data.type) {
                         case TransmissionType.ConfigurationRequest:
-                            onResponse({ 
-                                subscribeDelay: this._subscribeDelay, 
-                                unsubscribeDelay: this._unsubscribeDelay, 
-                                dataPointConfigsByShortId: this._dataPointConfigsByShortId 
+                            onResponse({
+                                subscribeDelay: this._subscribeDelay,
+                                unsubscribeDelay: this._unsubscribeDelay,
+                                dataPointConfigsByShortId: this._dataPointConfigsByShortId
                             });
                             break;
                         case TransmissionType.SubscriptionRequest:
@@ -460,24 +473,25 @@
                             }
                         }
                     }
-                    Regex.each(subscribeRequestShortIdRegex, subscriptionShorts, (start, end, match) => {
+                    let that = this;
+                    Regex.each(subscribeRequestShortIdRegex, subscriptionShorts, function (start, end, match) {
                         // we are in a closure -> shortId/id will be available in onRefresh()
                         const shortId = match[0];
-                        const dpConf = this._dataPointConfigsByShortId[shortId];
+                        const dpConf = that._dataPointConfigsByShortId[shortId];
                         if (dpConf) {
-                            if (!this._onEventCallbacks[dpConf.dataId]) {
-                                const onRefresh = value => {
-                                    if (!this._values) {
-                                        this._values = {};
+                            if (!that._onEventCallbacks[dpConf.dataId]) {
+                                const onRefresh = function (value) {
+                                    if (!that._values) {
+                                        that._values = {};
                                     }
-                                    this._values[shortId] = value;
-                                    this._valuesChanged();
+                                    that._values[shortId] = value;
+                                    that._valuesChanged();
                                 };
-                                this._onEventCallbacks[dpConf.dataId] = onRefresh;
-                                this._parent.SubscribeData(dpConf.dataId, onRefresh);
+                                that._onEventCallbacks[dpConf.dataId] = onRefresh;
+                                that._parent.SubscribeData(dpConf.dataId, onRefresh);
                             }
                         } else {
-                            this.onError(`Cannot subscribe: ${shortId}`);
+                            that.onError(`Cannot subscribe: ${shortId}`);
                         }
                     }, true);
                 }
@@ -487,9 +501,10 @@
                 if (!this._sendDelay) {
                     this._sendValues();
                 } else if (!this._sendDelayTimer) {
-                    this._sendDelayTimer = setTimeout(() => {
-                        this._sendValues();
-                        this._sendDelayTimer = null;
+                    let that = this;
+                    this._sendDelayTimer = setTimeout(function () {
+                        that._sendValues();
+                        that._sendDelayTimer = null;
                     }, this._sendDelay);
                 }
             }
