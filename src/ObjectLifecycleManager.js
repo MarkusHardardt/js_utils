@@ -2712,7 +2712,7 @@
         txt += '" style="font-family:Courier New;width: 100%; height: 100%;box-sizing: border-box;overflow: auto;"></textarea>';
         _textarea = $(txt);
         _textarea.appendTo(_cont);
-        if (typeof that.code === 'string' && that.code.length > 0) {
+        if (typeof that.code === 'string' && that.code.length > 0) { // TODO: Migrate to CodeMirror v6 (https://codemirror.net/docs/migration/)
             var mode = undefined;
             if (that.code === 'javascript') {
                 mode = {
