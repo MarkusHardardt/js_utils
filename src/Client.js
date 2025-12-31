@@ -25,7 +25,7 @@
                 };
             }
             if (!root.cancelAnimationFrame) {
-                root.cancelAnimationFrame = function(timeout) {
+                root.cancelAnimationFrame = function (timeout) {
                     clearTimeout(timeout);
                 };
             }
@@ -46,7 +46,7 @@
             }
         }
         Client.fetchJsonAsync = fetchJsonAsync;
-        Client.fetchJson = (url, request, onResponse, onError) => { (async () => await fetchJsonAsync(url, request, onResponse, onError))(); };
+        Client.fetchJson = function (url, request, onResponse, onError) { (async () => await fetchJsonAsync(url, request, onResponse, onError))(); };
 
         Object.freeze(Client);
         root.Client = Client;

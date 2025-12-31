@@ -10,7 +10,7 @@
     const moduleRegex = /\bconst\s+([a-zA-Z][_a-zA-Z0-9]*)\s*=\s*isNodeJS\s*\?\s*require\s*\(\s*'\.\/\1\.js'\s*\)\s*:\s*root\s*\.\s*\1\s*;/g;
 
     function loadDependencies(directory, ignorables, onSuccess, onError) {
-        fs.readdir(directory, (error, files) => {
+        fs.readdir(directory, function (error, files) {
             if (error) {
                 onError(error);
                 return;
@@ -27,7 +27,9 @@
                 }
                 dependencies[moduleName] = [];
                 const text = fs.readFileSync(`${directory}/${file}`, 'utf8');
-                Regex.each(moduleRegex, text, (start, end, match) => dependencies[moduleName].push(match[1]), true);
+                Regex.each(moduleRegex, text, function (start, end, match) {
+                    dependencies[moduleName].push(match[1]);
+                }, true);
             }
             onSuccess(dependencies);
         });
@@ -39,7 +41,9 @@
         txt += 'const dependencies = {\n';
         for (const m in dependencies) {
             if (dependencies.hasOwnProperty(m)) {
-                txt += `  '${m}': [${dependencies[m].map(e => `'${e}'`).join(', ')}],\n`;
+                txt += `  '${m}': [${dependencies[m].map(function (e) {
+                    return `'${e}'`;
+                }).join(', ')}],\n`;
             }
         }
         txt += '};\n';

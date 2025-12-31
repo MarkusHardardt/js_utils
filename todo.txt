@@ -1,4 +1,2 @@
 - reduce usage of Common.validateXXX() calls
 
-
-DataPublisher => DataPoint

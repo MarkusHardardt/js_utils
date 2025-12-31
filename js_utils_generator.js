@@ -9,15 +9,15 @@
         const tasks = [];
         let dependencies, topologicalSortedComponents;
         // load dependencies as tree object
-        tasks.push((onSuccess, onError) => {
-            Helper.loadDependencies(options.directory, options.ignorables, result => {
+        tasks.push(function (onSuccess, onError) {
+            Helper.loadDependencies(options.directory, options.ignorables, function (result) {
                 dependencies = result;
                 console.log(Helper.formatDependencies(dependencies));
                 onSuccess();
             }, onError)
         });
         // get topological sorted components
-        tasks.push((onSuccess, onError) => {
+        tasks.push(function (onSuccess, onError) {
             try {
                 topologicalSortedComponents = Core.getTopologicalSorting(dependencies);
                 console.log(Helper.formatTopologicalSortedComponents(topologicalSortedComponents));
@@ -27,30 +27,34 @@
             }
         });
         // 
-        tasks.push((onSuccess, onError) => {
+        tasks.push(function (onSuccess, onError) {
             try {
                 const indexJs = Helper.generateIndexJs(options.name, options.scope, topologicalSortedComponents, options.browserIgnorables);
                 console.log(indexJs);
                 if (options.index_js_outputFile) {
                     fs.writeFileSync(options.index_js_outputFile, indexJs, 'utf8');
-                    console.log(`==> EXPORTED: ${options.index_js_outputFile}`);
+                    console.log(`--> EXPORTED: ${options.index_js_outputFile}`);
                 }
                 onSuccess();
             } catch (error) {
                 onError(error);
             }
         });
-        tasks.push((onSuccess, onError) => {
+        tasks.push(function (onSuccess, onError) {
             console.log(Helper.generateInternalImports(dependencies, topologicalSortedComponents))
             onSuccess();
 
         });
-        tasks.push((onSuccess, onError) => {
+        tasks.push(function (onSuccess, onError) {
             console.log(Helper.generateExternalImports(options.scope, topologicalSortedComponents));
             onSuccess();
 
         });
-        Executor.run(tasks, () => console.log('done'), error => console.error(error));
+        Executor.run(tasks, function () {
+            console.log('done');
+        }, function (error) {
+            console.error(error);
+        });
     }
 
     generate({
