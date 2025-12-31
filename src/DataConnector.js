@@ -311,9 +311,10 @@
                 if (!this._subscribeDelay) {
                     this._sendSubscriptionRequest();
                 } else if (!this._subscribeDelayTimer) {
+                    let that = this;
                     this._subscribeDelayTimer = setTimeout(function () {
-                        this._sendSubscriptionRequest();
-                        this._subscribeDelayTimer = null;
+                        that._sendSubscriptionRequest();
+                        that._subscribeDelayTimer = null;
                     }, this._subscribeDelay);
                 }
             }
