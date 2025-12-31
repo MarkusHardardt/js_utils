@@ -14,10 +14,10 @@
                 root.cancelAnimationFrame = root[vendors[x] + 'CancelAnimationFrame'] || root[vendors[x] + 'CancelRequestAnimationFrame'];
             }
             if (!root.requestAnimationFrame) {
-                root.requestAnimationFrame = (callback, element) => {
+                root.requestAnimationFrame = function (callback, element) {
                     var currTime = new Date().getTime();
                     var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-                    var id = root.setTimeout(() => {
+                    var id = root.setTimeout(function () {
                         callback(currTime + timeToCall);
                     }, timeToCall);
                     lastTime = currTime + timeToCall;
@@ -25,7 +25,7 @@
                 };
             }
             if (!root.cancelAnimationFrame) {
-                root.cancelAnimationFrame = timeout => {
+                root.cancelAnimationFrame = function(timeout) {
                     clearTimeout(timeout);
                 };
             }
@@ -46,7 +46,7 @@
             }
         }
         Client.fetchJsonAsync = fetchJsonAsync;
-        Client.fetchJson = (url, request, onResponse, onError) => { (async () => await fetchJsonAsync(url, request, onResponse, onError))(); }
+        Client.fetchJson = (url, request, onResponse, onError) => { (async () => await fetchJsonAsync(url, request, onResponse, onError))(); };
 
         Object.freeze(Client);
         root.Client = Client;
