@@ -9,7 +9,7 @@
             try {
                 let this_call = true, success, result, error, exception;
                 // call safely ...
-                object(response => {
+                object(function (response) {
                     // on success:
                     if (!done) {
                         done = true;
@@ -23,7 +23,7 @@
                             onSuccess(response);
                         }
                     }
-                }, err => {
+                }, function (err) {
                     // on error:
                     if (!done) {
                         done = true;
@@ -47,7 +47,7 @@
                 }
                 // start watchdog only if required
                 else if (millis && timeout) {
-                    timeoutTimer = setTimeout(() => {
+                    timeoutTimer = setTimeout(function () {
                         if (!done) {
                             done = true;
                             timeout(object);
@@ -73,7 +73,7 @@
             }
             // We store our task states inside an array and by calling 'next()' we
             // either trigger the next task or our success callback.
-            let states = [], results, done = false, next = () => {
+            let states = [], results, done = false, next = function () {
                 if (!done) {
                     let t, this_call, success, error, exception;
                     // First we loop over all tasks and trigger the next that has not been
@@ -87,7 +87,7 @@
                             exception = undefined;
                             (function () {
                                 let task = t;
-                                exec(object[task], result => {
+                                exec(object[task], function (result) {
                                     states[task] = true;
                                     if (result !== undefined) {
                                         if (results) {
@@ -101,7 +101,7 @@
                                     } else {
                                         next();
                                     }
-                                }, err => {
+                                }, function (err) {
                                     done = true;
                                     if (this_call) {
                                         error = true;
@@ -166,14 +166,14 @@
             }
         }
         let this_call = true, success, result, error, exception;
-        exec(arguments[0], res => {
+        exec(arguments[0], function (res) {
             if (this_call) {
                 success = true;
                 result = res;
             } else if (on_success) {
                 on_success(res);
             }
-        }, err => {
+        }, function (err) {
             if (this_call) {
                 error = true;
                 exception = err;
@@ -210,7 +210,7 @@
                 millis = ar;
             }
         }
-        let tasks = [], running = false, run = () => {
+        let tasks = [], running = false, run = function () {
             if (!running) {
                 let task, this_call, success, error, exception;
                 while (tasks.length > 0) {
@@ -223,7 +223,7 @@
                         success = false;
                         error = false;
                         exception = undefined;
-                        task(() => {
+                        task(function () {
                             // handle success callback only once and if still running
                             if (running) {
                                 running = false;
@@ -233,7 +233,7 @@
                                     run();
                                 }
                             }
-                        }, err => {
+                        }, function (err) {
                             // handle error callback only once and if still running
                             if (running) {
                                 running = false;
@@ -259,7 +259,7 @@
                         }
                         else if (!success) {
                             if (millis && on_timeout) {
-                                timeoutTimer = setTimeout(() => {
+                                timeoutTimer = setTimeout(function () {
                                     if (running) {
                                         running = false;
                                         tasks.splice(0, tasks.length);
@@ -284,7 +284,7 @@
                 }
             }
         };
-        return () => {
+        return function () {
             if (typeof arguments[0] === 'function') {
                 tasks.push(arguments[0]);
                 if (!running) {
@@ -313,14 +313,14 @@
                 }
             }
         }
-        let perform = () => {
+        let perform = function () {
             try {
                 action();
             } catch (exc) {
                 console.error('EXCEPTION! Cannot perform minimum timeout action: ' + exc);
             }
         };
-        let timeoutTimer = null, prev = undefined, trigger = () => {
+        let timeoutTimer = null, prev = undefined, trigger = function () {
             // we only perform if we are not already waiting in a timeout
             if (!timeoutTimer) {
                 let time = new Date().getTime();
@@ -332,7 +332,7 @@
                 }
                 else {
                     // if previous call is too short in the past we wait until timeout
-                    timeoutTimer = setTimeout(() => {
+                    timeoutTimer = setTimeout(function () {
                         prev = new Date().getTime();
                         timeoutTimer = null;
                         perform();
@@ -341,9 +341,9 @@
             }
         };
         let delay_timeout = undefined;
-        return delay ? () => {
+        return delay ? function () {
             if (delay_timeout === undefined) {
-                delay_timeout = setTimeout(() => {
+                delay_timeout = setTimeout(function () {
                     delay_timeout = undefined;
                     trigger();
                 }, delay);
@@ -369,13 +369,13 @@
         // On success, error or in case of an exception and if meanwhile
         // another task has been passed we call this function again.
         var latest_requested_task, busy = false;
-        var run = task => {
+        var run = function (task) {
             if (typeof task === 'function') {
                 latest_requested_task = task;
                 if (!busy) {
                     busy = true;
                     try {
-                        task(() => {
+                        task(function () {
                             if (busy) {
                                 busy = false;
                                 if (timeoutTimer) {
@@ -384,7 +384,7 @@
                                     run(latest_requested_task);
                                 }
                             }
-                        }, err => {
+                        }, function (err) {
                             if (busy) {
                                 busy = false;
                                 if (timeoutTimer) {
@@ -397,7 +397,7 @@
                             }
                         });
                         if (busy && millis && on_timeout) {
-                            timeoutTimer = setTimeout(() => {
+                            timeoutTimer = setTimeout(function () {
                                 if (busy) {
                                     busy = false;
                                     if (on_timeout) {
