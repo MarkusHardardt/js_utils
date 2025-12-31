@@ -15,7 +15,7 @@
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Core.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentManager.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Common.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/hmi_object.js');
+        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectLifecycleManager.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataPoint.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/TargetSystem.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
@@ -37,7 +37,7 @@
         WebServer: require('./src/WebServer.js'),
         ContentManager: require('./src/ContentManager.js'),
         Common: require('./src/Common.js'),
-        hmi_object: require('./src/hmi_object.js'),
+        ObjectLifecycleManager: require('./src/ObjectLifecycleManager.js'),
         DataPoint: require('./src/DataPoint.js'),
         TargetSystem: require('./src/TargetSystem.js'),
         WebSocketConnection: require('./src/WebSocketConnection.js'),
