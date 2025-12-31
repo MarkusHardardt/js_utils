@@ -10,7 +10,6 @@
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectPositionSystem.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Regex.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Sorting.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/SqlHelper.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Utilities.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Core.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentManager.js');
