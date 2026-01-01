@@ -4,6 +4,7 @@
     const isNodeJS = typeof require === 'function';
 
     var Executor = isNodeJS ? require('./Executor') : root.Executor;
+    var Client = isNodeJS ? require('./Client') : root.Client;
     var mysql = isNodeJS ? require('mysql') : false;
 
     function SqlHelper(i_config, i_verbose) {
@@ -48,19 +49,27 @@
         return mysql ? mysql.escape(i_value) : window.SqlString.escape(i_value);
     };
 
-    function Proxy(i_url, i_callback) {
-        this._url = i_url;
+    function Proxy(url, onResponse) {
+        this._url = url;
         var that = this;
+        if (!true) { // TODO: Make this running, but only if still required (is this not just debug stuff to test SQL statements in the browser?)
+            Client.fetch(url, jsonfx.stringify({ connect: true }, false), response => {
+                const result = jsonfx.parse(response, false, false);
+                that._id = result.id;
+                onResponse(result.config);
+            }, error => console.error(`DEBUG_SQL_PROXY: connect-error: ${error}`));
+            return;
+        }
         $.ajax({
             type: 'POST',
-            url: i_url,
+            url,
             data: {
                 connect: true
             },
             success: function (i_result, i_textStatus, i_jqXHR) {
                 that._id = i_result.id;
                 // console.log('DEBUG_SQL_PROXY: connected [id: ' + i_result + ']');
-                i_callback(i_result.config);
+                onResponse(i_result.config);
             },
             error: function (i_jqXHR, i_textStatus, i_errorThrown) {
                 console.error('DEBUG_SQL_PROXY: connect-error');
@@ -73,6 +82,16 @@
         query: function (i_query, i_callback) {
             var url = this._url, id = this._id;
             if (url) {
+                if (!true) { // TODO: Make this running, but only if still required (is this not just debug stuff to test SQL statements in the browser?)
+                    Client.fetch(url, jsonfx.stringify({ query: i_query, id }, false), response => {
+                        try {
+                            i_callback(undefined, JSON.parse(response), undefined);
+                        } catch (exc) {
+                            i_callback(exc, undefined, undefined);
+                        }
+                    }, error => i_callback(error, undefined, undefined));
+                    return;
+                }
                 $.ajax({
                     type: 'POST',
                     url: url,
@@ -101,6 +120,12 @@
         release: function () {
             var url = this._url, id = this._id;
             if (url) {
+                if (!true) { // TODO: Make this running, but only if still required (is this not just debug stuff to test SQL statements in the browser?)
+                    Client.fetch(url, jsonfx.stringify({ release: true, id }, false), response => {
+                        // Nothing to do
+                    }, error => console.error(`DEBUG_SQL_PROXY: release-error [${id}], error: ${error}`));
+                    return;
+                }
                 $.ajax({
                     type: 'POST',
                     url: url,
