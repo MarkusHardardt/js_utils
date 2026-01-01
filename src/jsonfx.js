@@ -1,6 +1,6 @@
 (function (root) {
     "use strict";
-    const jsonfx = {};
+    const jsonfx = {}; // TODO: Rename to 'JsonFX' JSONFX
 
     const isNodeJS = typeof require === 'function';
 
