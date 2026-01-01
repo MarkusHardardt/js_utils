@@ -5,6 +5,7 @@
     const isNodeJS = typeof require === 'function';
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
     const Core = isNodeJS ? require('./Core.js') : root.Core;
+    const Client = isNodeJS ? require('./Client.js') : root.Client;
     const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
     const math = isNodeJS ? require('./math.js') : root.math;
     const ObjectPositionSystem = isNodeJS ? require('./ObjectPositionSystem.js') : root.ObjectPositionSystem;
@@ -2838,7 +2839,102 @@
      * on the response the given node will be updated - meaning the nodes children
      * will be added or removed.
      */
-    function update_child_tree_nodes(i_url, i_request, i_node, i_compare, i_success, i_error) {
+    function updateChildTreeNodes(url, request, node, compare, onSuccess, onError) {
+        if (false) { // TODO: Get this running and the remove $.ajax(...);
+            Client.fetchGet(url, { path: node.data.path, request }, response => {
+                const loaded = jsonfx.parse(response, false, true);
+                const current = node.getChildren();
+                // if we received an array of nodes from the database
+                if (Array.isArray(loaded)) {
+                    // if we got children in our tree
+                    if (Array.isArray(current)) {
+                        // collect all nodes not longer exists
+                        const removed = [];
+                        Core.handleNotFound(current, loaded, equal_tree_nodes, rem => removed.push(rem));
+                        // collect all nodes newly added
+                        const added = [];
+                        Core.handleNotFound(loaded, current, equal_tree_nodes, add => added.push(add));
+                        // remove tree nodes no longer exists
+                        for (let i = 0, l = removed.length; i < l; i++) {
+                            node.removeChild(removed[i]);
+                        }
+                        // add new children
+                        if (added.length > 0) {
+                            node.addChildren(added);
+                        }
+                    }
+                    // if we do not have children we add all
+                    else if (loaded.length > 0) {
+                        node.addChildren(loaded);
+                    }
+                    if (typeof compare === 'function') {
+                        node.sortChildren(compare, false);
+                    }
+                }
+                // if no children available in the database we remove all from the
+                // tree node
+                else if (Array.isArray(current)) {
+                    node.removeChildren();
+                }
+                // notify
+                onSuccess();
+            }, onError, true);
+            return;
+        }
+        $.ajax({
+            type: 'GET',
+            url: url,
+            data: {
+                path: node.data.path,
+                request
+            },
+            success: function (i_result, i_textStatus, i_jqXHR) {
+                var loaded = jsonfx.parse(i_result, false, true);
+                var current = node.getChildren();
+                // if we received an array of nodes from the database
+                if (Array.isArray(loaded)) {
+                    // if we got children in our tree
+                    if (Array.isArray(current)) {
+                        // collect all nodes not longer exists
+                        var removed = [];
+                        Core.handleNotFound(current, loaded, equal_tree_nodes, function (i_removed) {
+                            removed.push(i_removed);
+                        });
+                        // collect all nodes newly added
+                        var added = [];
+                        Core.handleNotFound(loaded, current, equal_tree_nodes, function (i_added) {
+                            added.push(i_added);
+                        });
+                        // remove tree nodes no longer exists
+                        for (var i = 0, l = removed.length; i < l; i++) {
+                            node.removeChild(removed[i]);
+                        }
+                        // add new children
+                        if (added.length > 0) {
+                            node.addChildren(added);
+                        }
+                    }
+                    // if we do not have children we add all
+                    else if (loaded.length > 0) {
+                        node.addChildren(loaded);
+                    }
+                    if (typeof compare === 'function') {
+                        node.sortChildren(compare, false);
+                    }
+                }
+                // if no children available in the database we remove all from the
+                // tree node
+                else if (Array.isArray(current)) {
+                    node.removeChildren();
+                }
+                // notify
+                onSuccess();
+            },
+            error: onError,
+            timeout: 10000
+        });
+    }
+    function update_child_tree_nodes_DISCARDED(i_url, i_request, i_node, i_compare, i_success, i_error) { // TODO: remove or reuse
         $.ajax({
             type: 'GET',
             url: i_url,
@@ -2891,7 +2987,7 @@
             error: i_error,
             timeout: 10000
         });
-    };
+    }
 
     /**
      * This function updates all children of the given node if it's a folder and
@@ -2901,7 +2997,7 @@
     function update_loaded_tree_nodes(i_url, i_request, i_node, i_compare, i_success, i_error) {
         // we only do this on folders and if not lazy anymore
         if ((i_node.isFolder() === true || i_node.isRoot() === true) && i_node.hasChildren() === true) {
-            update_child_tree_nodes(i_url, i_request, i_node, i_compare, function () {
+            updateChildTreeNodes(i_url, i_request, i_node, i_compare, function () {
                 var children = i_node.getChildren();
                 if (Array.isArray(children)) {
                     var tasks = [];
@@ -2928,7 +3024,7 @@
     };
 
     function expand_tree_path(i_url, i_request, i_node, i_path, i_compare, i_success, i_error) {
-        update_child_tree_nodes(i_url, i_request, i_node, i_compare, function () {
+        updateChildTreeNodes(i_url, i_request, i_node, i_compare, function () {
             var children = i_node.getChildren();
             if (Array.isArray(children)) {
                 var i, l = children.length, child, path;

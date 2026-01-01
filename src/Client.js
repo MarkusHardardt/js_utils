@@ -57,22 +57,42 @@
         Client.stopRefreshCycle = () => refreshCycleEnabled = false;
 
         /*  fetch text by 'POST'  */
-        async function fetchAsync(url, requestString, onResponse, onError, methodGet) {
+        async function fetchAsync(url, requestString, onResponse, onError) {
             const response = await fetch(url, {
-                method: methodGet === true ? 'GET' : 'POST',
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: requestString !== undefined && requestString !== null ? requestString : undefined
             });
-            if (response.ok) {
+            if (!response.ok) {
+                onError(`url: '${url}' failed: ${response.status}, ${response.statusText}`);
+            } else {
                 const result = await response.text();
                 onResponse(result)
-            }
-            else {
-                onError(`url: '${url}' failed: ${response.status}, ${response.statusText}`);
             }
         }
         Client.fetchAsync = fetchAsync;
         Client.fetch = (url, request, onResponse, onError) => { (async () => await fetchAsync(url, request, onResponse, onError))(); }
+
+        /*  fetch text by 'POST'  */
+        async function fetchGetAsync(url, requestData, onResponse, onError, useMethodGet) {
+            let getUrl;
+            if (requestData !== undefined && requestData !== null) {
+                const params = new URLSearchParams(requestData);
+                getUrl = `${url}?${params.toString()}`
+            } else {
+                getUrl = url;
+            }
+            const response = await fetch(getUrl, { method: 'GET' });
+            if (!response.ok) {
+                onError(`url: '${getUrl}' failed: ${response.status}, ${response.statusText}`);
+            }
+            else {
+                const result = await response.text();
+                onResponse(result)
+            }
+        }
+        Client.fetchGetAsync = fetchGetAsync;
+        Client.fetchGet = (url, request, onResponse, onError) => { (async () => await fetchGetAsync(url, request, onResponse, onError))(); }
 
         Object.freeze(Client);
         root.Client = Client;
