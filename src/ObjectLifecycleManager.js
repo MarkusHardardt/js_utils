@@ -7927,47 +7927,7 @@
 
     var s_root_objects = [];
 
-    function refresh_all(i_date) {
-        for (var i = 0, l = s_root_objects.length; i < l; i++) {
-            // first we call all found user refresh functions
-            process_object_branch(s_root_objects[i], true, undefined, function (i_processObject) {
-                if (i_processObject === undefined) {
-                    var cccccccccc = 0;
-                }
-                if (i_processObject._hmi_alive === true) {
-                    if (typeof i_processObject.refresh === 'function') {
-                        try {
-                            i_processObject.refresh(i_date);
-                        }
-                        catch (exc) {
-                            console.error('EXCEPTION! Calling refresh: ' + exc + ' ' + i_processObject.refresh.toString());
-                        }
-                    }
-                }
-            });
-            // next we call system _hmi_refreshs
-            process_object_branch(s_root_objects[i], true, undefined, function (i_processObject) {
-                if (i_processObject._hmi_alive === true) {
-                    var refreshs = i_processObject._hmi_refreshs;
-                    if (refreshs !== undefined && Array.isArray(refreshs)) {
-                        for (var r = 0, rl = refreshs.length; r < rl; r++) {
-                            var func = refreshs[r];
-                            if (typeof func === 'function') {
-                                try {
-                                    func(i_date);
-                                }
-                                catch (exc) {
-                                    console.error('EXCEPTION! Cannot _hmi_refresh: ' + exc + ' ' + func.toString());
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-    }
-    ObjectLifecycleManager.refresh = refresh_all;
-
+    const LifecycleUserMethods = Object.freeze({ Build: 'build', Apply: 'apply', Prepare: 'prepare', Start: 'start', Stop: 'stop', Destroy: 'destroy', Remove: 'remove', Cleanup: 'cleanup' });
     const LifecycleState = Object.freeze({ Idle: 0, Build: 1, Apply: 2, Prepare: 3, Start: 4, Running: 5, Stop: 6, Destroy: 7, Remove: 8, Cleanup: 9 });
     ObjectLifecycleManager.LifecycleState = LifecycleState;
 
@@ -7981,26 +7941,26 @@
             Executor.run(function (i_suc, i_err) {
                 init_object(i_object, i_initData);
                 onStateChanged(LifecycleState.Build);
-                perform_attribute_on_object_branch(i_object, 'build', true, () => {
+                perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Build, true, () => {
                     attach_hmi_object(i_object);
                     const hmiobj = i_object._hmi_object;
                     create_id_node_branch(hmiobj, i_parentObject, i_nodeId, i_parentNode);
                     process_object_branch(hmiobj, true, undefined, i_processObject => ObjectImpl.call(i_processObject, i_disableVisuEvents, hmiobj === i_processObject && i_enableEditorEvents));
                     onStateChanged(LifecycleState.Apply);
-                    perform_attribute_on_object_branch(i_object, 'apply', false, () => {
+                    perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Apply, false, () => {
                         if (hmiobj._hmi_init_dom) {
                             hmiobj._hmi_init_dom({
                                 // #create/destroy_hmi_object_branch: 2
                                 container: i_jqueryElement
                             }, () => {
                                 onStateChanged(LifecycleState.Prepare);
-                                perform_attribute_on_object_branch(i_object, 'prepare', true, () => {
+                                perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Prepare, true, () => {
                                     // TODO: handle external sources here
                                     perform_attribute_on_object_branch(i_object, '_hmi_addListeners', true, () => {
                                         // #bugfix: 'start' is reverse (from leaves to root) - fixed
                                         // 2017-02-07
                                         onStateChanged(LifecycleState.Start);
-                                        perform_attribute_on_object_branch(i_object, 'start', false, () => {
+                                        perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Start, false, () => {
                                             // set alive
                                             process_object_branch(hmiobj, true, undefined, i_processObject => i_processObject._hmi_alive = true);
                                             // handle root objects
@@ -8028,12 +7988,47 @@
                 onStateChanged(LifecycleState.Running);
                 i_success();
             }, i_error, () => i_error('timeout'), 5000);
-        }
-        else {
+        } else {
             i_error('Invalid object');
         }
     }
     ObjectLifecycleManager.create = create_hmi_object_branch;
+
+    function refresh_all(i_date) {
+        for (var i = 0, l = s_root_objects.length; i < l; i++) {
+            // first we call all found user refresh functions
+            process_object_branch(s_root_objects[i], true, undefined, function (i_processObject) {
+                if (i_processObject._hmi_alive === true) {
+                    if (typeof i_processObject.refresh === 'function') {
+                        try {
+                            i_processObject.refresh(i_date);
+                        } catch (exc) {
+                            console.error('EXCEPTION! Calling refresh: ' + exc + ' ' + i_processObject.refresh.toString());
+                        }
+                    }
+                }
+            });
+            // next we call system _hmi_refreshs
+            process_object_branch(s_root_objects[i], true, undefined, function (i_processObject) {
+                if (i_processObject._hmi_alive === true) {
+                    var refreshs = i_processObject._hmi_refreshs;
+                    if (refreshs !== undefined && Array.isArray(refreshs)) {
+                        for (var r = 0, rl = refreshs.length; r < rl; r++) {
+                            var func = refreshs[r];
+                            if (typeof func === 'function') {
+                                try {
+                                    func(i_date);
+                                } catch (exc) {
+                                    console.error('EXCEPTION! Cannot _hmi_refresh: ' + exc + ' ' + func.toString());
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+    ObjectLifecycleManager.refresh = refresh_all;
 
     function destroy_hmi_object_branch(i_object, i_success, i_error, onLifecycleStateChanged) {
         if (i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
@@ -8051,16 +8046,16 @@
                 process_object_branch(hmiobj, false, undefined, i_processObject => delete i_processObject._hmi_alive);
                 Executor.run((i_suc, i_err) => {
                     onStateChanged(LifecycleState.Stop);
-                    perform_attribute_on_object_branch(i_object, 'stop', true, () => {
+                    perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Stop, true, () => {
                         perform_attribute_on_object_branch(i_object, '_hmi_removeListeners', false, () => {
                             onStateChanged(LifecycleState.Destroy);
-                            perform_attribute_on_object_branch(i_object, 'destroy', false, () => {
+                            perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Destroy, false, () => {
                                 if (hmiobj._hmi_destroy_dom) {
                                     // #create/destroy_hmi_object_branch: 1 + 2
                                     hmiobj._hmi_destroy_dom();
                                 }
                                 onStateChanged(LifecycleState.Remove);
-                                perform_attribute_on_object_branch(i_object, 'remove', true, () => {
+                                perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Remove, true, () => {
                                     process_object_branch(hmiobj, false, undefined, i_processObject => {
                                         if (i_processObject._hmi_destroy) {
                                             i_processObject._hmi_destroy();
@@ -8069,7 +8064,7 @@
                                     destroy_id_node_branch(hmiobj);
                                     detach_hmi_object(i_object);
                                     onStateChanged(LifecycleState.Cleanup);
-                                    perform_attribute_on_object_branch(i_object, 'cleanup', false, () => {
+                                    perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Cleanup, false, () => {
                                         onStateChanged(LifecycleState.Idle);
                                         i_suc();
                                     }, i_err, false);
