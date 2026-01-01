@@ -11,7 +11,7 @@
 
     const TransmissionType = Object.freeze({
         ConfigurationRequest: 1,
-        ReloadConfigurationRequest: 2,
+        DataPointConfigurationsRefresh: 2,
         SubscriptionRequest: 3,
         DataRefresh: 4,
         ReadRequest: 5,
@@ -209,8 +209,9 @@
             handleReceived(data, onResponse, onError) {
                 if (this._operational.Value) {
                     switch (data.type) {
-                        case TransmissionType.ReloadConfigurationRequest:
-                            this._loadConfiguration();
+                        case TransmissionType.DataPointConfigurationsRefresh:
+                            this._setDataPointConfigsByShortId(data.dataPointConfigsByShortId);
+                            this._sendSubscriptionRequest();
                             break;
                         case TransmissionType.DataRefresh:
                             for (const shortId in data.values) {
@@ -241,30 +242,34 @@
                     this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
                     this._unsubscribeDelay = typeof config.unsubscribeDelay === 'number' && config.unsubscribeDelay > 0 ? config.unsubscribeDelay : false;
                     this._operational.UnsubscribeDelay = this._unsubscribeDelay;
-                    this._dataPointConfigsByShortId = config.dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
-                    const oldDataPointsByDataId = this._dataPointsByDataId;
-                    this._dataPointsByDataId = getAsDataPointsByDataId(config.dataPointConfigsByShortId);
-                    // Check for all received data points if an old data point exists and if the case copy the content
-                    for (const dataId in this._dataPointsByDataId) {
-                        if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
-                            this._prepareDataPoint(dataId, this._dataPointsByDataId[dataId], oldDataPointsByDataId);
-                        }
-                    }
-                    // Clean up old data points not existing anymore
-                    if (oldDataPointsByDataId) {
-                        for (const dataId in oldDataPointsByDataId) {
-                            if (oldDataPointsByDataId.hasOwnProperty(dataId)) {
-                                this._destroyDataPoint(oldDataPointsByDataId[dataId]);
-                                delete oldDataPointsByDataId[dataId];
-                            }
-                        }
-                    }
+                    this._setDataPointConfigsByShortId(config.dataPointConfigsByShortId);
                     this._operational.Value = true;
                     this._sendSubscriptionRequest();
                 }, error => {
                     this._operational.Value = false;
                     this.onError(error);
                 });
+            }
+
+            _setDataPointConfigsByShortId(dataPointConfigsByShortId) {
+                this._dataPointConfigsByShortId = dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
+                const oldDataPointsByDataId = this._dataPointsByDataId;
+                this._dataPointsByDataId = getAsDataPointsByDataId(dataPointConfigsByShortId);
+                // Check for all received data points if an old data point exists and if the case copy the content
+                for (const dataId in this._dataPointsByDataId) {
+                    if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
+                        this._prepareDataPoint(dataId, this._dataPointsByDataId[dataId], oldDataPointsByDataId);
+                    }
+                }
+                // Clean up old data points not existing anymore
+                if (oldDataPointsByDataId) {
+                    for (const dataId in oldDataPointsByDataId) {
+                        if (oldDataPointsByDataId.hasOwnProperty(dataId)) {
+                            this._destroyDataPoint(oldDataPointsByDataId[dataId]);
+                            delete oldDataPointsByDataId[dataId];
+                        }
+                    }
+                }
             }
 
             _prepareDataPoint(dataId, dataPoint, oldDataPointsByDataId) {
@@ -368,7 +373,7 @@
                 this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
             }
 
-            SetDataPoints(dataPointConfigs) {
+            SetDataPoints(dataPointConfigs, send) {
                 if (!Array.isArray(dataPointConfigs)) {
                     throw new Error('Data points must be passed as an array');
                 }
@@ -384,9 +389,9 @@
                 }
                 this._dataPointsByDataId = getAsDataPointsByDataId(dataPointConfigsByShortId);
                 this._dataPointConfigsByShortId = dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
-                if (this._isOpen) {
+                if (this._isOpen && send === true) {
                     Common.validateAsConnection(this.connection);
-                    this.connection.Send(this.receiver, { type: TransmissionType.ReloadConfigurationRequest });
+                    this.connection.Send(this.receiver, { type: TransmissionType.DataPointConfigurationsRefresh, dataPointConfigsByShortId });
                 }
             }
 
@@ -416,10 +421,10 @@
                     Common.validateAsDataAccessObject(this._parent);
                     switch (data.type) {
                         case TransmissionType.ConfigurationRequest:
-                            onResponse({ 
-                                subscribeDelay: this._subscribeDelay, 
-                                unsubscribeDelay: this._unsubscribeDelay, 
-                                dataPointConfigsByShortId: this._dataPointConfigsByShortId 
+                            onResponse({
+                                subscribeDelay: this._subscribeDelay,
+                                unsubscribeDelay: this._unsubscribeDelay,
+                                dataPointConfigsByShortId: this._dataPointConfigsByShortId
                             });
                             break;
                         case TransmissionType.SubscriptionRequest:
