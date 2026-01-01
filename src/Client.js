@@ -56,7 +56,25 @@
         Client.startRefreshCycle = startRefreshCycle;
         Client.stopRefreshCycle = () => refreshCycleEnabled = false;
 
-        /*  fetch JSON  */
+        /*  fetch text by 'POST'  */
+        async function fetchTextAsync(url, request, onResponse, onError) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: request !== undefined && request !== null ? request : undefined
+            });
+            if (response.ok) {
+                const result = await response.text();
+                onResponse(result)
+            }
+            else {
+                onError(`url: '${url}' failed: ${response.status}, ${response.statusText}`);
+            }
+        }
+        Client.fetchTextAsync = fetchTextAsync;
+        Client.fetchText = (url, request, onResponse, onError) => { (async () => await fetchTextAsync(url, request, onResponse, onError))(); }
+
+        /*  fetch JSON by 'POST'  */
         async function fetchJsonAsync(url, request, onResponse, onError) {
             const response = await fetch(url, {
                 method: 'POST',

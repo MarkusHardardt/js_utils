@@ -3,6 +3,7 @@
 
     const isNodeJS = typeof require === 'function';
 
+    const Client = isNodeJS ? require('./Client.js') : root.Client;
     const Utilities = isNodeJS ? require('./Utilities.js') : root.Utilities;
     const jsonfx = isNodeJS ? require('./jsonfx.js') : root.jsonfx;
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
@@ -2214,28 +2215,42 @@
     ContentManagerProxy.prototype.constructor = ContentManagerProxy;
 
     // prototype
-    ContentManagerProxy.prototype._post = function (i_request, i_success, i_error) {
+    ContentManagerProxy.prototype._post = function (request, onSuccess, onError) {
+        if (true) {
+            Client.fetchText(ContentManager.GET_CONTENT_DATA_URL, jsonfx.stringify(request, false), response => {
+                if (response.length > 0) {
+                    try {
+                        onSuccess(jsonfx.parse(response, false, false)); // TODO: response has already been parsed!
+                    } catch (error) {
+                        onError(error);
+                    }
+                } else {
+                    onSuccess();
+                }
+            }, onError);
+            return;
+        }
         var that = this;
         $.ajax({
             type: 'POST',
             url: ContentManager.GET_CONTENT_DATA_URL,
             contentType: 'application/json;charset=utf-8',
-            data: jsonfx.stringify(i_request, false),
+            data: jsonfx.stringify(request, false),
             dataType: 'text',
-            success: function (i_response) {
-                if (i_response.length > 0) {
+            success: function (response) {
+                if (response.length > 0) {
                     try {
-                        i_success(jsonfx.parse(i_response, false, false));
+                        onSuccess(jsonfx.parse(response, false, false));
                     }
                     catch (exc) {
-                        i_error(exc);
+                        onError(exc);
                     }
                 }
                 else {
-                    i_success();
+                    onSuccess();
                 }
             },
-            error: i_error,
+            error: onError,
             timeout: 10000
         });
     };
