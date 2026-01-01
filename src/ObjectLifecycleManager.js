@@ -735,6 +735,12 @@
         return typeof i_object.pressed === 'function' || typeof i_object.released === 'function' || typeof i_object.clicked === 'function' || typeof i_object.longClicked === 'function';
     };
 
+    function dumpLifecycle(state) { // TODO: Replace with monitoring of server tasks
+        if (false) {
+            console.log(`lifecycle state: ${state}`)
+        }
+    }
+
     s_types['container'] = function (i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
         var that = this;
         var _cont = that._hmi_context.container;
@@ -751,7 +757,7 @@
                 }, i_exception => {
                     _div.empty();
                     i_error(i_exception);
-                }, that.hmi, i_initData, that, i_object.id, that.hmi_node(), i_disableVisuEvents, i_enableEditorEvents);
+                }, that.hmi, i_initData, that, i_object.id, that.hmi_node(), i_disableVisuEvents, i_enableEditorEvents, dumpLifecycle);
             }
         };
         this.hmi_removeContent = (i_success, i_error) => {
@@ -769,7 +775,7 @@
                     } else {
                         console.error(i_exception);
                     }
-                });
+                }, dumpLifecycle);
             }
             else if (typeof i_success === 'function') {
                 i_success();
@@ -7984,10 +7990,7 @@
                         }
                     }, i_err);
                 }, i_err, i_hmi);
-            }, () => {
-                onStateChanged(LifecycleState.Running);
-                i_success();
-            }, i_error, () => i_error('timeout'), 5000);
+            }, i_success, i_error, () => i_error('timeout'), 5000);
         } else {
             i_error('Invalid object');
         }
