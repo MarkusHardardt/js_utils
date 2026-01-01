@@ -29,7 +29,7 @@
         // 
         tasks.push((onSuccess, onError) => {
             try {
-                const indexJs = Helper.generateIndexJs(options.name, options.scope, topologicalSortedComponents, options.browserIgnorables);
+                const indexJs = Helper.generateIndexJs(options.name, options.scope, topologicalSortedComponents, options.browserIgnorables, options.ext);
                 console.log(indexJs);
                 if (options.index_js_outputFile) {
                     fs.writeFileSync(options.index_js_outputFile, indexJs, 'utf8');
@@ -46,7 +46,7 @@
 
         });
         tasks.push((onSuccess, onError) => {
-            console.log(Helper.generateExternalImports(options.scope, topologicalSortedComponents));
+            console.log(Helper.generateExternalImports(options.scope, topologicalSortedComponents, options.ext));
             onSuccess();
 
         });
@@ -59,6 +59,7 @@
         directory: './src',
         ignorables: ['EmptyTemplate', 'hmi_object'],
         browserIgnorables: ['Server', 'WebServer', 'SqlHelper', 'EmptyTemplate'],
+        ext: ['ext/md5.js'],
         index_js_outputFile: './js_utils.js'
     });
 

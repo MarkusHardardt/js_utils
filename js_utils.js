@@ -19,6 +19,7 @@
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/TargetSystem.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
+        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/ext/md5.js'); // external
     }
     const js_utils = {
         Client: require('./src/Client.js'),
@@ -41,6 +42,7 @@
         TargetSystem: require('./src/TargetSystem.js'),
         WebSocketConnection: require('./src/WebSocketConnection.js'),
         DataConnector: require('./src/DataConnector.js'),
+        md5: require('./ext/md5.js'), // external
         addStaticWebServerJsUtilsFiles
     };
     Object.seal(js_utils);
