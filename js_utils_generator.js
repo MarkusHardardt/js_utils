@@ -68,7 +68,7 @@
     const js_utils_dependencies = {
         'Client': [],
         'Common': ['Core'],
-        'ContentManager': ['Utilities', 'jsonfx', 'Regex', 'Executor', 'Sorting', 'SqlHelper'],
+        'ContentManager': ['Utilities', 'JsonFX', 'Regex', 'Executor', 'Sorting', 'SqlHelper'],
         'Core': ['Regex', 'Executor'],
         'DataConnector': ['Global', 'Core', 'Sorting', 'Regex'],
         'DataPublisher': ['Global'],
@@ -76,7 +76,7 @@
         'Global': ['Core'],
         'HashLists': ['Utilities'],
         'hmi_object': ['Regex', 'Core', 'Executor', 'math', 'ObjectPositionSystem', 'Sorting'],
-        'jsonfx': [],
+        'JsonFX': [],
         'math': [],
         'ObjectPositionSystem': [],
         'OperationalState': ['Global'],

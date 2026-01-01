@@ -41,8 +41,8 @@
      */
 
     // load math library
-    // var jsonfx = typeof require === 'function' ? require('./jsonfx.js') :
-    // window.jsonfx;
+    // var JsonFX = typeof require === 'function' ? require('./JsonFX.js') :
+    // window.JsonFX;
 
     const SHOW_SERVER_ERROR_POPUP = true;
     const DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION = '<div style="box-sizing: border-box;position: relative;width: 100%;height: 100%;" />';
@@ -2848,7 +2848,7 @@
     function updateChildTreeNodes(url, request, node, compare, onSuccess, onError) {
         if (false) { // TODO: Get this running and the remove $.ajax(...);
             Client.fetchGet(url, { path: node.data.path, request }, response => {
-                const loaded = jsonfx.parse(response, false, true);
+                const loaded = JsonFX.parse(response, false, true);
                 const current = node.getChildren();
                 // if we received an array of nodes from the database
                 if (Array.isArray(loaded)) {
@@ -2895,7 +2895,7 @@
                 request
             },
             success: function (i_result, i_textStatus, i_jqXHR) {
-                var loaded = jsonfx.parse(i_result, false, true);
+                var loaded = JsonFX.parse(i_result, false, true);
                 var current = node.getChildren();
                 // if we received an array of nodes from the database
                 if (Array.isArray(loaded)) {
@@ -2949,7 +2949,7 @@
                 request: i_request
             },
             success: function (i_result, i_textStatus, i_jqXHR) {
-                var loaded = jsonfx.parse(i_result, false, true);
+                var loaded = JsonFX.parse(i_result, false, true);
                 var current = i_node.getChildren();
                 // if we received an array of nodes from the database
                 if (Array.isArray(loaded)) {

@@ -5,7 +5,7 @@
 
     const Client = isNodeJS ? require('./Client.js') : root.Client;
     const Utilities = isNodeJS ? require('./Utilities.js') : root.Utilities;
-    const jsonfx = isNodeJS ? require('./jsonfx.js') : root.jsonfx;
+    const JsonFX = isNodeJS ? require('./JsonFX.js') : root.JsonFX;
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
     const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
     const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
@@ -164,7 +164,7 @@
         var tab = this._tablesForExt[i_ext];
         if (tab) {
             var desc = i_desc || {};
-            desc.jsonfx = tab.jsonfx === true;
+            desc.JsonFX = tab.JsonFX === true;
             desc.multilingual = tab.multilingual === true || (typeof tab.value_column_prefix === 'string' && tab.value_column_prefix.length > 0);
             desc.multiedit = tab.multiedit === true;
             return desc;
@@ -418,7 +418,7 @@
                 i_adapter.close();
                 i_error(i_exc);
             };
-            // if jsonfx or plain text is available we decode the string and
+            // if JsonFX or plain text is available we decode the string and
             // return with or without all includes included
             if (typeof valcol === 'string') {
                 // note: no language required here because we got only one anyway
@@ -458,7 +458,7 @@
 
     ContentManager.prototype.getObject = function (i_id, i_language, i_mode, i_success, i_error) {
         // This method works in four modes:
-        // 1. jsonfx-object: build object and return
+        // 1. JsonFX-object: build object and return
         // 2. plain text (utf-8): build text and return
         // 3. label/html with language selection: build string and return
         // 4. label/html without language selection: build strings and return as
@@ -483,12 +483,12 @@
                 i_adapter.close();
                 try {
                     if (parse) {
-                        var object = jsonfx.reconstruct(i_object);
+                        var object = JsonFX.reconstruct(i_object);
                         if (that._config.jsonfx_pretty === true) {
                             // the 'jsonfx_pretty' flag may be used to format our dynamically
                             // parsed JavaScript sources for more easy debugging purpose
-                            // TODO: object = eval('(' + jsonfx.stringify(object, true) + ')\n//# sourceURL=' + key + '.js');
-                            object = eval('(' + jsonfx.stringify(object, true) + ')');
+                            // TODO: object = eval('(' + JsonFX.stringify(object, true) + ')\n//# sourceURL=' + key + '.js');
+                            object = eval('(' + JsonFX.stringify(object, true) + ')');
                         }
                         i_success(object);
                     }
@@ -504,13 +504,13 @@
                 i_adapter.close();
                 i_error(i_exc);
             };
-            // if jsonfx or plain text is available we decode the string and
+            // if JsonFX or plain text is available we decode the string and
             // return with or without all includes included
             if (typeof valcol === 'string') {
                 // note: no language required here because we got only one anyway
                 that._getRawString(i_adapter, table, key, undefined, function (i_rawString) {
                     if (i_rawString !== false) {
-                        var object = table.jsonfx ? jsonfx.parse(i_rawString, false, false) : i_rawString;
+                        var object = table.JsonFX ? JsonFX.parse(i_rawString, false, false) : i_rawString;
                         if (include) {
                             var ids = {};
                             ids[i_id] = true;
@@ -610,7 +610,7 @@
             this._getRawString(i_adapter, table, match[1], i_language, function (i_rawString) {
                 if (i_rawString !== false) {
                     i_ids[includeKey] = true;
-                    var includedObject = table.jsonfx ? jsonfx.parse(i_rawString, false, false) : i_rawString;
+                    var includedObject = table.JsonFX ? JsonFX.parse(i_rawString, false, false) : i_rawString;
                     that._include(i_adapter, includedObject, i_ids, i_language, function (i_includedObject) {
                         delete i_ids[includeKey];
                         if (typeof i_includedObject === 'object' && i_includedObject !== null) {
@@ -679,10 +679,10 @@
                                 that._getRawString(i_adapter, table, key, i_language, function (i_rawString) {
                                     if (i_rawString !== false) {
                                         i_ids[includeKey] = true;
-                                        var object = table.jsonfx ? jsonfx.parse(i_rawString, false, false) : i_rawString;
+                                        var object = table.JsonFX ? JsonFX.parse(i_rawString, false, false) : i_rawString;
                                         that._include(i_adapter, object, i_ids, i_language, function (i_build) {
                                             delete i_ids[includeKey];
-                                            array[idx] = table.jsonfx && array.length > 1 ? jsonfx.stringify(i_build, false) : i_build;
+                                            array[idx] = table.JsonFX && array.length > 1 ? JsonFX.stringify(i_build, false) : i_build;
                                             i_suc();
                                         }, i_err);
                                     }
@@ -1960,7 +1960,7 @@
                     var table = {
                         extension: i_table.extension,
                         icon: i_table.icon,
-                        jsonfx: i_table.jsonfx === true,
+                        JsonFX: i_table.JsonFX === true,
                         multiedit: i_table.multiedit === true,
                     };
                     if (i_table.value_column) {
@@ -2216,10 +2216,10 @@
 
     // prototype
     ContentManagerProxy.prototype._post = function (request, onSuccess, onError) {
-        Client.fetch(ContentManager.GET_CONTENT_DATA_URL, jsonfx.stringify(request, false), response => {
+        Client.fetch(ContentManager.GET_CONTENT_DATA_URL, JsonFX.stringify(request, false), response => {
             if (response.length > 0) {
                 try {
-                    onSuccess(jsonfx.parse(response, false, false));
+                    onSuccess(JsonFX.parse(response, false, false));
                 } catch (error) {
                     onError(error);
                 }
@@ -2253,13 +2253,13 @@
         }, parse ? function (i_response) {
             if (i_response !== undefined) {
                 try {
-                    var response = jsonfx.reconstruct(i_response);
+                    var response = JsonFX.reconstruct(i_response);
                     if (that._config !== undefined && that._config.jsonfx_pretty === true) {
                         // the 'jsonfx_pretty' flag may be used to format our dynamically
                         // parsed JavaScript sources for more easy debugging purpose
                         var match = that._key_regex.exec(i_id);
-                        // TOOD: response = eval('(' + jsonfx.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
-                        response = eval('(' + jsonfx.stringify(response, true) + ')');
+                        // TOOD: response = eval('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
+                        response = eval('(' + JsonFX.stringify(response, true) + ')');
                     }
                     i_success(response);
                 }
@@ -2410,11 +2410,11 @@
             // closure
             (function () {
                 var idx = i, id = i_ids[idx], data = cms.analyzeID(id);
-                if (data.jsonfx) {
+                if (data.JsonFX) {
                     tasks.push(function (i_suc, i_err) {
                         cms.getObject(id, undefined, ContentManager.RAW, function (i_object) {
                             exports.push(create_header(data.extension, id));
-                            exports.push(jsonfx.stringify(jsonfx.reconstruct(i_object), true));
+                            exports.push(JsonFX.stringify(JsonFX.reconstruct(i_object), true));
                             exports.push('\n\n');
                             i_status_callback(format_relative_status(idx / len));
                             i_suc();
@@ -2482,9 +2482,9 @@
                 var path = header[3];
                 if (create_checksum(header[1], path) === header[2]) {
                     var data = cms.analyzeID(path);
-                    if (data.jsonfx) {
+                    if (data.JsonFX) {
                         try {
-                            data.value = jsonfx.parse(elements[idx++], true, true);
+                            data.value = JsonFX.parse(elements[idx++], true, true);
                         }
                         catch (exc) {
                             i_error('EXCEPTION! Cannot evaluate object: ' + exc);
@@ -2531,9 +2531,9 @@
             // closure
             (function () {
                 var idx = i, data = i_data[idx];
-                if (data.jsonfx) {
+                if (data.JsonFX) {
                     tasks.push(function (i_suc, i_err) {
-                        var val = data.value !== undefined && data.value !== null ? jsonfx.stringify(data.value, false) : undefined;
+                        var val = data.value !== undefined && data.value !== null ? JsonFX.stringify(data.value, false) : undefined;
                         cms.getModificationParams(data.id, undefined, val, function (i_params) {
                             cms.setObject(data.id, undefined, val, i_params.checksum, i_suc, i_err);
                         }, i_err);

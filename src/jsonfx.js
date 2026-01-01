@@ -1,6 +1,6 @@
 (function (root) {
     "use strict";
-    const jsonfx = {}; // TODO: Rename to 'JsonFX' JSONFX
+    const JsonFX = {}; // TODO: Rename to 'JsonFX' JSONFX
 
     const isNodeJS = typeof require === 'function';
 
@@ -157,7 +157,7 @@
         });
         return _pretty ? beautify_js(str, _beautify_opts) : str;
     }
-    jsonfx.stringify = stringify;
+    JsonFX.stringify = stringify;
 
     function reconstruct(object) {
         if (object !== undefined && object !== null) {
@@ -197,7 +197,7 @@
         }
         return object;
     }
-    jsonfx.reconstruct = reconstruct;
+    JsonFX.reconstruct = reconstruct;
 
     function parse(text, sourceIsPretty, doReconstruct) {
         // Parsing happens in four stages. In the first stage, we replace certain
@@ -246,15 +246,15 @@
             return doReconstruct === true ? reconstruct(value) : value;
         }
         // If the text is not JSON parseable, then a SyntaxError is thrown.
-        throw new SyntaxError('jsonfx.parse systax error');
+        throw new SyntaxError('JsonFX.parse systax error');
     }
-    jsonfx.parse = parse;
+    JsonFX.parse = parse;
 
-    Object.freeze(jsonfx);
+    Object.freeze(JsonFX);
     if (isNodeJS) {
-        module.exports = jsonfx;
+        module.exports = JsonFX;
     }
     else {
-        root.jsonfx = jsonfx;
+        root.JsonFX = JsonFX;
     }
 }(globalThis));

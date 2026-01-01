@@ -53,8 +53,8 @@
         this._url = url;
         var that = this;
         if (!true) { // TODO: Make this running, but only if still required (is this not just debug stuff to test SQL statements in the browser?)
-            Client.fetch(url, jsonfx.stringify({ connect: true }, false), response => {
-                const result = jsonfx.parse(response, false, false);
+            Client.fetch(url, JsonFX.stringify({ connect: true }, false), response => {
+                const result = JsonFX.parse(response, false, false);
                 that._id = result.id;
                 onResponse(result.config);
             }, error => console.error(`DEBUG_SQL_PROXY: connect-error: ${error}`));
@@ -83,7 +83,7 @@
             var url = this._url, id = this._id;
             if (url) {
                 if (!true) { // TODO: Make this running, but only if still required (is this not just debug stuff to test SQL statements in the browser?)
-                    Client.fetch(url, jsonfx.stringify({ query: i_query, id }, false), response => {
+                    Client.fetch(url, JsonFX.stringify({ query: i_query, id }, false), response => {
                         try {
                             i_callback(undefined, JSON.parse(response), undefined);
                         } catch (exc) {
@@ -121,7 +121,7 @@
             var url = this._url, id = this._id;
             if (url) {
                 if (!true) { // TODO: Make this running, but only if still required (is this not just debug stuff to test SQL statements in the browser?)
-                    Client.fetch(url, jsonfx.stringify({ release: true, id }, false), response => {
+                    Client.fetch(url, JsonFX.stringify({ release: true, id }, false), response => {
                         // Nothing to do
                     }, error => console.error(`DEBUG_SQL_PROXY: release-error [${id}], error: ${error}`));
                     return;

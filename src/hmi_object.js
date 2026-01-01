@@ -33,8 +33,8 @@
      */
 
     // load math library
-    // var jsonfx = typeof require === 'function' ? require('./jsonfx.js') :
-    // window.jsonfx;
+    // var JsonFX = typeof require === 'function' ? require('./JsonFX.js') :
+    // window.JsonFX;
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
@@ -2843,7 +2843,7 @@
                 request: i_request
             },
             success: function (i_result, i_textStatus, i_jqXHR) {
-                var loaded = jsonfx.parse(i_result, false, true);
+                var loaded = JsonFX.parse(i_result, false, true);
                 var current = i_node.getChildren();
                 // if we received an array of nodes from the database
                 if (Array.isArray(loaded)) {

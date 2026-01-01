@@ -5,7 +5,7 @@
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Client.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Executor.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/HashLists.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/jsonfx.js');
+        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/JsonFX.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/math.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectPositionSystem.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Regex.js');
@@ -25,7 +25,7 @@
         Client: require('./src/Client.js'),
         Executor: require('./src/Executor.js'),
         HashLists: require('./src/HashLists.js'),
-        jsonfx: require('./src/jsonfx.js'),
+        JsonFX: require('./src/JsonFX.js'),
         math: require('./src/math.js'),
         ObjectPositionSystem: require('./src/ObjectPositionSystem.js'),
         Regex: require('./src/Regex.js'),
