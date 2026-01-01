@@ -1,5 +1,5 @@
 /**
- * math.js
+ * Mathematics.js
  * 
  * Math is a JavaScript implementation of several mathematical mechanisms like
  * transformation, curve handling and several other stuff,
@@ -68,7 +68,7 @@
    * /JptApp/src/stuff/mathematics/AbstractRecursiveOrdinaryDifferentialEquation.java
    * 
    * This next method is the first start
-   * /JptApp/src/org/har/jpt/util/math/MathExt.java
+   * /JptApp/src/org/har/jpt/util/Mathematics/MathExt.java
    */
   function fn_create_biomial_coefficients(i_maxN) {
     // if too much
@@ -5069,6 +5069,6 @@
   if (isNodeJS) {
     module.exports = exp;
   } else {
-    root.math = exp;
+    root.Mathematics = exp;
   }
 }(globalThis));

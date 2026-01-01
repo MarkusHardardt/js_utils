@@ -6,7 +6,7 @@
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Executor.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/HashLists.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/JsonFX.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/math.js');
+        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Mathematics.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectPositionSystem.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Regex.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Sorting.js');
@@ -26,7 +26,7 @@
         Executor: require('./src/Executor.js'),
         HashLists: require('./src/HashLists.js'),
         JsonFX: require('./src/JsonFX.js'),
-        math: require('./src/math.js'),
+        Mathematics: require('./src/Mathematics.js'),
         ObjectPositionSystem: require('./src/ObjectPositionSystem.js'),
         Regex: require('./src/Regex.js'),
         Server: require('./src/Server.js'),

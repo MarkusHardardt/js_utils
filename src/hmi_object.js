@@ -32,13 +32,13 @@
      * ==> all initialized objects destroyed! (Hm, 2015-07-29)
      */
 
-    // load math library
+    // load Mathematics library
     // var JsonFX = typeof require === 'function' ? require('./JsonFX.js') :
     // window.JsonFX;
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
-    const math = isNodeJS ? require('./math.js') : root.math;
+    const Mathematics = isNodeJS ? require('./Mathematics.js') : root.Mathematics;
     const ObjectPositionSystem = isNodeJS ? require('./ObjectPositionSystem.js') : root.ObjectPositionSystem;
     const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
     const $ = isNodeJS ? require('jquery') : root.$;
@@ -59,17 +59,17 @@
     const TREND_NUMBER = 'number';
 
     // store this for performance reasons
-    const Transform = math.Transform;
-    const ArcLine = math.ArcLine;
-    const RopeLine = math.RopeLine;
-    const CurveSection = math.CurveSection;
+    const Transform = Mathematics.Transform;
+    const ArcLine = Mathematics.ArcLine;
+    const RopeLine = Mathematics.RopeLine;
+    const CurveSection = Mathematics.CurveSection;
     const ZonePositionAdjuster = ObjectPositionSystem.ZonePositionAdjuster;
 
-    const normalizeToPlusMinusPI = math.normalizeToPlusMinusPI;
-    const normalizeToPlusMinus180deg = math.normalizeToPlusMinus180deg;
-    const getHarmonicRGB = math.getHarmonicRGB;
-    const RAD2DEG = math.RAD2DEG;
-    const DEG2RAD = math.DEG2RAD;
+    const normalizeToPlusMinusPI = Mathematics.normalizeToPlusMinusPI;
+    const normalizeToPlusMinus180deg = Mathematics.normalizeToPlusMinus180deg;
+    const getHarmonicRGB = Mathematics.getHarmonicRGB;
+    const RAD2DEG = Mathematics.RAD2DEG;
+    const DEG2RAD = Mathematics.DEG2RAD;
     const PI = Math.PI;
     const TWO_PI = PI + PI;
     const HALF_PI = PI / 2;
