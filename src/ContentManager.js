@@ -2216,43 +2216,17 @@
 
     // prototype
     ContentManagerProxy.prototype._post = function (request, onSuccess, onError) {
-        if (true) {
-            Client.fetchText(ContentManager.GET_CONTENT_DATA_URL, jsonfx.stringify(request, false), response => {
-                if (response.length > 0) {
-                    try {
-                        onSuccess(jsonfx.parse(response, false, false)); // TODO: response has already been parsed!
-                    } catch (error) {
-                        onError(error);
-                    }
-                } else {
-                    onSuccess();
+        Client.fetch(ContentManager.GET_CONTENT_DATA_URL, jsonfx.stringify(request, false), response => {
+            if (response.length > 0) {
+                try {
+                    onSuccess(jsonfx.parse(response, false, false));
+                } catch (error) {
+                    onError(error);
                 }
-            }, onError);
-            return;
-        }
-        var that = this;
-        $.ajax({
-            type: 'POST',
-            url: ContentManager.GET_CONTENT_DATA_URL,
-            contentType: 'application/json;charset=utf-8',
-            data: jsonfx.stringify(request, false),
-            dataType: 'text',
-            success: function (response) {
-                if (response.length > 0) {
-                    try {
-                        onSuccess(jsonfx.parse(response, false, false));
-                    }
-                    catch (exc) {
-                        onError(exc);
-                    }
-                }
-                else {
-                    onSuccess();
-                }
-            },
-            error: onError,
-            timeout: 10000
-        });
+            } else {
+                onSuccess();
+            }
+        }, onError);
     };
 
     ContentManagerProxy.prototype.exists = function (i_id, i_success, i_error) {
@@ -2263,7 +2237,6 @@
     }
 
     ContentManagerProxy.prototype.getChecksum = function (i_id, i_success, i_error) {
-        var that = this;
         this._post({
             command: COMMAND_GET_CHECKSUM,
             id: i_id
