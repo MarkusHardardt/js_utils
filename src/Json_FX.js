@@ -4,7 +4,10 @@
 
     const isNodeJS = typeof require === 'function';
 
-    const _fx = /^\s*function\s*\(\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*\{(?:.|\n)*?\}\s*$/m;
+    const standardFunctionRegex = /^\s*function\s*\(\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*\{(?:.|\n)*?\}\s*$/m;
+    const lambdaFunctionRegex = /^\s*\(\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*=>\s*(?:(?:\{(?:.|\n)*?\})|(?:(?:.|\n)*?))\s*$/;
+    const lambdaFunctionSingleArgumentRegex = /^\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*)\s*=>\s*(?:(?:\{(?:.|\n)*?\})|(?:(?:.|\n)*?))\s*$/;
+
     const _cx = /[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g;
     const _escapable = /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g;
     const _meta = Object.freeze({// table of character substitutions
@@ -54,8 +57,7 @@
                 const c = _meta[a];
                 return typeof c === 'string' ? c : '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
             });
-        }
-        else {
+        } else {
             txt += test;
         }
         if (slapQuotes) {
@@ -152,9 +154,7 @@
         _pretty = pretty === true;
         // Make a fake root object containing our value under the key of ''.
         // Return the result of stringifying the value.
-        var str = getString('', {
-            '': value
-        });
+        var str = getString('', { '': value });
         return _pretty ? beautify_js(str, _beautify_opts) : str;
     }
     JsonFX.stringify = stringify;
@@ -165,32 +165,26 @@
                 for (let i = 0, l = object.length; i < l; i++) {
                     object[i] = reconstruct(object[i]);
                 }
-            }
-            else if (typeof object === 'object') {
+            } else if (typeof object === 'object') {
                 for (const attr in object) {
                     if (object.hasOwnProperty(attr)) {
                         object[attr] = reconstruct(object[attr]);
                     }
                 }
-            }
-            else if (typeof object === 'string' && object.length > 0) {
+            } else if (typeof object === 'string' && object.length > 0) {
                 if (isNaN(object)) {
                     if (object === 'true') {
                         object = true;
-                    }
-                    else if (object === 'false') {
+                    } else if (object === 'false') {
                         object = false;
-                    }
-                    else if (_fx.test(object)) {
+                    } else if (standardFunctionRegex.test(object) || lambdaFunctionRegex.test(object) || lambdaFunctionSingleArgumentRegex.test(object)) {
                         try {
                             object = eval('(' + object + ')');
-                        }
-                        catch (exc) {
+                        } catch (exc) {
                             console.error('EXCEPTION! Cannot evaluate function: ' + exc);
                         }
                     }
-                }
-                else {
+                } else {
                     object = object.indexOf('.') !== -1 ? parseFloat(object) : parseInt(object);
                 }
             }
@@ -208,9 +202,7 @@
         let txt = String(text);
         _cx.lastIndex = 0;
         if (_cx.test(txt)) {
-            txt = txt.replace(_cx, function (a) {
-                return '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
-            });
+            txt = txt.replace(_cx, a => '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4));
         }
         // In the second stage, we run the text against regular expressions that
         // look

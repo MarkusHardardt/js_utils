@@ -132,8 +132,8 @@
         const attributeMethodRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*$/;
         const attributePropertyRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*:\s*([_a-zA-Z0-9]+)\s*$/;
         const standardFunctionRegex = /^\s*function\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)/;
-        const lamdaFunctionRegex = /^\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*=>/;
-        const lamdaFunctionSingleArgumentRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*=>/;
+        const lambdaFunctionRegex = /^\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*=>/;
+        const lambdaFunctionSingleArgumentRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*=>/;
         const classMethodRegex = /^\s*([_$a-zA-Z][_$a-zA-Z0-9]*)\s*\(\s*([_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)/;
         const argumentRegex = /(?:\s*,\s*)?([_$a-zA-Z][_$a-zA-Z0-9]*)\s*/g;
         function getArgumentsArray(argumentsSource) {
@@ -172,12 +172,12 @@
                 validateArguments(standardFunctionMatch[1], expectedArgumentsArray);
                 return;
             }
-            const lamdaFunctionMatch = lamdaFunctionRegex.exec(functionSource);
+            const lamdaFunctionMatch = lambdaFunctionRegex.exec(functionSource);
             if (lamdaFunctionMatch) {
                 validateArguments(lamdaFunctionMatch[1], expectedArgumentsArray);
                 return;
             }
-            const lamdaFunctionSingleArgumentMatch = lamdaFunctionSingleArgumentRegex.exec(functionSource);
+            const lamdaFunctionSingleArgumentMatch = lambdaFunctionSingleArgumentRegex.exec(functionSource);
             if (lamdaFunctionSingleArgumentMatch) {
                 validateArguments(lamdaFunctionSingleArgumentMatch[1], expectedArgumentsArray);
                 return;
