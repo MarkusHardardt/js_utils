@@ -30,12 +30,38 @@
                 };
             }
         }());
-        // fetch JSON
+
+        /*  refresh cycle  */
+        let refreshCycleEnabled = false;
+        function startRefreshCycle(requestAnimationFrameCycle, onRefresh) {
+            refreshCycleEnabled = typeof requestAnimationFrameCycle === 'number' && requestAnimationFrameCycle > 0;
+            if (refreshCycleEnabled) {
+                let raf_idx = 0;
+                const loop = () => {
+                    if (!refreshCycleEnabled) {
+                        return;
+                    }
+                    raf_idx++;
+                    if (raf_idx >= requestAnimationFrameCycle) {
+                        raf_idx = 0;
+                        onRefresh();
+                    }
+                    root.requestAnimationFrame(loop, document.body);
+                };
+                // start the loop
+                root.requestAnimationFrame(loop, document.body);
+            }
+            return refreshCycleEnabled;
+        }
+        Client.startRefreshCycle = startRefreshCycle;
+        Client.stopRefreshCycle = () => refreshCycleEnabled = false;
+
+        /*  fetch JSON  */
         async function fetchJsonAsync(url, request, onResponse, onError) {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: request !== undefined ? JSON.stringify(request) : undefined
+                body: request !== undefined && request !== null ? JSON.stringify(request) : undefined
             });
             if (response.ok) {
                 const result = await response.json();

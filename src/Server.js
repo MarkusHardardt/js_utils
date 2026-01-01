@@ -3,6 +3,21 @@
     const Server = {};
 
     const isNodeJS = typeof require === 'function';
+
+    let refreshCycleTimer = null;
+    function startRefreshCycle(cycleMillis, onRefresh) {
+        const start = typeof cycleMillis === 'number' && cycleMillis > 0;
+        if (start) {
+            if (refreshCycleTimer) {
+                clearInterval(refreshCycleTimer);
+            }
+            refreshCycleTimer = setInterval(onRefresh, cycleMillis);
+        }
+        return start;
+    }
+    Server.startRefreshCycle = startRefreshCycle;
+    Server.stopRefreshCycle = () => clearInterval(refreshCycleTimer);
+
     const crypto = isNodeJS ? require('crypto') : undefined;
 
     if (isNodeJS) {
