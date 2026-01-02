@@ -846,82 +846,78 @@
         }, onError);
     };
 
-    ContentManager.prototype._getRefactoringParams = function (i_adapter, i_source, i_target, i_action, onSuccess, onError) {
+    ContentManager.prototype._getRefactoringParams = function (adapter, source, target, action, onSuccess, onError) {
         // here we store the result
-        var params = {}, key_regex = this._key_regex;
+        const params = {}, key_regex = this._key_regex;
         // check action
-        if (i_action !== ContentManager.COPY && i_action !== ContentManager.MOVE && i_action !== ContentManager.DELETE) {
+        if (action !== ContentManager.COPY && action !== ContentManager.MOVE && action !== ContentManager.DELETE) {
             params.error = 'Invalid action';
             onSuccess(params);
             return;
         }
-        params.action = i_action;
-        var checksum = i_action;
+        params.action = action;
+        let checksum = action;
         // check source
-        if (typeof i_source === 'string' && i_source.length > 0) {
-            params.source = i_source;
-            checksum += i_source;
-        }
-        else {
+        if (typeof source === 'string' && source.length > 0) {
+            params.source = source;
+            checksum += source;
+        } else {
             params.error = 'Missing source';
             onSuccess(params);
             return;
         }
         // check target - but only if required
-        if (i_action === ContentManager.COPY || i_action === ContentManager.MOVE) {
-            if (typeof i_target === 'string' && i_target.length > 0) {
-                params.target = i_target;
-                checksum += i_target;
-            }
-            else {
+        if (action === ContentManager.COPY || action === ContentManager.MOVE) {
+            if (typeof target === 'string' && target.length > 0) {
+                params.target = target;
+                checksum += target;
+            } else {
                 params.error = 'Missing target';
                 onSuccess(params);
                 return;
             }
         }
         // check source identifier
-        var srcTab = false, srcTabKey, sourceIsFolder;
-        var match = key_regex.exec(i_source);
+        let srcTab = false, srcTabKey, sourceIsFolder;
+        let match = key_regex.exec(source);
         if (match) {
             srcTab = this._tablesForExt[match[2]];
             if (!srcTab) {
-                params.error = 'Invalid source table: ' + i_source;
+                params.error = `Invalid source table: '${source}'`;
                 onSuccess(params);
                 return;
             }
             sourceIsFolder = false;
             srcTabKey = match[1];
-        }
-        else {
-            match = FOLDER_REGEX.exec(i_source);
+        } else {
+            match = FOLDER_REGEX.exec(source);
             sourceIsFolder = !!match;
             if (!sourceIsFolder) {
-                params.error = 'Invalid source folder: ' + i_source;
+                params.error = `Invalid source folder: '${source}'`;
                 onSuccess(params);
                 return;
             }
             srcTabKey = match[1];
         }
         checksum += sourceIsFolder ? "sf" : "so";
-        var tgtTab = false, tgtTabKey, targetIsFolder;
+        let tgtTab = false, tgtTabKey, targetIsFolder;
         // check target identifier
-        if (typeof i_target === 'string') {
-            match = key_regex.exec(i_target);
+        if (typeof target === 'string') {
+            match = key_regex.exec(target);
             if (match) {
                 tgtTab = this._tablesForExt[match[2]];
                 if (!tgtTab) {
-                    params.error = 'Invalid target table: ' + i_target;
+                    params.error = `Invalid target table: '${target}'`;
                     onSuccess(params);
                     return;
                 }
                 targetIsFolder = false;
                 tgtTabKey = match[1];
-            }
-            else {
-                match = FOLDER_REGEX.exec(i_target);
+            } else {
+                match = FOLDER_REGEX.exec(target);
                 targetIsFolder = !!match;
                 if (!targetIsFolder) {
-                    params.error = 'Invalid target folder: ' + i_target;
+                    params.error = `Invalid target folder: '${target}'`;
                     onSuccess(params);
                     return;
                 }
@@ -935,8 +931,7 @@
                     onSuccess(params);
                     return;
                 }
-            }
-            else {
+            } else {
                 if (targetIsFolder) {
                     params.error = 'Target is not a single object';
                     onSuccess(params);
@@ -955,166 +950,159 @@
             }
         }
         params.folder = sourceIsFolder;
-        var that = this, srcKeysArr = [], srcKeysObj = {}, tgtExObj = {}, extRefObjs = {}, main = [];
+        const that = this, srcKeysArr = [], srcKeysObj = {}, tgtExObj = {}, extRefObjs = {}, main = [];
         main.parallel = false;
-        main.push(function (i_suc, i_err) {
+        main.push((onSuc, onErr) => {
             // within the following loop we collect all source paths
             if (sourceIsFolder) {
-                var tasks = [], attr;
-                for (attr in that._tablesForExt) {
+                const tasks = [];
+                for (const attr in that._tablesForExt) {
                     if (that._tablesForExt.hasOwnProperty(attr)) {
                         (function () {
-                            var table = that._tablesForExt[attr];
-                            tasks.push(function (i_s, i_e) {
-                                i_adapter.addColumn(table.name + '.' + table.key_column + ' AS path');
+                            const table = that._tablesForExt[attr];
+                            tasks.push((os, oe) => {
+                                adapter.addColumn(`${table.name}.${table.key_column} AS path`);
                                 // select all paths within the range
-                                i_adapter.addWhere('LOCATE(' + SqlHelper.escape(srcTabKey) + ',' + table.name + '.' + table.key_column + ') = 1');
-                                i_adapter.performSelect(table.name, undefined, undefined, undefined, function (i_result) {
-                                    for (var i = 0, l = i_result.length; i < l; i++) {
-                                        srcKeysObj['$' + i_result[i].path + '.' + table.extension] = true;
+                                adapter.addWhere(`LOCATE(${SqlHelper.escape(srcTabKey)},${table.name}.${table.key_column}) = 1`);
+                                adapter.performSelect(table.name, undefined, undefined, undefined, result => {
+                                    for (var i = 0, l = result.length; i < l; i++) {
+                                        srcKeysObj['$' + result[i].path + '.' + table.extension] = true;
                                     }
-                                    i_s();
-                                }, i_e);
+                                    os();
+                                }, oe);
                             });
                         }());
                     }
                 }
                 tasks.parallel = that._parallel;
-                Executor.run(tasks, i_suc, i_err);
+                Executor.run(tasks, onSuc, onErr);
             }
             else {
-                srcKeysObj[i_source] = true;
-                i_suc();
+                srcKeysObj[source] = true;
+                onSuc();
             }
         });
-        main.push(function (i_suc, i_err) {
-            var key;
-            for (key in srcKeysObj) {
+        main.push((onSuc, onErr) => {
+            for (const key in srcKeysObj) {
                 if (srcKeysObj.hasOwnProperty(key)) {
                     srcKeysArr.push(key);
                 }
             }
-            var srcLen = srcKeysArr.length;
+            const srcLen = srcKeysArr.length;
             if (srcLen === 0) {
                 params.error = 'No data available';
                 onSuccess(params);
                 return;
             }
             srcKeysArr.sort(compare_keys);
-            var i;
-            for (i = 0; i < srcLen; i++) {
+            for (let i = 0; i < srcLen; i++) {
                 checksum += srcKeysArr[i];
             }
             // if we got a target
-            var objects = {}, tasks = [];
-            if (typeof i_target === 'string') {
+            const objects = {}, tasks = [];
+            if (typeof target === 'string') {
                 if (sourceIsFolder) {
-                    var source, match, table, target, srcFldLen;
                     // in the next loop we build the resulting target paths
-                    for (i = 0; i < srcLen; i++) {
-                        source = srcKeysArr[i];
-                        match = key_regex.exec(source);
-                        table = that._tablesForExt[match[2]];
-                        target = i_target + source.substring(i_source.length);
-                        objects[source] = target;
-                        checksum += target;
+                    for (let i = 0; i < srcLen; i++) {
+                        const src = srcKeysArr[i];
+                        const match = key_regex.exec(src);
+                        const table = that._tablesForExt[match[2]];
+                        const tgt = target + src.substring(source.length);
+                        objects[src] = tgt;
+                        checksum += tgt;
                     }
-                }
-                else {
-                    objects[i_source] = i_target;
-                    checksum += i_target;
+                } else {
+                    objects[source] = target;
+                    checksum += target;
                 }
                 // check if any source is matching any target
-                for (i = 0; i < srcLen; i++) {
-                    source = srcKeysArr[i];
-                    target = objects[source];
-                    if (objects[target] !== undefined) {
-                        params.error = 'Found at least one target equal to source: "' + target + '"';
+                for (let i = 0; i < srcLen; i++) {
+                    const src = srcKeysArr[i];
+                    const tgt = objects[src];
+                    if (objects[tgt] !== undefined) {
+                        params.error = 'Found at least one target equal to source: "' + tgt + '"';
                         onSuccess(params);
                         return;
                     }
                 }
                 // check if any target already exists
-                for (i = 0; i < srcLen; i++) {
+                for (let i = 0; i < srcLen; i++) {
                     (function () {
-                        var target = objects[srcKeysArr[i]];
-                        var match = key_regex.exec(target);
-                        var table = that._tablesForExt[match[2]];
-                        var tabKeyEsc = SqlHelper.escape(match[1]);
-                        tasks.push(function (i_suc, i_err) {
-                            i_adapter.addColumn("COUNT(*) AS cnt");
-                            i_adapter.addWhere(table.name + '.' + table.key_column + ' = ' + tabKeyEsc);
-                            i_adapter.performSelect(table.name, undefined, undefined, undefined, function (i_result) {
-                                if (i_result[0].cnt > 0) {
-                                    tgtExObj[target] = true;
+                        const tgt = objects[srcKeysArr[i]];
+                        const match = key_regex.exec(tgt);
+                        const table = that._tablesForExt[match[2]];
+                        const tabKeyEsc = SqlHelper.escape(match[1]);
+                        tasks.push((os, or) => {
+                            adapter.addColumn('COUNT(*) AS cnt');
+                            adapter.addWhere(`${table.name}.${table.key_column} = ${tabKeyEsc}`);
+                            adapter.performSelect(table.name, undefined, undefined, undefined, result => {
+                                if (result[0].cnt > 0) {
+                                    tgtExObj[tgt] = true;
                                 }
-                                i_suc();
-                            }, i_err);
+                                os();
+                            }, or);
                         });
                     }());
                 }
-            }
-            // no target
-            else {
+            } else { // no target
                 if (sourceIsFolder) {
                     // in the next loop we build the resulting target paths
-                    for (i = 0; i < srcLen; i++) {
+                    for (let i = 0; i < srcLen; i++) {
                         objects[srcKeysArr[i]] = null;
                     }
-                }
-                else {
-                    objects[i_source] = null;
+                } else {
+                    objects[source] = null;
                 }
             }
             params.objects = objects;
             tasks.parallel = that._parallel;
-            Executor.run(tasks, i_suc, i_err);
+            Executor.run(tasks, onSuc, onErr);
         });
-        main.push(function (i_suc, i_err) {
-            var tgtExArr = [], attr;
-            for (attr in tgtExObj) {
+        main.push(function (onSuc, onErr) {
+            const tgtExArr = [];
+            for (const attr in tgtExObj) {
                 if (tgtExObj.hasOwnProperty(attr)) {
                     tgtExArr.push(attr);
                 }
             }
             if (tgtExArr.length > 0) {
                 tgtExArr.sort(compare_keys);
-                var existingTargets = {};
-                var i, l = tgtExArr.length;
-                for (i = 0; i < l; i++) {
+                const existingTargets = {};
+                const l = tgtExArr.length;
+                for (let i = 0; i < l; i++) {
                     checksum += tgtExArr[i];
                     existingTargets[tgtExArr[i]] = true;
                 }
                 params.existingTargets = existingTargets;
             }
             // check for all external users
-            var tasks = [];
-            if (i_action === ContentManager.MOVE || i_action === ContentManager.DELETE) {
-                var i, l = srcKeysArr.length;
-                for (i = 0; i < l; i++) {
+            const tasks = [];
+            if (action === ContentManager.MOVE || action === ContentManager.DELETE) {
+                const l = srcKeysArr.length;
+                for (let i = 0; i < l; i++) {
                     (function () {
-                        var source = srcKeysArr[i];
-                        tasks.push(function (i_suc, i_err) {
-                            that._getReferencesFrom(i_adapter, source, function (i_referencesFrom) {
-                                var r, reflen = i_referencesFrom.length, key;
-                                for (r = 0; r < reflen; r++) {
-                                    key = i_referencesFrom[r];
+                        const source = srcKeysArr[i];
+                        tasks.push((os, or) => {
+                            that._getReferencesFrom(adapter, source, referencesFrom => {
+                                const reflen = referencesFrom.length;
+                                for (let r = 0; r < reflen; r++) {
+                                    const key = referencesFrom[r];
                                     if (srcKeysObj[key] === undefined) {
                                         extRefObjs[key] = true;
                                     }
                                 }
-                                i_suc();
-                            }, i_err);
+                                os();
+                            }, or);
                         });
                     }());
                 }
             }
             tasks.parallel = that._parallel;
-            Executor.run(tasks, i_suc, i_err);
+            Executor.run(tasks, onSuc, onErr);
         });
-        Executor.run(main, function () {
-            var extRefsArray = [], attr;
-            for (attr in extRefObjs) {
+        Executor.run(main, () => {
+            const extRefsArray = [];
+            for (const attr in extRefObjs) {
                 if (extRefObjs.hasOwnProperty(attr)) {
                     extRefsArray.push(attr);
                 }
@@ -1122,8 +1110,8 @@
             if (extRefsArray.length > 0) {
                 extRefsArray.sort(compare_keys);
                 params.referencesFromOthers = extRefsArray;
-                var i, l = extRefsArray.length;
-                for (i = 0; i < l; i++) {
+                const l = extRefsArray.length;
+                for (let i = 0; i < l; i++) {
                     checksum += extRefsArray[i];
                 }
             }
