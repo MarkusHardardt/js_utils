@@ -3,50 +3,44 @@
 
     const isNodeJS = typeof require === 'function';
 
-    var Executor = isNodeJS ? require('./Executor') : root.Executor;
-    var Client = isNodeJS ? require('./Client') : root.Client;
-    var mysql = isNodeJS ? require('mysql') : false;
+    const Executor = isNodeJS ? require('./Executor') : root.Executor;
+    const Client = isNodeJS ? require('./Client') : root.Client;
+    const mysql = isNodeJS ? require('mysql') : false;
 
-    function SqlHelper(i_config, i_verbose) {
-        var that = this;
+    function SqlHelper(config, verbose) {
         if (mysql) {
-            var helper = mysql.createPool(i_config);
-            this.createAdapter = function (i_success, i_error) {
-                helper.getConnection(function (i_err, i_con) {
-                    if (i_err) {
-                        i_error(i_err);
-                    }
-                    else {
-                        i_success(new Adapter(i_con, i_verbose));
-                    }
-                });
-            };
-            this.getConnection = function (i_success, i_error) {
-                helper.getConnection(function (i_err, i_con) {
-                    if (i_err) {
-                        i_error(i_err);
-                    }
-                    else {
-                        i_success(i_con);
+            const helper = mysql.createPool(config);
+            this.createAdapter = (onSuccess, onError) => {
+                helper.getConnection((onErr, connection) => {
+                    if (onErr) {
+                        onError(onErr);
+                    } else {
+                        onSuccess(new Adapter(connection, verbose));
                     }
                 });
             };
-        }
-        else {
-            this.createAdapter = function (i_success, i_error) {
+            this.getConnection = (onSuccess, onError) => {
+                helper.getConnection(function (onErr, connection) {
+                    if (onErr) {
+                        onError(onErr);
+                    } else {
+                        onSuccess(connection);
+                    }
+                });
+            };
+        } else { // TODO: What is this for? 
+            this.createAdapter = (onSuccess, onError) => {
                 // TODO what is i_config ???
-                var proxy = new Proxy(i_config, function (i_config) {
-                    i_success(new Adapter(proxy, i_verbose), i_config);
-                });
+                const proxy = new Proxy(config, result => onSuccess(new Adapter(proxy, verbose), result));
             };
-            this.getConnection = function (i_success, i_error) {
+            this.getConnection = function (onSuccess, onError) {
                 throw new Error('mysql.getConnection() only available on server side!');
             };
         }
     };
 
-    SqlHelper.escape = function (i_value) {
-        return mysql ? mysql.escape(i_value) : window.SqlString.escape(i_value);
+    SqlHelper.escape = function (value) {
+        return mysql ? mysql.escape(value) : root.SqlString.escape(value);
     };
 
     function Proxy(url, onResponse) {
@@ -59,23 +53,24 @@
                 onResponse(result.config);
             }, error => console.error(`DEBUG_SQL_PROXY: connect-error: ${error}`));
             return;
+        } else {
+            $.ajax({
+                type: 'POST',
+                url,
+                data: {
+                    connect: true
+                },
+                success: function (i_result, i_textStatus, i_jqXHR) {
+                    that._id = i_result.id;
+                    // console.log('DEBUG_SQL_PROXY: connected [id: ' + i_result + ']');
+                    onResponse(i_result.config);
+                },
+                error: function (i_jqXHR, i_textStatus, i_errorThrown) {
+                    console.error('DEBUG_SQL_PROXY: connect-error');
+                },
+                timeout: 10000
+            });
         }
-        $.ajax({
-            type: 'POST',
-            url,
-            data: {
-                connect: true
-            },
-            success: function (i_result, i_textStatus, i_jqXHR) {
-                that._id = i_result.id;
-                // console.log('DEBUG_SQL_PROXY: connected [id: ' + i_result + ']');
-                onResponse(i_result.config);
-            },
-            error: function (i_jqXHR, i_textStatus, i_errorThrown) {
-                console.error('DEBUG_SQL_PROXY: connect-error');
-            },
-            timeout: 10000
-        });
     };
 
     Proxy.prototype = {
@@ -151,40 +146,39 @@
         }
     };
 
-    function Adapter(i_connection, i_verbose) {
-        this._con = i_connection;
-        this._verbose = i_verbose === true;
-        this._columns = [];
-        this._joins = [];
-        this._wheres = [];
-        this._values = [];
-    };
-
-    Adapter.prototype = {
-        close: function () {
+    class Adapter {
+        constructor(connection, verbose) {
+            this._con = connection;
+            this._verbose = verbose === true;
+            this._columns = [];
+            this._joins = [];
+            this._wheres = [];
+            this._values = [];
+        }
+        close() {
             this._con.release();
             delete this._con;
-        },
-        clear: function () {
+        }
+        clear() {
             this._values.splice(0, this._values.length);
             this._columns.splice(0, this._columns.length);
             this._joins.splice(0, this._joins.length);
             this._wheres.splice(0, this._wheres.length);
-        },
-        addColumn: function (i_expression) {
+        }
+        addColumn(i_expression) {
             this._columns.push(i_expression);
-        },
-        addJoin: function (i_expression) {
+        }
+        addJoin(i_expression) {
             this._joins.push(i_expression);
-        },
-        addWhere: function (i_expression, i_and) {
+        }
+        addWhere(i_expression, i_and) {
             this._wheres.push({
                 expr: i_expression,
                 opr: i_and !== false ? ' AND ' : ' OR '
             });
-        },
+        }
         // TODO i_apostrophes used? escape add's them anyway ...
-        addValue: function (i_column, i_data, i_apostrophes) {
+        addValue(i_column, i_data, i_apostrophes) {
             var values = this._values, value;
             for (var i = 0, l = values.length; i < l; i++) {
                 value = values[i];
@@ -204,34 +198,34 @@
                 apostrophes: false
                 // i_apostrophes !== false
             });
-        },
-        query: function (i_query, i_success, i_error) {
+        }
+        query(i_query, onSuccess, onError) {
             if (this._verbose) {
                 console.log(i_query);
             }
             this._con.query(i_query, function (i_exception, i_results, i_fields) {
                 if (i_exception) {
-                    if (typeof i_error === 'function') {
-                        i_error(i_exception);
+                    if (typeof onError === 'function') {
+                        onError(i_exception);
                     }
                 }
                 else {
-                    if (typeof i_success === 'function') {
-                        i_success(i_results, i_fields);
+                    if (typeof onSuccess === 'function') {
+                        onSuccess(i_results, i_fields);
                     }
                 }
             });
-        },
-        startTransaction: function (i_success, i_error) {
-            this.query('START TRANSACTION', i_success, i_error);
-        },
-        rollbackTransaction: function (i_success, i_error) {
-            this.query('ROLLBACK', i_success, i_error);
-        },
-        commitTransaction: function (i_success, i_error) {
-            this.query('COMMIT', i_success, i_error);
-        },
-        formatSelect: function (i_table, i_group, i_order, i_limit) {
+        }
+        startTransaction(onSuccess, onError) {
+            this.query('START TRANSACTION', onSuccess, onError);
+        }
+        rollbackTransaction(onSuccess, onError) {
+            this.query('ROLLBACK', onSuccess, onError);
+        }
+        commitTransaction(onSuccess, onError) {
+            this.query('COMMIT', onSuccess, onError);
+        }
+        formatSelect(i_table, i_group, i_order, i_limit) {
             var query = 'SELECT', i, l, columns = this._columns, joins = this._joins, wheres = this._wheres, expr;
             // COLUMNS
             for (i = 0, l = columns.length; i < l; i++) {
@@ -279,12 +273,12 @@
             // clear, perform query, check for errors and return result
             this.clear();
             return query;
-        },
-        performSelect: function (i_table, i_group, i_order, i_limit, i_success, i_error) {
+        }
+        performSelect(i_table, i_group, i_order, i_limit, onSuccess, onError) {
             var query = this.formatSelect(i_table, i_group, i_order, i_limit);
-            this.query(query, i_success, i_error);
-        },
-        formatInsert: function (i_table) {
+            this.query(query, onSuccess, onError);
+        }
+        formatInsert(i_table) {
             var insert = 'INSERT INTO ';
             insert += i_table;
             insert += ' (';
@@ -376,11 +370,11 @@
                 }
                 return queries;
             }
-        },
-        performInsert: function (i_table, i_success, i_error) {
+        }
+        performInsert(i_table, onSuccess, onError) {
             var query = this.formatInsert(i_table);
             if (typeof query === 'string') {
-                this.query(query, i_success, i_error);
+                this.query(query, onSuccess, onError);
             }
             else if (Array.isArray(query)) {
                 var that = this, tasks = [];
@@ -394,14 +388,14 @@
                         });
                     }());
                 }
-                Executor.run(tasks, i_success, i_error);
+                Executor.run(tasks, onSuccess, onError);
             }
-        },
-        formatUpdate: function (i_table, i_order, i_limit) {
+        }
+        formatUpdate(i_table, i_order, i_limit) {
             var query = 'UPDATE ';
             query += i_table;
             query += ' SET ';
-            var values = this._values, value, data, i, l
+            var values = this._values, value, data, i, l;
             // COLUMN NAMES AND VALUES
             for (i = 0, l = values.length; i < l; i++) {
                 value = values[i];
@@ -449,12 +443,12 @@
             // clear, perform query, check for errors and return result
             this.clear();
             return query;
-        },
-        performUpdate: function (i_table, i_order, i_limit, i_success, i_error) {
+        }
+        performUpdate(i_table, i_order, i_limit, onSuccess, onError) {
             var query = this.formatUpdate(i_table, i_order, i_limit);
-            this.query(query, i_success, i_error);
-        },
-        formatDelete: function (i_table, i_order, i_limit) {
+            this.query(query, onSuccess, onError);
+        }
+        formatDelete(i_table, i_order, i_limit) {
             var query = 'DELETE FROM ';
             query += i_table;
             // WHERE
@@ -482,11 +476,11 @@
             // clear, perform query, check for errors and return result
             this.clear();
             return query;
-        },
-        performDelete: function (i_table, i_order, i_limit, i_success, i_error) {
+        }
+        performDelete(i_table, i_order, i_limit, onSuccess, onError) {
             var query = this.formatDelete(i_table, i_order, i_limit);
-            this.query(query, i_success, i_error);
-        },
+            this.query(query, onSuccess, onError);
+        }
         /**
          * This returns an array containing objects like this: <code>
          * {
@@ -496,7 +490,7 @@
          * }
          * </code>
          */
-        getChildNodes: function (i_table, i_column, i_delimiter, i_path, i_success, i_error) {
+        getChildNodes(i_table, i_column, i_delimiter, i_path, onSuccess, onError) {
             var delim = SqlHelper.escape(i_delimiter);
             var col = 'DISTINCT IF(LOCATE(';
             col += delim;
@@ -547,13 +541,13 @@
                         folder: hasChildren
                     });
                 }
-                i_success(nodes);
-            }, i_error);
-        },
-        getTrendData: function () {
+                onSuccess(nodes);
+            }, onError);
+        }
+        getTrendData() {
             console.error('ERROR! Not implemented: getTrendData()');
         }
-    };
+    }
 
     if (isNodeJS) {
         module.exports = SqlHelper;
