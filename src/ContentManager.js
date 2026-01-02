@@ -1687,72 +1687,70 @@
         }
     };
 
-    ContentManager.prototype.getIdKeyValues = function (i_id, onSuccess, onError) {
-        var that = this, data = this.analyzeID(i_id);
+    ContentManager.prototype.getIdKeyValues = function (id, onSuccess, onError) {
+        const that = this, data = this.analyzeID(id);
         if (data.file || data.folder) {
-            this._getSqlAdapter(function (i_adapter) {
-                var results = [], tasks = [], path = SqlHelper.escape(data.path);
-                for (var attr in that._tablesForExt) {
+            this._getSqlAdapter(adapter => {
+                const results = [], tasks = [], path = SqlHelper.escape(data.path);
+                for (const attr in that._tablesForExt) {
                     if (that._tablesForExt.hasOwnProperty(attr)) {
                         (function () {
-                            var table = that._tablesForExt[attr];
-                            var valcol = that._valColsForExt[attr];
-                            tasks.push(function (i_suc, i_err) {
-                                i_adapter.addColumn(table.name + '.' + table.key_column + ' AS path');
-                                i_adapter.addWhere('LOCATE(' + path + ',' + table.name + '.' + table.key_column + ') = 1');
-                                i_adapter.performSelect(table.name, undefined, undefined, undefined, function (i_result) {
-                                    var i, l = i_result.length, result;
-                                    for (i = 0; i < l; i++) {
-                                        result = i_result[i];
-                                        results.push('$' + result.path + '.' + table.extension);
+                            const table = that._tablesForExt[attr];
+                            // TODO: remove or reuse const valcol = that._valColsForExt[attr];
+                            tasks.push((onSuc, onErr) => {
+                                adapter.addColumn(`${table.name}.${table.key_column} AS path`);
+                                adapter.addWhere(`LOCATE(${path},${table.name}.${table.key_column}) = 1`);
+                                adapter.performSelect(table.name, undefined, undefined, undefined, result => {
+                                    const l = result.length;
+                                    for (let i = 0; i < l; i++) {
+                                        results.push('$' + result[i].path + '.' + table.extension);
                                     }
-                                    i_suc();
-                                }, i_err);
+                                    onSuc();
+                                }, onErr);
                             });
                         }());
                     }
                 }
                 tasks.parallel = that._parallel;
-                Executor.run(tasks, function () {
-                    i_adapter.close();
+                Executor.run(tasks, () => {
+                    adapter.close();
                     onSuccess(results);
-                }, function (i_exc) {
-                    i_adapter.close();
-                    onError(i_exc);
+                }, err => {
+                    adapter.close();
+                    onError(err);
                 });
             }, onError);
-        }
-        else {
-            onError('Invalid selection: "' + data.string + '"');
+        } else {
+            onError(`Invalid selection: '${data.string}'`);
         }
     };
 
-    ContentManager.prototype.getIdSelectedValues = function (i_id, i_language, onSuccess, onError) {
-        var match = this._key_regex.exec(i_id);
+    ContentManager.prototype.getIdSelectedValues = function (id, language, onSuccess, onError) {
+        const match = this._key_regex.exec(id);
         if (!match) {
-            onError('Invalid id: ' + i_id);
+            onError(`Invalid id: '${id}'`);
             return;
         }
-        var table = this._tablesForExt[match[2]];
-        var valcol = this._valColsForExt[match[2]];
+        const table = this._tablesForExt[match[2]];
+        const valcol = this._valColsForExt[match[2]];
         if (!table) {
-            onError('Invalid table: ' + i_id);
+            onError(`Invalid table: '${id}'`);
             return;
         }
         const that = this;
-        this._getSqlAdapter(function (i_adapter) {
-            i_adapter.addColumn(table.name + '.' + table.key_column + ' AS path');
-            i_adapter.addColumn((typeof valcol === 'string' ? valcol : valcol[i_language]) + ' AS val');
-            i_adapter.performSelect(table.name, undefined, 'path ASC', undefined, function (i_result) {
-                var array = [], i, l = i_result.length;
-                for (i = 0; i < l; i++) {
-                    array.push([i_result[i].path + '.' + table.extension, i_result[i].val]);
+        this._getSqlAdapter(adapter => {
+            adapter.addColumn(`${table.name}.${table.key_column} AS path`);
+            adapter.addColumn((typeof valcol === 'string' ? valcol : valcol[language]) + ' AS val');
+            adapter.performSelect(table.name, undefined, 'path ASC', undefined, result => {
+                const array = [], l = result.length;
+                for (let i = 0; i < l; i++) {
+                    array.push([`${result[i].path}.${table.extension}`, result[i].val]);
                 }
-                i_adapter.close();
+                adapter.close();
                 onSuccess(array);
-            }, function (i_exc) {
-                i_adapter.close();
-                onError(i_exc);
+            }, err => {
+                adapter.close();
+                onError(err);
             });
         }, onError);
     };
