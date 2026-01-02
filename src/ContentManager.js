@@ -370,7 +370,10 @@
         }, onError);
     };
 
-    ContentManager.prototype.getObject = function (i_id, i_language, i_mode, i_success, i_error) {
+    ContentManager.prototype.foo = function (id, language, i_mode, onSuccess, onError) {
+    }
+
+    ContentManager.prototype.getObject = function (id, language, i_mode, onSuccess, onError) {
         // This method works in four modes:
         // 1. JsonFX-object: build object and return
         // 2. plain text (utf-8): build text and return
@@ -379,15 +382,15 @@
         // object
 
         // first we try to get table object matching to the given key
-        var match = this._key_regex.exec(i_id);
+        var match = this._key_regex.exec(id);
         if (!match) {
-            i_error('Invalid id: "' + i_id + '"');
+            onError('Invalid id: "' + id + '"');
             return;
         }
         var table = this._tablesForExt[match[2]];
         var valcol = this._valColsForExt[match[2]];
         if (!table) {
-            i_error('Invalid table name: "' + i_id + '"');
+            onError('Invalid table name: "' + id + '"');
             return;
         }
         var that = this;
@@ -404,19 +407,19 @@
                             // TODO: object = eval('(' + JsonFX.stringify(object, true) + ')\n//# sourceURL=' + key + '.js');
                             object = eval('(' + JsonFX.stringify(object, true) + ')');
                         }
-                        i_success(object);
+                        onSuccess(object);
                     }
                     else {
-                        i_success(i_object);
+                        onSuccess(i_object);
                     }
                 }
                 catch (exc) {
-                    i_error(exc);
+                    onError(exc);
                 }
             };
             var error = function (i_exc) {
                 i_adapter.close();
-                i_error(i_exc);
+                onError(i_exc);
             };
             // if JsonFX or plain text is available we decode the string and
             // return with or without all includes included
@@ -427,8 +430,8 @@
                         var object = table.JsonFX ? JsonFX.parse(i_rawString, false, false) : i_rawString;
                         if (include) {
                             var ids = {};
-                            ids[i_id] = true;
-                            that._include(i_adapter, object, ids, i_language, success, error);
+                            ids[id] = true;
+                            that._include(i_adapter, object, ids, language, success, error);
                         }
                         else {
                             success(object);
@@ -439,15 +442,15 @@
                     }
                 }, error);
             }
-            else if (typeof i_language === 'string') {
+            else if (typeof language === 'string') {
                 // if selection is available we return string with or without all
                 // includes included
-                that._getRawString(i_adapter, table, key, i_language, function (i_rawString) {
+                that._getRawString(i_adapter, table, key, language, function (i_rawString) {
                     if (i_rawString !== false) {
                         if (include) {
                             var ids = {};
-                            ids[i_id] = true;
-                            that._include(i_adapter, i_rawString, ids, i_language, success, error);
+                            ids[id] = true;
+                            that._include(i_adapter, i_rawString, ids, language, success, error);
                         }
                         else {
                             success(i_rawString);
@@ -476,7 +479,7 @@
                                     (function () {
                                         var language = attr;
                                         var ids = {};
-                                        ids[i_id] = true;
+                                        ids[id] = true;
                                         tasks.push(function (i_suc, i_err) {
                                             that._include(i_adapter, object[language], ids, language, function (i_object) {
                                                 object[language] = i_object;
@@ -500,25 +503,25 @@
                     }
                 }, error);
             }
-        }, i_error);
+        }, onError);
     };
 
-    ContentManager.prototype._include = function (i_adapter, i_object, i_ids, i_language, i_success, i_error) {
+    ContentManager.prototype._include = function (i_adapter, i_object, i_ids, i_language, onSuccess, onError) {
         var that = this, config = this._config;
         if (Array.isArray(i_object)) {
-            this._buildProperties(i_adapter, i_object, i_ids, i_language, i_success, i_error);
+            this._buildProperties(i_adapter, i_object, i_ids, i_language, onSuccess, onError);
         }
         else if (typeof i_object === 'object' && i_object !== null) {
             var includeKey = i_object.include;
             var match = typeof includeKey === 'string' && !i_ids[includeKey] ? this._key_regex.exec(includeKey) : false;
             if (!match) {
-                this._buildProperties(i_adapter, i_object, i_ids, i_language, i_success, i_error);
+                this._buildProperties(i_adapter, i_object, i_ids, i_language, onSuccess, onError);
                 return;
             }
             var table = this._tablesForExt[match[2]];
             var valcol = this._valColsForExt[match[2]];
             if (!table) {
-                this._buildProperties(i_adapter, i_object, i_ids, i_language, i_success, i_error);
+                this._buildProperties(i_adapter, i_object, i_ids, i_language, onSuccess, onError);
                 return;
             }
             this._getRawString(i_adapter, table, match[1], i_language, function (i_rawString) {
@@ -554,21 +557,21 @@
                                     // no attribute keeping - just attribute transfer
                                     Utilities.transferProperties(i_object, i_includedObject);
                                 }
-                                i_success(i_includedObject);
-                            }, i_error);
+                                onSuccess(i_includedObject);
+                            }, onError);
                         }
                         else {
                             // no real object means just return whatever it is
-                            i_success(i_includedObject);
+                            onSuccess(i_includedObject);
                         }
-                    }, i_error);
+                    }, onError);
                 }
                 else {
                     // no string available so just step on with building the object
                     // properties
-                    that._buildProperties(i_adapter, i_object, i_ids, i_language, i_success, i_error);
+                    that._buildProperties(i_adapter, i_object, i_ids, i_language, onSuccess, onError);
                 }
-            }, i_error);
+            }, onError);
         }
         else if ((typeof i_object === 'string')) {
             // Strings may contain include:$path/file.ext entries. With the next
@@ -616,17 +619,17 @@
             Executor.run(tasks, function () {
                 // if our string contains just one single element we return this as
                 // is.
-                i_success(array.length === 1 ? array[0] : array.join(''));
-            }, i_error);
+                onSuccess(array.length === 1 ? array[0] : array.join(''));
+            }, onError);
         }
         else {
             // if our input object is not an array, an object or a string we have
             // nothing to build so we return the object as is.
-            i_success(i_object);
+            onSuccess(i_object);
         }
     };
 
-    ContentManager.prototype._buildProperties = function (i_adapter, i_object, i_ids, i_language, i_success, i_error) {
+    ContentManager.prototype._buildProperties = function (i_adapter, i_object, i_ids, i_language, onSuccess, onError) {
         var that = this, tasks = [], a;
         for (a in i_object) {
             if (i_object.hasOwnProperty(a)) {
@@ -643,25 +646,25 @@
         }
         tasks.parallel = this._parallel;
         Executor.run(tasks, function () {
-            i_success(i_object);
-        }, i_error);
+            onSuccess(i_object);
+        }, onError);
     };
 
-    ContentManager.prototype._getModificationParams = function (i_adapter, i_id, i_language, i_value, i_success, i_error) {
+    ContentManager.prototype._getModificationParams = function (i_adapter, i_id, i_language, i_value, onSuccess, onError) {
         // here we store the result
         var params = {};
         // check id
         var match = this._key_regex.exec(i_id);
         if (!match) {
             params.error = 'Invalid id: ' + i_id;
-            i_success(params);
+            onSuccess(params);
             return;
         }
         // check table
         var table = this._tablesForExt[match[2]];
         if (!table) {
             params.error = 'Invalid table: ' + i_id;
-            i_success(params);
+            onSuccess(params);
             return;
         }
         var valcol = this._valColsForExt[match[2]];
@@ -669,7 +672,7 @@
         // sure that language is supported
         if (typeof valcol !== 'string' && typeof i_language === 'string' && valcol[i_language] === undefined) {
             params.error = 'Invalid language "' + i_language + '"';
-            i_success(params);
+            onSuccess(params);
             return;
         }
         // try to get all current database values for given id and copy the new
@@ -768,11 +771,11 @@
             }
             checksum += params.action;
             params.checksum = Utilities.md5(checksum);
-            i_success(params);
-        }, i_error);
+            onSuccess(params);
+        }, onError);
     };
 
-    ContentManager.prototype.getModificationParams = function (i_id, i_language, i_value, i_success, i_error) {
+    ContentManager.prototype.getModificationParams = function (i_id, i_language, i_value, onSuccess, onError) {
         var that = this;
         this._getSqlAdapter(function (i_adapter) {
             that._getModificationParams(i_adapter, i_id, i_language, i_value, function (i_params) {
@@ -782,33 +785,33 @@
                             i_params.externalUsers = i_referencesFrom;
                         }
                         i_adapter.close();
-                        i_success(i_params);
+                        onSuccess(i_params);
                     }, function (i_exc) {
                         i_adapter.close();
-                        i_error(i_exc);
+                        onError(i_exc);
                     });
                 }
                 else {
                     i_adapter.close();
-                    i_success(i_params);
+                    onSuccess(i_params);
                 }
             }, function (i_exc) {
                 i_adapter.close();
-                i_error(i_exc);
+                onError(i_exc);
             });
-        }, i_error);
+        }, onError);
     };
 
-    ContentManager.prototype.setObject = function (i_id, i_language, i_value, i_checksum, i_success, i_error) {
+    ContentManager.prototype.setObject = function (i_id, i_language, i_value, i_checksum, onSuccess, onError) {
         var that = this, match = this._key_regex.exec(i_id);
         if (!match) {
-            i_error('Invalid id: ' + i_id);
+            onError('Invalid id: ' + i_id);
             return;
         }
         var table = this._tablesForExt[match[2]];
         var valcol = this._valColsForExt[match[2]];
         if (!table) {
-            i_error('Invalid table: ' + i_id);
+            onError('Invalid table: ' + i_id);
             return;
         }
         var key = match[1];
@@ -884,30 +887,30 @@
             Executor.run(main, function () {
                 i_adapter.commitTransaction(function () {
                     i_adapter.close();
-                    i_success();
+                    onSuccess();
                 }, function (i_exc) {
                     i_adapter.close();
-                    i_error(i_exc);
+                    onError(i_exc);
                 });
             }, function (i_exception) {
                 i_adapter.rollbackTransaction(function () {
                     i_adapter.close();
-                    i_error(i_exception);
+                    onError(i_exception);
                 }, function (i_exc) {
                     i_adapter.close();
-                    i_error(i_exc);
+                    onError(i_exc);
                 });
             });
-        }, i_error);
+        }, onError);
     };
 
-    ContentManager.prototype._getRefactoringParams = function (i_adapter, i_source, i_target, i_action, i_success, i_error) {
+    ContentManager.prototype._getRefactoringParams = function (i_adapter, i_source, i_target, i_action, onSuccess, onError) {
         // here we store the result
         var params = {}, key_regex = this._key_regex;
         // check action
         if (i_action !== ContentManager.COPY && i_action !== ContentManager.MOVE && i_action !== ContentManager.DELETE) {
             params.error = 'Invalid action';
-            i_success(params);
+            onSuccess(params);
             return;
         }
         params.action = i_action;
@@ -919,7 +922,7 @@
         }
         else {
             params.error = 'Missing source';
-            i_success(params);
+            onSuccess(params);
             return;
         }
         // check target - but only if required
@@ -930,7 +933,7 @@
             }
             else {
                 params.error = 'Missing target';
-                i_success(params);
+                onSuccess(params);
                 return;
             }
         }
@@ -941,7 +944,7 @@
             srcTab = this._tablesForExt[match[2]];
             if (!srcTab) {
                 params.error = 'Invalid source table: ' + i_source;
-                i_success(params);
+                onSuccess(params);
                 return;
             }
             sourceIsFolder = false;
@@ -952,7 +955,7 @@
             sourceIsFolder = !!match;
             if (!sourceIsFolder) {
                 params.error = 'Invalid source folder: ' + i_source;
-                i_success(params);
+                onSuccess(params);
                 return;
             }
             srcTabKey = match[1];
@@ -966,7 +969,7 @@
                 tgtTab = this._tablesForExt[match[2]];
                 if (!tgtTab) {
                     params.error = 'Invalid target table: ' + i_target;
-                    i_success(params);
+                    onSuccess(params);
                     return;
                 }
                 targetIsFolder = false;
@@ -977,7 +980,7 @@
                 targetIsFolder = !!match;
                 if (!targetIsFolder) {
                     params.error = 'Invalid target folder: ' + i_target;
-                    i_success(params);
+                    onSuccess(params);
                     return;
                 }
                 tgtTabKey = match[1];
@@ -987,24 +990,24 @@
             if (sourceIsFolder) {
                 if (!targetIsFolder) {
                     params.error = 'Target is not a folder';
-                    i_success(params);
+                    onSuccess(params);
                     return;
                 }
             }
             else {
                 if (targetIsFolder) {
                     params.error = 'Target is not a single object';
-                    i_success(params);
+                    onSuccess(params);
                     return;
                 }
                 if (tgtTab === false) {
                     params.error = 'Unknown target table';
-                    i_success(params);
+                    onSuccess(params);
                     return;
                 }
                 if (srcTab !== tgtTab) {
                     params.error = 'Different source and target table';
-                    i_success(params);
+                    onSuccess(params);
                     return;
                 }
             }
@@ -1052,7 +1055,7 @@
             var srcLen = srcKeysArr.length;
             if (srcLen === 0) {
                 params.error = 'No data available';
-                i_success(params);
+                onSuccess(params);
                 return;
             }
             srcKeysArr.sort(compare_keys);
@@ -1085,7 +1088,7 @@
                     target = objects[source];
                     if (objects[target] !== undefined) {
                         params.error = 'Found at least one target equal to source: "' + target + '"';
-                        i_success(params);
+                        onSuccess(params);
                         return;
                     }
                 }
@@ -1183,24 +1186,24 @@
                 }
             }
             params.checksum = Utilities.md5(checksum);
-            i_success(params);
-        }, i_error);
+            onSuccess(params);
+        }, onError);
     };
 
-    ContentManager.prototype.getRefactoringParams = function (i_source, i_target, i_action, i_success, i_error) {
+    ContentManager.prototype.getRefactoringParams = function (i_source, i_target, i_action, onSuccess, onError) {
         var that = this;
         this._getSqlAdapter(function (i_adapter) {
             that._getRefactoringParams(i_adapter, i_source, i_target, i_action, function (i_params) {
                 i_adapter.close();
-                i_success(i_params);
+                onSuccess(i_params);
             }, function (i_exc) {
                 i_adapter.close();
-                i_error(i_exc);
+                onError(i_exc);
             });
-        }, i_error);
+        }, onError);
     };
 
-    ContentManager.prototype.performRefactoring = function (i_source, i_target, i_action, i_checksum, i_success, i_error) {
+    ContentManager.prototype.performRefactoring = function (i_source, i_target, i_action, i_checksum, onSuccess, onError) {
         var that = this;
         this._getSqlAdapter(function (i_adapter) {
             var main = [];
@@ -1275,24 +1278,24 @@
             Executor.run(main, function () {
                 i_adapter.commitTransaction(function () {
                     i_adapter.close();
-                    i_success();
+                    onSuccess();
                 }, function (i_exc) {
                     i_adapter.close();
-                    i_error(i_exc);
+                    onError(i_exc);
                 });
             }, function (i_exception) {
                 i_adapter.rollbackTransaction(function () {
                     i_adapter.close();
-                    i_error(i_exception);
+                    onError(i_exception);
                 }, function (i_exc) {
                     i_adapter.close();
-                    i_error(i_exc);
+                    onError(i_exc);
                 });
             });
-        }, i_error);
+        }, onError);
     };
 
-    ContentManager.prototype._performRefactoring = function (i_adapter, i_source, i_params, i_replace, i_success, i_error) {
+    ContentManager.prototype._performRefactoring = function (i_adapter, i_source, i_params, i_replace, onSuccess, onError) {
         var that = this, key_regex = this._key_regex;
         var match = key_regex.exec(i_source);
         var table = this._tablesForExt[match[2]];
@@ -1431,16 +1434,16 @@
                 }, i_err);
             });
         }
-        Executor.run(main, i_success, i_error);
+        Executor.run(main, onSuccess, onError);
     };
 
-    ContentManager.prototype.getReferencesTo = function (i_id, i_success, i_error) {
+    ContentManager.prototype.getReferencesTo = function (i_id, onSuccess, onError) {
         var match = this._key_regex.exec(i_id);
         if (match) {
             var user = this._tablesForExt[match[2]];
             var valcol = this._valColsForExt[match[2]];
             if (!user) {
-                i_error('Invalid table: ' + i_id);
+                onError('Invalid table: ' + i_id);
                 return;
             }
             var that = this;
@@ -1475,26 +1478,26 @@
                         }
                     }
                     i_adapter.close();
-                    i_success(array);
+                    onSuccess(array);
                 }, function (i_exc) {
                     i_adapter.close();
-                    i_error(i_exc);
+                    onError(i_exc);
                 });
-            }, i_error);
+            }, onError);
         }
         else {
             // if invalid key we simply found no reference
-            i_success([]);
+            onSuccess([]);
         }
     };
 
-    ContentManager.prototype.getReferencesToCount = function (i_id, i_success, i_error) {
+    ContentManager.prototype.getReferencesToCount = function (i_id, onSuccess, onError) {
         var match = this._key_regex.exec(i_id);
         if (match) {
             var user = this._tablesForExt[match[2]];
             var valcol = this._valColsForExt[match[2]];
             if (!user) {
-                i_error('Invalid table: ' + i_id);
+                onError('Invalid table: ' + i_id);
                 return;
             }
             var that = this;
@@ -1520,20 +1523,20 @@
                 tasks.parallel = that._parallel;
                 Executor.run(tasks, function () {
                     i_adapter.close();
-                    i_success(result);
+                    onSuccess(result);
                 }, function (i_exc) {
                     i_adapter.close();
-                    i_error(i_exc);
+                    onError(i_exc);
                 });
-            }, i_error);
+            }, onError);
         }
         else {
             // if invalid key we simply found no reference
-            i_success(0);
+            onSuccess(0);
         }
     };
 
-    ContentManager.prototype._getReferencesFrom = function (i_adapter, i_id, i_success, i_error) {
+    ContentManager.prototype._getReferencesFrom = function (i_adapter, i_id, onSuccess, onError) {
         var that = this, key = SqlHelper.escape(i_id), keys = {}, tasks = [];
         for (var attr in this._tablesForExt) {
             if (this._tablesForExt.hasOwnProperty(attr)) {
@@ -1570,30 +1573,30 @@
                     array.push(key);
                 }
             }
-            i_success(array);
-        }, i_error);
+            onSuccess(array);
+        }, onError);
     };
 
-    ContentManager.prototype.getReferencesFrom = function (i_id, i_success, i_error) {
+    ContentManager.prototype.getReferencesFrom = function (i_id, onSuccess, onError) {
         if (this._key_regex.test(i_id)) {
             var that = this;
             this._getSqlAdapter(function (i_adapter) {
                 that._getReferencesFrom(i_adapter, i_id, function (i_results) {
                     i_adapter.close();
-                    i_success(i_results);
+                    onSuccess(i_results);
                 }, function (i_exc) {
                     i_adapter.close();
-                    i_error(i_exc);
+                    onError(i_exc);
                 });
-            }, i_error);
+            }, onError);
         }
         else {
             // if invalid key we simply found no reference
-            i_success([]);
+            onSuccess([]);
         }
     };
 
-    ContentManager.prototype.getReferencesFromCount = function (i_id, i_success, i_error) {
+    ContentManager.prototype.getReferencesFromCount = function (i_id, onSuccess, onError) {
         if (this._key_regex.test(i_id)) {
             var that = this;
             this._getSqlAdapter(function (i_adapter) {
@@ -1627,20 +1630,20 @@
                 tasks.parallel = that._parallel;
                 Executor.run(tasks, function () {
                     i_adapter.close();
-                    i_success(result);
+                    onSuccess(result);
                 }, function (i_exc) {
                     i_adapter.close();
-                    i_error(i_exc);
+                    onError(i_exc);
                 });
-            }, i_error);
+            }, onError);
         }
         else {
             // if invalid key we simply found no reference
-            i_success(0);
+            onSuccess(0);
         }
     };
 
-    ContentManager.prototype.getTreeChildNodes = function (i_id, i_success, i_error) {
+    ContentManager.prototype.getTreeChildNodes = function (i_id, onSuccess, onError) {
         var match = FOLDER_REGEX.exec(i_id);
         if (match) {
             var that = this, config = this._config, key = match[1];
@@ -1701,22 +1704,22 @@
                 tasks.parallel = that._parallel;
                 Executor.run(tasks, function () {
                     i_adapter.close();
-                    i_success(nodes);
+                    onSuccess(nodes);
                 }, function (i_exc) {
                     i_adapter.close();
-                    i_error(i_exc);
+                    onError(i_exc);
                 });
-            }, i_error);
+            }, onError);
         }
         else if (this._key_regex.test(i_id)) {
-            i_success([]);
+            onSuccess([]);
         }
         else {
-            i_error('Invalid key: "' + i_id + '"');
+            onError('Invalid key: "' + i_id + '"');
         }
     };
 
-    ContentManager.prototype.getSearchResults = function (i_key, i_value, i_success, i_error) {
+    ContentManager.prototype.getSearchResults = function (i_key, i_value, onSuccess, onError) {
         if (i_key.length > 0 || i_value.length > 0) {
             var that = this;
             this._getSqlAdapter(function (i_adapter) {
@@ -1788,16 +1791,16 @@
                 tasks.parallel = that._parallel;
                 Executor.run(tasks, function () {
                     i_adapter.close();
-                    i_success(results);
+                    onSuccess(results);
                 }, function (i_exc) {
                     i_adapter.close();
-                    i_error(i_exc);
+                    onError(i_exc);
                 });
-            }, i_error);
+            }, onError);
         }
     };
 
-    ContentManager.prototype.getIdKeyValues = function (i_id, i_success, i_error) {
+    ContentManager.prototype.getIdKeyValues = function (i_id, onSuccess, onError) {
         var that = this, data = this.analyzeID(i_id);
         if (data.file || data.folder) {
             this._getSqlAdapter(function (i_adapter) {
@@ -1825,28 +1828,28 @@
                 tasks.parallel = that._parallel;
                 Executor.run(tasks, function () {
                     i_adapter.close();
-                    i_success(results);
+                    onSuccess(results);
                 }, function (i_exc) {
                     i_adapter.close();
-                    i_error(i_exc);
+                    onError(i_exc);
                 });
-            }, i_error);
+            }, onError);
         }
         else {
-            i_error('Invalid selection: "' + data.string + '"');
+            onError('Invalid selection: "' + data.string + '"');
         }
     };
 
-    ContentManager.prototype.getIdSelectedValues = function (i_id, i_language, i_success, i_error) {
+    ContentManager.prototype.getIdSelectedValues = function (i_id, i_language, onSuccess, onError) {
         var match = this._key_regex.exec(i_id);
         if (!match) {
-            i_error('Invalid id: ' + i_id);
+            onError('Invalid id: ' + i_id);
             return;
         }
         var table = this._tablesForExt[match[2]];
         var valcol = this._valColsForExt[match[2]];
         if (!table) {
-            i_error('Invalid table: ' + i_id);
+            onError('Invalid table: ' + i_id);
             return;
         }
         var that = this;
@@ -1859,15 +1862,15 @@
                     array.push([i_result[i].path + '.' + table.extension, i_result[i].val]);
                 }
                 i_adapter.close();
-                i_success(array);
+                onSuccess(array);
             }, function (i_exc) {
                 i_adapter.close();
-                i_error(i_exc);
+                onError(i_exc);
             });
-        }, i_error);
+        }, onError);
     };
 
-    ContentManager.prototype.handleRequest = function (i_request, i_success, i_error) {
+    ContentManager.prototype.handleRequest = function (i_request, onSuccess, onError) {
         switch (i_request.command) {
             case COMMAND_GET_CONFIG:
                 var that = this, tables = this._config.tables.map(function (i_table) {
@@ -1887,7 +1890,7 @@
                     }
                     return table;
                 });
-                i_success({
+                onSuccess({
                     icon_dir: this._config.icon_dir,
                     languages: this._config.languages,
                     folder_icon: this._config.folder_icon,
@@ -1898,57 +1901,57 @@
                 });
                 break;
             case COMMAND_EXISTS:
-                this.exists(i_request.id, i_success, i_error);
+                this.exists(i_request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_CHECKSUM:
-                this.getChecksum(i_request.id, i_success, i_error);
+                this.getChecksum(i_request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_OBJECT:
-                this.getObject(i_request.id, i_request.language, i_request.mode, i_success, i_error);
+                this.getObject(i_request.id, i_request.language, i_request.mode, onSuccess, onError);
                 break;
             case COMMAND_GET_MODIFICATION_PARAMS:
-                this.getModificationParams(i_request.id, i_request.language, i_request.value, i_success, i_error);
+                this.getModificationParams(i_request.id, i_request.language, i_request.value, onSuccess, onError);
                 break;
             case COMMAND_SET_OBJECT:
-                this.setObject(i_request.id, i_request.language, i_request.value, i_request.checksum, i_success, i_error);
+                this.setObject(i_request.id, i_request.language, i_request.value, i_request.checksum, onSuccess, onError);
                 break;
             case COMMAND_GET_REFACTORING_PARAMS:
-                this.getRefactoringParams(i_request.source, i_request.target, i_request.action, i_success, i_error);
+                this.getRefactoringParams(i_request.source, i_request.target, i_request.action, onSuccess, onError);
                 break;
             case COMMAND_PERFORM_REFACTORING:
-                this.performRefactoring(i_request.source, i_request.target, i_request.action, i_request.checksum, i_success, i_error);
+                this.performRefactoring(i_request.source, i_request.target, i_request.action, i_request.checksum, onSuccess, onError);
                 break;
             case COMMAND_GET_REFERENCES_TO:
-                this.getReferencesTo(i_request.id, i_success, i_error);
+                this.getReferencesTo(i_request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_REFERENCES_TO_COUNT:
-                this.getReferencesToCount(i_request.id, i_success, i_error);
+                this.getReferencesToCount(i_request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_REFERENCES_FROM:
-                this.getReferencesFrom(i_request.id, i_success, i_error);
+                this.getReferencesFrom(i_request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_REFERENCES_FROM_COUNT:
-                this.getReferencesFromCount(i_request.id, i_success, i_error);
+                this.getReferencesFromCount(i_request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_TREE_CHILD_NODES:
-                this.getTreeChildNodes(i_request.id, i_success, i_error);
+                this.getTreeChildNodes(i_request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_SEARCH_RESULTS:
-                this.getSearchResults(i_request.key, i_request.value, i_success, i_error);
+                this.getSearchResults(i_request.key, i_request.value, onSuccess, onError);
                 break;
             case COMMAND_GET_ID_KEY_VALUES:
-                this.getIdKeyValues(i_request.id, i_success, i_error);
+                this.getIdKeyValues(i_request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_ID_SELECTED_VALUES:
-                this.getIdSelectedValues(i_request.id, i_request.language, i_success, i_error);
+                this.getIdSelectedValues(i_request.id, i_request.language, onSuccess, onError);
                 break;
             default:
-                i_error('EXCEPTION! Unexpected command: ' + i_request.command);
+                onError('EXCEPTION! Unexpected command: ' + i_request.command);
                 break;
         }
     };
 
-    ContentManager.prototype.handleFancyTreeRequest = function (i_request, i_id, i_success, i_error) {
+    ContentManager.prototype.handleFancyTreeRequest = function (i_request, i_id, onSuccess, onError) {
         var that = this, id = typeof i_id === 'string' && i_id.length > 0 ? i_id : '$';
         switch (i_request) {
             case ContentManager.COMMAND_GET_CHILD_TREE_NODES:
@@ -1982,8 +1985,8 @@
                             icon: that.getIcon(node.path)
                         });
                     }
-                    i_success(nodes);
-                }, i_error);
+                    onSuccess(nodes);
+                }, onError);
                 break;
             case ContentManager.COMMAND_GET_REFERENCES_TO_TREE_NODES:
                 this.getReferencesTo(id, function (i_results) {
@@ -2016,9 +2019,9 @@
                     }
                     tasks.parallel = true;
                     Executor.run(tasks, function () {
-                        i_success(nodes);
-                    }, i_error);
-                }, i_error);
+                        onSuccess(nodes);
+                    }, onError);
+                }, onError);
                 break;
             case ContentManager.COMMAND_GET_REFERENCES_FROM_TREE_NODES:
                 this.getReferencesFrom(id, function (i_results) {
@@ -2051,18 +2054,18 @@
                     }
                     tasks.parallel = true;
                     Executor.run(tasks, function () {
-                        i_success(nodes);
-                    }, i_error);
-                }, i_error);
+                        onSuccess(nodes);
+                    }, onError);
+                }, onError);
                 break;
             default:
-                i_success([]);
+                onSuccess([]);
                 break;
         }
     };
 
     // template method
-    ContentManager.prototype._$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$ = function (i_success, i_error) {
+    ContentManager.prototype._$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$ = function (onSuccess, onError) {
         var that = this, config = this._config;
         this._getSqlAdapter(function (i_adapter) {
             var main = []
@@ -2076,24 +2079,24 @@
             Executor.run(main, function () {
                 i_adapter.commitTransaction(function () {
                     i_adapter.close();
-                    i_success();
+                    onSuccess();
                 }, function (i_exc) {
                     i_adapter.close();
-                    i_error(i_exc);
+                    onError(i_exc);
                 });
             }, function (i_exception) {
                 i_adapter.rollbackTransaction(function () {
                     i_adapter.close();
-                    i_error(i_exception);
+                    onError(i_exception);
                 }, function (i_exc) {
                     i_adapter.close();
-                    i_error(i_exc);
+                    onError(i_exc);
                 });
             });
-        }, i_error);
+        }, onError);
     };
 
-    var ContentManagerProxy = function (i_success, i_error) {
+    var ContentManagerProxy = function (onSuccess, onError) {
         var that = this;
         this._post({
             command: COMMAND_GET_CONFIG
@@ -2119,10 +2122,10 @@
                 }
                 that._valColsForExt[table.extension] = valcol;
             }
-            if (typeof i_success === 'function') {
-                i_success();
+            if (typeof onSuccess === 'function') {
+                onSuccess();
             }
-        }, i_error);
+        }, onError);
     };
 
     ContentManagerProxy.prototype = Object.create(ContentManagerBase.prototype);
@@ -2143,21 +2146,21 @@
         }, onError);
     };
 
-    ContentManagerProxy.prototype.exists = function (i_id, i_success, i_error) {
+    ContentManagerProxy.prototype.exists = function (i_id, onSuccess, onError) {
         this._post({
             command: COMMAND_EXISTS,
             id: i_id
-        }, i_success, i_error);
+        }, onSuccess, onError);
     }
 
-    ContentManagerProxy.prototype.getChecksum = function (i_id, i_success, i_error) {
+    ContentManagerProxy.prototype.getChecksum = function (i_id, onSuccess, onError) {
         this._post({
             command: COMMAND_GET_CHECKSUM,
             id: i_id
-        }, i_success, i_error);
+        }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getObject = function (i_id, i_language, i_mode, i_success, i_error) {
+    ContentManagerProxy.prototype.getObject = function (i_id, i_language, i_mode, onSuccess, onError) {
         var that = this, parse = i_mode === ContentManager.PARSE;
         this._post({
             command: COMMAND_GET_OBJECT,
@@ -2175,112 +2178,112 @@
                         // TOOD: response = eval('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
                         response = eval('(' + JsonFX.stringify(response, true) + ')');
                     }
-                    i_success(response);
+                    onSuccess(response);
                 }
                 catch (exc) {
-                    i_error(exc);
+                    onError(exc);
                 }
             }
             else {
-                i_success();
+                onSuccess();
             }
-        } : i_success, i_error);
+        } : onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getModificationParams = function (i_id, i_language, i_value, i_success, i_error) {
+    ContentManagerProxy.prototype.getModificationParams = function (i_id, i_language, i_value, onSuccess, onError) {
         this._post({
             command: COMMAND_GET_MODIFICATION_PARAMS,
             id: i_id,
             language: i_language,
             value: i_value
-        }, i_success, i_error);
+        }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.setObject = function (i_id, i_language, i_value, i_checksum, i_success, i_error) {
+    ContentManagerProxy.prototype.setObject = function (i_id, i_language, i_value, i_checksum, onSuccess, onError) {
         this._post({
             command: COMMAND_SET_OBJECT,
             id: i_id,
             language: i_language,
             value: i_value,
             checksum: i_checksum
-        }, i_success, i_error);
+        }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getRefactoringParams = function (i_source, i_target, i_action, i_success, i_error) {
+    ContentManagerProxy.prototype.getRefactoringParams = function (i_source, i_target, i_action, onSuccess, onError) {
         this._post({
             command: COMMAND_GET_REFACTORING_PARAMS,
             source: i_source,
             target: i_target,
             action: i_action
-        }, i_success, i_error);
+        }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.performRefactoring = function (i_source, i_target, i_action, i_checksum, i_success, i_error) {
+    ContentManagerProxy.prototype.performRefactoring = function (i_source, i_target, i_action, i_checksum, onSuccess, onError) {
         this._post({
             command: COMMAND_PERFORM_REFACTORING,
             source: i_source,
             target: i_target,
             action: i_action,
             checksum: i_checksum
-        }, i_success, i_error);
+        }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getReferencesTo = function (i_id, i_success, i_error) {
+    ContentManagerProxy.prototype.getReferencesTo = function (i_id, onSuccess, onError) {
         this._post({
             command: COMMAND_GET_REFERENCES_TO,
             id: i_id
-        }, i_success, i_error);
+        }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getReferencesToCount = function (i_id, i_success, i_error) {
+    ContentManagerProxy.prototype.getReferencesToCount = function (i_id, onSuccess, onError) {
         this._post({
             command: COMMAND_GET_REFERENCES_TO_COUNT,
             id: i_id
-        }, i_success, i_error);
+        }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getReferencesFrom = function (i_id, i_success, i_error) {
+    ContentManagerProxy.prototype.getReferencesFrom = function (i_id, onSuccess, onError) {
         this._post({
             command: COMMAND_GET_REFERENCES_FROM,
             id: i_id
-        }, i_success, i_error);
+        }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getReferencesFromCount = function (i_id, i_success, i_error) {
+    ContentManagerProxy.prototype.getReferencesFromCount = function (i_id, onSuccess, onError) {
         this._post({
             command: COMMAND_GET_REFERENCES_FROM_COUNT,
             id: i_id
-        }, i_success, i_error);
+        }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getTreeChildNodes = function (i_id, i_success, i_error) {
+    ContentManagerProxy.prototype.getTreeChildNodes = function (i_id, onSuccess, onError) {
         this._post({
             command: COMMAND_GET_TREE_CHILD_NODES,
             id: i_id
-        }, i_success, i_error);
+        }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getSearchResults = function (i_key, i_value, i_success, i_error) {
+    ContentManagerProxy.prototype.getSearchResults = function (i_key, i_value, onSuccess, onError) {
         this._post({
             command: COMMAND_GET_SEARCH_RESULTS,
             key: i_key,
             value: i_value
-        }, i_success, i_error);
+        }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getIdKeyValues = function (i_id, i_success, i_error) {
+    ContentManagerProxy.prototype.getIdKeyValues = function (i_id, onSuccess, onError) {
         this._post({
             command: COMMAND_GET_ID_KEY_VALUES,
             id: i_id
-        }, i_success, i_error);
+        }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getIdSelectedValues = function (i_id, i_language, i_success, i_error) {
+    ContentManagerProxy.prototype.getIdSelectedValues = function (i_id, i_language, onSuccess, onError) {
         this._post({
             command: COMMAND_GET_ID_SELECTED_VALUES,
             id: i_id,
             language: i_language
-        }, i_success, i_error);
+        }, onSuccess, onError);
     };
 
     ContentManager.Proxy = ContentManagerProxy;
@@ -2317,7 +2320,7 @@
     ExchangeHandler.prototype.constructor = ExchangeHandler;
 
     // prototype
-    ExchangeHandler.prototype._read_config_data = function (i_ids, i_path, i_languages, i_status_callback, i_error) {
+    ExchangeHandler.prototype._read_config_data = function (i_ids, i_path, i_languages, i_status_callback, onError) {
         var exports = [create_header(EXCHANGE_HEADER, i_path), '\n'];
         var that = this, cms = this._cms, tasks = [];
         for (var i = 0, len = i_ids.length; i < len; i++) {
@@ -2374,9 +2377,9 @@
                 type: "text/plain;charset=utf-8"
             });
             saveAs(blob, 'hmijs_export.txt');
-        }, i_error);
+        }, onError);
     };
-    ExchangeHandler.prototype._parse = function (i_text, i_data, i_status_callback, i_error) {
+    ExchangeHandler.prototype._parse = function (i_text, i_data, i_status_callback, onError) {
         // separate ids and data
         var that = this, cms = this._cms, elements = [];
         Regex.each(cms._exchange_header_regex, i_text, function (i_start, i_end, i_match) {
@@ -2385,7 +2388,7 @@
         i_status_callback('loaded ' + elements.length + ' elements');
         var header = elements[0];
         if (!Array.isArray(header) || EXCHANGE_HEADER !== header[1] || create_checksum(header[1], header[3]) !== header[2]) {
-            i_error('EXCEPTION! Invalid ' + EXCHANGE_HEADER + ' header.');
+            onError('EXCEPTION! Invalid ' + EXCHANGE_HEADER + ' header.');
             return false;
         }
         // handle all found elements
@@ -2401,7 +2404,7 @@
                             data.value = JsonFX.parse(elements[idx++], true, true);
                         }
                         catch (exc) {
-                            i_error('EXCEPTION! Cannot evaluate object: ' + exc);
+                            onError('EXCEPTION! Cannot evaluate object: ' + exc);
                             return false;
                         }
                         i_data.push(data);
@@ -2418,7 +2421,7 @@
                                 break;
                             }
                             if (create_checksum(header[1], header[3]) !== header[2]) {
-                                i_error('EXCEPTION! Invalid language header!');
+                                onError('EXCEPTION! Invalid language header!');
                                 return false;
                             }
                             idx++
@@ -2431,7 +2434,7 @@
                     }
                 }
                 else {
-                    i_error('EXCEPTION! Invalid: ' + JSON.stringify(header));
+                    onError('EXCEPTION! Invalid: ' + JSON.stringify(header));
                     return false;
                 }
             }
@@ -2439,7 +2442,7 @@
         i_status_callback('parsed ' + idx + '/' + elements.length + ' elements');
         return filter;
     };
-    ExchangeHandler.prototype._write_config_data = function (i_data, i_status_callback, i_error) {
+    ExchangeHandler.prototype._write_config_data = function (i_data, i_status_callback, onError) {
         var that = this, cms = this._cms, tasks = [];
         for (var i = 0, len = i_data.length; i < len; i++) {
             // closure
@@ -2478,11 +2481,11 @@
         tasks.parallel = false;
         Executor.run(tasks, function () {
             i_status_callback();
-        }, i_error);
+        }, onError);
     };
-    ExchangeHandler.prototype.handleImport = function (i_hmi, i_text, i_status_callback, i_error) {
+    ExchangeHandler.prototype.handleImport = function (i_hmi, i_text, i_status_callback, onError) {
         // separate ids and data
-        var that = this, data = [], prefix = this._parse(i_text, data, i_status_callback, i_error);
+        var that = this, data = [], prefix = this._parse(i_text, data, i_status_callback, onError);
         if (typeof prefix !== 'string') {
             i_status_callback();
             return;
@@ -2499,26 +2502,26 @@
             title: 'warning',
             html: txt,
             yes: function () {
-                that._write_config_data(data, i_status_callback, i_error);
+                that._write_config_data(data, i_status_callback, onError);
             },
             cancel: function () {
                 i_status_callback();
             }
         });
     };
-    ExchangeHandler.prototype.handleExport = function (i_id, i_status_callback, i_error) {
+    ExchangeHandler.prototype.handleExport = function (i_id, i_status_callback, onError) {
         var that = this, cms = this._cms, data = cms.analyzeID(i_id);
         i_status_callback('load languages ...');
         var languages = cms.getLanguages();
         languages.sort(compare_keys);
         if (data.file) {
-            that._read_config_data([data.file], i_id, languages, i_status_callback, i_error);
+            that._read_config_data([data.file], i_id, languages, i_status_callback, onError);
         }
         else if (data.folder) {
             cms.getIdKeyValues(data.folder, function (i_ids) {
                 i_ids.sort(compare_keys);
-                that._read_config_data(i_ids, i_id, languages, i_status_callback, i_error);
-            }, i_error);
+                that._read_config_data(i_ids, i_id, languages, i_status_callback, onError);
+            }, onError);
         }
         else {
             i_status_callback();
