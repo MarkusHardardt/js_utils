@@ -1585,10 +1585,10 @@
                                  * }
                                  * </code>
                                  */
-                                adapter.getChildNodes(table.name, table.key_column, '/', key, nodes => {
-                                    const l = nodes.length;
+                                adapter.getChildNodes(table.name, table.key_column, '/', key, children => {
+                                    const l = children.length;
                                     for (let i = 0; i < l; i++) {
-                                        const node = nodes[i];
+                                        const node = children[i];
                                         // build the full node path - and in case of a file add
                                         // the extension
                                         const path = `$${node.path}`;
