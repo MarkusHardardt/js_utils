@@ -1978,24 +1978,25 @@
         const that = this;
         this._post({
             command: COMMAND_GET_CONFIG
-        }, function (i_config) {
-            that._config = i_config;
-            that._key_regex = new RegExp(i_config.key_regex);
-            that._exchange_header_regex = new RegExp(i_config.exchange_header_regex, 'g');
-            var tables = i_config.tables, table, valcol, i, tablen = tables.length, j, langs = i_config.languages.length;
+        }, config => {
+            that._config = config;
+            that._key_regex = new RegExp(config.key_regex);
+            that._exchange_header_regex = new RegExp(config.exchange_header_regex, 'g');
+            const langs = config.languages.length;
             that._tablesForExt = {};
             that._valColsForExt = {};
-            for (i = 0; i < tablen; i++) {
-                table = tables[i];
+            const tablen = config.tables.length;
+            for (let i = 0; i < tablen; i++) {
+                const table = config.tables[i];
                 that._tablesForExt[table.extension] = table;
+                let valcol = undefined;
                 if (table.value_column_prefix) {
                     valcol = {};
-                    for (j = 0; j < langs; j++) {
-                        var lang = i_config.languages[j];
+                    for (let j = 0; j < langs; j++) {
+                        var lang = config.languages[j];
                         valcol[lang] = table.value_column_prefix + lang;
                     }
-                }
-                else {
+                } else {
                     valcol = table.value_column;
                 }
                 that._valColsForExt[table.extension] = valcol;
@@ -2024,67 +2025,48 @@
         }, onError);
     };
 
-    ContentManagerProxy.prototype.exists = function (i_id, onSuccess, onError) {
-        this._post({
-            command: COMMAND_EXISTS,
-            id: i_id
-        }, onSuccess, onError);
+    ContentManagerProxy.prototype.exists = function (id, onSuccess, onError) {
+        this._post({ command: COMMAND_EXISTS, id }, onSuccess, onError);
     }
 
-    ContentManagerProxy.prototype.getChecksum = function (i_id, onSuccess, onError) {
-        this._post({
-            command: COMMAND_GET_CHECKSUM,
-            id: i_id
-        }, onSuccess, onError);
+    ContentManagerProxy.prototype.getChecksum = function (id, onSuccess, onError) {
+        this._post({ command: COMMAND_GET_CHECKSUM, id }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getObject = function (i_id, i_language, i_mode, onSuccess, onError) {
-        var that = this, parse = i_mode === ContentManager.PARSE;
+    ContentManagerProxy.prototype.getObject = function (id, language, mode, onSuccess, onError) {
+        const that = this, parse = mode === ContentManager.PARSE;
         this._post({
             command: COMMAND_GET_OBJECT,
-            id: i_id,
-            language: i_language,
-            mode: parse ? ContentManager.INCLUDE : i_mode
-        }, parse ? function (i_response) {
-            if (i_response !== undefined) {
+            id,
+            language,
+            mode: parse ? ContentManager.INCLUDE : mode
+        }, parse ? response => {
+            if (response !== undefined) {
                 try {
-                    var response = JsonFX.reconstruct(i_response);
+                    let object = JsonFX.reconstruct(response);
                     if (that._config !== undefined && that._config.jsonfx_pretty === true) {
                         // the 'jsonfx_pretty' flag may be used to format our dynamically
                         // parsed JavaScript sources for more easy debugging purpose
-                        var match = that._key_regex.exec(i_id);
+                        // TODO: reuse or remove const match = that._key_regex.exec(id);
                         // TOOD: response = eval('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
-                        response = eval('(' + JsonFX.stringify(response, true) + ')');
+                        object = eval('(' + JsonFX.stringify(object, true) + ')');
                     }
-                    onSuccess(response);
-                }
-                catch (exc) {
+                    onSuccess(object);
+                } catch (exc) {
                     onError(exc);
                 }
-            }
-            else {
+            } else {
                 onSuccess();
             }
         } : onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getModificationParams = function (i_id, i_language, i_value, onSuccess, onError) {
-        this._post({
-            command: COMMAND_GET_MODIFICATION_PARAMS,
-            id: i_id,
-            language: i_language,
-            value: i_value
-        }, onSuccess, onError);
+    ContentManagerProxy.prototype.getModificationParams = function (id, language, value, onSuccess, onError) {
+        this._post({ command: COMMAND_GET_MODIFICATION_PARAMS, id, language, value }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.setObject = function (i_id, i_language, i_value, i_checksum, onSuccess, onError) {
-        this._post({
-            command: COMMAND_SET_OBJECT,
-            id: i_id,
-            language: i_language,
-            value: i_value,
-            checksum: i_checksum
-        }, onSuccess, onError);
+    ContentManagerProxy.prototype.setObject = function (id, language, value, checksum, onSuccess, onError) {
+        this._post({ command: COMMAND_SET_OBJECT, id, language, value, checksum }, onSuccess, onError);
     };
 
     ContentManagerProxy.prototype.getRefactoringParams = function (i_source, i_target, i_action, onSuccess, onError) {
