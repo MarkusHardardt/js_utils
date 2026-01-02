@@ -336,49 +336,17 @@
          */
         getChildNodes(table, column, delimiter, path, onSuccess, onError) {
             const delim = SqlHelper.escape(delimiter);
-            let col = 'DISTINCT IF(LOCATE(';
-            col += delim;
-            col += ', ';
-            col += table;
-            col += '.';
-            col += column;
-            col += ', ';
-            col += path.length + 1;
-            col += ') > 0, SUBSTRING(';
-            col += table;
-            col += '.';
-            col += column;
-            col += ', ';
-            col += path.length + 1;
-            col += ', (LOCATE(';
-            col += delim;
-            col += ', ';
-            col += table;
-            col += '.';
-            col += column;
-            col += ', ';
-            col += path.length + 1;
-            col += ') - ';
-            col += path.length;
-            col += ')), SUBSTRING(';
-            col += table;
-            col += '.';
-            col += column;
-            col += ', ';
-            col += path.length + 1;
-            col += ', LENGTH(';
-            col += table;
-            col += '.';
-            col += column;
-            col += '))) AS child';
+            const plp1 = path.length + 1;
+            const tabCol = `${table}.${column}`;
+            let col = `DISTINCT IF(LOCATE(${delim}, ${tabCol}, ${(plp1)}) > 0, SUBSTRING(${tabCol}, ${(plp1)}, (LOCATE(${delim}, ${tabCol}, ${plp1}) - ${path.length})), SUBSTRING(${tabCol}, ${plp1}, LENGTH(${tabCol}))) AS child`;
             this.addColumn(col);
-            this.addWhere('LOCATE(' + escape(path) + ', ' + table + '.' + column + ') = 1');
-            this.performSelect(table, undefined, undefined, undefined, function (i_results, i_fields) {
-                let nodes = [], i, l, child, pos, hasChildren;
-                for (i = 0, l = i_results.length; i < l; i++) {
-                    child = i_results[i].child;
-                    pos = child.indexOf(delimiter);
-                    hasChildren = pos === (child.length - delimiter.length);
+            this.addWhere(`LOCATE(${escape(path)}, ${tabCol}) = 1`);
+            this.performSelect(table, undefined, undefined, undefined, function (results, fields) {
+                const nodes = [];
+                for (let i = 0, l = results.length; i < l; i++) {
+                    const child = results[i].child;
+                    const pos = child.indexOf(delimiter);
+                    const hasChildren = pos === (child.length - delimiter.length);
                     nodes.push({
                         name: hasChildren ? child.substr(0, pos) : child,
                         path: path + child,
@@ -389,7 +357,7 @@
             }, onError);
         }
         getTrendData() {
-            console.error('ERROR! Not implemented: getTrendData()');
+            throw new Error('ERROR! Not implemented: getTrendData()');
         }
     }
 
