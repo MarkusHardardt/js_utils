@@ -2117,14 +2117,14 @@
 
     function createHeader (group, path) {
         return `[{(${group}<>${createChecksum(group, path)})}]\n${path}\n`;
-    };
+    }
 
-    var format_relative_status = function (i_state) {
-        return Utilities.formatNumber(i_state * 100, 2) + '%';
-    };
+    function formatProgressInPercent (state) {
+        return `${Utilities.formatNumber(state * 100, 2)}%`;
+    }
 
-    var ExchangeHandler = function (i_cms) {
-        this._cms = i_cms;
+    var ExchangeHandler = function (cms) {
+        this._cms = cms;
     };
 
     ExchangeHandler.prototype = Object.create(Object.prototype);
@@ -2144,7 +2144,7 @@
                             exports.push(createHeader(data.extension, id));
                             exports.push(JsonFX.stringify(JsonFX.reconstruct(i_object), true));
                             exports.push('\n\n');
-                            i_status_callback(format_relative_status(idx / len));
+                            i_status_callback(formatProgressInPercent(idx / len));
                             i_suc();
                         }, i_err);
                     });
@@ -2155,7 +2155,7 @@
                             exports.push(createHeader(data.extension, id));
                             exports.push(i_object);
                             exports.push('\n\n');
-                            i_status_callback(format_relative_status(idx / len));
+                            i_status_callback(formatProgressInPercent(idx / len));
                             i_suc();
                         }, i_err);
                     });
@@ -2174,7 +2174,7 @@
                                 exports.push('\n');
                             }
                             exports.push('\n');
-                            i_status_callback(format_relative_status(idx / len));
+                            i_status_callback(formatProgressInPercent(idx / len));
                             i_suc();
                         }, i_err);
                     });
@@ -2284,7 +2284,7 @@
                     });
                 }
                 tasks.push(function (i_suc, i_err) {
-                    i_status_callback(format_relative_status(idx / len));
+                    i_status_callback(formatProgressInPercent(idx / len));
                     i_suc();
                 });
             }());
