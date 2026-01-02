@@ -199,7 +199,7 @@
     class ContentManager extends ContentManagerBase {
         constructor(getSqlAdapter, config) {
             super();
-            if (!getSqlAdapter) {
+            if (typeof getSqlAdapter !== 'function') {
                 throw new Error('No database access provider available!');
             } else if (!config) {
                 throw new Error('No database configuration available!');

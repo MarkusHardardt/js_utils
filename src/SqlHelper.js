@@ -3,8 +3,12 @@
     const SqlHelper = {};
     const isNodeJS = typeof require === 'function';
     const Executor = isNodeJS ? require('./Executor') : root.Executor;
-    const Client = isNodeJS ? require('./Client') : root.Client;
     const mysql = isNodeJS ? require('mysql') : false;
+
+    function escape(value) {
+        return mysql ? mysql.escape(value) : root.SqlString.escape(value);
+    }
+    SqlHelper.escape = escape;
 
     class Adapter {
         constructor(connection, verbose) {
@@ -368,7 +372,7 @@
             col += column;
             col += '))) AS child';
             this.addColumn(col);
-            this.addWhere('LOCATE(' + SqlHelper.escape(path) + ', ' + table + '.' + column + ') = 1');
+            this.addWhere('LOCATE(' + escape(path) + ', ' + table + '.' + column + ') = 1');
             this.performSelect(table, undefined, undefined, undefined, function (i_results, i_fields) {
                 let nodes = [], i, l, child, pos, hasChildren;
                 for (i = 0, l = i_results.length; i < l; i++) {
@@ -389,153 +393,22 @@
         }
     }
 
-    class Proxy {
-        constructor(url, onResponse) {
-            this._url = url;
-            const that = this;
-            if (!true) { // TODO: Make this running, but only if still required (is this not just debug stuff to test SQL statements in the browser?)
-                Client.fetch(url, JsonFX.stringify({ connect: true }, false), response => {
-                    const result = JsonFX.parse(response, false, false);
-                    that._id = result.id;
-                    onResponse(result.config);
-                }, error => console.error(`DEBUG_SQL_PROXY: connect-error: ${error}`));
-                return;
-            } else {
-                $.ajax({
-                    type: 'POST',
-                    url,
-                    data: {
-                        connect: true
-                    },
-                    success: function (i_result, i_textStatus, i_jqXHR) {
-                        that._id = i_result.id;
-                        // console.log('DEBUG_SQL_PROXY: connected [id: ' + i_result + ']');
-                        onResponse(i_result.config);
-                    },
-                    error: function (i_jqXHR, i_textStatus, i_errorThrown) {
-                        console.error('DEBUG_SQL_PROXY: connect-error');
-                    },
-                    timeout: 10000
-                });
-            }
-        }
-        query(i_query, i_callback) {
-            const url = this._url, id = this._id;
-            if (url) {
-                if (!true) { // TODO: Make this running, but only if still required (is this not just debug stuff to test SQL statements in the browser?)
-                    Client.fetch(url, JsonFX.stringify({ query: i_query, id }, false), response => {
-                        try {
-                            i_callback(undefined, JSON.parse(response), undefined);
-                        } catch (exc) {
-                            i_callback(exc, undefined, undefined);
-                        }
-                    }, error => i_callback(error, undefined, undefined));
-                    return;
+    function getAdapterFactory(config, verbose) {
+        const helper = mysql.createPool(config);
+        return (onSuccess, onError) => {
+            helper.getConnection((onErr, connection) => {
+                if (onErr) {
+                    onError(onErr);
+                } else {
+                    onSuccess(new Adapter(connection, verbose));
                 }
-                $.ajax({
-                    type: 'POST',
-                    url: url,
-                    data: {
-                        query: i_query,
-                        id: id
-                    },
-                    success: function (i_result, i_textStatus, i_jqXHR) {
-                        try {
-                            i_callback(undefined, JSON.parse(i_result), undefined);
-                        }
-                        catch (exc) {
-                            i_callback(exc, undefined, undefined);
-                        }
-                    },
-                    error: function (i_jqXHR, i_textStatus, i_errorThrown) {
-                        i_callback(i_errorThrown, undefined, undefined);
-                    },
-                    timeout: 10000
-                });
-            }
-            else {
-                i_callback(new Error('sql-sql-proxy connection already released!'), undefined, undefined);
-            }
-        }
-        release() {
-            const url = this._url, id = this._id;
-            if (url) {
-                if (!true) { // TODO: Make this running, but only if still required (is this not just debug stuff to test SQL statements in the browser?)
-                    Client.fetch(url, JsonFX.stringify({ release: true, id }, false), response => {
-                        // Nothing to do
-                    }, error => console.error(`DEBUG_SQL_PROXY: release-error [${id}], error: ${error}`));
-                    return;
-                }
-                $.ajax({
-                    type: 'POST',
-                    url: url,
-                    data: {
-                        release: true,
-                        id: id
-                    },
-                    success: function (i_result, i_textStatus, i_jqXHR) {
-                        // console.log('DEBUG_SQL_PROXY: released [id: ' + i_result +
-                        // ']');
-                    },
-                    error: function (i_jqXHR, i_textStatus, i_errorThrown) {
-                        console.error('DEBUG_SQL_PROXY: release-error [' + id + ']');
-                    },
-                    timeout: 10000
-                });
-            }
-            else {
-                console.error('debug-sql-proxy connection already released!');
-            }
-            delete this._url;
-            delete this._id;
-        }
+            });
+        };
     }
+    SqlHelper.getAdapterFactory = getAdapterFactory;
 
-    class Connector { // TODO: Do we need a class here???
-        constructor(config, verbose) {
-            if (mysql) {
-                const helper = mysql.createPool(config);
-                this.createAdapter = (onSuccess, onError) => {
-                    helper.getConnection((onErr, connection) => {
-                        if (onErr) {
-                            onError(onErr);
-                        } else {
-                            onSuccess(new Adapter(connection, verbose));
-                        }
-                    });
-                };
-                this.getConnection = (onSuccess, onError) => {
-                    helper.getConnection(function (onErr, connection) {
-                        if (onErr) {
-                            onError(onErr);
-                        } else {
-                            onSuccess(connection);
-                        }
-                    });
-                };
-            } else { // TODO: What is this for? 
-                this.createAdapter = (onSuccess, onError) => {
-                    // TODO what is i_config ???
-                    const proxy = new Proxy(config, result => onSuccess(new Adapter(proxy, verbose), result));
-                };
-                this.getConnection = function (onSuccess, onError) {
-                    throw new Error('mysql.getConnection() only available on server side!');
-                };
-            }
-        }
-    }
-    SqlHelper.Connector = Connector;
-
-    function escape(value) {
-        return mysql ? mysql.escape(value) : root.SqlString.escape(value);
-    }
-    SqlHelper.escape = escape;
-
+    Object.freeze(SqlHelper);
     if (isNodeJS) {
         module.exports = SqlHelper;
     }
-    else {
-        root.SqlHelper = SqlHelper;
-    }
-
 }(globalThis));
