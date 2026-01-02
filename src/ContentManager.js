@@ -2111,15 +2111,15 @@
 
     ContentManager.Proxy = ContentManagerProxy;
 
-    function createChecksum (group, path) {
+    function createChecksum(group, path) {
         return Utilities.md5(`l.6l8033988749895${path}2.7l828l828459045${group}3.l4l592653589793`);
     }
 
-    function createHeader (group, path) {
+    function createHeader(group, path) {
         return `[{(${group}<>${createChecksum(group, path)})}]\n${path}\n`;
     }
 
-    function formatProgressInPercent (state) {
+    function formatProgressInPercent(state) {
         return `${Utilities.formatNumber(state * 100, 2)}%`;
     }
 
@@ -2132,42 +2132,40 @@
 
     // prototype
     ExchangeHandler.prototype._read_config_data = function (i_ids, i_path, i_languages, i_status_callback, onError) {
-        var exports = [createHeader(EXCHANGE_HEADER, i_path), '\n'];
-        var that = this, cms = this._cms, tasks = [];
-        for (var i = 0, len = i_ids.length; i < len; i++) {
+        const exports = [createHeader(EXCHANGE_HEADER, i_path), '\n'];
+        const cms = this._cms, tasks = [], len = i_ids.length;
+        for (let i = 0; i < len; i++) {
             // closure
             (function () {
-                var idx = i, id = i_ids[idx], data = cms.analyzeID(id);
+                let idx = i, id = i_ids[idx], data = cms.analyzeID(id);
                 if (data.JsonFX) {
-                    tasks.push(function (i_suc, i_err) {
-                        cms.getObject(id, undefined, ContentManager.RAW, function (i_object) {
+                    tasks.push((onSuc, onErr) => {
+                        cms.getObject(id, undefined, ContentManager.RAW, object => {
                             exports.push(createHeader(data.extension, id));
-                            exports.push(JsonFX.stringify(JsonFX.reconstruct(i_object), true));
+                            exports.push(JsonFX.stringify(JsonFX.reconstruct(object), true));
                             exports.push('\n\n');
                             i_status_callback(formatProgressInPercent(idx / len));
-                            i_suc();
-                        }, i_err);
+                            onSuc();
+                        }, onErr);
                     });
-                }
-                else if (!data.multilingual) {
-                    tasks.push(function (i_suc, i_err) {
-                        cms.getObject(id, undefined, ContentManager.RAW, function (i_object) {
+                } else if (!data.multilingual) {
+                    tasks.push((onSuc, onErr) => {
+                        cms.getObject(id, undefined, ContentManager.RAW, object => {
                             exports.push(createHeader(data.extension, id));
-                            exports.push(i_object);
+                            exports.push(object);
                             exports.push('\n\n');
                             i_status_callback(formatProgressInPercent(idx / len));
-                            i_suc();
-                        }, i_err);
+                            onSuc();
+                        }, onErr);
                     });
-                }
-                else {
-                    tasks.push(function (i_suc, i_err) {
-                        cms.getObject(id, undefined, ContentManager.RAW, function (i_results) {
+                } else {
+                    tasks.push((onSuc, onErr) => {
+                        cms.getObject(id, undefined, ContentManager.RAW, results => {
                             exports.push(createHeader(data.extension, id));
-                            for (var l = 0; l < i_languages.length; l++) {
-                                var lang = i_languages[l];
-                                exports.push(createHeader('language', id + ':' + lang));
-                                var txt = i_results[lang];
+                            for (let l = 0; l < i_languages.length; l++) {
+                                const lang = i_languages[l];
+                                exports.push(createHeader('language', `${id}:${lang}`));
+                                const txt = results[lang];
                                 if (txt != undefined && txt != null) {
                                     exports.push(typeof txt === 'string' ? txt : txt.toString());
                                 }
@@ -2175,19 +2173,16 @@
                             }
                             exports.push('\n');
                             i_status_callback(formatProgressInPercent(idx / len));
-                            i_suc();
-                        }, i_err);
+                            onSuc();
+                        }, onErr);
                     });
                 }
             }());
         }
         tasks.parallel = false;
-        Executor.run(tasks, function () {
+        Executor.run(tasks, () => {
             i_status_callback();
-            var blob = new Blob(exports, {
-                type: "text/plain;charset=utf-8"
-            });
-            saveAs(blob, 'hmijs_export.txt');
+            saveAs(new Blob(exports, { type: "text/plain;charset=utf-8" }), 'js_hmi_export.txt');
         }, onError);
     };
     ExchangeHandler.prototype._parse = function (i_text, i_data, i_status_callback, onError) {
