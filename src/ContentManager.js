@@ -327,7 +327,8 @@
         }
         const that = this;
         this._getSqlAdapter(adapter => {
-            const key = match[1], raw = id;
+            const key = match[1];
+            let raw = id;
             function success() {
                 adapter.close();
                 onSuccess(Utilities.md5(raw));

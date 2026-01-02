@@ -226,7 +226,12 @@
     class Collection extends OperationalState { // NOTE: Remove if after some time still not required
         constructor() {
             super();
-            Observable = { // What happens here? We call the OperationalState.Observable setter
+            this._parentDataAccessObject = null;
+            this._equal = Core.defaultEqual;
+            this._onError = Core.defaultOnError;
+            this._unsubscribeDelay = false;
+            this._dataPointsByDataId = {};
+            this.Observable = { // What happens here? We call the OperationalState.Observable setter
                 // Not: The following 'onRefresh' function is the local instance inside our node created above.
                 Subscribe: onRefresh => {
                     if (this._parentDataAccessObject) {
@@ -239,22 +244,32 @@
                     }
                 }
             };
-            this._parentDataAccessObject = null;
-            this._equal = Core.defaultEqual;
-            this._onError = Core.defaultOnError;
-            this._unsubscribeDelay = false;
-            this._dataPointsByDataId = {};
             Common.validateAsDataAccessObject(this, true);
         }
 
         set Parent(value) { // TODO: 
-            if (this._parentDataAccessObject !== value) { // TODO: unsubscribe and re-subscribe existing subscriptions
+            if (this._parentDataAccessObject !== value) { // TODO: unsubscribe and re-subscribe existing subscriptions for operational state (???)
+                if (this._parentDataAccessObject !== null) {
+                    for (const dataId in this._dataPointsByDataId) {
+                        if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
+                            const dataPoint = this._dataPointsByDataId[dataId];
+                            dataPoint.node.Observable = null;
+                        }
+                    }
+                }
                 if (value) {
                     Common.validateAsDataAccessObject(value, true);
                     this._parentDataAccessObject = value;
-                }
-                else {
+                } else {
                     this._parentDataAccessObject = null;
+                }
+                if (this._parentDataAccessObject !== null) {
+                    for (const dataId in this._dataPointsByDataId) {
+                        if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
+                            const dataPoint = this._dataPointsByDataId[dataId];
+                            dataPoint.node.Observable = dataPoint;
+                        }
+                    }
                 }
             }
         }
@@ -299,22 +314,26 @@
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid subscription dataId: ${dataId}`);
             }
-            let data = this._dataPointsByDataId[dataId];
-            if (!data) {
-                this._dataPointsByDataId[dataId] = data = this._createDataForId(dataId);
+            let dataPoint = this._dataPointsByDataId[dataId];
+            if (!dataPoint) {
+                this._dataPointsByDataId[dataId] = dataPoint = this._createDataForId(dataId);
             }
-            data.node.Subscribe(onRefresh);
+            dataPoint.node.Subscribe(onRefresh);
         }
 
         UnsubscribeData(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid unsubscription dataId: ${dataId}`);
             }
-            let data = this._dataPointsByDataId[dataId];
-            if (!data) {
+            const dataPoint = this._dataPointsByDataId[dataId];
+            if (!dataPoint) {
                 throw new Error(`Cannot unsubscribe for unknown dataId: ${dataId}`);
             }
-            data.node.Unsubscribe(onRefresh);
+            dataPoint.node.Unsubscribe(onRefresh);
+            if (dataPoint.node.SubscriptionsCount === 0) {
+                this._destroyData(dataPoint);
+                delete this._dataPointsByDataId[dataId];
+            }
         }
 
         Read(dataId, onResponse, onError) {
@@ -324,9 +343,9 @@
                 } catch (error) {
                     this._onError(`Failed calling onResponse() for dataId: ${dataId}: ${error.message}`, error);
                 }
-                let data = this._dataPointsByDataId[dataId];
-                if (data) {
-                    data.node.Value = value;
+                const dataPoint = this._dataPointsByDataId[dataId];
+                if (dataPoint) {
+                    dataPoint.node.Value = value;
                 }
             }, onError);
         }
@@ -359,7 +378,7 @@
             return subscribableData;
         }
 
-        _destroyData(data) { // TODO: Use ore remove
+        _destroyData(data) { 
             const node = data.node;
             node.Value = null;
             node.Observable = null;
