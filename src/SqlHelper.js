@@ -35,8 +35,8 @@
             this._wheres.push({ expr: expression, opr: and !== false ? ' AND ' : ' OR ' });
         }
         addValue(column, data) {
-            var values = this._values, value;
-            for (var i = 0, l = values.length; i < l; i++) {
+            let values = this._values, value;
+            for (let i = 0, l = values.length; i < l; i++) {
                 value = values[i];
                 if (value.column === column) {
                     if (Array.isArray(value.data)) {
@@ -259,7 +259,7 @@
                 }
             }
             // WHERE
-            var wheres = this._wheres, expr;
+            let wheres = this._wheres, expr;
             if (wheres.length > 0) {
                 query += ' WHERE ';
                 for (i = 0, l = wheres.length; i < l; i++) {
@@ -285,14 +285,14 @@
             return query;
         }
         performUpdate(table, order, limit, onSuccess, onError) {
-            var query = this.formatUpdate(table, order, limit);
+            const query = this.formatUpdate(table, order, limit);
             this.query(query, onSuccess, onError);
         }
         formatDelete(table, order, limit) {
-            var query = 'DELETE FROM ';
+            let query = 'DELETE FROM ';
             query += table;
             // WHERE
-            var wheres = this._wheres, expr, i, l = wheres.length;
+            let wheres = this._wheres, expr, i, l = wheres.length;
             if (l > 0) {
                 query += ' WHERE ';
                 for (i = 0; i < l; i++) {
@@ -318,7 +318,7 @@
             return query;
         }
         performDelete(table, order, limit, onSuccess, onError) {
-            var query = this.formatDelete(table, order, limit);
+            const query = this.formatDelete(table, order, limit);
             this.query(query, onSuccess, onError);
         }
         /**
@@ -331,8 +331,8 @@
          * </code>
          */
         getChildNodes(table, column, delimiter, path, onSuccess, onError) {
-            var delim = SqlHelper.escape(delimiter);
-            var col = 'DISTINCT IF(LOCATE(';
+            const delim = SqlHelper.escape(delimiter);
+            let col = 'DISTINCT IF(LOCATE(';
             col += delim;
             col += ', ';
             col += table;
@@ -370,7 +370,7 @@
             this.addColumn(col);
             this.addWhere('LOCATE(' + SqlHelper.escape(path) + ', ' + table + '.' + column + ') = 1');
             this.performSelect(table, undefined, undefined, undefined, function (i_results, i_fields) {
-                var nodes = [], i, l, child, pos, hasChildren;
+                let nodes = [], i, l, child, pos, hasChildren;
                 for (i = 0, l = i_results.length; i < l; i++) {
                     child = i_results[i].child;
                     pos = child.indexOf(delimiter);
@@ -392,7 +392,7 @@
     class Proxy {
         constructor(url, onResponse) {
             this._url = url;
-            var that = this;
+            const that = this;
             if (!true) { // TODO: Make this running, but only if still required (is this not just debug stuff to test SQL statements in the browser?)
                 Client.fetch(url, JsonFX.stringify({ connect: true }, false), response => {
                     const result = JsonFX.parse(response, false, false);
@@ -420,7 +420,7 @@
             }
         }
         query(i_query, i_callback) {
-            var url = this._url, id = this._id;
+            const url = this._url, id = this._id;
             if (url) {
                 if (!true) { // TODO: Make this running, but only if still required (is this not just debug stuff to test SQL statements in the browser?)
                     Client.fetch(url, JsonFX.stringify({ query: i_query, id }, false), response => {
@@ -458,7 +458,7 @@
             }
         }
         release() {
-            var url = this._url, id = this._id;
+            const url = this._url, id = this._id;
             if (url) {
                 if (!true) { // TODO: Make this running, but only if still required (is this not just debug stuff to test SQL statements in the browser?)
                     Client.fetch(url, JsonFX.stringify({ release: true, id }, false), response => {
