@@ -370,10 +370,7 @@
         }, onError);
     };
 
-    ContentManager.prototype.foo = function (id, language, i_mode, onSuccess, onError) {
-    }
-
-    ContentManager.prototype.getObject = function (id, language, i_mode, onSuccess, onError) {
+    ContentManager.prototype.getObject = function (id, language, mode, onSuccess, onError) {
         // This method works in four modes:
         // 1. JsonFX-object: build object and return
         // 2. plain text (utf-8): build text and return
@@ -394,13 +391,13 @@
             return;
         }
         var that = this;
-        this._getSqlAdapter(function (i_adapter) {
-            var key = match[1], parse = i_mode === ContentManager.PARSE, include = parse || i_mode === ContentManager.INCLUDE;
-            var success = function (i_object) {
-                i_adapter.close();
+        this._getSqlAdapter(adapter => {
+            let key = match[1], parse = mode === ContentManager.PARSE, include = parse || mode === ContentManager.INCLUDE;
+            const success = response => {
+                adapter.close();
                 try {
                     if (parse) {
-                        var object = JsonFX.reconstruct(i_object);
+                        const object = JsonFX.reconstruct(response);
                         if (that._config.jsonfx_pretty === true) {
                             // the 'jsonfx_pretty' flag may be used to format our dynamically
                             // parsed JavaScript sources for more easy debugging purpose
@@ -408,97 +405,84 @@
                             object = eval('(' + JsonFX.stringify(object, true) + ')');
                         }
                         onSuccess(object);
+                    } else {
+                        onSuccess(response);
                     }
-                    else {
-                        onSuccess(i_object);
-                    }
-                }
-                catch (exc) {
-                    onError(exc);
+                } catch (err) {
+                    onError(err);
                 }
             };
-            var error = function (i_exc) {
-                i_adapter.close();
-                onError(i_exc);
+            var error = (err) => {
+                adapter.close();
+                onError(err);
             };
             // if JsonFX or plain text is available we decode the string and
             // return with or without all includes included
             if (typeof valcol === 'string') {
                 // note: no language required here because we got only one anyway
-                that._getRawString(i_adapter, table, key, undefined, function (i_rawString) {
-                    if (i_rawString !== false) {
-                        var object = table.JsonFX ? JsonFX.parse(i_rawString, false, false) : i_rawString;
+                that._getRawString(adapter, table, key, undefined, rawString => {
+                    if (rawString !== false) {
+                        const object = table.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
                         if (include) {
-                            var ids = {};
+                            const ids = {};
                             ids[id] = true;
-                            that._include(i_adapter, object, ids, language, success, error);
-                        }
-                        else {
+                            that._include(adapter, object, ids, language, success, error);
+                        } else {
                             success(object);
                         }
-                    }
-                    else {
+                    } else {
                         success();
                     }
                 }, error);
-            }
-            else if (typeof language === 'string') {
+            } else if (typeof language === 'string') {
                 // if selection is available we return string with or without all
                 // includes included
-                that._getRawString(i_adapter, table, key, language, function (i_rawString) {
-                    if (i_rawString !== false) {
+                that._getRawString(adapter, table, key, language, rawString => {
+                    if (rawString !== false) {
                         if (include) {
-                            var ids = {};
+                            const ids = {};
                             ids[id] = true;
-                            that._include(i_adapter, i_rawString, ids, language, success, error);
+                            that._include(adapter, rawString, ids, language, success, error);
+                        } else {
+                            success(rawString);
                         }
-                        else {
-                            success(i_rawString);
-                        }
-                    }
-                    else {
+                    } else {
                         success();
                     }
                 }, error);
-            }
-            else {
-                var attr;
-                for (attr in valcol) {
+            } else {
+                for (const attr in valcol) {
                     if (valcol.hasOwnProperty(attr)) {
-                        i_adapter.addColumn(table.name + '.' + valcol[attr] + ' AS ' + attr);
+                        adapter.addColumn(`${table.name}.${valcol[attr]} AS ${attr}`);
                     }
                 }
-                i_adapter.addWhere(table.name + '.' + table.key_column + ' = ' + SqlHelper.escape(key));
-                i_adapter.performSelect(table.name, undefined, undefined, 1, function (i_results, i_fields) {
-                    if (i_results.length === 1) {
-                        var object = i_results[0];
+                adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+                adapter.performSelect(table.name, undefined, undefined, 1, (results, fields) => {
+                    if (results.length === 1) {
+                        const object = results[0];
                         if (include) {
-                            var tasks = [];
-                            for (var attr in object) {
+                            const tasks = [];
+                            for (const attr in object) {
                                 if (object.hasOwnProperty(attr)) {
                                     (function () {
-                                        var language = attr;
-                                        var ids = {};
+                                        const language = attr;
+                                        const ids = {};
                                         ids[id] = true;
-                                        tasks.push(function (i_suc, i_err) {
-                                            that._include(i_adapter, object[language], ids, language, function (i_object) {
+                                        tasks.push((onSuc, onErr) => {
+                                            that._include(adapter, object[language], ids, language, function (i_object) {
                                                 object[language] = i_object;
-                                                i_suc();
-                                            }, i_err);
+                                                onSuc();
+                                            }, onErr);
                                         });
                                     }());
                                 }
                             }
                             tasks.parallel = that._parallel;
-                            Executor.run(tasks, function () {
-                                success(object);
-                            }, error);
-                        }
-                        else {
+                            Executor.run(tasks, () => success(object), error);
+                        } else {
                             success(object);
                         }
-                    }
-                    else {
+                    } else {
                         success();
                     }
                 }, error);
