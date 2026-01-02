@@ -1317,7 +1317,7 @@
                                         // update object
                                         const values = result[0];
                                         if (typeof valcol === 'string') {
-                                            const string = values[valcol];
+                                            let string = values[valcol];
                                             if (typeof string === 'string' && string.length > 0) {
                                                 string = getReplacement(string);
                                                 adapter.addValue(`${table.name}.${valcol}`, SqlHelper.escape(string));
@@ -1325,7 +1325,7 @@
                                         } else {
                                             for (const attr in valcol) {
                                                 if (valcol.hasOwnProperty(attr)) {
-                                                    const string = values[valcol[attr]];
+                                                    let string = values[valcol[attr]];
                                                     if (typeof string === 'string' && string.length > 0) {
                                                         string = getReplacement(string);
                                                         adapter.addValue(`${table.name}.${valcol[attr]}`, SqlHelper.escape(string));
