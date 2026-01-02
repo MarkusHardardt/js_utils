@@ -129,7 +129,7 @@
         let cms = hmi.cms, tasks = [], checksum = false, equal_id = startEditId === id;
         if (equal_id) {
             tasks.push((onSuc, onErr) => {
-                cms.getChecksum(id, cs => {
+                cms.GetChecksum(id, cs => {
                     checksum = cs;
                     onSuc();
                 }, onErr);
@@ -152,7 +152,7 @@
                     closed: () => onSuccess(false)
                 });
             } else {
-                cms.getModificationParams(id, language, value, params => {
+                cms.GetModificationParams(id, language, value, params => {
                     if (typeof params.error === 'string') {
                         if (typeof onError === 'function') {
                             onError(params.error);
@@ -178,16 +178,16 @@
                                 height: $(window).height() * 0.8,
                                 title: 'Warning',
                                 html: txt,
-                                yes: () => cms.setObject(id, language, value, params.checksum, () => onSuccess(params), onError),
+                                yes: () => cms.SetObject(id, language, value, params.checksum, () => onSuccess(params), onError),
                                 cancel: () => onSuccess(false),
                                 closed: () => onSuccess(false)
                             });
                         } else {
-                            cms.setObject(id, language, value, params.checksum, () => onSuccess(params), onError);
+                            cms.SetObject(id, language, value, params.checksum, () => onSuccess(params), onError);
                         }
                     } else if (!equal_id) {
                         // if the id has changed
-                        cms.exists(id, exists => {
+                        cms.Exists(id, exists => {
                             if (exists !== false) {
                                 let txt = '<b>';
                                 txt += 'Identificator already exists!';
@@ -200,26 +200,26 @@
                                     height: $(window).height() * 0.8,
                                     title: 'Warning',
                                     html: txt,
-                                    yes: () => cms.setObject(id, language, value, params.checksum, () => onSuccess(params), onError),
+                                    yes: () => cms.SetObject(id, language, value, params.checksum, () => onSuccess(params), onError),
                                     cancel: () => onSuccess(false),
                                     closed: () => onSuccess(false)
                                 });
                             } else {
-                                cms.setObject(id, language, value, params.checksum, () => onSuccess(params), onError);
+                                cms.SetObject(id, language, value, params.checksum, () => onSuccess(params), onError);
                             }
                         }, onError)
                     } else {
                         // selected node has changed
-                        cms.setObject(id, language, value, params.checksum, () => onSuccess(params), onError);
+                        cms.SetObject(id, language, value, params.checksum, () => onSuccess(params), onError);
                     }
                 }, onError);
             }
         }, onError);
     }
 
-    function performRefactoring(hmi, source, target, action, onSuccess, onEerror) {
+    function PerformRefactoring(hmi, source, target, action, onSuccess, onEerror) {
         var cms = hmi.cms;
-        cms.getRefactoringParams(source, target, action, params => {
+        cms.GetRefactoringParams(source, target, action, params => {
             // console.log(JSONX.stringify(i_params));
             if (typeof params.error === 'string') {
                 hmi.showDefaultConfirmationPopup({
@@ -260,7 +260,7 @@
                     height: $(window).height() * 0.8,
                     title: 'Warning',
                     html: txt,
-                    yes: () => cms.performRefactoring(source, target, action, params.checksum, () => onSuccess(params), onEerror),
+                    yes: () => cms.PerformRefactoring(source, target, action, params.checksum, () => onSuccess(params), onEerror),
                     cancel: () => onSuccess(false),
                     closed: () => onSuccess(false)
                 });
@@ -286,12 +286,12 @@
                         height: $(window).height() * 0.8,
                         title: 'Warning',
                         html: txt,
-                        yes: () => cms.performRefactoring(source, target, action, params.checksum, () => onSuccess(params), onEerror),
+                        yes: () => cms.PerformRefactoring(source, target, action, params.checksum, () => onSuccess(params), onEerror),
                         cancel: () => onSuccess(false),
                         closed: () => onSuccess(false)
                     });
                 } else {
-                    cms.performRefactoring(source, target, action, params.checksum, () => onSuccess(params), onEerror);
+                    cms.PerformRefactoring(source, target, action, params.checksum, () => onSuccess(params), onEerror);
                 }
             } else {
                 onSuccess(false);
@@ -304,7 +304,7 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getLanguageSelector(hmi, adapter) {
-        let langs = hmi.cms.getLanguages(), language = langs[0], children = [{
+        let langs = hmi.cms.GetLanguages(), language = langs[0], children = [{
             x: 0,
             y: 0,
             align: 'right',
@@ -523,12 +523,12 @@
                 that._keyup = event => {
                     if (event.which === 13) {
                         var path = that.hmi_value().trim();
-                        adapter.keySelected(cms.analyzeID(path));
+                        adapter.keySelected(cms.AnalyzeId(path));
                     }
                 };
                 that.hmi_getTextField().on('keyup', that._keyup);
                 that._on_change = () => {
-                    var data = cms.analyzeID(that.hmi_value().trim());
+                    var data = cms.AnalyzeId(that.hmi_value().trim());
                     that._update_color(data);
                     adapter.keyEdited(data);
                 };
@@ -547,7 +547,7 @@
                 keyTextField.hmi_value(data.id);
                 keyTextField._update_color(data);
             },
-            getIdData: () => cms.analyzeID(keyTextField.hmi_value().trim())
+            getIdData: () => cms.AnalyzeId(keyTextField.hmi_value().trim())
         };
         return keyTextField;
     }
@@ -564,17 +564,17 @@
             type: 'tree',
             rootURL: ContentManager.GET_CONTENT_TREE_NODES_URL,
             rootRequest: ContentManager.COMMAND_GET_CHILD_TREE_NODES,
-            compareNodes: (node1, node2) => cms.compare(node1.data.path, node2.data.path),
+            compareNodes: (node1, node2) => cms.CompareIds(node1.data.path, node2.data.path),
             nodeActivated: node => {
                 let path = node.data.path;
                 if (selected !== path) {
                     selected = path;
-                    adapter.keySelected(cms.analyzeID(path));
+                    adapter.keySelected(cms.AnalyzeId(path));
                 }
             },
             nodeClicked: node => {
                 selected = node.data.path;
-                adapter.keySelected(cms.analyzeID(selected));
+                adapter.keySelected(cms.AnalyzeId(selected));
             },
             expand: data => {
                 unstress((onSuccess, onError) => {
@@ -596,12 +596,12 @@
             if (key.length > 0 || value.length > 0) {
                 search_running = true;
                 button_search.hmi_setEnabled(false);
-                cms.getSearchResults(key, value, results => {
+                cms.GetSearchResults(key, value, results => {
                     search_running = false;
                     button_search.hmi_setEnabled(true);
                     search_results.splice(0, search_results.length);
                     for (let i = 0, l = results.length; i < l; i++) {
-                        let id = results[i], icon = cms.getIcon(id);
+                        let id = results[i], icon = cms.GetIcon(id);
                         search_results.push({
                             id: id,
                             icon: icon
@@ -680,7 +680,7 @@
                         return '';
                 }
             },
-            handleTableRowClicked: row => adapter.keySelected(cms.analyzeID(search_results[row].id))
+            handleTableRowClicked: row => adapter.keySelected(cms.AnalyzeId(search_results[row].id))
         };
         return {
             visible: false,
@@ -786,19 +786,19 @@
             type: 'tree',
             rootURL: ContentManager.GET_CONTENT_TREE_NODES_URL,
             rootRequest: ContentManager.COMMAND_GET_REFERENCES_TO_TREE_NODES,
-            compareNodes: (node1, node2) => cms.compare(node1.data.path, node2.data.path),
+            compareNodes: (node1, node2) => cms.CompareIds(node1.data.path, node2.data.path),
             nodeActivated: node => {
                 let path = node.data.path;
                 text.hmi_value(path);
                 if (selected !== path) {
                     selected = path;
-                    adapter.keySelected(cms.analyzeID(path));
+                    adapter.keySelected(cms.AnalyzeId(path));
                 }
             },
             nodeClicked: node => {
                 selected = node.data.path;
                 text.hmi_value(selected);
-                adapter.keySelected(cms.analyzeID(selected));
+                adapter.keySelected(cms.AnalyzeId(selected));
             }
         };
         function updateReferences(button) {
@@ -837,7 +837,7 @@
             y: 0,
             border: true,
             text: 'browse',
-            clicked: () => adapter.selectInNavigator(cms.analyzeID(text.hmi_value()))
+            clicked: () => adapter.selectInNavigator(cms.AnalyzeId(text.hmi_value()))
         };
         return {
             type: 'grid',
@@ -854,7 +854,7 @@
                 updateReferences();
             },
             update: updateReferences,
-            getIdData: () => cms.analyzeID(text.hmi_value())
+            getIdData: () => cms.AnalyzeId(text.hmi_value())
         };
     }
 
@@ -863,10 +863,10 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getLabPreview(hmi, adapter) {
-        let cms = hmi.cms, langs = hmi.cms.getLanguages(), children = [], rows = [], values = {};
+        let cms = hmi.cms, langs = hmi.cms.GetLanguages(), children = [], rows = [], values = {};
         function reload(data, language, onSuccess, onError) {
             if (data && data.file) {
-                cms.getObject(data.file, undefined, ContentManager.INCLUDE, build => {
+                cms.GetObject(data.file, undefined, ContentManager.INCLUDE, build => {
                     if (build !== undefined) {
                         for (let i = 0, l = langs.length; i < l; i++) {
                             let lang = langs[i], lab = build[lang];
@@ -922,10 +922,10 @@
     }
 
     function getLabEditor(hmi, adapter) {
-        let cms = hmi.cms, langs = cms.getLanguages(), children = [], rows = [], values = {};
+        let cms = hmi.cms, langs = cms.GetLanguages(), children = [], rows = [], values = {};
         function reload(data, language, onSuccess, onError) {
             if (data && data.file) {
-                cms.getObject(data.file, undefined, ContentManager.RAW, raw => {
+                cms.GetObject(data.file, undefined, ContentManager.RAW, raw => {
                     if (raw !== undefined) {
                         for (let i = 0, l = langs.length; i < l; i++) {
                             let lang = langs[i], lab = raw[lang];
@@ -1016,7 +1016,7 @@
             if (data && data.file) {
                 switch (mode) {
                     case ContentManager.RAW:
-                        hmi.cms.getObject(data.file, language, ContentManager.RAW, raw => {
+                        hmi.cms.GetObject(data.file, language, ContentManager.RAW, raw => {
                             preview.hmi_html(raw !== undefined ? raw : '');
                             onSuccess();
                         }, error => {
@@ -1025,7 +1025,7 @@
                         });
                         break;
                     case ContentManager.INCLUDE:
-                        hmi.cms.getObject(data.file, language, ContentManager.INCLUDE, build => {
+                        hmi.cms.GetObject(data.file, language, ContentManager.INCLUDE, build => {
                             preview.hmi_html(build !== undefined ? build : '');
                             onSuccess();
                         }, error => {
@@ -1098,7 +1098,7 @@
                 delete textarea.file;
             }
             if (data && data.file) {
-                cms.getObject(data.file, language, ContentManager.RAW, raw => {
+                cms.GetObject(data.file, language, ContentManager.RAW, raw => {
                     textarea.hmi_value(raw !== undefined ? raw : '');
                     if (raw !== undefined) {
                         textarea.file = data.file;
@@ -1172,7 +1172,7 @@
             if (data && data.file) {
                 switch (mode) {
                     case ContentManager.RAW:
-                        cms.getObject(data.file, language, ContentManager.RAW, raw => {
+                        cms.GetObject(data.file, language, ContentManager.RAW, raw => {
                             textarea.hmi_value(raw !== undefined ? raw : '');
                             if (raw !== undefined) {
                                 textarea.file_raw = data.file;
@@ -1185,7 +1185,7 @@
                         });
                         break;
                     case ContentManager.INCLUDE:
-                        cms.getObject(data.file, language, ContentManager.INCLUDE, build => {
+                        cms.GetObject(data.file, language, ContentManager.INCLUDE, build => {
                             textarea.hmi_value(build !== undefined ? build : '');
                             if (build !== undefined) {
                                 textarea.file_build = data.file;
@@ -1265,7 +1265,7 @@
                 delete textarea.file;
             }
             if (data && data.file) {
-                cms.getObject(data.file, language, ContentManager.RAW, raw => {
+                cms.GetObject(data.file, language, ContentManager.RAW, raw => {
                     textarea.hmi_value(raw !== undefined ? raw : '');
                     if (raw !== undefined) {
                         textarea.file = data.file;
@@ -1341,7 +1341,7 @@
                 switch (mode) {
                     case ContentManager.RAW:
                         container.hmi_removeContent(function () {
-                            cms.getObject(data.file, language, ContentManager.RAW, raw => {
+                            cms.GetObject(data.file, language, ContentManager.RAW, raw => {
                                 let value = raw !== undefined ? JsonFX.stringify(JsonFX.reconstruct(raw), true) : '';
                                 textarea.value = value;
                                 container.hmi_setContent(textarea, () => {
@@ -1356,7 +1356,7 @@
                         break;
                     case ContentManager.INCLUDE:
                         container.hmi_removeContent(() => {
-                            cms.getObject(data.file, language, ContentManager.INCLUDE, build => {
+                            cms.GetObject(data.file, language, ContentManager.INCLUDE, build => {
                                 var value = build !== undefined ? JsonFX.stringify(JsonFX.reconstruct(build), true) : '';
                                 textarea.value = value;
                                 container.hmi_setContent(textarea, () => {
@@ -1371,7 +1371,7 @@
                         break;
                     case ContentManager.PARSE:
                         container.hmi_removeContent(() => {
-                            cms.getObject(data.file, language, ContentManager.PARSE, parsed => {
+                            cms.GetObject(data.file, language, ContentManager.PARSE, parsed => {
                                 if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
                                     container.hmi_setContent(parsed, onSuccess, onError);
                                 } else if (parsed !== undefined) {
@@ -1488,7 +1488,7 @@
                 switch (mode) {
                     case ContentManager.RAW:
                         container.hmi_removeContent(() => {
-                            cms.getObject(data.file, language, ContentManager.RAW, raw => {
+                            cms.GetObject(data.file, language, ContentManager.RAW, raw => {
                                 raw = raw !== undefined ? JsonFX.reconstruct(raw) : undefined;
                                 textarea.value = raw !== undefined ? JsonFX.stringify(raw, true) : '';
                                 container.hmi_setContent(textarea, () => {
@@ -1503,10 +1503,10 @@
                         break;
                     case ContentManager.PARSE:
                         container.hmi_removeContent(() => {
-                            cms.getObject(data.file, language, ContentManager.RAW, raw => {
+                            cms.GetObject(data.file, language, ContentManager.RAW, raw => {
                                 if (raw !== undefined) {
                                     raw = JsonFX.reconstruct(raw);
-                                    cms.getObject(data.file, language, ContentManager.PARSE, parsed => {
+                                    cms.GetObject(data.file, language, ContentManager.PARSE, parsed => {
                                         if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
                                             object = parsed;
                                             container.hmi_setContent(object, () => {
@@ -1750,7 +1750,7 @@
         let txt = getTxtPreview(hmi, adapter);
         let jso = getJsoPreview(hmi, adapter);
         let handlers = {};
-        cms.getDescriptors((ext, desc) => handlers[ext] = getHandler(desc, lab, htm, txt, jso));
+        cms.GetDescriptors((ext, desc) => handlers[ext] = getHandler(desc, lab, htm, txt, jso));
         let container = {
             type: 'container',
             update: (data, lang) => {
@@ -1833,7 +1833,7 @@
             enabled: false,
             border: true,
             clicked: () => {
-                performRefactoring(hmi, source.id, sel_data.id, mode, params => {
+                PerformRefactoring(hmi, source.id, sel_data.id, mode, params => {
                     let m = mode;
                     mode = false;
                     source = false;
@@ -1856,7 +1856,7 @@
             enabled: false,
             border: true,
             clicked: () => {
-                performRefactoring(hmi, sel_data.id, undefined, ContentManager.DELETE, params => {
+                PerformRefactoring(hmi, sel_data.id, undefined, ContentManager.DELETE, params => {
                     mode = false;
                     source = false;
                     update();
@@ -1879,8 +1879,8 @@
             border: true,
             timeout: 1000,
             longClicked: () => {
-                let handler = cms.getExchangeHandler();
-                handler.handleExport(sel_data.id, state => adapter.updateInfo(state !== undefined ? 'export ' + state : 'export ready'), adapter.notifyError);
+                let handler = cms.GetExchangeHandler();
+                handler.HandleExport(sel_data.id, state => adapter.updateInfo(state !== undefined ? 'export ' + state : 'export ready'), adapter.notifyError);
             }
         };
         let button_import = {
@@ -1890,8 +1890,8 @@
             border: true,
             clicked: () => {
                 Utilities.loadClientTextFile(text => {
-                    var handler = cms.getExchangeHandler();
-                    handler.handleImport(hmi, text.replace(/\r?\n|\r/g, '\n'), state => {
+                    var handler = cms.GetExchangeHandler();
+                    handler.HandleImport(hmi, text.replace(/\r?\n|\r/g, '\n'), state => {
                         if (state === undefined) {
                             adapter.updateInfo('import ' + state);
                         } else {
@@ -1941,7 +1941,7 @@
                     editListenerEnabled = true;
                     editor = next;
                     if (sel_data.file) {
-                        cms.getChecksum(sel_data.file, checksum => {
+                        cms.GetChecksum(sel_data.file, checksum => {
                             sel_cs = checksum;
                             onSuccess();
                         }, onError)
@@ -2023,7 +2023,7 @@
         let txt = getTxtEditor(hmi, adapter);
         let jso = getJsoEditor(hmi, adapter);
         let handlers = {};
-        cms.getDescriptors((ext, desc) => handlers[ext] = getHandler(desc, lab, htm, txt, jso));
+        cms.GetDescriptors((ext, desc) => handlers[ext] = getHandler(desc, lab, htm, txt, jso));
         let edit_container = {
             type: 'container'
         };

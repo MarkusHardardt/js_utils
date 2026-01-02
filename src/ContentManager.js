@@ -46,7 +46,7 @@
         return query;
     }
 
-    function getModificationParams(previous, next) {
+    function GetModificationParams(previous, next) {
         // within the next condition checks we detect if the value is available
         // after the update and if the data will be changed
         if (typeof previous === 'string' && previous.length > 0) {
@@ -77,7 +77,7 @@
     const COMMAND_GET_CHECKSUM = 'get_checksum';
     const COMMAND_GET_OBJECT = 'get_object';
     const COMMAND_EXISTS = 'exists';
-    const COMMAND_GET_MODIFICATION_PARAMS = 'getModificationParams';
+    const COMMAND_GET_MODIFICATION_PARAMS = 'GetModificationParams';
     const COMMAND_SET_OBJECT = 'set_object';
     const COMMAND_GET_REFACTORING_PARAMS = 'get_refactoring_params';
     const COMMAND_PERFORM_REFACTORING = 'perform_refactoring';
@@ -99,19 +99,19 @@
         constructor() {
             // nothing to do here
         }
-        getExchangeHandler(array) {
+        GetExchangeHandler() {
             return new ExchangeHandler(this);
         }
-        getLanguages(array) {
+        GetLanguages(array) {
             return Utilities.copyArray(this._config.languages, array);
         }
-        isValidFile(string) {
+        IsValidFile(string) {
             return this._key_regex.test(string);
         }
-        isValidFolder(string) {
+        IsValidFolder(string) {
             return FOLDER_REGEX.test(string);
         }
-        getDescriptor(ext, description) {
+        GetDescriptor(ext, description) {
             const tab = this._tablesForExt[ext];
             if (tab) {
                 const desc = description || {};
@@ -123,10 +123,10 @@
                 return false;
             }
         }
-        analyzeID(id) {
+        AnalyzeId(id) {
             let match = this._key_regex.exec(id);
             if (match) {
-                return this.getDescriptor(match[2], { id, path: match[1], file: id, extension: match[2] });
+                return this.GetDescriptor(match[2], { id, path: match[1], file: id, extension: match[2] });
             }
             match = FOLDER_REGEX.exec(id);
             if (match) {
@@ -134,23 +134,23 @@
             }
             return { id };
         }
-        getDescriptors(onEach) {
+        GetDescriptors(onEach) {
             const tabs = this._tablesForExt;
             for (const ext in tabs) {
                 if (tabs.hasOwnProperty(ext)) {
-                    onEach(ext, this.getDescriptor(ext));
+                    onEach(ext, this.GetDescriptor(ext));
                 }
             }
         }
-        getPath(id) {
+        GetPath(id) {
             const match = this._key_regex.exec(id);
             return match ? match[1] : false;
         }
-        getExtension(id) {
+        GetExtension(id) {
             const match = this._key_regex.exec(id);
             return match ? match[2] : false;
         }
-        getIcon(id) {
+        GetIcon(id) {
             const match = this._key_regex.exec(id);
             if (match) {
                 const tab = this._tablesForExt[match[2]];
@@ -161,7 +161,7 @@
                 return false;
             }
         }
-        compare(id1, id2) {
+        CompareIds(id1, id2) {
             if (FOLDER_REGEX.test(id1)) {
                 return FOLDER_REGEX.test(id2) ? Sorting.compareTextsAndNumbers(id1, id2, false, false) : -1;
             } else {
@@ -169,7 +169,7 @@
             }
         }
         // TODO check if runnning and required
-        getValueColumns(id, selectables) {
+        GetValueColumns(id, selectables) {
             const match = this._key_regex.exec(id);
             if (!match) {
                 return;
@@ -256,7 +256,7 @@
                 onError(`Invalid value column for table '${table.name}' and language '${language}'`);
             }
         }
-        exists(id, onSuccess, onError) {
+        Exists(id, onSuccess, onError) {
             const match = this._key_regex.exec(id);
             if (match) {
                 const table = this._tablesForExt[match[2]];
@@ -279,7 +279,7 @@
                 onSuccess(false);
             }
         }
-        getChecksum(id, onSuccess, onError) {
+        GetChecksum(id, onSuccess, onError) {
             // first we try to get table object matching to the given key
             const match = this._key_regex.exec(id);
             if (!match) {
@@ -336,7 +336,7 @@
                 }
             }, onError);
         }
-        getObject(id, language, mode, onSuccess, onError) {
+        GetObject(id, language, mode, onSuccess, onError) {
             // This method works in four modes:
             // 1. JsonFX-object: build object and return
             // 2. plain text (utf-8): build text and return
@@ -633,7 +633,7 @@
                     checksum += valcol;
                     let currval = currentData !== undefined ? currentData[valcol] : undefined;
                     let nextval = typeof value === 'string' ? value : undefined;
-                    let params = getModificationParams(currval, nextval);
+                    let params = GetModificationParams(currval, nextval);
                     if (!params.empty) {
                         stillNotEmpty = true;
                     }
@@ -660,7 +660,7 @@
                             // within the next condition checks we detect if the value is
                             // available
                             // after the update and if the data will be changed
-                            const params = getModificationParams(currval, nextval);
+                            const params = GetModificationParams(currval, nextval);
                             if (!params.empty) {
                                 stillNotEmpty = true;
                             }
@@ -690,7 +690,7 @@
                 onSuccess(params);
             }, onError);
         }
-        getModificationParams(id, language, value, onSuccess, onError) {
+        GetModificationParams(id, language, value, onSuccess, onError) {
             const that = this;
             this._getSqlAdapter(adapter => {
                 that._getModificationParams(adapter, id, language, value, params => {
@@ -715,7 +715,7 @@
                 });
             }, onError);
         }
-        setObject(id, language, value, checksum, onSuccess, onError) {
+        SetObject(id, language, value, checksum, onSuccess, onError) {
             const that = this, match = this._key_regex.exec(id);
             if (!match) {
                 onError('Invalid id: ' + id);
@@ -1077,7 +1077,7 @@
                 onSuccess(params);
             }, onError);
         }
-        getRefactoringParams(source, target, action, onSuccess, onError) {
+        GetRefactoringParams(source, target, action, onSuccess, onError) {
             const that = this;
             this._getSqlAdapter(adapter => {
                 that._getRefactoringParams(adapter, source, target, action, params => {
@@ -1089,7 +1089,7 @@
                 });
             }, onError);
         }
-        performRefactoring(source, target, action, checksum, onSuccess, onError) {
+        PerformRefactoring(source, target, action, checksum, onSuccess, onError) {
             const that = this;
             this._getSqlAdapter(adapter => {
                 const main = [];
@@ -1302,7 +1302,7 @@
             }
             Executor.run(main, onSuccess, onError);
         }
-        getReferencesTo(id, onSuccess, onError) {
+        GetReferencesTo(id, onSuccess, onError) {
             const match = this._key_regex.exec(id);
             if (match) {
                 const user = this._tablesForExt[match[2]];
@@ -1355,7 +1355,7 @@
                 onSuccess([]);
             }
         }
-        getReferencesToCount(id, onSuccess, onError) {
+        GetReferencesToCount(id, onSuccess, onError) {
             const match = this._key_regex.exec(id);
             if (match) {
                 const user = this._tablesForExt[match[2]];
@@ -1438,7 +1438,7 @@
                 onSuccess(array);
             }, onError);
         }
-        getReferencesFrom(id, onSuccess, onError) {
+        GetReferencesFrom(id, onSuccess, onError) {
             if (this._key_regex.test(id)) {
                 const that = this;
                 this._getSqlAdapter(adapter => {
@@ -1455,7 +1455,7 @@
                 onSuccess([]);
             }
         }
-        getReferencesFromCount(id, onSuccess, onError) {
+        GetReferencesFromCount(id, onSuccess, onError) {
             if (this._key_regex.test(id)) {
                 const that = this;
                 this._getSqlAdapter(adapter => {
@@ -1500,14 +1500,14 @@
                 onSuccess(0);
             }
         }
-        getTreeChildNodes(id, onSuccess, onError) {
+        GetTreeChildNodes(id, onSuccess, onError) {
             const match = FOLDER_REGEX.exec(id);
             if (match) {
                 const that = this, key = match[1];
                 this._getSqlAdapter(adapter => {
                     const tasks = [], nodes = [];
                     function compareRawNodes(node1, node2) {
-                        return that.compare(node1.path, node2.path);
+                        return that.CompareIds(node1.path, node2.path);
                     };
                     for (const attr in that._tablesForExt) {
                         if (that._tablesForExt.hasOwnProperty(attr)) {
@@ -1522,7 +1522,7 @@
                                      *   folder : 'true if name ends with delimiter'
                                      * }
                                      * </code>
-                                     * We add more parameters so our getTreeChildNodes method will
+                                     * We add more parameters so our GetTreeChildNodes method will
                                      * retourn an array of objects like: <code>
                                      * {
                                      *   name : 'name of the folder or file',
@@ -1574,7 +1574,7 @@
                 onError(`Invalid key: '${id}'`);
             }
         }
-        getSearchResults(searchKey, searchValue, onSuccess, onError) {
+        GetSearchResults(searchKey, searchValue, onSuccess, onError) {
             if (searchKey.length > 0 || searchValue.length > 0) {
                 const that = this;
                 this._getSqlAdapter(adapter => {
@@ -1634,8 +1634,8 @@
                 }, onError);
             }
         }
-        getIdKeyValues(id, onSuccess, onError) {
-            const that = this, data = this.analyzeID(id);
+        GetIdKeyValues(id, onSuccess, onError) {
+            const that = this, data = this.AnalyzeId(id);
             if (data.file || data.folder) {
                 this._getSqlAdapter(adapter => {
                     const results = [], tasks = [], path = SqlHelper.escape(data.path);
@@ -1671,7 +1671,7 @@
                 onError(`Invalid selection: '${data.string}'`);
             }
         }
-        getIdSelectedValues(id, language, onSuccess, onError) {
+        GetIdSelectedValues(id, language, onSuccess, onError) {
             const match = this._key_regex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
@@ -1700,7 +1700,7 @@
                 });
             }, onError);
         }
-        handleRequest(request, onSuccess, onError) {
+        HandleRequest(request, onSuccess, onError) {
             switch (request.command) {
                 case COMMAND_GET_CONFIG:
                     const tables = this._config.tables.map(table => {
@@ -1730,56 +1730,56 @@
                     });
                     break;
                 case COMMAND_EXISTS:
-                    this.exists(request.id, onSuccess, onError);
+                    this.Exists(request.id, onSuccess, onError);
                     break;
                 case COMMAND_GET_CHECKSUM:
-                    this.getChecksum(request.id, onSuccess, onError);
+                    this.GetChecksum(request.id, onSuccess, onError);
                     break;
                 case COMMAND_GET_OBJECT:
-                    this.getObject(request.id, request.language, request.mode, onSuccess, onError);
+                    this.GetObject(request.id, request.language, request.mode, onSuccess, onError);
                     break;
                 case COMMAND_GET_MODIFICATION_PARAMS:
-                    this.getModificationParams(request.id, request.language, request.value, onSuccess, onError);
+                    this.GetModificationParams(request.id, request.language, request.value, onSuccess, onError);
                     break;
                 case COMMAND_SET_OBJECT:
-                    this.setObject(request.id, request.language, request.value, request.checksum, onSuccess, onError);
+                    this.SetObject(request.id, request.language, request.value, request.checksum, onSuccess, onError);
                     break;
                 case COMMAND_GET_REFACTORING_PARAMS:
-                    this.getRefactoringParams(request.source, request.target, request.action, onSuccess, onError);
+                    this.GetRefactoringParams(request.source, request.target, request.action, onSuccess, onError);
                     break;
                 case COMMAND_PERFORM_REFACTORING:
-                    this.performRefactoring(request.source, request.target, request.action, request.checksum, onSuccess, onError);
+                    this.PerformRefactoring(request.source, request.target, request.action, request.checksum, onSuccess, onError);
                     break;
                 case COMMAND_GET_REFERENCES_TO:
-                    this.getReferencesTo(request.id, onSuccess, onError);
+                    this.GetReferencesTo(request.id, onSuccess, onError);
                     break;
                 case COMMAND_GET_REFERENCES_TO_COUNT:
-                    this.getReferencesToCount(request.id, onSuccess, onError);
+                    this.GetReferencesToCount(request.id, onSuccess, onError);
                     break;
                 case COMMAND_GET_REFERENCES_FROM:
-                    this.getReferencesFrom(request.id, onSuccess, onError);
+                    this.GetReferencesFrom(request.id, onSuccess, onError);
                     break;
                 case COMMAND_GET_REFERENCES_FROM_COUNT:
-                    this.getReferencesFromCount(request.id, onSuccess, onError);
+                    this.GetReferencesFromCount(request.id, onSuccess, onError);
                     break;
                 case COMMAND_GET_TREE_CHILD_NODES:
-                    this.getTreeChildNodes(request.id, onSuccess, onError);
+                    this.GetTreeChildNodes(request.id, onSuccess, onError);
                     break;
                 case COMMAND_GET_SEARCH_RESULTS:
-                    this.getSearchResults(request.key, request.value, onSuccess, onError);
+                    this.GetSearchResults(request.key, request.value, onSuccess, onError);
                     break;
                 case COMMAND_GET_ID_KEY_VALUES:
-                    this.getIdKeyValues(request.id, onSuccess, onError);
+                    this.GetIdKeyValues(request.id, onSuccess, onError);
                     break;
                 case COMMAND_GET_ID_SELECTED_VALUES:
-                    this.getIdSelectedValues(request.id, request.language, onSuccess, onError);
+                    this.GetIdSelectedValues(request.id, request.language, onSuccess, onError);
                     break;
                 default:
                     onError(`EXCEPTION! Unexpected command: '${request.command}'`);
                     break;
             }
         }
-        handleFancyTreeRequest(request, identifier, onSuccess, onError) {
+        HandleFancyTreeRequest(request, identifier, onSuccess, onError) {
             const that = this, id = typeof identifier === 'string' && identifier.length > 0 ? identifier : '$';
             switch (request) {
                 case ContentManager.COMMAND_GET_CHILD_TREE_NODES:
@@ -1794,7 +1794,7 @@
                      * }
                      * </code>
                      */
-                    this.getTreeChildNodes(id, nodes => {
+                    this.GetTreeChildNodes(id, nodes => {
                         // transform to fance-tree node style
                         const ns = [], l = nodes.length;
                         for (let i = 0; i < l; i++) {
@@ -1810,14 +1810,14 @@
                                     path: node.path,
                                     request: ContentManager.COMMAND_GET_CHILD_TREE_NODES,
                                 },
-                                icon: that.getIcon(node.path)
+                                icon: that.GetIcon(node.path)
                             });
                         }
                         onSuccess(ns);
                     }, onError);
                     break;
                 case ContentManager.COMMAND_GET_REFERENCES_TO_TREE_NODES:
-                    this.getReferencesTo(id, results => {
+                    this.GetReferencesTo(id, results => {
                         // transform to fance-tree node style
                         const nodes = [], l = results.length, tasks = [];
                         for (let i = 0; i < l; i++) {
@@ -1832,11 +1832,11 @@
                                         path: key,
                                         request: ContentManager.COMMAND_GET_REFERENCES_TO_TREE_NODES,
                                     },
-                                    icon: that.getIcon(key)
+                                    icon: that.GetIcon(key)
                                 };
                                 nodes.push(node);
                                 tasks.push((onSuc, onErr) => {
-                                    that.getReferencesToCount(key, count => {
+                                    that.GetReferencesToCount(key, count => {
                                         const folder = count > 0;
                                         node.folder = folder;
                                         node.lazy = folder;
@@ -1850,7 +1850,7 @@
                     }, onError);
                     break;
                 case ContentManager.COMMAND_GET_REFERENCES_FROM_TREE_NODES:
-                    this.getReferencesFrom(id, results => {
+                    this.GetReferencesFrom(id, results => {
                         // transform to fance-tree node style
                         const nodes = [], l = results.length, tasks = [];
                         for (let i = 0; i < l; i++) {
@@ -1865,11 +1865,11 @@
                                         path: key,
                                         request: ContentManager.COMMAND_GET_REFERENCES_FROM_TREE_NODES,
                                     },
-                                    icon: that.getIcon(key)
+                                    icon: that.GetIcon(key)
                                 };
                                 nodes.push(node);
                                 tasks.push((onSuc, onErr) => {
-                                    that.getReferencesFromCount(key, count => {
+                                    that.GetReferencesFromCount(key, count => {
                                         const folder = count > 0;
                                         node.folder = folder;
                                         node.lazy = folder;
@@ -1981,13 +1981,13 @@
                 }
             }, onError);
         }
-        exists(id, onSuccess, onError) {
+        Exists(id, onSuccess, onError) {
             this._post({ command: COMMAND_EXISTS, id }, onSuccess, onError);
         }
-        getChecksum(id, onSuccess, onError) {
+        GetChecksum(id, onSuccess, onError) {
             this._post({ command: COMMAND_GET_CHECKSUM, id }, onSuccess, onError);
         }
-        getObject(id, language, mode, onSuccess, onError) {
+        GetObject(id, language, mode, onSuccess, onError) {
             const that = this, parse = mode === ContentManager.PARSE;
             this._post({
                 command: COMMAND_GET_OBJECT,
@@ -2014,40 +2014,40 @@
                 }
             } : onSuccess, onError);
         }
-        getModificationParams(id, language, value, onSuccess, onError) {
+        GetModificationParams(id, language, value, onSuccess, onError) {
             this._post({ command: COMMAND_GET_MODIFICATION_PARAMS, id, language, value }, onSuccess, onError);
         }
-        setObject(id, language, value, checksum, onSuccess, onError) {
+        SetObject(id, language, value, checksum, onSuccess, onError) {
             this._post({ command: COMMAND_SET_OBJECT, id, language, value, checksum }, onSuccess, onError);
         }
-        getRefactoringParams(source, target, action, onSuccess, onError) {
+        GetRefactoringParams(source, target, action, onSuccess, onError) {
             this._post({ command: COMMAND_GET_REFACTORING_PARAMS, source, target, action }, onSuccess, onError);
         }
-        performRefactoring(source, target, action, checksum, onSuccess, onError) {
+        PerformRefactoring(source, target, action, checksum, onSuccess, onError) {
             this._post({ command: COMMAND_PERFORM_REFACTORING, source, target, action, checksum }, onSuccess, onError);
         }
-        getReferencesTo(id, onSuccess, onError) {
+        GetReferencesTo(id, onSuccess, onError) {
             this._post({ command: COMMAND_GET_REFERENCES_TO, id }, onSuccess, onError);
         }
-        getReferencesToCount(id, onSuccess, onError) {
+        GetReferencesToCount(id, onSuccess, onError) {
             this._post({ command: COMMAND_GET_REFERENCES_TO_COUNT, id }, onSuccess, onError);
         }
-        getReferencesFrom(id, onSuccess, onError) {
+        GetReferencesFrom(id, onSuccess, onError) {
             this._post({ command: COMMAND_GET_REFERENCES_FROM, id }, onSuccess, onError);
         }
-        getReferencesFromCount(id, onSuccess, onError) {
+        GetReferencesFromCount(id, onSuccess, onError) {
             this._post({ command: COMMAND_GET_REFERENCES_FROM_COUNT, id }, onSuccess, onError);
         }
-        getTreeChildNodes(id, onSuccess, onError) {
+        GetTreeChildNodes(id, onSuccess, onError) {
             this._post({ command: COMMAND_GET_TREE_CHILD_NODES, id }, onSuccess, onError);
         }
-        getSearchResults(key, value, onSuccess, onError) {
+        GetSearchResults(key, value, onSuccess, onError) {
             this._post({ command: COMMAND_GET_SEARCH_RESULTS, key, value }, onSuccess, onError);
         }
-        getIdKeyValues(id, onSuccess, onError) {
+        GetIdKeyValues(id, onSuccess, onError) {
             this._post({ command: COMMAND_GET_ID_KEY_VALUES, id }, onSuccess, onError);
         }
-        getIdSelectedValues(id, language, onSuccess, onError) {
+        GetIdSelectedValues(id, language, onSuccess, onError) {
             this._post({ command: COMMAND_GET_ID_SELECTED_VALUES, id, language }, onSuccess, onError);
         }
     }
@@ -2076,10 +2076,10 @@
             for (let i = 0; i < len; i++) {
                 // closure
                 (function () {
-                    let idx = i, id = ids[idx], data = cms.analyzeID(id);
+                    let idx = i, id = ids[idx], data = cms.AnalyzeId(id);
                     if (data.JsonFX) {
                         tasks.push((onSuc, onErr) => {
-                            cms.getObject(id, undefined, ContentManager.RAW, object => {
+                            cms.GetObject(id, undefined, ContentManager.RAW, object => {
                                 exports.push(createHeader(data.extension, id));
                                 exports.push(JsonFX.stringify(JsonFX.reconstruct(object), true));
                                 exports.push('\n\n');
@@ -2089,7 +2089,7 @@
                         });
                     } else if (!data.multilingual) {
                         tasks.push((onSuc, onErr) => {
-                            cms.getObject(id, undefined, ContentManager.RAW, object => {
+                            cms.GetObject(id, undefined, ContentManager.RAW, object => {
                                 exports.push(createHeader(data.extension, id));
                                 exports.push(object);
                                 exports.push('\n\n');
@@ -2099,7 +2099,7 @@
                         });
                     } else {
                         tasks.push((onSuc, onErr) => {
-                            cms.getObject(id, undefined, ContentManager.RAW, results => {
+                            cms.GetObject(id, undefined, ContentManager.RAW, results => {
                                 exports.push(createHeader(data.extension, id));
                                 for (let l = 0; l < languages.length; l++) {
                                     const lang = languages[l];
@@ -2142,7 +2142,7 @@
                 if (Array.isArray(header)) {
                     const path = header[3];
                     if (createChecksum(header[1], path) === header[2]) {
-                        const data = cms.analyzeID(path);
+                        const data = cms.AnalyzeId(path);
                         if (data.JsonFX) {
                             try {
                                 data.value = JsonFX.parse(elements[idx++], true, true);
@@ -2182,7 +2182,7 @@
             onProgressChanged(`parsed ${idx}/${elements.length} elements`);
             return filter;
         }
-        _write_config_data(data, onProgressChanged, onError) {
+        _writeConfigData(data, onProgressChanged, onError) {
             const cms = this._cms, tasks = [];
             for (let i = 0, len = data.length; i < len; i++) {
                 // closure
@@ -2191,17 +2191,17 @@
                     if (d.JsonFX) {
                         tasks.push((onSuc, onErr) => {
                             const val = d.value !== undefined && d.value !== null ? JsonFX.stringify(d.value, false) : undefined;
-                            cms.getModificationParams(d.id, undefined, val, params => cms.setObject(d.id, undefined, val, params.checksum, onSuc, onErr), onErr);
+                            cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr), onErr);
                         });
                     } else if (!d.multilingual) {
                         tasks.push((onSuc, onErr) => {
                             const val = d.value !== undefined && d.value !== null ? d.value : undefined;
-                            cms.getModificationParams(d.id, undefined, val, params => cms.setObject(d.id, undefined, val, params.checksum, onSuc, onErr));
+                            cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr));
                         });
                     } else {
                         tasks.push((onSuc, onErr) => {
                             const val = d.value !== undefined && d.value !== null ? d.value : undefined;
-                            cms.getModificationParams(d.id, undefined, val, params => cms.setObject(d.id, undefined, val, params.checksum, onSuc, onErr));
+                            cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr));
                         });
                     }
                     tasks.push((onSuc, onErr) => {
@@ -2213,7 +2213,7 @@
             tasks.parallel = false;
             Executor.run(tasks, () => onProgressChanged(), onError);
         }
-        handleImport(hmi, text, onProgressChanged, onError) {
+        HandleImport(hmi, text, onProgressChanged, onError) {
             // separate ids and data
             const that = this, data = [], prefix = this._parse(text, data, onProgressChanged, onError);
             if (typeof prefix !== 'string') {
@@ -2226,19 +2226,19 @@
                 height: $(window).height() * 0.4,
                 title: 'warning',
                 html,
-                yes: () => that._write_config_data(data, onProgressChanged, onError),
+                yes: () => that._writeConfigData(data, onProgressChanged, onError),
                 cancel: () => onProgressChanged()
             });
         }
-        handleExport(id, onProgressChanged, onError) {
-            const that = this, cms = this._cms, data = cms.analyzeID(id);
+        HandleExport(id, onProgressChanged, onError) {
+            const that = this, cms = this._cms, data = cms.AnalyzeId(id);
             onProgressChanged('load languages ...');
-            const languages = cms.getLanguages();
+            const languages = cms.GetLanguages();
             languages.sort(compare_keys);
             if (data.file) {
                 that._read_config_data([data.file], id, languages, onProgressChanged, onError);
             } else if (data.folder) {
-                cms.getIdKeyValues(data.folder, ids => {
+                cms.GetIdKeyValues(data.folder, ids => {
                     ids.sort(compare_keys);
                     that._read_config_data(ids, id, languages, onProgressChanged, onError);
                 }, onError);
