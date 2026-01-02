@@ -593,63 +593,57 @@
                 }
             }
             tasks.parallel = that._parallel;
-            Executor.run(tasks, function () {
-                // if our string contains just one single element we return this as
-                // is.
-                onSuccess(array.length === 1 ? array[0] : array.join(''));
-            }, onError);
-        }
-        else {
+            // if our string contains just one single element we return this as is.
+            Executor.run(tasks, () => onSuccess(array.length === 1 ? array[0] : array.join('')), onError);
+        } else {
             // if our input object is not an array, an object or a string we have
             // nothing to build so we return the object as is.
             onSuccess(object);
         }
     };
 
-    ContentManager.prototype._buildProperties = function (i_adapter, i_object, i_ids, i_language, onSuccess, onError) {
+    ContentManager.prototype._buildProperties = function (adapter, object, ids, language, onSuccess, onError) {
         const that = this;
         const tasks = [];
-        for (const a in i_object) {
-            if (i_object.hasOwnProperty(a)) {
+        for (const a in object) {
+            if (object.hasOwnProperty(a)) {
                 (function () {
                     const p = a;
-                    tasks.push(function (i_suc, i_err) {
-                        that._include(i_adapter, i_object[p], i_ids, i_language, function (i_objectProperty) {
-                            i_object[p] = i_objectProperty;
-                            i_suc();
-                        }, i_err);
+                    tasks.push((onSuc, onErr) => {
+                        that._include(adapter, object[p], ids, language, objectProperty => {
+                            object[p] = objectProperty;
+                            onSuc();
+                        }, onErr);
                     });
                 }());
             }
         }
         tasks.parallel = this._parallel;
-        Executor.run(tasks, function () {
-            onSuccess(i_object);
-        }, onError);
+        Executor.run(tasks, () => onSuccess(object), onError);
     };
 
-    ContentManager.prototype._getModificationParams = function (i_adapter, i_id, i_language, i_value, onSuccess, onError) {
+    ContentManager.prototype._getModificationParams = function (adapter, id, language, value, onSuccess, onError) {
         // here we store the result
-        var params = {};
+        const params = {};
         // check id
-        var match = this._key_regex.exec(i_id);
+        const match = this._key_regex.exec(id);
         if (!match) {
-            params.error = 'Invalid id: ' + i_id;
+            params.error = `Invalid id: ${id}`;
             onSuccess(params);
             return;
         }
         // check table
-        var table = this._tablesForExt[match[2]];
+        const table = this._tablesForExt[match[2]];
         if (!table) {
-            params.error = 'Invalid table: ' + i_id;
+            params.error = `Invalid table: ${id}`;
             onSuccess(params);
             return;
         }
-        var valcol = this._valColsForExt[match[2]];
+        const valcol = this._valColsForExt[match[2]];
         // in case of a multiligual data type and a given language we got to make
         // sure that language is supported
-        if (typeof valcol !== 'string' && typeof i_language === 'string' && valcol[i_language] === undefined) {
-            params.error = 'Invalid language "' + i_language + '"';
+        if (typeof valcol !== 'string' && typeof language === 'string' && valcol[language] === undefined) {
+            params.error = `Invalid language ${' + language + '}`;
             onSuccess(params);
             return;
         }
@@ -657,30 +651,27 @@
         // values
         const that = this;
         if (typeof valcol === 'string') {
-            i_adapter.addColumn(table.name + '.' + valcol + ' AS ' + valcol);
-        }
-        else {
-            var attr;
-            for (attr in valcol) {
+            adapter.addColumn(`${table.name}.${valcol} AS ${valcol}`);
+        } else {
+            for (const attr in valcol) {
                 if (valcol.hasOwnProperty(attr)) {
-                    i_adapter.addColumn(table.name + '.' + valcol[attr] + ' AS ' + valcol[attr]);
+                    adapter.addColumn(`${table.name}.${valcol[attr]} AS ${valcol[attr]}`);
                 }
             }
         }
-        i_adapter.addWhere(table.name + '.' + table.key_column + ' = ' + SqlHelper.escape(match[1]));
-        i_adapter.performSelect(table.name, undefined, undefined, 1, function (i_result, i_fields) {
-            var currentData = i_result.length === 1 ? i_result[0] : undefined;
+        adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(match[1])}`);
+        adapter.performSelect(table.name, undefined, undefined, 1, function (result, fields) {
+            const currentData = result.length === 1 ? result[0] : undefined;
             // here we store the conditions
-            var stillNotEmpty = false;
-            var changed = false;
-            var values = {};
-            var checksum = '';
-            // in case of a JSON or UTF8 table
-            if (typeof valcol === 'string') {
+            let stillNotEmpty = false;
+            let changed = false;
+            const values = {};
+            let checksum = '';
+            if (typeof valcol === 'string') { // in case of a JSON or UTF8 table
                 checksum += valcol;
-                var currval = currentData !== undefined ? currentData[valcol] : undefined;
-                var nextval = typeof i_value === 'string' ? i_value : undefined;
-                var value = getModificationParams(currval, nextval);
+                let currval = currentData !== undefined ? currentData[valcol] : undefined;
+                let nextval = typeof value === 'string' ? value : undefined;
+                let value = getModificationParams(currval, nextval);
                 if (!value.empty) {
                     stillNotEmpty = true;
                 }
@@ -693,25 +684,17 @@
                 if (typeof value.string === 'string') {
                     checksum += value.string;
                 }
-            }
-            // labels or html
-            else {
-                var attr, currval, nextval, value;
-                for (attr in valcol) {
+            } else { // labels or html
+                let currval, nextval, value;
+                for (const attr in valcol) {
                     if (valcol.hasOwnProperty(attr)) {
                         // for all columns we try to get the current and new value
                         currval = currentData !== undefined ? currentData[valcol[attr]] : undefined;
                         nextval = undefined;
-                        if (typeof i_language === 'string') {
-                            if (i_language === attr) {
-                                nextval = typeof i_value === 'string' ? i_value : undefined;
-                            }
-                            else {
-                                nextval = currval;
-                            }
-                        }
-                        else if (typeof i_value === 'object' && i_value !== null) {
-                            nextval = i_value[attr];
+                        if (typeof language === 'string') {
+                            nextval = language === attr ? (typeof value === 'string' ? value : undefined) : currval;
+                        } else if (typeof value === 'object' && value !== null) {
+                            nextval = value[attr];
                         }
                         // within the next condition checks we detect if the value is
                         // available
@@ -733,18 +716,12 @@
                 }
             }
             // build the resulting data
-            params.source = i_id;
-            checksum += i_id;
+            params.source = id;
+            checksum += id;
             params.values = values;
             if (currentData !== undefined) {
-                if (stillNotEmpty) {
-                    params.action = changed ? ContentManager.UPDATE : ContentManager.NONE;
-                }
-                else {
-                    params.action = ContentManager.DELETE;
-                }
-            }
-            else {
+                params.action = stillNotEmpty ? (changed ? ContentManager.UPDATE : ContentManager.NONE) : ContentManager.DELETE;
+            } else {
                 params.action = stillNotEmpty ? ContentManager.INSERT : ContentManager.NONE;
             }
             checksum += params.action;
@@ -753,130 +730,117 @@
         }, onError);
     };
 
-    ContentManager.prototype.getModificationParams = function (i_id, i_language, i_value, onSuccess, onError) {
+    ContentManager.prototype.getModificationParams = function (id, language, value, onSuccess, onError) {
         const that = this;
-        this._getSqlAdapter(function (i_adapter) {
-            that._getModificationParams(i_adapter, i_id, i_language, i_value, function (i_params) {
-                if (!i_params.error && i_params.action === ContentManager.DELETE) {
-                    that._getReferencesFrom(i_adapter, i_id, function (i_referencesFrom) {
-                        if (i_referencesFrom.length > 0) {
-                            i_params.externalUsers = i_referencesFrom;
+        this._getSqlAdapter(adapter => {
+            that._getModificationParams(adapter, id, language, value, params => {
+                if (!params.error && params.action === ContentManager.DELETE) {
+                    that._getReferencesFrom(adapter, id, referencesFrom => {
+                        if (referencesFrom.length > 0) {
+                            params.externalUsers = referencesFrom;
                         }
-                        i_adapter.close();
-                        onSuccess(i_params);
-                    }, function (i_exc) {
-                        i_adapter.close();
-                        onError(i_exc);
+                        adapter.close();
+                        onSuccess(params);
+                    }, err => {
+                        adapter.close();
+                        onError(err);
                     });
+                } else {
+                    adapter.close();
+                    onSuccess(params);
                 }
-                else {
-                    i_adapter.close();
-                    onSuccess(i_params);
-                }
-            }, function (i_exc) {
-                i_adapter.close();
-                onError(i_exc);
+            }, err => {
+                adapter.close();
+                onError(err);
             });
         }, onError);
     };
 
-    ContentManager.prototype.setObject = function (i_id, i_language, i_value, i_checksum, onSuccess, onError) {
-        var that = this, match = this._key_regex.exec(i_id);
+    ContentManager.prototype.setObject = function (id, language, value, checksum, onSuccess, onError) {
+        const that = this, match = this._key_regex.exec(id);
         if (!match) {
-            onError('Invalid id: ' + i_id);
+            onError('Invalid id: ' + id);
             return;
         }
-        var table = this._tablesForExt[match[2]];
-        var valcol = this._valColsForExt[match[2]];
+        const table = this._tablesForExt[match[2]];
+        const valcol = this._valColsForExt[match[2]];
         if (!table) {
-            onError('Invalid table: ' + i_id);
+            onError('Invalid table: ' + id);
             return;
         }
-        var key = match[1];
-        this._getSqlAdapter(function (i_adapter) {
-            var main = [];
+        const key = match[1];
+        this._getSqlAdapter(adapter => {
+            const main = [];
             main.parallel = false;
-            main.push(function (i_suc, i_err) {
-                i_adapter.startTransaction(i_suc, i_err);
-            });
-            main.push(function (i_suc, i_err) {
-                that._getModificationParams(i_adapter, i_id, i_language, i_value, function (i_params) {
-                    if (i_params.error !== undefined) {
-                        i_err(i_params.error);
-                    }
-                    else if (i_params.checksum !== i_checksum) {
-                        i_err('Database content has changed! Try again!');
-                    }
-                    else if (i_params.action === ContentManager.NONE) {
-                        i_err('No action to perform!');
-                    }
-                    else if (i_params.action === ContentManager.INSERT) {
-                        i_adapter.addValue(table.name + '.' + table.key_column, SqlHelper.escape(key));
-                        var attr, value;
+            main.push((onSuc, onErr) => adapter.startTransaction(onSuc, onErr));
+            main.push((onSuc, onErr) => {
+                that._getModificationParams(adapter, id, language, value, params => {
+                    if (params.error !== undefined) {
+                        onErr(params.error);
+                    } else if (params.checksum !== checksum) {
+                        onErr('Database content has changed! Try again!');
+                    } else if (params.action === ContentManager.NONE) {
+                        onErr('No action to perform!');
+                    } else if (params.action === ContentManager.INSERT) {
+                        adapter.addValue(`${table.name}.${table.key_column}`, SqlHelper.escape(key));
                         if (typeof valcol === 'string') {
-                            value = i_params.values[valcol];
+                            const value = params.values[valcol];
                             if (value.changed) {
-                                i_adapter.addValue(table.name + '.' + valcol, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                adapter.addValue(`${table.name}.${valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                             }
-                        }
-                        else {
-                            for (attr in valcol) {
+                        } else {
+                            for (const attr in valcol) {
                                 if (valcol.hasOwnProperty(attr)) {
                                     // value = i_params.values[valcol[attr]];
-                                    value = i_params.values[attr];
+                                    const value = params.values[attr];
                                     if (value.changed) {
-                                        i_adapter.addValue(table.name + '.' + valcol[attr], typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                        adapter.addValue(`${table.name}.${valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                     }
                                 }
                             }
                         }
-                        i_adapter.performInsert(table.name, i_suc, i_err);
-                    }
-                    else if (i_params.action === ContentManager.UPDATE) {
-                        var attr, value;
+                        adapter.performInsert(table.name, onSuc, onErr);
+                    } else if (params.action === ContentManager.UPDATE) {
                         if (typeof valcol === 'string') {
-                            value = i_params.values[valcol];
+                            const value = params.values[valcol];
                             if (value.changed) {
-                                i_adapter.addValue(table.name + '.' + valcol, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                adapter.addValue(`${table.name}.${valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                             }
-                        }
-                        else {
-                            for (attr in valcol) {
+                        } else {
+                            for (const attr in valcol) {
                                 if (valcol.hasOwnProperty(attr)) {
-                                    value = i_params.values[attr];
+                                    const value = params.values[attr];
                                     if (value.changed) {
-                                        i_adapter.addValue(table.name + '.' + valcol[attr], typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                        adapter.addValue(`${table.name}.${valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                     }
                                 }
                             }
                         }
-                        i_adapter.addWhere(table.name + '.' + table.key_column + ' = ' + SqlHelper.escape(key));
-                        i_adapter.performUpdate(table.name, undefined, 1, i_suc, i_err);
+                        adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+                        adapter.performUpdate(table.name, undefined, 1, onSuc, onErr);
+                    } else if (params.action === ContentManager.DELETE) {
+                        adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+                        adapter.performDelete(table.name, undefined, 1, onSuc, onErr);
+                    } else {
+                        onErr(`Unexpected action: '${params.action}'`);
                     }
-                    else if (i_params.action === ContentManager.DELETE) {
-                        i_adapter.addWhere(table.name + '.' + table.key_column + ' = ' + SqlHelper.escape(key));
-                        i_adapter.performDelete(table.name, undefined, 1, i_suc, i_err);
-                    }
-                    else {
-                        i_err('Unexpected action: "' + i_params.action + '"');
-                    }
-                }, i_err);
+                }, onErr);
             });
-            Executor.run(main, function () {
-                i_adapter.commitTransaction(function () {
-                    i_adapter.close();
+            Executor.run(main, () => {
+                adapter.commitTransaction(() => {
+                    adapter.close();
                     onSuccess();
-                }, function (i_exc) {
-                    i_adapter.close();
-                    onError(i_exc);
+                }, err => {
+                    adapter.close();
+                    onError(err);
                 });
-            }, function (i_exception) {
-                i_adapter.rollbackTransaction(function () {
-                    i_adapter.close();
-                    onError(i_exception);
-                }, function (i_exc) {
-                    i_adapter.close();
-                    onError(i_exc);
+            }, err => {
+                adapter.rollbackTransaction(() => {
+                    adapter.close();
+                    onError(err);
+                }, ee => {
+                    adapter.close();
+                    onError(ee);
                 });
             });
         }, onError);
