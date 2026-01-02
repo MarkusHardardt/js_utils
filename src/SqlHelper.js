@@ -491,7 +491,7 @@
         }
     }
 
-    class Instance {
+    class Connector {
         constructor(config, verbose) {
             if (mysql) {
                 const helper = mysql.createPool(config);
@@ -524,7 +524,7 @@
             }
         }
     }
-    SqlHelper.Instance = Instance;
+    SqlHelper.Connector = Connector;
 
     function escape(value) {
         return mysql ? mysql.escape(value) : root.SqlString.escape(value);
