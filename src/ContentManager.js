@@ -660,7 +660,7 @@
             }
         }
         adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(match[1])}`);
-        adapter.performSelect(table.name, undefined, undefined, 1, function (result, fields) {
+        adapter.performSelect(table.name, undefined, undefined, 1, (result, fields) => {
             const currentData = result.length === 1 ? result[0] : undefined;
             // here we store the conditions
             let stillNotEmpty = false;
@@ -671,26 +671,25 @@
                 checksum += valcol;
                 let currval = currentData !== undefined ? currentData[valcol] : undefined;
                 let nextval = typeof value === 'string' ? value : undefined;
-                let value = getModificationParams(currval, nextval);
-                if (!value.empty) {
+                let params = getModificationParams(currval, nextval);
+                if (!params.empty) {
                     stillNotEmpty = true;
                 }
-                if (value.changed) {
+                if (params.changed) {
                     changed = true;
                 }
-                values[valcol] = value;
-                checksum += value.empty ? 'e' : 'd';
-                checksum += value.changed ? 'e' : 'd';
-                if (typeof value.string === 'string') {
-                    checksum += value.string;
+                values[valcol] = params;
+                checksum += params.empty ? 'e' : 'd';
+                checksum += params.changed ? 'e' : 'd';
+                if (typeof params.string === 'string') {
+                    checksum += params.string;
                 }
             } else { // labels or html
-                let currval, nextval, value;
                 for (const attr in valcol) {
                     if (valcol.hasOwnProperty(attr)) {
                         // for all columns we try to get the current and new value
-                        currval = currentData !== undefined ? currentData[valcol[attr]] : undefined;
-                        nextval = undefined;
+                        const currval = currentData !== undefined ? currentData[valcol[attr]] : undefined;
+                        let nextval = undefined;
                         if (typeof language === 'string') {
                             nextval = language === attr ? (typeof value === 'string' ? value : undefined) : currval;
                         } else if (typeof value === 'object' && value !== null) {
@@ -699,18 +698,18 @@
                         // within the next condition checks we detect if the value is
                         // available
                         // after the update and if the data will be changed
-                        value = getModificationParams(currval, nextval);
-                        if (!value.empty) {
+                        const params = getModificationParams(currval, nextval);
+                        if (!params.empty) {
                             stillNotEmpty = true;
                         }
-                        if (value.changed) {
+                        if (params.changed) {
                             changed = true;
                         }
-                        values[attr] = value;
-                        checksum += value.empty ? 'e' : 'd';
-                        checksum += value.changed ? 'e' : 'd';
-                        if (typeof value.string === 'string') {
-                            checksum += value.string;
+                        values[attr] = params;
+                        checksum += params.empty ? 'e' : 'd';
+                        checksum += params.changed ? 'e' : 'd';
+                        if (typeof params.string === 'string') {
+                            checksum += params.string;
                         }
                     }
                 }
