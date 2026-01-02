@@ -1487,67 +1487,65 @@
         }, onError);
     };
 
-    ContentManager.prototype.getReferencesFrom = function (i_id, onSuccess, onError) {
-        if (this._key_regex.test(i_id)) {
+    ContentManager.prototype.getReferencesFrom = function (id, onSuccess, onError) {
+        if (this._key_regex.test(id)) {
             const that = this;
-            this._getSqlAdapter(function (i_adapter) {
-                that._getReferencesFrom(i_adapter, i_id, function (i_results) {
-                    i_adapter.close();
-                    onSuccess(i_results);
-                }, function (i_exc) {
-                    i_adapter.close();
-                    onError(i_exc);
+            this._getSqlAdapter(adapter => {
+                that._getReferencesFrom(adapter, id, results => {
+                    adapter.close();
+                    onSuccess(results);
+                }, err => {
+                    adapter.close();
+                    onError(err);
                 });
             }, onError);
-        }
-        else {
+        } else {
             // if invalid key we simply found no reference
             onSuccess([]);
         }
     };
 
-    ContentManager.prototype.getReferencesFromCount = function (i_id, onSuccess, onError) {
-        if (this._key_regex.test(i_id)) {
+    ContentManager.prototype.getReferencesFromCount = function (id, onSuccess, onError) {
+        if (this._key_regex.test(id)) {
             const that = this;
-            this._getSqlAdapter(function (i_adapter) {
-                var key = SqlHelper.escape(i_id);
-                var result = 0, tasks = [];
-                for (var attr in that._tablesForExt) {
+            this._getSqlAdapter(adapter => {
+                const key = SqlHelper.escape(id);
+                let result = 0;
+                const tasks = [];
+                for (const attr in that._tablesForExt) {
                     if (that._tablesForExt.hasOwnProperty(attr)) {
                         (function () {
-                            var table = that._tablesForExt[attr];
-                            var valcol = that._valColsForExt[attr];
-                            tasks.push(function (i_suc, i_err) {
-                                i_adapter.addColumn('COUNT(*) AS cnt');
+                            const table = that._tablesForExt[attr];
+                            const valcol = that._valColsForExt[attr];
+                            tasks.push((onSuc, onErr) => {
+                                adapter.addColumn('COUNT(*) AS cnt');
                                 if (typeof valcol === 'string') {
-                                    i_adapter.addWhere(formatReferencesFromCondition(key, table.name + '.' + valcol), false);
-                                }
-                                else {
-                                    for (var col in valcol) {
+                                    adapter.addWhere(formatReferencesFromCondition(key, `${table.name}.${valcol}`), false);
+                                } else {
+                                    for (const col in valcol) {
                                         if (valcol.hasOwnProperty(col)) {
-                                            i_adapter.addWhere(formatReferencesFromCondition(key, table.name + '.' + valcol[col]), false);
+                                            adapter.addWhere(formatReferencesFromCondition(key, `${table.name}.${valcol[col]}`), false);
                                         }
                                     }
                                 }
-                                i_adapter.performSelect(table.name, undefined, undefined, undefined, function (i_result) {
-                                    result += i_result[0].cnt;
-                                    i_suc();
-                                }, i_err);
+                                adapter.performSelect(table.name, undefined, undefined, undefined, result => {
+                                    result += result[0].cnt;
+                                    onSuc();
+                                }, onErr);
                             });
                         }());
                     }
                 }
                 tasks.parallel = that._parallel;
-                Executor.run(tasks, function () {
-                    i_adapter.close();
+                Executor.run(tasks, () => {
+                    adapter.close();
                     onSuccess(result);
-                }, function (i_exc) {
-                    i_adapter.close();
-                    onError(i_exc);
+                }, err => {
+                    adapter.close();
+                    onError(err);
                 });
             }, onError);
-        }
-        else {
+        } else {
             // if invalid key we simply found no reference
             onSuccess(0);
         }
