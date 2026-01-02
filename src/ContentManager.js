@@ -1625,11 +1625,11 @@
         }
     };
 
-    ContentManager.prototype.getSearchResults = function (i_key, i_value, onSuccess, onError) {
-        if (i_key.length > 0 || i_value.length > 0) {
+    ContentManager.prototype.getSearchResults = function (searchKey, searchValue, onSuccess, onError) {
+        if (searchKey.length > 0 || searchValue.length > 0) {
             const that = this;
             this._getSqlAdapter(adapter => {
-                const results = [], tasks = [], key = SqlHelper.escape(i_key), value = SqlHelper.escape(i_value);
+                const results = [], tasks = [], key = SqlHelper.escape(searchKey), value = SqlHelper.escape(searchValue);
                 for (const attr in that._tablesForExt) {
                     if (that._tablesForExt.hasOwnProperty(attr)) {
                         (function () {
@@ -1638,13 +1638,13 @@
                             tasks.push((onSuc, onErr) => {
                                 adapter.addColumn(`${table.name}.${table.key_column} AS path`);
                                 let where = '';
-                                if (i_key.length > 0) {
-                                    where += `LOCATE(${SqlHelper.escape(i_key)}, ${table.name}.${table.key_column}) > 0`;
-                                    if (i_value.length > 0) {
+                                if (searchKey.length > 0) {
+                                    where += `LOCATE(${SqlHelper.escape(searchKey)}, ${table.name}.${table.key_column}) > 0`;
+                                    if (searchValue.length > 0) {
                                         where += ' AND ';
                                     }
                                 }
-                                if (i_value.length > 0) {
+                                if (searchValue.length > 0) {
                                     if (typeof valcol === 'string') {
                                         where += `LOCATE(${value}, ${table.name}.${valcol}) > 0`;
                                     } else {
@@ -1834,8 +1834,8 @@
         }
     };
 
-    ContentManager.prototype.handleFancyTreeRequest = function (request, i_id, onSuccess, onError) {
-        const that = this, id = typeof i_id === 'string' && i_id.length > 0 ? i_id : '$';
+    ContentManager.prototype.handleFancyTreeRequest = function (request, identifier, onSuccess, onError) {
+        const that = this, id = typeof identifier === 'string' && identifier.length > 0 ? identifier : '$';
         switch (request) {
             case ContentManager.COMMAND_GET_CHILD_TREE_NODES:
                 /**
@@ -2242,26 +2242,26 @@
         onProgressChanged(`parsed ${idx}/${elements.length} elements`);
         return filter;
     };
-    ExchangeHandler.prototype._write_config_data = function (i_data, onProgressChanged, onError) {
+    ExchangeHandler.prototype._write_config_data = function (data, onProgressChanged, onError) {
         const cms = this._cms, tasks = [];
-        for (let i = 0, len = i_data.length; i < len; i++) {
+        for (let i = 0, len = data.length; i < len; i++) {
             // closure
             (function () {
-                let idx = i, data = i_data[idx];
-                if (data.JsonFX) {
+                const idx = i, d = data[idx];
+                if (d.JsonFX) {
                     tasks.push((onSuc, onErr) => {
-                        const val = data.value !== undefined && data.value !== null ? JsonFX.stringify(data.value, false) : undefined;
-                        cms.getModificationParams(data.id, undefined, val, params => cms.setObject(data.id, undefined, val, params.checksum, onSuc, onErr), onErr);
+                        const val = d.value !== undefined && d.value !== null ? JsonFX.stringify(d.value, false) : undefined;
+                        cms.getModificationParams(d.id, undefined, val, params => cms.setObject(d.id, undefined, val, params.checksum, onSuc, onErr), onErr);
                     });
-                } else if (!data.multilingual) {
+                } else if (!d.multilingual) {
                     tasks.push((onSuc, onErr) => {
-                        const val = data.value !== undefined && data.value !== null ? data.value : undefined;
-                        cms.getModificationParams(data.id, undefined, val, params => cms.setObject(data.id, undefined, val, params.checksum, onSuc, onErr));
+                        const val = d.value !== undefined && d.value !== null ? d.value : undefined;
+                        cms.getModificationParams(d.id, undefined, val, params => cms.setObject(d.id, undefined, val, params.checksum, onSuc, onErr));
                     });
                 } else {
                     tasks.push((onSuc, onErr) => {
-                        const val = data.value !== undefined && data.value !== null ? data.value : undefined;
-                        cms.getModificationParams(data.id, undefined, val, params => cms.setObject(data.id, undefined, val, params.checksum, onSuc, onErr));
+                        const val = d.value !== undefined && d.value !== null ? d.value : undefined;
+                        cms.getModificationParams(d.id, undefined, val, params => cms.setObject(d.id, undefined, val, params.checksum, onSuc, onErr));
                     });
                 }
                 tasks.push((onSuc, onErr) => {

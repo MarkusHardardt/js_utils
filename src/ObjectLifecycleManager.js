@@ -8077,14 +8077,22 @@
                     }, i_err);
                 }, () => {
                     onStateChanged(LifecycleState.Idle);
-                    i_success();
-                }, i_error, () => i_error('timeout'), 5000);
+                    if (typeof i_success === 'function') { // TODO: Do we really need this check?
+                        i_success();
+                    } else {
+                        console.error('Missing onSuccess callback');
+                    }
+                }, i_error, () => i_error('timeout'), 5000); // TODO: And if why don't we check this?
             } else {
                 onStateChanged(LifecycleState.Idle);
-                i_success();
+                if (typeof i_success === 'function') { // TODO: Do we really need this check?
+                    i_success();
+                } else {
+                    console.error('Missing onSuccess callback');
+                }
             }
         } else {
-            i_error('Invalid object');
+            i_error('Invalid object'); // TODO: And if why don't we check this?
         }
     }
     ObjectLifecycleManager.destroy = destroy_hmi_object_branch;
