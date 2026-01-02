@@ -1551,19 +1551,20 @@
         }
     };
 
-    ContentManager.prototype.getTreeChildNodes = function (i_id, onSuccess, onError) {
-        var match = FOLDER_REGEX.exec(i_id);
+    ContentManager.prototype.getTreeChildNodes = function (id, onSuccess, onError) {
+        const match = FOLDER_REGEX.exec(id);
         if (match) {
-            var that = this, config = this._config, key = match[1];
-            this._getSqlAdapter(function (i_adapter) {
-                var tasks = [], nodes = [], compare_raw_nodes = function (i_node1, i_node2) {
-                    return that.compare(i_node1.path, i_node2.path);
+            const that = this, key = match[1];
+            this._getSqlAdapter(adapter => {
+                const tasks = [], nodes = [];
+                function compareRawNodes(node1, node2) {
+                    return that.compare(node1.path, node2.path);
                 };
-                for (var attr in that._tablesForExt) {
+                for (const attr in that._tablesForExt) {
                     if (that._tablesForExt.hasOwnProperty(attr)) {
                         (function () {
-                            var table = that._tablesForExt[attr];
-                            tasks.push(function (i_suc, i_err) {
+                            const table = that._tablesForExt[attr];
+                            tasks.push((onSuc, onErr) => {
                                 /**
                                  * the following call returns an array of objects like: <code> 
                                  * { 
@@ -1584,18 +1585,18 @@
                                  * }
                                  * </code>
                                  */
-                                i_adapter.getChildNodes(table.name, table.key_column, '/', key, function (i_nodes) {
-                                    var i, l = i_nodes.length, node, path, idx;
-                                    for (i = 0; i < l; i++) {
-                                        node = i_nodes[i];
+                                adapter.getChildNodes(table.name, table.key_column, '/', key, nodes => {
+                                    const l = nodes.length;
+                                    for (let i = 0; i < l; i++) {
+                                        const node = nodes[i];
                                         // build the full node path - and in case of a file add
                                         // the extension
-                                        path = '$' + node.path;
+                                        const path = `$${node.path}`;
                                         if (!node.folder) {
-                                            path += '.' + table.extension;
+                                            path += `.${table.extension}`;
                                         }
                                         node.path = path;
-                                        idx = Sorting.getInsertionIndex(node, nodes, true, compare_raw_nodes);
+                                        const idx = Sorting.getInsertionIndex(node, nodes, true, compareRawNodes);
                                         if (idx >= 0) {
                                             if (!node.folder) {
                                                 node.extension = table.extension;
@@ -1603,27 +1604,25 @@
                                             nodes.splice(idx, 0, node);
                                         }
                                     }
-                                    i_suc();
-                                }, i_err);
+                                    onSuc();
+                                }, onErr);
                             });
                         }());
                     }
                 }
                 tasks.parallel = that._parallel;
-                Executor.run(tasks, function () {
-                    i_adapter.close();
+                Executor.run(tasks, () => {
+                    adapter.close();
                     onSuccess(nodes);
-                }, function (i_exc) {
-                    i_adapter.close();
-                    onError(i_exc);
+                }, err => {
+                    adapter.close();
+                    onError(err);
                 });
             }, onError);
-        }
-        else if (this._key_regex.test(i_id)) {
+        } else if (this._key_regex.test(id)) {
             onSuccess([]);
-        }
-        else {
-            onError('Invalid key: "' + i_id + '"');
+        } else {
+            onError(`Invalid key: '${id}'`);
         }
     };
 
