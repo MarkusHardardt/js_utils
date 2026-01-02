@@ -1591,7 +1591,7 @@
                                         const node = children[i];
                                         // build the full node path - and in case of a file add
                                         // the extension
-                                        const path = `$${node.path}`;
+                                        let path = `$${node.path}`;
                                         if (!node.folder) {
                                             path += `.${table.extension}`;
                                         }
@@ -2185,7 +2185,7 @@
             saveAs(new Blob(exports, { type: "text/plain;charset=utf-8" }), 'js_hmi_export.txt');
         }, onError);
     };
-    ExchangeHandler.prototype._parse = function (text, data, onProgressChanged, onError) {
+    ExchangeHandler.prototype._parse = function (text, results, onProgressChanged, onError) {
         // separate ids and data
         const cms = this._cms, elements = [];
         Regex.each(cms._exchange_header_regex, text, (start, end, match) => elements.push(match ? match : text.substring(start, end)));
@@ -2211,10 +2211,10 @@
                             onError(`EXCEPTION! Cannot evaluate object: ${exc}`);
                             return false;
                         }
-                        data.push(data);
+                        results.push(data);
                     } else if (!data.multilingual) {
                         data.value = elements[idx++].trim();
-                        data.push(data);
+                        results.push(data);
                     } else {
                         data.value = {};
                         while (idx < elements.length) {
@@ -2232,7 +2232,7 @@
                                 data.value[header[3].substring(data.id.length + 1)] = txt;
                             }
                         }
-                        data.push(data);
+                        results.push(data);
                     }
                 } else {
                     onError(`EXCEPTION! Invalid: ${JSON.stringify(header)}`);
