@@ -19,26 +19,26 @@
             this._wheres = [];
             this._values = [];
         }
-        close() {
+        Close() {
             this._con.release();
             delete this._con;
         }
-        clear() {
+        _clear() {
             this._values.splice(0, this._values.length);
             this._columns.splice(0, this._columns.length);
             this._joins.splice(0, this._joins.length);
             this._wheres.splice(0, this._wheres.length);
         }
-        addColumn(expression) {
+        AddColumn(expression) {
             this._columns.push(expression);
         }
-        addJoin(expression) {
+        AddJoin(expression) {
             this._joins.push(expression);
         }
-        addWhere(expression, and) {
+        AddWhere(expression, and) {
             this._wheres.push({ expr: expression, opr: and !== false ? ' AND ' : ' OR ' });
         }
-        addValue(column, data) {
+        AddValue(column, data) {
             let values = this._values, value;
             for (let i = 0, l = values.length; i < l; i++) {
                 value = values[i];
@@ -53,7 +53,7 @@
             }
             this._values.push({ column, data, apostrophes: false });
         }
-        query(queryString, onSuccess, onError) {
+        _query(queryString, onSuccess, onError) {
             if (this._verbose) {
                 console.log(queryString);
             }
@@ -69,16 +69,16 @@
                 }
             });
         }
-        startTransaction(onSuccess, onError) {
-            this.query('START TRANSACTION', onSuccess, onError);
+        StartTransaction(onSuccess, onError) {
+            this._query('START TRANSACTION', onSuccess, onError);
         }
-        rollbackTransaction(onSuccess, onError) {
-            this.query('ROLLBACK', onSuccess, onError);
+        RollbackTransaction(onSuccess, onError) {
+            this._query('ROLLBACK', onSuccess, onError);
         }
-        commitTransaction(onSuccess, onError) {
-            this.query('COMMIT', onSuccess, onError);
+        CommitTransaction(onSuccess, onError) {
+            this._query('COMMIT', onSuccess, onError);
         }
-        formatSelect(table, group, order, limit) {
+        _formatSelect(table, group, order, limit) {
             let query = 'SELECT', l, columns = this._columns, joins = this._joins, wheres = this._wheres, expr;
             // COLUMNS
             for (let i = 0, l = columns.length; i < l; i++) {
@@ -124,14 +124,14 @@
                 query += limit;
             }
             // clear, perform query, check for errors and return result
-            this.clear();
+            this._clear();
             return query;
         }
-        performSelect(table, group, order, limit, onSuccess, onError) {
-            const query = this.formatSelect(table, group, order, limit);
-            this.query(query, onSuccess, onError);
+        PerformSelect(table, group, order, limit, onSuccess, onError) {
+            const query = this._formatSelect(table, group, order, limit);
+            this._query(query, onSuccess, onError);
         }
-        formatInsert(table) {
+        _formatInsert(table) {
             let insert = 'INSERT INTO ';
             insert += table;
             insert += ' (';
@@ -171,7 +171,7 @@
                     }
                 }
                 insert += ')';
-                this.clear();
+                this._clear();
                 return insert;
             } else {
                 const inserts = [];
@@ -199,7 +199,7 @@
                     query += ')';
                     inserts.push(query);
                 }
-                this.clear();
+                this._clear();
                 let queries = [], query = insert, idx = 0, count = inserts.length, nxt;
                 while (idx < count) {
                     query += inserts[idx];
@@ -219,10 +219,10 @@
                 return queries;
             }
         }
-        performInsert(table, onSuccess, onError) {
-            const query = this.formatInsert(table);
+        PerformInsert(table, onSuccess, onError) {
+            const query = this._formatInsert(table);
             if (typeof query === 'string') {
-                this.query(query, onSuccess, onError);
+                this._query(query, onSuccess, onError);
             } else if (Array.isArray(query)) {
                 const that = this, tasks = [];
                 tasks.parallel = false;
@@ -230,16 +230,14 @@
                     (function () {
                         // closure
                         const q = query[i];
-                        tasks.push((onSuc, onErr) => that.query(q, onSuc, onErr));
+                        tasks.push((onSuc, onErr) => that._query(q, onSuc, onErr));
                     }());
                 }
                 Executor.run(tasks, onSuccess, onError);
             }
         }
-        formatUpdate(table, order, limit) {
-            let query = 'UPDATE ';
-            query += table;
-            query += ' SET ';
+        _formatUpdate(table, order, limit) {
+            let query = `UPDATE ${table} SET `;
             let values = this._values, value, data, i, l;
             // COLUMN NAMES AND VALUES
             for (i = 0, l = values.length; i < l; i++) {
@@ -285,14 +283,14 @@
                 query += limit;
             }
             // clear, perform query, check for errors and return result
-            this.clear();
+            this._clear();
             return query;
         }
-        performUpdate(table, order, limit, onSuccess, onError) {
-            const query = this.formatUpdate(table, order, limit);
-            this.query(query, onSuccess, onError);
+        PerformUpdate(table, order, limit, onSuccess, onError) {
+            const query = this._formatUpdate(table, order, limit);
+            this._query(query, onSuccess, onError);
         }
-        formatDelete(table, order, limit) {
+        _formatDelete(table, order, limit) {
             let query = 'DELETE FROM ';
             query += table;
             // WHERE
@@ -318,12 +316,12 @@
                 query += limit;
             }
             // clear, perform query, check for errors and return result
-            this.clear();
+            this._clear();
             return query;
         }
-        performDelete(table, order, limit, onSuccess, onError) {
-            const query = this.formatDelete(table, order, limit);
-            this.query(query, onSuccess, onError);
+        PerformDelete(table, order, limit, onSuccess, onError) {
+            const query = this._formatDelete(table, order, limit);
+            this._query(query, onSuccess, onError);
         }
         /**
          * This returns an array containing objects like this: <code>
@@ -334,14 +332,14 @@
          * }
          * </code>
          */
-        getChildNodes(table, column, delimiter, path, onSuccess, onError) {
+        GetChildNodes(table, column, delimiter, path, onSuccess, onError) {
             const delim = SqlHelper.escape(delimiter);
             const plp1 = path.length + 1;
             const tabCol = `${table}.${column}`;
             let col = `DISTINCT IF(LOCATE(${delim}, ${tabCol}, ${(plp1)}) > 0, SUBSTRING(${tabCol}, ${(plp1)}, (LOCATE(${delim}, ${tabCol}, ${plp1}) - ${path.length})), SUBSTRING(${tabCol}, ${plp1}, LENGTH(${tabCol}))) AS child`;
-            this.addColumn(col);
-            this.addWhere(`LOCATE(${escape(path)}, ${tabCol}) = 1`);
-            this.performSelect(table, undefined, undefined, undefined, function (results, fields) {
+            this.AddColumn(col);
+            this.AddWhere(`LOCATE(${escape(path)}, ${tabCol}) = 1`);
+            this.PerformSelect(table, undefined, undefined, undefined, function (results, fields) {
                 const nodes = [];
                 for (let i = 0, l = results.length; i < l; i++) {
                     const child = results[i].child;
@@ -356,8 +354,8 @@
                 onSuccess(nodes);
             }, onError);
         }
-        getTrendData() {
-            throw new Error('ERROR! Not implemented: getTrendData()');
+        GetTrendData() {
+            throw new Error('ERROR! Not implemented: GetTrendData()');
         }
     }
 

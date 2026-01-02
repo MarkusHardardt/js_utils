@@ -239,9 +239,9 @@
         _getRawString(adapter, table, key, language, onSuccess, onError) {
             let valcol = this._valColsForExt[table.extension], column = typeof valcol === 'string' ? valcol : valcol[language];
             if (typeof column === 'string') {
-                adapter.addColumn(`${table.name}.${column} AS ${column}`);
-                adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
-                adapter.performSelect(table.name, undefined, undefined, 1, (results, fields) => {
+                adapter.AddColumn(`${table.name}.${column} AS ${column}`);
+                adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+                adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
                     // in case of an result we are dealing with an existing key, but
                     // the
                     // data for the requested language may not be available anyway
@@ -265,13 +265,13 @@
                     return;
                 }
                 this._getSqlAdapter(adapter => {
-                    adapter.addColumn('COUNT(*) AS cnt');
-                    adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(match[1])}`);
-                    adapter.performSelect(table.name, undefined, undefined, undefined, result => {
-                        adapter.close();
+                    adapter.AddColumn('COUNT(*) AS cnt');
+                    adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(match[1])}`);
+                    adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
+                        adapter.Close();
                         onSuccess(result[0].cnt > 0);
                     }, error => {
-                        adapter.close();
+                        adapter.Close();
                         onError(error);
                     });
                 }, onError);
@@ -297,11 +297,11 @@
                 const key = match[1];
                 let raw = id;
                 function success() {
-                    adapter.close();
+                    adapter.Close();
                     onSuccess(Utilities.md5(raw));
                 }
                 function error(err) {
-                    adapter.close();
+                    adapter.Close();
                     onError(err);
                 };
                 // if JsonFX or plain text is available we decode the string and
@@ -318,11 +318,11 @@
                 } else {
                     for (const attr in valcol) {
                         if (valcol.hasOwnProperty(attr)) {
-                            adapter.addColumn(`${table.name}.${valcol[attr]} AS ${attr}`);
+                            adapter.AddColumn(`${table.name}.${valcol[attr]} AS ${attr}`);
                         }
                     }
-                    adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
-                    adapter.performSelect(table.name, undefined, undefined, 1, (results, fields) => {
+                    adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+                    adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
                         if (results.length === 1) {
                             const object = results[0];
                             for (const attr in valcol) {
@@ -359,7 +359,7 @@
             this._getSqlAdapter(adapter => {
                 let key = match[1], parse = mode === ContentManager.PARSE, include = parse || mode === ContentManager.INCLUDE;
                 function success(response) {
-                    adapter.close();
+                    adapter.Close();
                     try {
                         if (parse) {
                             const object = JsonFX.reconstruct(response);
@@ -378,7 +378,7 @@
                     }
                 }
                 function error(err) {
-                    adapter.close();
+                    adapter.Close();
                     onError(err);
                 }
                 // if JsonFX or plain text is available we decode the string and
@@ -418,11 +418,11 @@
                 } else {
                     for (const attr in valcol) {
                         if (valcol.hasOwnProperty(attr)) {
-                            adapter.addColumn(`${table.name}.${valcol[attr]} AS ${attr}`);
+                            adapter.AddColumn(`${table.name}.${valcol[attr]} AS ${attr}`);
                         }
                     }
-                    adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
-                    adapter.performSelect(table.name, undefined, undefined, 1, (results, fields) => {
+                    adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+                    adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
                         if (results.length === 1) {
                             const object = results[0];
                             if (include) {
@@ -439,7 +439,7 @@
                                                     onSuc();
                                                 }, onErr);
                                             });
-                                        } ());
+                                        }());
                                     }
                                 }
                                 tasks.parallel = that._parallel;
@@ -552,7 +552,7 @@
                                         }
                                     }, onErr);
                                 });
-                            } ());
+                            }());
                         }
                     }
                 }
@@ -578,7 +578,7 @@
                                 onSuc();
                             }, onErr);
                         });
-                    } ());
+                    }());
                 }
             }
             tasks.parallel = this._parallel;
@@ -613,16 +613,16 @@
             // values
             const that = this;
             if (typeof valcol === 'string') {
-                adapter.addColumn(`${table.name}.${valcol} AS ${valcol}`);
+                adapter.AddColumn(`${table.name}.${valcol} AS ${valcol}`);
             } else {
                 for (const attr in valcol) {
                     if (valcol.hasOwnProperty(attr)) {
-                        adapter.addColumn(`${table.name}.${valcol[attr]} AS ${valcol[attr]}`);
+                        adapter.AddColumn(`${table.name}.${valcol[attr]} AS ${valcol[attr]}`);
                     }
                 }
             }
-            adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(match[1])}`);
-            adapter.performSelect(table.name, undefined, undefined, 1, (result, fields) => {
+            adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(match[1])}`);
+            adapter.PerformSelect(table.name, undefined, undefined, 1, (result, fields) => {
                 const currentData = result.length === 1 ? result[0] : undefined;
                 // here we store the conditions
                 let stillNotEmpty = false;
@@ -699,18 +699,18 @@
                             if (referencesFrom.length > 0) {
                                 params.externalUsers = referencesFrom;
                             }
-                            adapter.close();
+                            adapter.Close();
                             onSuccess(params);
                         }, err => {
-                            adapter.close();
+                            adapter.Close();
                             onError(err);
                         });
                     } else {
-                        adapter.close();
+                        adapter.Close();
                         onSuccess(params);
                     }
                 }, err => {
-                    adapter.close();
+                    adapter.Close();
                     onError(err);
                 });
             }, onError);
@@ -731,7 +731,7 @@
             this._getSqlAdapter(adapter => {
                 const main = [];
                 main.parallel = false;
-                main.push((onSuc, onErr) => adapter.startTransaction(onSuc, onErr));
+                main.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
                 main.push((onSuc, onErr) => {
                     that._getModificationParams(adapter, id, language, value, params => {
                         if (params.error !== undefined) {
@@ -741,11 +741,11 @@
                         } else if (params.action === ContentManager.NONE) {
                             onErr('No action to perform!');
                         } else if (params.action === ContentManager.INSERT) {
-                            adapter.addValue(`${table.name}.${table.key_column}`, SqlHelper.escape(key));
+                            adapter.AddValue(`${table.name}.${table.key_column}`, SqlHelper.escape(key));
                             if (typeof valcol === 'string') {
                                 const value = params.values[valcol];
                                 if (value.changed) {
-                                    adapter.addValue(`${table.name}.${valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                    adapter.AddValue(`${table.name}.${valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                 }
                             } else {
                                 for (const attr in valcol) {
@@ -753,52 +753,52 @@
                                         // value = i_params.values[valcol[attr]];
                                         const value = params.values[attr];
                                         if (value.changed) {
-                                            adapter.addValue(`${table.name}.${valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                            adapter.AddValue(`${table.name}.${valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                         }
                                     }
                                 }
                             }
-                            adapter.performInsert(table.name, onSuc, onErr);
+                            adapter.PerformInsert(table.name, onSuc, onErr);
                         } else if (params.action === ContentManager.UPDATE) {
                             if (typeof valcol === 'string') {
                                 const value = params.values[valcol];
                                 if (value.changed) {
-                                    adapter.addValue(`${table.name}.${valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                    adapter.AddValue(`${table.name}.${valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                 }
                             } else {
                                 for (const attr in valcol) {
                                     if (valcol.hasOwnProperty(attr)) {
                                         const value = params.values[attr];
                                         if (value.changed) {
-                                            adapter.addValue(`${table.name}.${valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                            adapter.AddValue(`${table.name}.${valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                         }
                                     }
                                 }
                             }
-                            adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
-                            adapter.performUpdate(table.name, undefined, 1, onSuc, onErr);
+                            adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+                            adapter.PerformUpdate(table.name, undefined, 1, onSuc, onErr);
                         } else if (params.action === ContentManager.DELETE) {
-                            adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
-                            adapter.performDelete(table.name, undefined, 1, onSuc, onErr);
+                            adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+                            adapter.PerformDelete(table.name, undefined, 1, onSuc, onErr);
                         } else {
                             onErr(`Unexpected action: '${params.action}'`);
                         }
                     }, onErr);
                 });
                 Executor.run(main, () => {
-                    adapter.commitTransaction(() => {
-                        adapter.close();
+                    adapter.CommitTransaction(() => {
+                        adapter.Close();
                         onSuccess();
                     }, err => {
-                        adapter.close();
+                        adapter.Close();
                         onError(err);
                     });
                 }, err => {
-                    adapter.rollbackTransaction(() => {
-                        adapter.close();
+                    adapter.RollbackTransaction(() => {
+                        adapter.Close();
                         onError(err);
                     }, ee => {
-                        adapter.close();
+                        adapter.Close();
                         onError(ee);
                     });
                 });
@@ -919,17 +919,17 @@
                             (function () {
                                 const table = that._tablesForExt[attr];
                                 tasks.push((os, oe) => {
-                                    adapter.addColumn(`${table.name}.${table.key_column} AS path`);
+                                    adapter.AddColumn(`${table.name}.${table.key_column} AS path`);
                                     // select all paths within the range
-                                    adapter.addWhere(`LOCATE(${SqlHelper.escape(srcTabKey)},${table.name}.${table.key_column}) = 1`);
-                                    adapter.performSelect(table.name, undefined, undefined, undefined, result => {
+                                    adapter.AddWhere(`LOCATE(${SqlHelper.escape(srcTabKey)},${table.name}.${table.key_column}) = 1`);
+                                    adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
                                         for (let i = 0, l = result.length; i < l; i++) {
                                             srcKeysObj['$' + result[i].path + '.' + table.extension] = true;
                                         }
                                         os();
                                     }, oe);
                                 });
-                            } ());
+                            }());
                         }
                     }
                     tasks.parallel = that._parallel;
@@ -991,16 +991,16 @@
                             const table = that._tablesForExt[match[2]];
                             const tabKeyEsc = SqlHelper.escape(match[1]);
                             tasks.push((os, or) => {
-                                adapter.addColumn('COUNT(*) AS cnt');
-                                adapter.addWhere(`${table.name}.${table.key_column} = ${tabKeyEsc}`);
-                                adapter.performSelect(table.name, undefined, undefined, undefined, result => {
+                                adapter.AddColumn('COUNT(*) AS cnt');
+                                adapter.AddWhere(`${table.name}.${table.key_column} = ${tabKeyEsc}`);
+                                adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
                                     if (result[0].cnt > 0) {
                                         tgtExObj[tgt] = true;
                                     }
                                     os();
                                 }, or);
                             });
-                        } ());
+                        }());
                     }
                 } else { // no target
                     if (sourceIsFolder) {
@@ -1052,7 +1052,7 @@
                                     os();
                                 }, or);
                             });
-                        } ());
+                        }());
                     }
                 }
                 tasks.parallel = that._parallel;
@@ -1081,10 +1081,10 @@
             const that = this;
             this._getSqlAdapter(adapter => {
                 that._getRefactoringParams(adapter, source, target, action, params => {
-                    adapter.close();
+                    adapter.Close();
                     onSuccess(params);
                 }, err => {
-                    adapter.close();
+                    adapter.Close();
                     onError(err);
                 });
             }, onError);
@@ -1099,7 +1099,7 @@
                 main.parallel = false;
                 // we run this as a transaction wo enable rollbacks (just in case
                 // something unexpected happens)
-                main.push((onSuc, onErr) => adapter.startTransaction(onSuc, onErr));
+                main.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
                 main.push((onSuc, onErr) => {
                     that._getRefactoringParams(adapter, source, target, action, params => {
                         if (params.error !== undefined) {
@@ -1122,7 +1122,7 @@
                                         (function () {
                                             const src = attr;
                                             tasks.push((os, oe) => that._performRefactoring(adapter, src, params, replace, os, oe));
-                                        } ());
+                                        }());
                                     }
                                 }
                             } else if (params.action === ContentManager.DELETE) {
@@ -1133,18 +1133,18 @@
                                             (function () {
                                                 const table = that._tablesForExt[attr];
                                                 tasks.push((os, oe) => {
-                                                    adapter.addWhere(`LOCATE(${srcTabKey},${table.name}.${table.key_column}) = 1`);
-                                                    adapter.performDelete(table.name, undefined, undefined, os, oe);
+                                                    adapter.AddWhere(`LOCATE(${srcTabKey},${table.name}.${table.key_column}) = 1`);
+                                                    adapter.PerformDelete(table.name, undefined, undefined, os, oe);
                                                 });
-                                            } ());
+                                            }());
                                         }
                                     }
                                 } else {
                                     const key_regex = that._key_regex, match = key_regex.exec(source);
                                     const table = that._tablesForExt[match[2]], srcTabKey = SqlHelper.escape(match[1]);
                                     tasks.push((os, oe) => {
-                                        adapter.addWhere(`${table.name}.${table.key_column} = ${srcTabKey}`);
-                                        adapter.performDelete(table.name, undefined, 1, os, oe);
+                                        adapter.AddWhere(`${table.name}.${table.key_column} = ${srcTabKey}`);
+                                        adapter.PerformDelete(table.name, undefined, 1, os, oe);
                                     });
                                 }
                             }
@@ -1153,19 +1153,19 @@
                     }, onErr);
                 });
                 Executor.run(main, () => {
-                    adapter.commitTransaction(() => {
-                        adapter.close();
+                    adapter.CommitTransaction(() => {
+                        adapter.Close();
                         onSuccess();
                     }, err => {
-                        adapter.close();
+                        adapter.Close();
                         onError(err);
                     });
                 }, err => {
-                    adapter.rollbackTransaction(() => {
-                        adapter.close();
+                    adapter.RollbackTransaction(() => {
+                        adapter.Close();
                         onError(err);
                     }, er => {
-                        adapter.close();
+                        adapter.Close();
                         onError(er);
                     });
                 });
@@ -1185,16 +1185,16 @@
                     const target = params.objects[source];
                     const targetAlreadyExists = params.existingTargets && params.existingTargets[target] === true;
                     if (typeof valcol === 'string') {
-                        adapter.addColumn(`${table.name}.${valcol}`);
+                        adapter.AddColumn(`${table.name}.${valcol}`);
                     } else {
                         for (const attr in valcol) {
                             if (valcol.hasOwnProperty(attr)) {
-                                adapter.addColumn(`${table.name}.${valcol[attr]}`);
+                                adapter.AddColumn(`${table.name}.${valcol[attr]}`);
                             }
                         }
                     }
-                    adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(srcTabKey)}`);
-                    adapter.performSelect(table.name, undefined, undefined, 1, results => {
+                    adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(srcTabKey)}`);
+                    adapter.PerformSelect(table.name, undefined, undefined, 1, results => {
                         const values = results[0];
                         // replace internal cross references and prepare database
                         // update or insert value
@@ -1202,7 +1202,7 @@
                             let string = values[valcol];
                             if (typeof string === 'string' && string.length > 0) {
                                 string = getReplacement(string);
-                                adapter.addValue(`${table.name}.${valcol}`, SqlHelper.escape(string));
+                                adapter.AddValue(`${table.name}.${valcol}`, SqlHelper.escape(string));
                             }
                         } else {
                             for (const attr in valcol) {
@@ -1210,7 +1210,7 @@
                                     let string = values[valcol[attr]];
                                     if (typeof string === 'string' && string.length > 0) {
                                         string = getReplacement(string);
-                                        adapter.addValue(`${table.name}.${valcol[attr]}`, SqlHelper.escape(string));
+                                        adapter.AddValue(`${table.name}.${valcol[attr]}`, SqlHelper.escape(string));
                                     }
                                 }
                             }
@@ -1219,22 +1219,22 @@
                         const tgtTabKey = match[1];
                         function success() {
                             if (targetAlreadyExists && params.action === ContentManager.MOVE) {
-                                adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(srcTabKey)}`);
-                                adapter.performDelete(table.name, undefined, 1, onSuc, onErr);
+                                adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(srcTabKey)}`);
+                                adapter.PerformDelete(table.name, undefined, 1, onSuc, onErr);
                             } else {
                                 onSuc();
                             }
                         };
                         if (targetAlreadyExists) {
-                            adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(tgtTabKey)}`);
-                            adapter.performUpdate(table.name, undefined, 1, success, onErr);
+                            adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(tgtTabKey)}`);
+                            adapter.PerformUpdate(table.name, undefined, 1, success, onErr);
                         } else {
-                            adapter.addValue(`${table.name}.${table.key_column}`, SqlHelper.escape(tgtTabKey));
+                            adapter.AddValue(`${table.name}.${table.key_column}`, SqlHelper.escape(tgtTabKey));
                             if (params.action === ContentManager.MOVE) {
-                                adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(srcTabKey)}`);
-                                adapter.performUpdate(table.name, undefined, 1, success, onErr);
+                                adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(srcTabKey)}`);
+                                adapter.PerformUpdate(table.name, undefined, 1, success, onErr);
                             } else {
-                                adapter.performInsert(table.name, success, onErr);
+                                adapter.PerformInsert(table.name, success, onErr);
                             }
                         }
                     }, onErr);
@@ -1257,16 +1257,16 @@
                                     const usrKey = match[1];
                                     tasks.push((os, oe) => {
                                         if (typeof valcol === 'string') {
-                                            adapter.addColumn(`${table.name}.${valcol} AS ${valcol}`);
+                                            adapter.AddColumn(`${table.name}.${valcol} AS ${valcol}`);
                                         } else {
                                             for (const attr in valcol) {
                                                 if (valcol.hasOwnProperty(attr)) {
-                                                    adapter.addColumn(`${table.name}.${valcol[attr]} AS ${valcol[attr]}`);
+                                                    adapter.AddColumn(`${table.name}.${valcol[attr]} AS ${valcol[attr]}`);
                                                 }
                                             }
                                         }
-                                        adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(usrKey)}`);
-                                        adapter.performSelect(table.name, undefined, undefined, 1, result => {
+                                        adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(usrKey)}`);
+                                        adapter.PerformSelect(table.name, undefined, undefined, 1, result => {
                                             // replace in all existing value strings all occurrences
                                             // of
                                             // any source path with the resulting target path and
@@ -1276,7 +1276,7 @@
                                                 let string = values[valcol];
                                                 if (typeof string === 'string' && string.length > 0) {
                                                     string = getReplacement(string);
-                                                    adapter.addValue(`${table.name}.${valcol}`, SqlHelper.escape(string));
+                                                    adapter.AddValue(`${table.name}.${valcol}`, SqlHelper.escape(string));
                                                 }
                                             } else {
                                                 for (const attr in valcol) {
@@ -1284,16 +1284,16 @@
                                                         let string = values[valcol[attr]];
                                                         if (typeof string === 'string' && string.length > 0) {
                                                             string = getReplacement(string);
-                                                            adapter.addValue(`${table.name}.${valcol[attr]}`, SqlHelper.escape(string));
+                                                            adapter.AddValue(`${table.name}.${valcol[attr]}`, SqlHelper.escape(string));
                                                         }
                                                     }
                                                 }
                                             }
-                                            adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(usrKey)}`);
-                                            adapter.performUpdate(table.name, undefined, 1, os, oe);
+                                            adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(usrKey)}`);
+                                            adapter.PerformUpdate(table.name, undefined, 1, os, oe);
                                         }, oe);
                                     });
-                                } ());
+                                }());
                             }
                         }
                         Executor.run(tasks, onSuc, onErr);
@@ -1321,17 +1321,17 @@
                             (function () {
                                 const used = that._tablesForExt[attr];
                                 tasks.push((onSuc, onErr) => {
-                                    adapter.addColumn(`tab.${used.key_column} AS path`);
-                                    adapter.addWhere(`${user.name}.${user.key_column} = ${key}`);
-                                    adapter.addJoin(formatReferencesToCondition(user.name, valcol, used.name, 'tab', used.extension, used.key_column));
-                                    adapter.performSelect(user.name, undefined, undefined, undefined, result => {
+                                    adapter.AddColumn(`tab.${used.key_column} AS path`);
+                                    adapter.AddWhere(`${user.name}.${user.key_column} = ${key}`);
+                                    adapter.AddJoin(formatReferencesToCondition(user.name, valcol, used.name, 'tab', used.extension, used.key_column));
+                                    adapter.PerformSelect(user.name, undefined, undefined, undefined, result => {
                                         for (let i = 0, l = result.length; i < l; i++) {
                                             keys[`$${result[i].path}.${used.extension}`] = true;
                                         }
                                         onSuc();
                                     }, onErr);
                                 });
-                            } ());
+                            }());
                         }
                     }
                     tasks.parallel = that._parallel;
@@ -1342,10 +1342,10 @@
                                 array.push(key);
                             }
                         }
-                        adapter.close();
+                        adapter.Close();
                         onSuccess(array);
                     }, err => {
-                        adapter.close();
+                        adapter.Close();
                         onError(err);
                     });
                 }, onError);
@@ -1374,23 +1374,23 @@
                             (function () {
                                 const used = that._tablesForExt[attr];
                                 tasks.push((onSuc, onErr) => {
-                                    adapter.addColumn('COUNT(*) AS cnt');
-                                    adapter.addWhere(`${user.name}.${user.key_column} = ${key}`);
-                                    adapter.addJoin(formatReferencesToCondition(user.name, valcol, used.name, 'tab', used.extension, used.key_column));
-                                    adapter.performSelect(user.name, undefined, undefined, undefined, response => {
+                                    adapter.AddColumn('COUNT(*) AS cnt');
+                                    adapter.AddWhere(`${user.name}.${user.key_column} = ${key}`);
+                                    adapter.AddJoin(formatReferencesToCondition(user.name, valcol, used.name, 'tab', used.extension, used.key_column));
+                                    adapter.PerformSelect(user.name, undefined, undefined, undefined, response => {
                                         result += response[0].cnt;
                                         onSuc();
                                     }, onErr);
                                 });
-                            } ());
+                            }());
                         }
                     }
                     tasks.parallel = that._parallel;
                     Executor.run(tasks, () => {
-                        adapter.close();
+                        adapter.Close();
                         onSuccess(result);
                     }, err => {
-                        adapter.close();
+                        adapter.Close();
                         onError(err);
                     });
                 }, onError);
@@ -1407,24 +1407,24 @@
                         const table = that._tablesForExt[attr];
                         const valcol = that._valColsForExt[attr];
                         tasks.push((onSuc, onErr) => {
-                            adapter.addColumn(`${table.name}.${table.key_column} AS path`);
+                            adapter.AddColumn(`${table.name}.${table.key_column} AS path`);
                             if (typeof valcol === 'string') {
-                                adapter.addWhere(formatReferencesFromCondition(key, `${table.name}.${valcol}`), false);
+                                adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${valcol}`), false);
                             } else {
                                 for (const col in valcol) {
                                     if (valcol.hasOwnProperty(col)) {
-                                        adapter.addWhere(formatReferencesFromCondition(key, `${table.name}.${valcol[col]}`), false);
+                                        adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${valcol[col]}`), false);
                                     }
                                 }
                             }
-                            adapter.performSelect(table.name, undefined, undefined, undefined, response => {
+                            adapter.PerformSelect(table.name, undefined, undefined, undefined, response => {
                                 for (let i = 0, l = response.length; i < l; i++) {
                                     keys[`$${response[i].path}.${table.extension}`] = true;
                                 }
                                 onSuc();
                             }, onErr);
                         });
-                    } ());
+                    }());
                 }
             }
             tasks.parallel = that._parallel;
@@ -1443,10 +1443,10 @@
                 const that = this;
                 this._getSqlAdapter(adapter => {
                     that._getReferencesFrom(adapter, id, results => {
-                        adapter.close();
+                        adapter.Close();
                         onSuccess(results);
                     }, err => {
-                        adapter.close();
+                        adapter.Close();
                         onError(err);
                     });
                 }, onError);
@@ -1468,30 +1468,30 @@
                                 const table = that._tablesForExt[attr];
                                 const valcol = that._valColsForExt[attr];
                                 tasks.push((onSuc, onErr) => {
-                                    adapter.addColumn('COUNT(*) AS cnt');
+                                    adapter.AddColumn('COUNT(*) AS cnt');
                                     if (typeof valcol === 'string') {
-                                        adapter.addWhere(formatReferencesFromCondition(key, `${table.name}.${valcol}`), false);
+                                        adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${valcol}`), false);
                                     } else {
                                         for (const col in valcol) {
                                             if (valcol.hasOwnProperty(col)) {
-                                                adapter.addWhere(formatReferencesFromCondition(key, `${table.name}.${valcol[col]}`), false);
+                                                adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${valcol[col]}`), false);
                                             }
                                         }
                                     }
-                                    adapter.performSelect(table.name, undefined, undefined, undefined, response => {
+                                    adapter.PerformSelect(table.name, undefined, undefined, undefined, response => {
                                         result += response[0].cnt;
                                         onSuc();
                                     }, onErr);
                                 });
-                            } ());
+                            }());
                         }
                     }
                     tasks.parallel = that._parallel;
                     Executor.run(tasks, () => {
-                        adapter.close();
+                        adapter.Close();
                         onSuccess(result);
                     }, err => {
-                        adapter.close();
+                        adapter.Close();
                         onError(err);
                     });
                 }, onError);
@@ -1534,7 +1534,7 @@
                                      * }
                                      * </code>
                                      */
-                                    adapter.getChildNodes(table.name, table.key_column, '/', key, children => {
+                                    adapter.GetChildNodes(table.name, table.key_column, '/', key, children => {
                                         const l = children.length;
                                         for (let i = 0; i < l; i++) {
                                             const node = children[i];
@@ -1556,15 +1556,15 @@
                                         onSuc();
                                     }, onErr);
                                 });
-                            } ());
+                            }());
                         }
                     }
                     tasks.parallel = that._parallel;
                     Executor.run(tasks, () => {
-                        adapter.close();
+                        adapter.Close();
                         onSuccess(nodes);
                     }, err => {
-                        adapter.close();
+                        adapter.Close();
                         onError(err);
                     });
                 }, onError);
@@ -1585,7 +1585,7 @@
                                 const table = that._tablesForExt[attr];
                                 const valcol = that._valColsForExt[attr];
                                 tasks.push((onSuc, onErr) => {
-                                    adapter.addColumn(`${table.name}.${table.key_column} AS path`);
+                                    adapter.AddColumn(`${table.name}.${table.key_column} AS path`);
                                     let where = '';
                                     if (searchKey.length > 0) {
                                         where += `LOCATE(${SqlHelper.escape(searchKey)}, ${table.name}.${table.key_column}) > 0`;
@@ -1611,8 +1611,8 @@
                                             where += ')';
                                         }
                                     }
-                                    adapter.addWhere(where);
-                                    adapter.performSelect(table.name, undefined, undefined, undefined, result => {
+                                    adapter.AddWhere(where);
+                                    adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
                                         const l = result.length;
                                         for (let i = 0; i < l; i++) {
                                             results.push(`$${result[i].path}.${table.extension}`);
@@ -1620,15 +1620,15 @@
                                         onSuc();
                                     }, onErr);
                                 });
-                            } ());
+                            }());
                         }
                     }
                     tasks.parallel = that._parallel;
                     Executor.run(tasks, () => {
-                        adapter.close();
+                        adapter.Close();
                         onSuccess(results);
                     }, err => {
-                        adapter.close();
+                        adapter.Close();
                         onError(err);
                     });
                 }, onError);
@@ -1645,9 +1645,9 @@
                                 const table = that._tablesForExt[attr];
                                 // TODO: remove or reuse const valcol = that._valColsForExt[attr];
                                 tasks.push((onSuc, onErr) => {
-                                    adapter.addColumn(`${table.name}.${table.key_column} AS path`);
-                                    adapter.addWhere(`LOCATE(${path},${table.name}.${table.key_column}) = 1`);
-                                    adapter.performSelect(table.name, undefined, undefined, undefined, result => {
+                                    adapter.AddColumn(`${table.name}.${table.key_column} AS path`);
+                                    adapter.AddWhere(`LOCATE(${path},${table.name}.${table.key_column}) = 1`);
+                                    adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
                                         const l = result.length;
                                         for (let i = 0; i < l; i++) {
                                             results.push('$' + result[i].path + '.' + table.extension);
@@ -1655,15 +1655,15 @@
                                         onSuc();
                                     }, onErr);
                                 });
-                            } ());
+                            }());
                         }
                     }
                     tasks.parallel = that._parallel;
                     Executor.run(tasks, () => {
-                        adapter.close();
+                        adapter.Close();
                         onSuccess(results);
                     }, err => {
-                        adapter.close();
+                        adapter.Close();
                         onError(err);
                     });
                 }, onError);
@@ -1685,17 +1685,17 @@
             }
             const that = this;
             this._getSqlAdapter(adapter => {
-                adapter.addColumn(`${table.name}.${table.key_column} AS path`);
-                adapter.addColumn((typeof valcol === 'string' ? valcol : valcol[language]) + ' AS val');
-                adapter.performSelect(table.name, undefined, 'path ASC', undefined, result => {
+                adapter.AddColumn(`${table.name}.${table.key_column} AS path`);
+                adapter.AddColumn((typeof valcol === 'string' ? valcol : valcol[language]) + ' AS val');
+                adapter.PerformSelect(table.name, undefined, 'path ASC', undefined, result => {
                     const array = [], l = result.length;
                     for (let i = 0; i < l; i++) {
                         array.push([`${result[i].path}.${table.extension}`, result[i].val]);
                     }
-                    adapter.close();
+                    adapter.Close();
                     onSuccess(array);
                 }, err => {
-                    adapter.close();
+                    adapter.Close();
                     onError(err);
                 });
             }, onError);
@@ -1843,7 +1843,7 @@
                                         onSuc();
                                     }, onErr);
                                 });
-                            } ());
+                            }());
                         }
                         tasks.parallel = true;
                         Executor.run(tasks, () => onSuccess(nodes), onError);
@@ -1876,7 +1876,7 @@
                                         onSuc();
                                     }, onErr);
                                 });
-                            } ());
+                            }());
                         }
                         tasks.parallel = true;
                         Executor.run(tasks, () => onSuccess(nodes), onError);
@@ -1893,24 +1893,24 @@
             this._getSqlAdapter(adapter => {
                 const main = [];
                 main.parallel = false;
-                main.push((onSuc, onErr) => adapter.startTransaction(onSuc, onErr));
+                main.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
                 main.push(function (onSuc, onErr) {
                     // add this as often as reqzured and implement actions
                 });
                 Executor.run(main, () => {
-                    adapter.commitTransaction(() => {
-                        adapter.close();
+                    adapter.CommitTransaction(() => {
+                        adapter.Close();
                         onSuccess();
                     }, (err) => {
-                        adapter.close();
+                        adapter.Close();
                         onError(err);
                     });
                 }, err => {
-                    adapter.rollbackTransaction(() => {
-                        adapter.close();
+                    adapter.RollbackTransaction(() => {
+                        adapter.Close();
                         onError(err);
                     }, er => {
-                        adapter.close();
+                        adapter.Close();
                         onError(er);
                     });
                 });
@@ -2116,7 +2116,7 @@
                             }, onErr);
                         });
                     }
-                } ());
+                }());
             }
             tasks.parallel = false;
             Executor.run(tasks, () => {
@@ -2208,7 +2208,7 @@
                         onProgressChanged(formatProgressInPercent(idx / len));
                         onSuc();
                     });
-                } ());
+                }());
             }
             tasks.parallel = false;
             Executor.run(tasks, () => onProgressChanged(), onError);
