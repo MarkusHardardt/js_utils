@@ -1,6 +1,7 @@
-// TODO: 'i_createCallbackFunction'
-// TODO: S4.XXX
 (function (root) {
+    /*  TODO:
+        - Move all browser specific stuff to separate file(s)
+    */
     const ObjectLifecycleManager = {};
     const isNodeJS = typeof require === 'function';
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
