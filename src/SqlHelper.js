@@ -25,53 +25,42 @@
             this._joins.splice(0, this._joins.length);
             this._wheres.splice(0, this._wheres.length);
         }
-        addColumn(i_expression) {
-            this._columns.push(i_expression);
+        addColumn(expression) {
+            this._columns.push(expression);
         }
-        addJoin(i_expression) {
-            this._joins.push(i_expression);
+        addJoin(expression) {
+            this._joins.push(expression);
         }
-        addWhere(i_expression, i_and) {
-            this._wheres.push({
-                expr: i_expression,
-                opr: i_and !== false ? ' AND ' : ' OR '
-            });
+        addWhere(expression, and) {
+            this._wheres.push({ expr: expression, opr: and !== false ? ' AND ' : ' OR ' });
         }
-        // TODO i_apostrophes used? escape add's them anyway ...
-        addValue(i_column, i_data, i_apostrophes) {
+        addValue(column, data) {
             var values = this._values, value;
             for (var i = 0, l = values.length; i < l; i++) {
                 value = values[i];
-                if (value.column === i_column) {
+                if (value.column === column) {
                     if (Array.isArray(value.data)) {
-                        value.data.push(i_data);
-                    }
-                    else {
-                        value.data = [value.data, i_data];
+                        value.data.push(data);
+                    } else {
+                        value.data = [value.data, data];
                     }
                     return;
                 }
             }
-            this._values.push({
-                column: i_column,
-                data: i_data,
-                apostrophes: false
-                // i_apostrophes !== false
-            });
+            this._values.push({ column, data, apostrophes: false });
         }
-        query(i_query, onSuccess, onError) {
+        query(queryString, onSuccess, onError) {
             if (this._verbose) {
-                console.log(i_query);
+                console.log(queryString);
             }
-            this._con.query(i_query, function (i_exception, i_results, i_fields) {
-                if (i_exception) {
+            this._con.query(queryString, (error, results, fields) => {
+                if (error) {
                     if (typeof onError === 'function') {
-                        onError(i_exception);
+                        onError(error);
                     }
-                }
-                else {
+                } else {
                     if (typeof onSuccess === 'function') {
-                        onSuccess(i_results, i_fields);
+                        onSuccess(results, fields);
                     }
                 }
             });
@@ -85,10 +74,10 @@
         commitTransaction(onSuccess, onError) {
             this.query('COMMIT', onSuccess, onError);
         }
-        formatSelect(i_table, i_group, i_order, i_limit) {
-            var query = 'SELECT', i, l, columns = this._columns, joins = this._joins, wheres = this._wheres, expr;
+        formatSelect(table, group, order, limit) {
+            let query = 'SELECT', l, columns = this._columns, joins = this._joins, wheres = this._wheres, expr;
             // COLUMNS
-            for (i = 0, l = columns.length; i < l; i++) {
+            for (let i = 0, l = columns.length; i < l; i++) {
                 if (i > 0) {
                     query += ',';
                 }
@@ -97,9 +86,9 @@
             }
             // TABLE
             query += ' FROM ';
-            query += i_table;
+            query += table;
             // JOINS
-            for (i = 0, l = joins.length; i < l; i++) {
+            for (let i = 0, l = joins.length; i < l; i++) {
                 query += ' ';
                 query += joins[i];
             }
@@ -107,7 +96,7 @@
             l = wheres.length;
             if (l > 0) {
                 query += ' WHERE ';
-                for (i = 0; i < l; i++) {
+                for (let i = 0; i < l; i++) {
                     expr = wheres[i];
                     if (i > 0) {
                         query += expr.opr;
@@ -116,35 +105,35 @@
                 }
             }
             // GROUP
-            if (typeof i_group === 'string') {
+            if (typeof group === 'string') {
                 query += ' GROUP BY ';
-                query += i_group;
+                query += group;
             }
             // ORDER
-            if (typeof i_order === 'string') {
+            if (typeof order === 'string') {
                 query += ' ORDER BY ';
-                query += i_order;
+                query += order;
             }
             // LIMIT
-            if (typeof i_limit === 'number') {
+            if (typeof limit === 'number') {
                 query += ' LIMIT ';
-                query += i_limit;
+                query += limit;
             }
             // clear, perform query, check for errors and return result
             this.clear();
             return query;
         }
-        performSelect(i_table, i_group, i_order, i_limit, onSuccess, onError) {
-            var query = this.formatSelect(i_table, i_group, i_order, i_limit);
+        performSelect(table, group, order, limit, onSuccess, onError) {
+            const query = this.formatSelect(table, group, order, limit);
             this.query(query, onSuccess, onError);
         }
-        formatInsert(i_table) {
-            var insert = 'INSERT INTO ';
-            insert += i_table;
+        formatInsert(table) {
+            let insert = 'INSERT INTO ';
+            insert += table;
             insert += ' (';
             // COLUMN NAMES
-            var max = 1, i, l, values = this._values, value, data;
-            for (i = 0, l = values.length; i < l; i++) {
+            let max = 1, i, l, values = this._values, value, data;
+            for (let i = 0, l = values.length; i < l; i++) {
                 value = values[i];
                 if (i > 0) {
                     insert += ', ';
@@ -159,7 +148,7 @@
             if (max === 1) {
                 insert += '(';
                 // COLUMN VALUES
-                for (i = 0, l = values.length; i < l; i++) {
+                for (let i = 0, l = values.length; i < l; i++) {
                     value = values[i];
                     if (i > 0) {
                         insert += ', ';
@@ -167,8 +156,7 @@
                     data = value.data;
                     if (data === null) {
                         insert += 'NULL';
-                    }
-                    else {
+                    } else {
                         if (value.apostrophes) {
                             insert += "'";
                         }
@@ -181,11 +169,10 @@
                 insert += ')';
                 this.clear();
                 return insert;
-            }
-            else {
-                var inserts = [], d, query;
-                for (d = 0; d < max; d++) {
-                    query = '(';
+            } else {
+                const inserts = [];
+                for (let d = 0; d < max; d++) {
+                    let query = '(';
                     // COLUMN VALUES
                     for (i = 0, l = values.length; i < l; i++) {
                         value = values[i];
@@ -195,8 +182,7 @@
                         data = value.data[d];
                         if (data === null) {
                             query += 'NULL';
-                        }
-                        else {
+                        } else {
                             if (value.apostrophes) {
                                 query += "'";
                             }
@@ -210,7 +196,7 @@
                     inserts.push(query);
                 }
                 this.clear();
-                var queries = [], query = insert, idx = 0, count = inserts.length, nxt;
+                let queries = [], query = insert, idx = 0, count = inserts.length, nxt;
                 while (idx < count) {
                     query += inserts[idx];
                     if (idx < count - 1) {
@@ -218,12 +204,10 @@
                         if (query.length + 1 + nxt.length > this._maxAllowedPacket) {
                             queries.push(query);
                             query = insert;
-                        }
-                        else {
+                        } else {
                             query += ',';
                         }
-                    }
-                    else {
+                    } else {
                         queries.push(query);
                     }
                     idx++;
@@ -231,31 +215,28 @@
                 return queries;
             }
         }
-        performInsert(i_table, onSuccess, onError) {
-            var query = this.formatInsert(i_table);
+        performInsert(table, onSuccess, onError) {
+            const query = this.formatInsert(table);
             if (typeof query === 'string') {
                 this.query(query, onSuccess, onError);
-            }
-            else if (Array.isArray(query)) {
-                var that = this, tasks = [];
+            } else if (Array.isArray(query)) {
+                const that = this, tasks = [];
                 tasks.parallel = false;
-                for (var i = 0, l = query.length; i < l; i++) {
+                for (let i = 0, l = query.length; i < l; i++) {
                     (function () {
                         // closure
-                        var q = query[i];
-                        tasks.push(function (i_suc, i_err) {
-                            that.query(q, i_suc, i_err);
-                        });
+                        const q = query[i];
+                        tasks.push((onSuc, onErr) => that.query(q, onSuc, onErr));
                     }());
                 }
                 Executor.run(tasks, onSuccess, onError);
             }
         }
-        formatUpdate(i_table, i_order, i_limit) {
-            var query = 'UPDATE ';
-            query += i_table;
+        formatUpdate(table, order, limit) {
+            let query = 'UPDATE ';
+            query += table;
             query += ' SET ';
-            var values = this._values, value, data, i, l;
+            let values = this._values, value, data, i, l;
             // COLUMN NAMES AND VALUES
             for (i = 0, l = values.length; i < l; i++) {
                 value = values[i];
@@ -267,8 +248,7 @@
                 data = Array.isArray(value.data) ? value.data[0] : value.data;
                 if (data === null) {
                     query += 'NULL';
-                }
-                else {
+                } else {
                     if (value.apostrophes) {
                         query += "'";
                     }
@@ -291,26 +271,26 @@
                 }
             }
             // ORDER
-            if (typeof i_order === 'string') {
+            if (typeof order === 'string') {
                 query += ' ORDER BY ';
-                query += i_order;
+                query += order;
             }
             // LIMIT
-            if (typeof i_limit === 'number') {
+            if (typeof limit === 'number') {
                 query += ' LIMIT ';
-                query += i_limit;
+                query += limit;
             }
             // clear, perform query, check for errors and return result
             this.clear();
             return query;
         }
-        performUpdate(i_table, i_order, i_limit, onSuccess, onError) {
-            var query = this.formatUpdate(i_table, i_order, i_limit);
+        performUpdate(table, order, limit, onSuccess, onError) {
+            var query = this.formatUpdate(table, order, limit);
             this.query(query, onSuccess, onError);
         }
-        formatDelete(i_table, i_order, i_limit) {
+        formatDelete(table, order, limit) {
             var query = 'DELETE FROM ';
-            query += i_table;
+            query += table;
             // WHERE
             var wheres = this._wheres, expr, i, l = wheres.length;
             if (l > 0) {
@@ -324,21 +304,21 @@
                 }
             }
             // ORDER
-            if (typeof i_order === 'string') {
+            if (typeof order === 'string') {
                 query += ' ORDER BY ';
-                query += i_order;
+                query += order;
             }
             // LIMIT
-            if (typeof i_limit === 'number') {
+            if (typeof limit === 'number') {
                 query += ' LIMIT ';
-                query += i_limit;
+                query += limit;
             }
             // clear, perform query, check for errors and return result
             this.clear();
             return query;
         }
-        performDelete(i_table, i_order, i_limit, onSuccess, onError) {
-            var query = this.formatDelete(i_table, i_order, i_limit);
+        performDelete(table, order, limit, onSuccess, onError) {
+            var query = this.formatDelete(table, order, limit);
             this.query(query, onSuccess, onError);
         }
         /**
@@ -350,54 +330,54 @@
          * }
          * </code>
          */
-        getChildNodes(i_table, i_column, i_delimiter, i_path, onSuccess, onError) {
-            var delim = SqlHelper.escape(i_delimiter);
+        getChildNodes(table, column, delimiter, path, onSuccess, onError) {
+            var delim = SqlHelper.escape(delimiter);
             var col = 'DISTINCT IF(LOCATE(';
             col += delim;
             col += ', ';
-            col += i_table;
+            col += table;
             col += '.';
-            col += i_column;
+            col += column;
             col += ', ';
-            col += i_path.length + 1;
+            col += path.length + 1;
             col += ') > 0, SUBSTRING(';
-            col += i_table;
+            col += table;
             col += '.';
-            col += i_column;
+            col += column;
             col += ', ';
-            col += i_path.length + 1;
+            col += path.length + 1;
             col += ', (LOCATE(';
             col += delim;
             col += ', ';
-            col += i_table;
+            col += table;
             col += '.';
-            col += i_column;
+            col += column;
             col += ', ';
-            col += i_path.length + 1;
+            col += path.length + 1;
             col += ') - ';
-            col += i_path.length;
+            col += path.length;
             col += ')), SUBSTRING(';
-            col += i_table;
+            col += table;
             col += '.';
-            col += i_column;
+            col += column;
             col += ', ';
-            col += i_path.length + 1;
+            col += path.length + 1;
             col += ', LENGTH(';
-            col += i_table;
+            col += table;
             col += '.';
-            col += i_column;
+            col += column;
             col += '))) AS child';
             this.addColumn(col);
-            this.addWhere('LOCATE(' + SqlHelper.escape(i_path) + ', ' + i_table + '.' + i_column + ') = 1');
-            this.performSelect(i_table, undefined, undefined, undefined, function (i_results, i_fields) {
+            this.addWhere('LOCATE(' + SqlHelper.escape(path) + ', ' + table + '.' + column + ') = 1');
+            this.performSelect(table, undefined, undefined, undefined, function (i_results, i_fields) {
                 var nodes = [], i, l, child, pos, hasChildren;
                 for (i = 0, l = i_results.length; i < l; i++) {
                     child = i_results[i].child;
-                    pos = child.indexOf(i_delimiter);
-                    hasChildren = pos === (child.length - i_delimiter.length);
+                    pos = child.indexOf(delimiter);
+                    hasChildren = pos === (child.length - delimiter.length);
                     nodes.push({
                         name: hasChildren ? child.substr(0, pos) : child,
-                        path: i_path + child,
+                        path: path + child,
                         folder: hasChildren
                     });
                 }
