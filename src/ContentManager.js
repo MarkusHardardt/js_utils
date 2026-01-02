@@ -2069,103 +2069,54 @@
         this._post({ command: COMMAND_SET_OBJECT, id, language, value, checksum }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getRefactoringParams = function (i_source, i_target, i_action, onSuccess, onError) {
-        this._post({
-            command: COMMAND_GET_REFACTORING_PARAMS,
-            source: i_source,
-            target: i_target,
-            action: i_action
-        }, onSuccess, onError);
+    ContentManagerProxy.prototype.getRefactoringParams = function (source, target, action, onSuccess, onError) {
+        this._post({ command: COMMAND_GET_REFACTORING_PARAMS, source, target, action }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.performRefactoring = function (i_source, i_target, i_action, i_checksum, onSuccess, onError) {
-        this._post({
-            command: COMMAND_PERFORM_REFACTORING,
-            source: i_source,
-            target: i_target,
-            action: i_action,
-            checksum: i_checksum
-        }, onSuccess, onError);
+    ContentManagerProxy.prototype.performRefactoring = function (source, target, action, checksum, onSuccess, onError) {
+        this._post({ command: COMMAND_PERFORM_REFACTORING, source, target, action, checksum }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getReferencesTo = function (i_id, onSuccess, onError) {
-        this._post({
-            command: COMMAND_GET_REFERENCES_TO,
-            id: i_id
-        }, onSuccess, onError);
+    ContentManagerProxy.prototype.getReferencesTo = function (id, onSuccess, onError) {
+        this._post({ command: COMMAND_GET_REFERENCES_TO, id }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getReferencesToCount = function (i_id, onSuccess, onError) {
-        this._post({
-            command: COMMAND_GET_REFERENCES_TO_COUNT,
-            id: i_id
-        }, onSuccess, onError);
+    ContentManagerProxy.prototype.getReferencesToCount = function (id, onSuccess, onError) {
+        this._post({ command: COMMAND_GET_REFERENCES_TO_COUNT, id }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getReferencesFrom = function (i_id, onSuccess, onError) {
-        this._post({
-            command: COMMAND_GET_REFERENCES_FROM,
-            id: i_id
-        }, onSuccess, onError);
+    ContentManagerProxy.prototype.getReferencesFrom = function (id, onSuccess, onError) {
+        this._post({ command: COMMAND_GET_REFERENCES_FROM, id }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getReferencesFromCount = function (i_id, onSuccess, onError) {
-        this._post({
-            command: COMMAND_GET_REFERENCES_FROM_COUNT,
-            id: i_id
-        }, onSuccess, onError);
+    ContentManagerProxy.prototype.getReferencesFromCount = function (id, onSuccess, onError) {
+        this._post({ command: COMMAND_GET_REFERENCES_FROM_COUNT, id }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getTreeChildNodes = function (i_id, onSuccess, onError) {
-        this._post({
-            command: COMMAND_GET_TREE_CHILD_NODES,
-            id: i_id
-        }, onSuccess, onError);
+    ContentManagerProxy.prototype.getTreeChildNodes = function (id, onSuccess, onError) {
+        this._post({ command: COMMAND_GET_TREE_CHILD_NODES, id }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getSearchResults = function (i_key, i_value, onSuccess, onError) {
-        this._post({
-            command: COMMAND_GET_SEARCH_RESULTS,
-            key: i_key,
-            value: i_value
-        }, onSuccess, onError);
+    ContentManagerProxy.prototype.getSearchResults = function (key, value, onSuccess, onError) {
+        this._post({ command: COMMAND_GET_SEARCH_RESULTS, key, value }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getIdKeyValues = function (i_id, onSuccess, onError) {
-        this._post({
-            command: COMMAND_GET_ID_KEY_VALUES,
-            id: i_id
-        }, onSuccess, onError);
+    ContentManagerProxy.prototype.getIdKeyValues = function (id, onSuccess, onError) {
+        this._post({ command: COMMAND_GET_ID_KEY_VALUES, id }, onSuccess, onError);
     };
 
-    ContentManagerProxy.prototype.getIdSelectedValues = function (i_id, i_language, onSuccess, onError) {
-        this._post({
-            command: COMMAND_GET_ID_SELECTED_VALUES,
-            id: i_id,
-            language: i_language
-        }, onSuccess, onError);
+    ContentManagerProxy.prototype.getIdSelectedValues = function (id, language, onSuccess, onError) {
+        this._post({ command: COMMAND_GET_ID_SELECTED_VALUES, id, language }, onSuccess, onError);
     };
 
     ContentManager.Proxy = ContentManagerProxy;
 
-    var create_checksum = function (i_group, i_path) {
-        var seed = 'l.6l8033988749895';
-        seed += i_path;
-        seed += '2.7l828l828459045';
-        seed += i_group;
-        seed += '3.l4l592653589793';
-        return Utilities.md5(seed);
-    };
+    function createChecksum (group, path) {
+        return Utilities.md5(`l.6l8033988749895${path}2.7l828l828459045${group}3.l4l592653589793`);
+    }
 
-    var create_header = function (i_group, i_path) {
-        var hdr = '[{(';
-        hdr += i_group;
-        hdr += '<>';
-        hdr += create_checksum(i_group, i_path)
-        hdr += ')}]\n';
-        hdr += i_path;
-        hdr += '\n';
-        return hdr;
+    function createHeader (group, path) {
+        return `[{(${group}<>${createChecksum(group, path)})}]\n${path}\n`;
     };
 
     var format_relative_status = function (i_state) {
@@ -2181,7 +2132,7 @@
 
     // prototype
     ExchangeHandler.prototype._read_config_data = function (i_ids, i_path, i_languages, i_status_callback, onError) {
-        var exports = [create_header(EXCHANGE_HEADER, i_path), '\n'];
+        var exports = [createHeader(EXCHANGE_HEADER, i_path), '\n'];
         var that = this, cms = this._cms, tasks = [];
         for (var i = 0, len = i_ids.length; i < len; i++) {
             // closure
@@ -2190,7 +2141,7 @@
                 if (data.JsonFX) {
                     tasks.push(function (i_suc, i_err) {
                         cms.getObject(id, undefined, ContentManager.RAW, function (i_object) {
-                            exports.push(create_header(data.extension, id));
+                            exports.push(createHeader(data.extension, id));
                             exports.push(JsonFX.stringify(JsonFX.reconstruct(i_object), true));
                             exports.push('\n\n');
                             i_status_callback(format_relative_status(idx / len));
@@ -2201,7 +2152,7 @@
                 else if (!data.multilingual) {
                     tasks.push(function (i_suc, i_err) {
                         cms.getObject(id, undefined, ContentManager.RAW, function (i_object) {
-                            exports.push(create_header(data.extension, id));
+                            exports.push(createHeader(data.extension, id));
                             exports.push(i_object);
                             exports.push('\n\n');
                             i_status_callback(format_relative_status(idx / len));
@@ -2212,10 +2163,10 @@
                 else {
                     tasks.push(function (i_suc, i_err) {
                         cms.getObject(id, undefined, ContentManager.RAW, function (i_results) {
-                            exports.push(create_header(data.extension, id));
+                            exports.push(createHeader(data.extension, id));
                             for (var l = 0; l < i_languages.length; l++) {
                                 var lang = i_languages[l];
-                                exports.push(create_header('language', id + ':' + lang));
+                                exports.push(createHeader('language', id + ':' + lang));
                                 var txt = i_results[lang];
                                 if (txt != undefined && txt != null) {
                                     exports.push(typeof txt === 'string' ? txt : txt.toString());
@@ -2247,7 +2198,7 @@
         });
         i_status_callback('loaded ' + elements.length + ' elements');
         var header = elements[0];
-        if (!Array.isArray(header) || EXCHANGE_HEADER !== header[1] || create_checksum(header[1], header[3]) !== header[2]) {
+        if (!Array.isArray(header) || EXCHANGE_HEADER !== header[1] || createChecksum(header[1], header[3]) !== header[2]) {
             onError('EXCEPTION! Invalid ' + EXCHANGE_HEADER + ' header.');
             return false;
         }
@@ -2257,7 +2208,7 @@
             header = elements[idx++];
             if (Array.isArray(header)) {
                 var path = header[3];
-                if (create_checksum(header[1], path) === header[2]) {
+                if (createChecksum(header[1], path) === header[2]) {
                     var data = cms.analyzeID(path);
                     if (data.JsonFX) {
                         try {
@@ -2280,7 +2231,7 @@
                             if (!Array.isArray(header) || header[1] !== 'language') {
                                 break;
                             }
-                            if (create_checksum(header[1], header[3]) !== header[2]) {
+                            if (createChecksum(header[1], header[3]) !== header[2]) {
                                 onError('EXCEPTION! Invalid language header!');
                                 return false;
                             }
