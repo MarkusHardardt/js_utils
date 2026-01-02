@@ -1944,33 +1944,31 @@
         }
     };
 
-    // template method
+    // Note: this next is a template method - copy when new request has to be implemented
     ContentManager.prototype._$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$ = function (onSuccess, onError) {
-        var that = this, config = this._config;
-        this._getSqlAdapter(function (i_adapter) {
-            var main = []
+        const that = this;
+        this._getSqlAdapter(adapter => {
+            const main = []
             main.parallel = false;
-            main.push(function (i_suc, i_err) {
-                i_adapter.startTransaction(i_suc, i_err);
-            });
-            main.push(function (i_suc, i_err) {
+            main.push((onSuc, onErr) => adapter.startTransaction(onSuc, onErr));
+            main.push(function (onSuc, onErr) {
                 // add this as often as reqzured and implement actions
             });
-            Executor.run(main, function () {
-                i_adapter.commitTransaction(function () {
-                    i_adapter.close();
+            Executor.run(main, () => {
+                adapter.commitTransaction(() => {
+                    adapter.close();
                     onSuccess();
-                }, function (i_exc) {
-                    i_adapter.close();
-                    onError(i_exc);
+                }, (err) => {
+                    adapter.close();
+                    onError(err);
                 });
-            }, function (i_exception) {
-                i_adapter.rollbackTransaction(function () {
-                    i_adapter.close();
-                    onError(i_exception);
-                }, function (i_exc) {
-                    i_adapter.close();
-                    onError(i_exc);
+            }, err => {
+                adapter.rollbackTransaction(() => {
+                    adapter.close();
+                    onError(err);
+                }, er => {
+                    adapter.close();
+                    onError(er);
                 });
             });
         }, onError);
