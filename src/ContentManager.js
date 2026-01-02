@@ -1348,51 +1348,51 @@
         Executor.run(main, onSuccess, onError);
     };
 
-    ContentManager.prototype.getReferencesTo = function (i_id, onSuccess, onError) {
-        var match = this._key_regex.exec(i_id);
+    ContentManager.prototype.getReferencesTo = function (id, onSuccess, onError) {
+        const match = this._key_regex.exec(id);
         if (match) {
-            var user = this._tablesForExt[match[2]];
-            var valcol = this._valColsForExt[match[2]];
+            const user = this._tablesForExt[match[2]];
+            const valcol = this._valColsForExt[match[2]];
             if (!user) {
-                onError('Invalid table: ' + i_id);
+                onError(`Invalid table: '${id}'`);
                 return;
             }
             const that = this;
-            this._getSqlAdapter(function (i_adapter) {
-                var key = SqlHelper.escape(match[1]);
-                var keys = {};
-                var tasks = [];
-                for (var attr in that._tablesForExt) {
+            this._getSqlAdapter(adapter => {
+                const key = SqlHelper.escape(match[1]);
+                const keys = {};
+                const tasks = [];
+                for (const attr in that._tablesForExt) {
                     if (that._tablesForExt.hasOwnProperty(attr)) {
                         (function () {
                             var used = that._tablesForExt[attr];
-                            tasks.push(function (i_suc, i_err) {
-                                i_adapter.addColumn('tab.' + used.key_column + ' AS path');
-                                i_adapter.addWhere(user.name + '.' + user.key_column + ' = ' + key);
-                                i_adapter.addJoin(formatReferencesToCondition(user.name, valcol, used.name, 'tab', used.extension, used.key_column));
-                                i_adapter.performSelect(user.name, undefined, undefined, undefined, function (i_result) {
-                                    for (var i = 0, l = i_result.length; i < l; i++) {
-                                        keys['$' + i_result[i].path + '.' + used.extension] = true;
+                            tasks.push((onSuc, onErr) => {
+                                adapter.addColumn(`tab.${used.key_column} AS path`);
+                                adapter.addWhere(`${user.name}.${user.key_column} = ${key}`);
+                                adapter.addJoin(formatReferencesToCondition(user.name, valcol, used.name, 'tab', used.extension, used.key_column));
+                                adapter.performSelect(user.name, undefined, undefined, undefined, result => {
+                                    for (let i = 0, l = result.length; i < l; i++) {
+                                        keys[`$${result[i].path}.${used.extension}`] = true;
                                     }
-                                    i_suc();
-                                }, i_err);
+                                    onSuc();
+                                }, onErr);
                             });
                         }());
                     }
                 }
                 tasks.parallel = that._parallel;
-                Executor.run(tasks, function () {
-                    var array = [], key;
-                    for (key in keys) {
+                Executor.run(tasks, () => {
+                    const array = [];
+                    for (const key in keys) {
                         if (keys.hasOwnProperty(key)) {
                             array.push(key);
                         }
                     }
-                    i_adapter.close();
+                    adapter.close();
                     onSuccess(array);
-                }, function (i_exc) {
-                    i_adapter.close();
-                    onError(i_exc);
+                }, err => {
+                    adapter.close();
+                    onError(err);
                 });
             }, onError);
         }
