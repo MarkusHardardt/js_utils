@@ -231,7 +231,7 @@
             this._onError = Core.defaultOnError;
             this._unsubscribeDelay = false;
             this._dataPointsByDataId = {};
-            this.Observable = { // What happens here? We call the OperationalState.Observable setter
+            this._observable = {
                 // Not: The following 'onRefresh' function is the local instance inside our node created above.
                 Subscribe: onRefresh => {
                     if (this._parentDataAccessObject) {
@@ -244,12 +244,14 @@
                     }
                 }
             };
+            this.Observable = null; // TODO: Is this correct? We set/reset this in 'Parent' setter, but maybe we must not???
             Common.validateAsDataAccessObject(this, true);
         }
 
         set Parent(value) { // TODO: 
             if (this._parentDataAccessObject !== value) { // TODO: unsubscribe and re-subscribe existing subscriptions for operational state (???)
                 if (this._parentDataAccessObject !== null) {
+                    this.Observable = null;
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                             const dataPoint = this._dataPointsByDataId[dataId];
@@ -264,6 +266,7 @@
                     this._parentDataAccessObject = null;
                 }
                 if (this._parentDataAccessObject !== null) {
+                    this.Observable = this._observable;
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                             const dataPoint = this._dataPointsByDataId[dataId];
