@@ -1216,143 +1216,133 @@
         }, onError);
     };
 
-    ContentManager.prototype._performRefactoring = function (i_adapter, i_source, i_params, i_replace, onSuccess, onError) {
-        var that = this, key_regex = this._key_regex;
-        var match = key_regex.exec(i_source);
-        var table = this._tablesForExt[match[2]];
-        var valcol = this._valColsForExt[match[2]];
-        var srcTabKey = match[1];
-        var main = [];
+    ContentManager.prototype._performRefactoring = function (adapter, source, params, getReplacement, onSuccess, onError) {
+        const that = this, key_regex = this._key_regex;
+        const match = key_regex.exec(source);
+        const table = this._tablesForExt[match[2]];
+        const valcol = this._valColsForExt[match[2]];
+        const srcTabKey = match[1];
+        const main = [];
         main.parallel = false;
-        var tgtTabKey;
-        if (i_params.action === ContentManager.MOVE || i_params.action === ContentManager.COPY) {
-            main.push(function (i_suc, i_err) {
+        if (params.action === ContentManager.MOVE || params.action === ContentManager.COPY) {
+            main.push((onSuc, onErr) => {
                 // get the target and check if already exists
-                var target = i_params.objects[i_source];
-                var targetAlreadyExists = i_params.existingTargets && i_params.existingTargets[target] === true;
+                const target = params.objects[source];
+                const targetAlreadyExists = params.existingTargets && params.existingTargets[target] === true;
                 if (typeof valcol === 'string') {
-                    i_adapter.addColumn(table.name + '.' + valcol);
-                }
-                else {
-                    var attr;
-                    for (attr in valcol) {
+                    adapter.addColumn(`${table.name}.${valcol}`);
+                } else {
+                    for (const attr in valcol) {
                         if (valcol.hasOwnProperty(attr)) {
-                            i_adapter.addColumn(table.name + '.' + valcol[attr]);
+                            adapter.addColumn(`${table.name}.${valcol[attr]}`);
                         }
                     }
                 }
-                i_adapter.addWhere(table.name + '.' + table.key_column + ' = ' + SqlHelper.escape(srcTabKey));
-                i_adapter.performSelect(table.name, undefined, undefined, 1, function (i_results) {
-                    var values = i_results[0], string, src, attr;
+                adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(srcTabKey)}`);
+                adapter.performSelect(table.name, undefined, undefined, 1, results => {
+                    const values = results[0];
                     // replace internal cross references and prepare database
                     // update or insert value
                     if (typeof valcol === 'string') {
-                        string = values[valcol];
+                        let string = values[valcol];
                         if (typeof string === 'string' && string.length > 0) {
-                            string = i_replace(string);
-                            i_adapter.addValue(table.name + '.' + valcol, SqlHelper.escape(string));
+                            string = getReplacement(string);
+                            adapter.addValue(`${table.name}.${valcol}`, SqlHelper.escape(string));
                         }
-                    }
-                    else {
-                        for (attr in valcol) {
+                    } else {
+                        for (const attr in valcol) {
                             if (valcol.hasOwnProperty(attr)) {
-                                string = values[valcol[attr]];
+                                let string = values[valcol[attr]];
                                 if (typeof string === 'string' && string.length > 0) {
-                                    string = i_replace(string);
-                                    i_adapter.addValue(table.name + '.' + valcol[attr], SqlHelper.escape(string));
+                                    string = getReplacement(string);
+                                    adapter.addValue(`${table.name}.${valcol[attr]}`, SqlHelper.escape(string));
                                 }
                             }
                         }
                     }
-                    var match = key_regex.exec(target);
-                    var tgtTabKey = match[1];
-                    var success = function () {
-                        if (targetAlreadyExists && i_params.action === ContentManager.MOVE) {
-                            i_adapter.addWhere(table.name + '.' + table.key_column + ' = ' + SqlHelper.escape(srcTabKey));
-                            i_adapter.performDelete(table.name, undefined, 1, i_suc, i_err);
-                        }
-                        else {
-                            i_suc();
+                    const match = key_regex.exec(target);
+                    const tgtTabKey = match[1];
+                    function success() {
+                        if (targetAlreadyExists && params.action === ContentManager.MOVE) {
+                            adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(srcTabKey)}`);
+                            adapter.performDelete(table.name, undefined, 1, onSuc, onErr);
+                        } else {
+                            onSuc();
                         }
                     };
                     if (targetAlreadyExists) {
-                        i_adapter.addWhere(table.name + '.' + table.key_column + ' = ' + SqlHelper.escape(tgtTabKey));
-                        i_adapter.performUpdate(table.name, undefined, 1, success, i_err);
-                    }
-                    else {
-                        i_adapter.addValue(table.name + '.' + table.key_column, SqlHelper.escape(tgtTabKey));
-                        if (i_params.action === ContentManager.MOVE) {
-                            i_adapter.addWhere(table.name + '.' + table.key_column + ' = ' + SqlHelper.escape(srcTabKey));
-                            i_adapter.performUpdate(table.name, undefined, 1, success, i_err);
-                        }
-                        else {
-                            i_adapter.performInsert(table.name, success, i_err);
+                        adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(tgtTabKey)}`);
+                        adapter.performUpdate(table.name, undefined, 1, success, onErr);
+                    } else {
+                        adapter.addValue(`${table.name}.${table.key_column}`, SqlHelper.escape(tgtTabKey));
+                        if (params.action === ContentManager.MOVE) {
+                            adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(srcTabKey)}`);
+                            adapter.performUpdate(table.name, undefined, 1, success, onErr);
+                        } else {
+                            adapter.performInsert(table.name, success, onErr);
                         }
                     }
-                }, i_err);
+                }, onErr);
             });
         }
-        if (i_params.action === ContentManager.MOVE) {
-            main.push(function (i_suc, i_err) {
+        if (params.action === ContentManager.MOVE) {
+            main.push((onSuc, onErr) => {
                 // In move mode we got to update all external users with the
                 // moved reference
-                that._getReferencesFrom(i_adapter, i_source, function (i_referencesFrom) {
-                    var j = 0, jl = i_referencesFrom.length, refFrom, match, table, usrKey, tasks = [];
+                that._getReferencesFrom(adapter, source, referencesFrom => {
+                    const tasks = [], jl = referencesFrom.length;
                     tasks.parallel = false;
-                    for (j = 0; j < jl; j++) {
-                        refFrom = i_referencesFrom[j];
-                        if (i_params.objects[refFrom] === undefined) {
+                    for (let j = 0; j < jl; j++) {
+                        const refFrom = referencesFrom[j];
+                        if (params.objects[refFrom] === undefined) {
                             (function () {
-                                var match = key_regex.exec(refFrom);
-                                var table = that._tablesForExt[match[2]];
-                                var valcol = that._valColsForExt[match[2]];
-                                var usrKey = match[1];
-                                tasks.push(function (i_s, i_e) {
+                                const match = key_regex.exec(refFrom);
+                                const table = that._tablesForExt[match[2]];
+                                const valcol = that._valColsForExt[match[2]];
+                                const usrKey = match[1];
+                                tasks.push((os, oe) => {
                                     if (typeof valcol === 'string') {
-                                        i_adapter.addColumn(table.name + '.' + valcol + ' AS ' + valcol);
-                                    }
-                                    else {
-                                        for (var attr in valcol) {
+                                        adapter.addColumn(`${table.name}.${valcol} AS ${valcol}`);
+                                    } else {
+                                        for (const attr in valcol) {
                                             if (valcol.hasOwnProperty(attr)) {
-                                                i_adapter.addColumn(table.name + '.' + valcol[attr] + ' AS ' + valcol[attr]);
+                                                adapter.addColumn(`${table.name}.${valcol[attr]} AS ${valcol[attr]}`);
                                             }
                                         }
                                     }
-                                    i_adapter.addWhere(table.name + '.' + table.key_column + ' = ' + SqlHelper.escape(usrKey));
-                                    i_adapter.performSelect(table.name, undefined, undefined, 1, function (i_result) {
+                                    adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(usrKey)}`);
+                                    adapter.performSelect(table.name, undefined, undefined, 1, result => {
                                         // replace in all existing value strings all occurrences
                                         // of
                                         // any source path with the resulting target path and
                                         // update object
-                                        var values = i_result[0], string;
+                                        const values = result[0];
                                         if (typeof valcol === 'string') {
-                                            string = values[valcol];
+                                            const string = values[valcol];
                                             if (typeof string === 'string' && string.length > 0) {
-                                                string = i_replace(string);
-                                                i_adapter.addValue(table.name + '.' + valcol, SqlHelper.escape(string));
+                                                string = getReplacement(string);
+                                                adapter.addValue(`${table.name}.${valcol}`, SqlHelper.escape(string));
                                             }
-                                        }
-                                        else {
-                                            var attr;
-                                            for (attr in valcol) {
+                                        } else {
+                                            for (const attr in valcol) {
                                                 if (valcol.hasOwnProperty(attr)) {
-                                                    string = values[valcol[attr]];
+                                                    const string = values[valcol[attr]];
                                                     if (typeof string === 'string' && string.length > 0) {
-                                                        string = i_replace(string);
-                                                        i_adapter.addValue(table.name + '.' + valcol[attr], SqlHelper.escape(string));
+                                                        string = getReplacement(string);
+                                                        adapter.addValue(`${table.name}.${valcol[attr]}`, SqlHelper.escape(string));
                                                     }
                                                 }
                                             }
                                         }
-                                        i_adapter.addWhere(table.name + '.' + table.key_column + ' = ' + SqlHelper.escape(usrKey));
-                                        i_adapter.performUpdate(table.name, undefined, 1, i_s, i_e);
-                                    }, i_e);
+                                        adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(usrKey)}`);
+                                        adapter.performUpdate(table.name, undefined, 1, os, oe);
+                                    }, oe);
                                 });
                             }());
                         }
                     }
-                    Executor.run(tasks, i_suc, i_err);
-                }, i_err);
+                    Executor.run(tasks, onSuc, onErr);
+                }, onErr);
             });
         }
         Executor.run(main, onSuccess, onError);
