@@ -390,7 +390,7 @@
             onError('Invalid table name: "' + id + '"');
             return;
         }
-        var that = this;
+        const that = this;
         this._getSqlAdapter(adapter => {
             let key = match[1], parse = mode === ContentManager.PARSE, include = parse || mode === ContentManager.INCLUDE;
             const success = response => {
@@ -469,8 +469,8 @@
                                         const ids = {};
                                         ids[id] = true;
                                         tasks.push((onSuc, onErr) => {
-                                            that._include(adapter, object[language], ids, language, function (i_object) {
-                                                object[language] = i_object;
+                                            that._include(adapter, object[language], ids, language, response => {
+                                                object[language] = response;
                                                 onSuc();
                                             }, onErr);
                                         });
@@ -490,110 +490,103 @@
         }, onError);
     };
 
-    ContentManager.prototype._include = function (i_adapter, i_object, i_ids, i_language, onSuccess, onError) {
-        var that = this, config = this._config;
-        if (Array.isArray(i_object)) {
-            this._buildProperties(i_adapter, i_object, i_ids, i_language, onSuccess, onError);
-        }
-        else if (typeof i_object === 'object' && i_object !== null) {
-            var includeKey = i_object.include;
-            var match = typeof includeKey === 'string' && !i_ids[includeKey] ? this._key_regex.exec(includeKey) : false;
+    ContentManager.prototype._include = function (adapter, object, ids, language, onSuccess, onError) {
+        const that = this;
+        if (Array.isArray(object)) {
+            this._buildProperties(adapter, object, ids, language, onSuccess, onError);
+        } else if (typeof object === 'object' && object !== null) {
+            const includeKey = object.include;
+            const match = typeof includeKey === 'string' && !ids[includeKey] ? this._key_regex.exec(includeKey) : false;
             if (!match) {
-                this._buildProperties(i_adapter, i_object, i_ids, i_language, onSuccess, onError);
+                this._buildProperties(adapter, object, ids, language, onSuccess, onError);
                 return;
             }
-            var table = this._tablesForExt[match[2]];
-            var valcol = this._valColsForExt[match[2]];
+            const table = this._tablesForExt[match[2]];
+            // TODO: reuse or remove const valcol = this._valColsForExt[match[2]];
             if (!table) {
-                this._buildProperties(i_adapter, i_object, i_ids, i_language, onSuccess, onError);
+                this._buildProperties(adapter, object, ids, language, onSuccess, onError);
                 return;
             }
-            this._getRawString(i_adapter, table, match[1], i_language, function (i_rawString) {
-                if (i_rawString !== false) {
-                    i_ids[includeKey] = true;
-                    var includedObject = table.JsonFX ? JsonFX.parse(i_rawString, false, false) : i_rawString;
-                    that._include(i_adapter, includedObject, i_ids, i_language, function (i_includedObject) {
-                        delete i_ids[includeKey];
-                        if (typeof i_includedObject === 'object' && i_includedObject !== null) {
+            this._getRawString(adapter, table, match[1], language, rawString => {
+                if (rawString !== false) {
+                    ids[includeKey] = true;
+                    const includedObject = table.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
+                    that._include(adapter, includedObject, ids, language, inclObj => {
+                        delete ids[includeKey];
+                        if (typeof inclObj === 'object' && inclObj !== null) {
                             // if we included an object all attributes except
                             // include must be copied
-                            delete i_object.include;
-                            that._buildProperties(i_adapter, i_object, i_ids, i_language, function () {
+                            delete object.include;
+                            that._buildProperties(adapter, object, ids, language, () => {
                                 // with a true "source"-flag we keep all replaced
                                 // attributes stored inside a source object
-                                if (i_object.source === true) {
+                                if (object.source === true) {
                                     // here we store the replaced attributes
-                                    var source = {};
+                                    const source = {};
                                     // if there are already stored source attributes
                                     // we
                                     // keep them as well
-                                    if (i_includedObject.source !== undefined) {
-                                        source.source = i_includedObject.source;
-                                        delete i_includedObject.source;
+                                    if (inclObj.source !== undefined) {
+                                        source.source = inclObj.source;
+                                        delete inclObj.source;
                                     }
                                     // now we transfer and collect all replaced
                                     // attributes
-                                    Utilities.transferProperties(i_object, i_includedObject, source);
+                                    Utilities.transferProperties(object, inclObj, source);
                                     // finally we add our bases
-                                    i_includedObject.source = source;
-                                }
-                                else {
+                                    inclObj.source = source;
+                                } else {
                                     // no attribute keeping - just attribute transfer
-                                    Utilities.transferProperties(i_object, i_includedObject);
+                                    Utilities.transferProperties(object, inclObj);
                                 }
-                                onSuccess(i_includedObject);
+                                onSuccess(inclObj);
                             }, onError);
-                        }
-                        else {
+                        } else {
                             // no real object means just return whatever it is
-                            onSuccess(i_includedObject);
+                            onSuccess(inclObj);
                         }
                     }, onError);
-                }
-                else {
+                } else {
                     // no string available so just step on with building the object
                     // properties
-                    that._buildProperties(i_adapter, i_object, i_ids, i_language, onSuccess, onError);
+                    that._buildProperties(adapter, object, ids, language, onSuccess, onError);
                 }
             }, onError);
-        }
-        else if ((typeof i_object === 'string')) {
+        } else if ((typeof object === 'string')) {
             // Strings may contain include:$path/file.ext entries. With the next
             // Regex call we build an array containing strings and include
             // matches.
-            var array = [];
-            Regex.each(that._include_regex_build, i_object, function (i_start, i_end, i_match) {
-                array.push(i_match && !i_ids['$' + i_match[2] + '.' + i_match[3]] ? i_match : i_object.substring(i_start, i_end));
-            });
+            const array = [];
+            Regex.each(that._include_regex_build, object, (start, end, match) => array.push(match && !ids[`$${match[2]}.${match[3]}`] ? match : object.substring(start, end)));
             // For all found include-match we try to load the referenced content
             // from the database and replace the corresponding array element with
             // the built content.
-            var tasks = [], i, l = array.length, match, tab;
+            const tasks = [];
+            let i, l = array.length, match, tab;
             for (i = 0; i < l; i++) {
                 match = array[i];
                 if (Array.isArray(match)) {
                     tab = that._tablesForExt[match[3]];
                     if (tab) {
                         (function () {
-                            var idx = i, orig = match[0], includeKey = '$' + match[2] + '.' + match[3], table = tab, key = match[2];
-                            tasks.push(function (i_suc, i_err) {
-                                that._getRawString(i_adapter, table, key, i_language, function (i_rawString) {
-                                    if (i_rawString !== false) {
-                                        i_ids[includeKey] = true;
-                                        var object = table.JsonFX ? JsonFX.parse(i_rawString, false, false) : i_rawString;
-                                        that._include(i_adapter, object, i_ids, i_language, function (i_build) {
-                                            delete i_ids[includeKey];
-                                            array[idx] = table.JsonFX && array.length > 1 ? JsonFX.stringify(i_build, false) : i_build;
-                                            i_suc();
-                                        }, i_err);
-                                    }
-                                    else {
+                            let idx = i, orig = match[0], includeKey = `$${match[2]}.${match[3]}`, table = tab, key = match[2];
+                            tasks.push((onSuc, onErr) => {
+                                that._getRawString(adapter, table, key, language, rawString => {
+                                    if (rawString !== false) {
+                                        ids[includeKey] = true;
+                                        const object = table.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
+                                        that._include(adapter, object, ids, language, build => {
+                                            delete ids[includeKey];
+                                            array[idx] = table.JsonFX && array.length > 1 ? JsonFX.stringify(build, false) : build;
+                                            onSuc();
+                                        }, onErr);
+                                    } else {
                                         // no raw string available means we replace with the
                                         // original content
                                         array[idx] = orig;
-                                        i_suc();
+                                        onSuc();
                                     }
-                                }, i_err);
+                                }, onErr);
                             });
                         }());
                     }
@@ -609,16 +602,17 @@
         else {
             // if our input object is not an array, an object or a string we have
             // nothing to build so we return the object as is.
-            onSuccess(i_object);
+            onSuccess(object);
         }
     };
 
     ContentManager.prototype._buildProperties = function (i_adapter, i_object, i_ids, i_language, onSuccess, onError) {
-        var that = this, tasks = [], a;
-        for (a in i_object) {
+        const that = this;
+        const tasks = [];
+        for (const a in i_object) {
             if (i_object.hasOwnProperty(a)) {
                 (function () {
-                    var p = a;
+                    const p = a;
                     tasks.push(function (i_suc, i_err) {
                         that._include(i_adapter, i_object[p], i_ids, i_language, function (i_objectProperty) {
                             i_object[p] = i_objectProperty;
@@ -661,7 +655,7 @@
         }
         // try to get all current database values for given id and copy the new
         // values
-        var that = this;
+        const that = this;
         if (typeof valcol === 'string') {
             i_adapter.addColumn(table.name + '.' + valcol + ' AS ' + valcol);
         }
@@ -760,7 +754,7 @@
     };
 
     ContentManager.prototype.getModificationParams = function (i_id, i_language, i_value, onSuccess, onError) {
-        var that = this;
+        const that = this;
         this._getSqlAdapter(function (i_adapter) {
             that._getModificationParams(i_adapter, i_id, i_language, i_value, function (i_params) {
                 if (!i_params.error && i_params.action === ContentManager.DELETE) {
@@ -1175,7 +1169,7 @@
     };
 
     ContentManager.prototype.getRefactoringParams = function (i_source, i_target, i_action, onSuccess, onError) {
-        var that = this;
+        const that = this;
         this._getSqlAdapter(function (i_adapter) {
             that._getRefactoringParams(i_adapter, i_source, i_target, i_action, function (i_params) {
                 i_adapter.close();
@@ -1188,7 +1182,7 @@
     };
 
     ContentManager.prototype.performRefactoring = function (i_source, i_target, i_action, i_checksum, onSuccess, onError) {
-        var that = this;
+        const that = this;
         this._getSqlAdapter(function (i_adapter) {
             var main = [];
             // the main action has to be processed in a sequence wo we do not run
@@ -1430,7 +1424,7 @@
                 onError('Invalid table: ' + i_id);
                 return;
             }
-            var that = this;
+            const that = this;
             this._getSqlAdapter(function (i_adapter) {
                 var key = SqlHelper.escape(match[1]);
                 var keys = {};
@@ -1484,7 +1478,7 @@
                 onError('Invalid table: ' + i_id);
                 return;
             }
-            var that = this;
+            const that = this;
             this._getSqlAdapter(function (i_adapter) {
                 var key = SqlHelper.escape(match[1]);
                 var tasks = [], result = 0;
@@ -1563,7 +1557,7 @@
 
     ContentManager.prototype.getReferencesFrom = function (i_id, onSuccess, onError) {
         if (this._key_regex.test(i_id)) {
-            var that = this;
+            const that = this;
             this._getSqlAdapter(function (i_adapter) {
                 that._getReferencesFrom(i_adapter, i_id, function (i_results) {
                     i_adapter.close();
@@ -1582,7 +1576,7 @@
 
     ContentManager.prototype.getReferencesFromCount = function (i_id, onSuccess, onError) {
         if (this._key_regex.test(i_id)) {
-            var that = this;
+            const that = this;
             this._getSqlAdapter(function (i_adapter) {
                 var key = SqlHelper.escape(i_id);
                 var result = 0, tasks = [];
@@ -1705,7 +1699,7 @@
 
     ContentManager.prototype.getSearchResults = function (i_key, i_value, onSuccess, onError) {
         if (i_key.length > 0 || i_value.length > 0) {
-            var that = this;
+            const that = this;
             this._getSqlAdapter(function (i_adapter) {
                 var results = [], tasks = [], key = SqlHelper.escape(i_key), value = SqlHelper.escape(i_value);
                 for (var attr in that._tablesForExt) {
@@ -1836,7 +1830,7 @@
             onError('Invalid table: ' + i_id);
             return;
         }
-        var that = this;
+        const that = this;
         this._getSqlAdapter(function (i_adapter) {
             i_adapter.addColumn(table.name + '.' + table.key_column + ' AS path');
             i_adapter.addColumn((typeof valcol === 'string' ? valcol : valcol[i_language]) + ' AS val');
@@ -2081,7 +2075,7 @@
     };
 
     var ContentManagerProxy = function (onSuccess, onError) {
-        var that = this;
+        const that = this;
         this._post({
             command: COMMAND_GET_CONFIG
         }, function (i_config) {
