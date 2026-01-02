@@ -491,7 +491,7 @@
         }
     }
 
-    class Connector {
+    class Connector { // TODO: Do we need a class here???
         constructor(config, verbose) {
             if (mysql) {
                 const helper = mysql.createPool(config);
