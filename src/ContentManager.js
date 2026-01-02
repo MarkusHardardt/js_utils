@@ -2131,20 +2131,20 @@
     ExchangeHandler.prototype.constructor = ExchangeHandler;
 
     // prototype
-    ExchangeHandler.prototype._read_config_data = function (i_ids, i_path, i_languages, i_status_callback, onError) {
-        const exports = [createHeader(EXCHANGE_HEADER, i_path), '\n'];
-        const cms = this._cms, tasks = [], len = i_ids.length;
+    ExchangeHandler.prototype._read_config_data = function (ids, path, languages, onProgressChanged, onError) {
+        const exports = [createHeader(EXCHANGE_HEADER, path), '\n'];
+        const cms = this._cms, tasks = [], len = ids.length;
         for (let i = 0; i < len; i++) {
             // closure
             (function () {
-                let idx = i, id = i_ids[idx], data = cms.analyzeID(id);
+                let idx = i, id = ids[idx], data = cms.analyzeID(id);
                 if (data.JsonFX) {
                     tasks.push((onSuc, onErr) => {
                         cms.getObject(id, undefined, ContentManager.RAW, object => {
                             exports.push(createHeader(data.extension, id));
                             exports.push(JsonFX.stringify(JsonFX.reconstruct(object), true));
                             exports.push('\n\n');
-                            i_status_callback(formatProgressInPercent(idx / len));
+                            onProgressChanged(formatProgressInPercent(idx / len));
                             onSuc();
                         }, onErr);
                     });
@@ -2154,7 +2154,7 @@
                             exports.push(createHeader(data.extension, id));
                             exports.push(object);
                             exports.push('\n\n');
-                            i_status_callback(formatProgressInPercent(idx / len));
+                            onProgressChanged(formatProgressInPercent(idx / len));
                             onSuc();
                         }, onErr);
                     });
@@ -2162,8 +2162,8 @@
                     tasks.push((onSuc, onErr) => {
                         cms.getObject(id, undefined, ContentManager.RAW, results => {
                             exports.push(createHeader(data.extension, id));
-                            for (let l = 0; l < i_languages.length; l++) {
-                                const lang = i_languages[l];
+                            for (let l = 0; l < languages.length; l++) {
+                                const lang = languages[l];
                                 exports.push(createHeader('language', `${id}:${lang}`));
                                 const txt = results[lang];
                                 if (txt != undefined && txt != null) {
@@ -2172,7 +2172,7 @@
                                 exports.push('\n');
                             }
                             exports.push('\n');
-                            i_status_callback(formatProgressInPercent(idx / len));
+                            onProgressChanged(formatProgressInPercent(idx / len));
                             onSuc();
                         }, onErr);
                     });
@@ -2181,45 +2181,41 @@
         }
         tasks.parallel = false;
         Executor.run(tasks, () => {
-            i_status_callback();
+            onProgressChanged();
             saveAs(new Blob(exports, { type: "text/plain;charset=utf-8" }), 'js_hmi_export.txt');
         }, onError);
     };
-    ExchangeHandler.prototype._parse = function (i_text, i_data, i_status_callback, onError) {
+    ExchangeHandler.prototype._parse = function (text, data, onProgressChanged, onError) {
         // separate ids and data
-        var that = this, cms = this._cms, elements = [];
-        Regex.each(cms._exchange_header_regex, i_text, function (i_start, i_end, i_match) {
-            elements.push(i_match ? i_match : i_text.substring(i_start, i_end));
-        });
-        i_status_callback('loaded ' + elements.length + ' elements');
-        var header = elements[0];
+        const cms = this._cms, elements = [];
+        Regex.each(cms._exchange_header_regex, text, (start, end, match) => elements.push(match ? match : text.substring(start, end)));
+        onProgressChanged(`loaded ${elements.length} elements`);
+        let header = elements[0];
         if (!Array.isArray(header) || EXCHANGE_HEADER !== header[1] || createChecksum(header[1], header[3]) !== header[2]) {
-            onError('EXCEPTION! Invalid ' + EXCHANGE_HEADER + ' header.');
+            onError(`EXCEPTION! Invalid ${EXCHANGE_HEADER} header.`);
             return false;
         }
         // handle all found elements
-        var filter = header[3], idx = 1;
+        const filter = header[3];
+        let idx = 1;
         while (idx < elements.length) {
             header = elements[idx++];
             if (Array.isArray(header)) {
-                var path = header[3];
+                const path = header[3];
                 if (createChecksum(header[1], path) === header[2]) {
-                    var data = cms.analyzeID(path);
+                    const data = cms.analyzeID(path);
                     if (data.JsonFX) {
                         try {
                             data.value = JsonFX.parse(elements[idx++], true, true);
-                        }
-                        catch (exc) {
-                            onError('EXCEPTION! Cannot evaluate object: ' + exc);
+                        } catch (exc) {
+                            onError(`EXCEPTION! Cannot evaluate object: ${exc}`);
                             return false;
                         }
-                        i_data.push(data);
-                    }
-                    else if (!data.multilingual) {
+                        data.push(data);
+                    } else if (!data.multilingual) {
                         data.value = elements[idx++].trim();
-                        i_data.push(data);
-                    }
-                    else {
+                        data.push(data);
+                    } else {
                         data.value = {};
                         while (idx < elements.length) {
                             header = elements[idx];
@@ -2231,69 +2227,58 @@
                                 return false;
                             }
                             idx++
-                            var txt = elements[idx++].trim();
+                            const txt = elements[idx++].trim();
                             if (txt.length > 0) {
                                 data.value[header[3].substring(data.id.length + 1)] = txt;
                             }
                         }
-                        i_data.push(data);
+                        data.push(data);
                     }
-                }
-                else {
-                    onError('EXCEPTION! Invalid: ' + JSON.stringify(header));
+                } else {
+                    onError(`EXCEPTION! Invalid: ${JSON.stringify(header)}`);
                     return false;
                 }
             }
         }
-        i_status_callback('parsed ' + idx + '/' + elements.length + ' elements');
+        onProgressChanged(`parsed ${idx}/${elements.length} elements`);
         return filter;
     };
-    ExchangeHandler.prototype._write_config_data = function (i_data, i_status_callback, onError) {
-        var that = this, cms = this._cms, tasks = [];
-        for (var i = 0, len = i_data.length; i < len; i++) {
+    ExchangeHandler.prototype._write_config_data = function (i_data, onProgressChanged, onError) {
+        const cms = this._cms, tasks = [];
+        for (let i = 0, len = i_data.length; i < len; i++) {
             // closure
             (function () {
-                var idx = i, data = i_data[idx];
+                let idx = i, data = i_data[idx];
                 if (data.JsonFX) {
-                    tasks.push(function (i_suc, i_err) {
-                        var val = data.value !== undefined && data.value !== null ? JsonFX.stringify(data.value, false) : undefined;
-                        cms.getModificationParams(data.id, undefined, val, function (i_params) {
-                            cms.setObject(data.id, undefined, val, i_params.checksum, i_suc, i_err);
-                        }, i_err);
+                    tasks.push((onSuc, onErr) => {
+                        const val = data.value !== undefined && data.value !== null ? JsonFX.stringify(data.value, false) : undefined;
+                        cms.getModificationParams(data.id, undefined, val, params => cms.setObject(data.id, undefined, val, params.checksum, onSuc, onErr), onErr);
+                    });
+                } else if (!data.multilingual) {
+                    tasks.push((onSuc, onErr) => {
+                        const val = data.value !== undefined && data.value !== null ? data.value : undefined;
+                        cms.getModificationParams(data.id, undefined, val, params => cms.setObject(data.id, undefined, val, params.checksum, onSuc, onErr));
+                    });
+                } else {
+                    tasks.push((onSuc, onErr) => {
+                        const val = data.value !== undefined && data.value !== null ? data.value : undefined;
+                        cms.getModificationParams(data.id, undefined, val, params => cms.setObject(data.id, undefined, val, params.checksum, onSuc, onErr));
                     });
                 }
-                else if (!data.multilingual) {
-                    tasks.push(function (i_suc, i_err) {
-                        var val = data.value !== undefined && data.value !== null ? data.value : undefined;
-                        cms.getModificationParams(data.id, undefined, val, function (i_params) {
-                            cms.setObject(data.id, undefined, val, i_params.checksum, i_suc, i_err);
-                        });
-                    });
-                }
-                else {
-                    tasks.push(function (i_suc, i_err) {
-                        var val = data.value !== undefined && data.value !== null ? data.value : undefined;
-                        cms.getModificationParams(data.id, undefined, val, function (i_params) {
-                            cms.setObject(data.id, undefined, val, i_params.checksum, i_suc, i_err);
-                        });
-                    });
-                }
-                tasks.push(function (i_suc, i_err) {
-                    i_status_callback(formatProgressInPercent(idx / len));
-                    i_suc();
+                tasks.push((onSuc, onErr) => {
+                    onProgressChanged(formatProgressInPercent(idx / len));
+                    onSuc();
                 });
             }());
         }
         tasks.parallel = false;
-        Executor.run(tasks, function () {
-            i_status_callback();
-        }, onError);
+        Executor.run(tasks, () => onProgressChanged(), onError);
     };
-    ExchangeHandler.prototype.handleImport = function (i_hmi, i_text, i_status_callback, onError) {
+    ExchangeHandler.prototype.handleImport = function (i_hmi, i_text, onProgressChanged, onError) {
         // separate ids and data
-        var that = this, data = [], prefix = this._parse(i_text, data, i_status_callback, onError);
+        var that = this, data = [], prefix = this._parse(i_text, data, onProgressChanged, onError);
         if (typeof prefix !== 'string') {
-            i_status_callback();
+            onProgressChanged();
             return;
         }
         var txt = '<b>Import (replace):</b><br><code>';
@@ -2308,29 +2293,29 @@
             title: 'warning',
             html: txt,
             yes: function () {
-                that._write_config_data(data, i_status_callback, onError);
+                that._write_config_data(data, onProgressChanged, onError);
             },
             cancel: function () {
-                i_status_callback();
+                onProgressChanged();
             }
         });
     };
-    ExchangeHandler.prototype.handleExport = function (i_id, i_status_callback, onError) {
+    ExchangeHandler.prototype.handleExport = function (i_id, onProgressChanged, onError) {
         var that = this, cms = this._cms, data = cms.analyzeID(i_id);
-        i_status_callback('load languages ...');
+        onProgressChanged('load languages ...');
         var languages = cms.getLanguages();
         languages.sort(compare_keys);
         if (data.file) {
-            that._read_config_data([data.file], i_id, languages, i_status_callback, onError);
+            that._read_config_data([data.file], i_id, languages, onProgressChanged, onError);
         }
         else if (data.folder) {
             cms.getIdKeyValues(data.folder, function (i_ids) {
                 i_ids.sort(compare_keys);
-                that._read_config_data(i_ids, i_id, languages, i_status_callback, onError);
+                that._read_config_data(i_ids, i_id, languages, onProgressChanged, onError);
             }, onError);
         }
         else {
-            i_status_callback();
+            onProgressChanged();
         }
     };
 
