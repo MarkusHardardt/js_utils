@@ -379,13 +379,13 @@
         // object
 
         // first we try to get table object matching to the given key
-        var match = this._key_regex.exec(id);
+        const match = this._key_regex.exec(id);
         if (!match) {
             onError('Invalid id: "' + id + '"');
             return;
         }
-        var table = this._tablesForExt[match[2]];
-        var valcol = this._valColsForExt[match[2]];
+        const table = this._tablesForExt[match[2]];
+        const valcol = this._valColsForExt[match[2]];
         if (!table) {
             onError('Invalid table name: "' + id + '"');
             return;
@@ -393,7 +393,7 @@
         const that = this;
         this._getSqlAdapter(adapter => {
             let key = match[1], parse = mode === ContentManager.PARSE, include = parse || mode === ContentManager.INCLUDE;
-            const success = response => {
+            function success(response) {
                 adapter.close();
                 try {
                     if (parse) {
@@ -411,11 +411,11 @@
                 } catch (err) {
                     onError(err);
                 }
-            };
-            var error = (err) => {
+            }
+            function error(err) {
                 adapter.close();
                 onError(err);
-            };
+            }
             // if JsonFX or plain text is available we decode the string and
             // return with or without all includes included
             if (typeof valcol === 'string') {
@@ -965,7 +965,7 @@
                                 // select all paths within the range
                                 adapter.addWhere(`LOCATE(${SqlHelper.escape(srcTabKey)},${table.name}.${table.key_column}) = 1`);
                                 adapter.performSelect(table.name, undefined, undefined, undefined, result => {
-                                    for (var i = 0, l = result.length; i < l; i++) {
+                                    for (let i = 0, l = result.length; i < l; i++) {
                                         srcKeysObj['$' + result[i].path + '.' + table.extension] = true;
                                     }
                                     os();
@@ -1365,7 +1365,7 @@
                 for (const attr in that._tablesForExt) {
                     if (that._tablesForExt.hasOwnProperty(attr)) {
                         (function () {
-                            var used = that._tablesForExt[attr];
+                            const used = that._tablesForExt[attr];
                             tasks.push((onSuc, onErr) => {
                                 adapter.addColumn(`tab.${used.key_column} AS path`);
                                 adapter.addWhere(`${user.name}.${user.key_column} = ${key}`);
@@ -1974,7 +1974,7 @@
         }, onError);
     };
 
-    var ContentManagerProxy = function (onSuccess, onError) {
+    const ContentManagerProxy = function (onSuccess, onError) {
         const that = this;
         this._post({
             command: COMMAND_GET_CONFIG
@@ -1993,7 +1993,7 @@
                 if (table.value_column_prefix) {
                     valcol = {};
                     for (let j = 0; j < langs; j++) {
-                        var lang = config.languages[j];
+                        const lang = config.languages[j];
                         valcol[lang] = table.value_column_prefix + lang;
                     }
                 } else {
@@ -2123,7 +2123,7 @@
         return `${Utilities.formatNumber(state * 100, 2)}%`;
     }
 
-    var ExchangeHandler = function (cms) {
+    const ExchangeHandler = function (cms) {
         this._cms = cms;
     };
 
@@ -2274,44 +2274,34 @@
         tasks.parallel = false;
         Executor.run(tasks, () => onProgressChanged(), onError);
     };
-    ExchangeHandler.prototype.handleImport = function (i_hmi, i_text, onProgressChanged, onError) {
+    ExchangeHandler.prototype.handleImport = function (hmi, text, onProgressChanged, onError) {
         // separate ids and data
-        var that = this, data = [], prefix = this._parse(i_text, data, onProgressChanged, onError);
+        const that = this, data = [], prefix = this._parse(text, data, onProgressChanged, onError);
         if (typeof prefix !== 'string') {
             onProgressChanged();
             return;
         }
-        var txt = '<b>Import (replace):</b><br><code>';
-        txt += prefix.length > 0 ? prefix : 'all (!)';
-        txt += '</code>';
-        txt += '<br><br><b>';
-        txt += 'Sure to proceed?';
-        txt += '</b>';
-        i_hmi.showDefaultConfirmationPopup({
+        const html = `<b>Import (replace):</b><br><code>${(prefix.length > 0 ? prefix : 'all (!)')}</code><br><br><b>Sure to proceed?</b>`;
+        hmi.showDefaultConfirmationPopup({
             width: $(window).width() * 0.6,
             height: $(window).height() * 0.4,
             title: 'warning',
-            html: txt,
-            yes: function () {
-                that._write_config_data(data, onProgressChanged, onError);
-            },
-            cancel: function () {
-                onProgressChanged();
-            }
+            html,
+            yes: () => that._write_config_data(data, onProgressChanged, onError),
+            cancel: () => onProgressChanged()
         });
     };
-    ExchangeHandler.prototype.handleExport = function (i_id, onProgressChanged, onError) {
-        var that = this, cms = this._cms, data = cms.analyzeID(i_id);
+    ExchangeHandler.prototype.handleExport = function (id, onProgressChanged, onError) {
+        const that = this, cms = this._cms, data = cms.analyzeID(id);
         onProgressChanged('load languages ...');
-        var languages = cms.getLanguages();
+        const languages = cms.getLanguages();
         languages.sort(compare_keys);
         if (data.file) {
-            that._read_config_data([data.file], i_id, languages, onProgressChanged, onError);
-        }
-        else if (data.folder) {
-            cms.getIdKeyValues(data.folder, function (i_ids) {
-                i_ids.sort(compare_keys);
-                that._read_config_data(i_ids, i_id, languages, onProgressChanged, onError);
+            that._read_config_data([data.file], id, languages, onProgressChanged, onError);
+        } else if (data.folder) {
+            cms.getIdKeyValues(data.folder, ids => {
+                ids.sort(compare_keys);
+                that._read_config_data(ids, id, languages, onProgressChanged, onError);
             }, onError);
         }
         else {
