@@ -272,7 +272,7 @@
         if (typeof column === 'string') {
             adapter.addColumn(`${table.name}.${column} AS ${column}`);
             adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
-            adapter.performSelect(table.name, undefined, undefined, 1, function (results, fields) {
+            adapter.performSelect(table.name, undefined, undefined, 1, (results, fields) => {
                 // in case of an result we are dealing with an existing key, but
                 // the
                 // data for the requested language may not be available anyway
@@ -1407,7 +1407,7 @@
             const user = this._tablesForExt[match[2]];
             const valcol = this._valColsForExt[match[2]];
             if (!user) {
-                onError('Invalid table: ' + id);
+                onError(`Invalid table: '${id}'`);
                 return;
             }
             const that = this;
@@ -1419,12 +1419,12 @@
                     if (that._tablesForExt.hasOwnProperty(attr)) {
                         (function () {
                             const used = that._tablesForExt[attr];
-                            tasks.push(function (onSuc, onErr) {
+                            tasks.push((onSuc, onErr) => {
                                 adapter.addColumn('COUNT(*) AS cnt');
                                 adapter.addWhere(`${user.name}.${user.key_column} = ${key}`);
                                 adapter.addJoin(formatReferencesToCondition(user.name, valcol, used.name, 'tab', used.extension, used.key_column));
-                                adapter.performSelect(user.name, undefined, undefined, undefined, result => {
-                                    result += result[0].cnt;
+                                adapter.performSelect(user.name, undefined, undefined, undefined, response => {
+                                    result += response[0].cnt;
                                     onSuc();
                                 }, onErr);
                             });
@@ -1464,9 +1464,9 @@
                                 }
                             }
                         }
-                        adapter.performSelect(table.name, undefined, undefined, undefined, result => {
-                            for (let i = 0, l = result.length; i < l; i++) {
-                                keys[`$${result[i].path}.${table.extension}`] = true;
+                        adapter.performSelect(table.name, undefined, undefined, undefined, response => {
+                            for (let i = 0, l = response.length; i < l; i++) {
+                                keys[`$${response[i].path}.${table.extension}`] = true;
                             }
                             onSuc();
                         }, onErr);
@@ -1527,8 +1527,8 @@
                                         }
                                     }
                                 }
-                                adapter.performSelect(table.name, undefined, undefined, undefined, result => {
-                                    result += result[0].cnt;
+                                adapter.performSelect(table.name, undefined, undefined, undefined, response => {
+                                    result += response[0].cnt;
                                     onSuc();
                                 }, onErr);
                             });
