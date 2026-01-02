@@ -1629,79 +1629,59 @@
     ContentManager.prototype.getSearchResults = function (i_key, i_value, onSuccess, onError) {
         if (i_key.length > 0 || i_value.length > 0) {
             const that = this;
-            this._getSqlAdapter(function (i_adapter) {
-                var results = [], tasks = [], key = SqlHelper.escape(i_key), value = SqlHelper.escape(i_value);
-                for (var attr in that._tablesForExt) {
+            this._getSqlAdapter(adapter => {
+                const results = [], tasks = [], key = SqlHelper.escape(i_key), value = SqlHelper.escape(i_value);
+                for (const attr in that._tablesForExt) {
                     if (that._tablesForExt.hasOwnProperty(attr)) {
                         (function () {
-                            var table = that._tablesForExt[attr];
-                            var valcol = that._valColsForExt[attr];
-                            tasks.push(function (i_suc, i_err) {
-                                i_adapter.addColumn(table.name + '.' + table.key_column + ' AS path');
-                                var where = '';
+                            const table = that._tablesForExt[attr];
+                            const valcol = that._valColsForExt[attr];
+                            tasks.push((onSuc, onErr) => {
+                                adapter.addColumn(`${table.name}.${table.key_column} AS path`);
+                                let where = '';
                                 if (i_key.length > 0) {
-                                    where += 'LOCATE(';
-                                    where += key;
-                                    where += ', ';
-                                    where += table.name;
-                                    where += '.';
-                                    where += table.key_column;
-                                    where += ') > 0';
+                                    where += `LOCATE(${SqlHelper.escape(i_key)}, ${table.name}.${table.key_column}) > 0`;
                                     if (i_value.length > 0) {
                                         where += ' AND ';
                                     }
                                 }
                                 if (i_value.length > 0) {
                                     if (typeof valcol === 'string') {
-                                        where += 'LOCATE(';
-                                        where += value;
-                                        where += ', ';
-                                        where += table.name;
-                                        where += '.';
-                                        where += valcol;
-                                        where += ') > 0';
-                                    }
-                                    else {
+                                        where += `LOCATE(${value}, ${table.name}.${valcol}) > 0`;
+                                    } else {
                                         where += '(';
-                                        var next = false;
-                                        for (var val in valcol) {
+                                        let next = false;
+                                        for (const val in valcol) {
                                             if (valcol.hasOwnProperty(val)) {
                                                 if (next) {
                                                     where += ' OR ';
                                                 }
                                                 next = true;
-                                                where += 'LOCATE(';
-                                                where += value;
-                                                where += ', ';
-                                                where += table.name;
-                                                where += '.';
-                                                where += valcol[val];
-                                                where += ') > 0';
+                                                where += `LOCATE(${value}, ${table.name}.${valcol[val]}) > 0`;
                                             }
                                         }
                                         where += ')';
                                     }
                                 }
-                                i_adapter.addWhere(where);
-                                i_adapter.performSelect(table.name, undefined, undefined, undefined, function (i_result) {
-                                    var i, l = i_result.length, result;
-                                    for (i = 0; i < l; i++) {
-                                        result = i_result[i];
-                                        results.push('$' + result.path + '.' + table.extension);
+                                adapter.addWhere(where);
+                                adapter.performSelect(table.name, undefined, undefined, undefined, result => {
+                                    const l = result.length;
+                                    for (let i = 0; i < l; i++) {
+                                        results.push(`$${result[i].path}.${table.extension}`);
                                     }
-                                    i_suc();
-                                }, i_err);
+                                    onSuc();
+                                }, onErr);
                             });
                         }());
                     }
                 }
                 tasks.parallel = that._parallel;
-                Executor.run(tasks, function () {
-                    i_adapter.close();
+                Executor.run(tasks, () => {
+                    adapter.close();
                     onSuccess(results);
-                }, function (i_exc) {
-                    i_adapter.close();
-                    onError(i_exc);
+                }, err => {
+                    adapter.close();
+                    onError(err);
                 });
             }, onError);
         }
