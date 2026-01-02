@@ -267,115 +267,106 @@
     ContentManager.prototype = Object.create(ContentManagerBase.prototype);
     ContentManager.prototype.constructor = ContentManager;
 
-    ContentManager.prototype._getRawString = function (i_adapter, i_table, i_key, i_language, i_success, i_error) {
-        var valcol = this._valColsForExt[i_table.extension], column = typeof valcol === 'string' ? valcol : valcol[i_language];
+    ContentManager.prototype._getRawString = function (adapter, table, key, language, onSuccess, onError) {
+        let valcol = this._valColsForExt[table.extension], column = typeof valcol === 'string' ? valcol : valcol[language];
         if (typeof column === 'string') {
-            i_adapter.addColumn(i_table.name + '.' + column + ' AS ' + column);
-            i_adapter.addWhere(i_table.name + '.' + i_table.key_column + ' = ' + SqlHelper.escape(i_key));
-            i_adapter.performSelect(i_table.name, undefined, undefined, 1, function (i_results, i_fields) {
+            adapter.addColumn(`${table.name}.${column} AS ${column}`);
+            adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+            adapter.performSelect(table.name, undefined, undefined, 1, function (results, fields) {
                 // in case of an result we are dealing with an existing key, but
                 // the
                 // data for the requested language may not be available anyway
-                if (i_results.length === 1) {
-                    var raw = i_results[0][column];
-                    i_success(raw !== null ? raw : '');
+                if (results.length === 1) {
+                    let raw = results[0][column];
+                    onSuccess(raw !== null ? raw : '');
+                } else {
+                    onSuccess(false);
                 }
-                else {
-                    i_success(false);
-                }
-            }, i_error);
-        }
-        else {
-            i_error('Invalid value column for table "' + i_table.name + '" and language "' + i_language + '"');
+            }, onError);
+        } else {
+            onError(`Invalid value column for table '${table.name}' and language '${language}'`);
         }
     };
 
-    ContentManager.prototype.exists = function (i_id, i_success, i_error) {
-        var match = this._key_regex.exec(i_id);
+    ContentManager.prototype.exists = function (id, onSuccess, onError) {
+        const match = this._key_regex.exec(id);
         if (match) {
-            var table = this._tablesForExt[match[2]];
+            const table = this._tablesForExt[match[2]];
             if (!table) {
-                i_error('Invalid table: ' + i_id);
+                onError(`Invalid table: ${id}`);
                 return;
             }
-            var that = this;
-            this._getSqlAdapter(function (i_adapter) {
-                i_adapter.addColumn('COUNT(*) AS cnt');
-                i_adapter.addWhere(table.name + '.' + table.key_column + ' = ' + SqlHelper.escape(match[1]));
-                i_adapter.performSelect(table.name, undefined, undefined, undefined, function (i_result) {
-                    i_adapter.close();
-                    i_success(i_result[0].cnt > 0);
-                }, function (i_exc) {
-                    i_adapter.close();
-                    i_error(i_exc);
+            this._getSqlAdapter(adapter => {
+                adapter.addColumn('COUNT(*) AS cnt');
+                adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(match[1])}`);
+                adapter.performSelect(table.name, undefined, undefined, undefined, result => {
+                    adapter.close();
+                    onSuccess(result[0].cnt > 0);
+                }, error => {
+                    adapter.close();
+                    onError(error);
                 });
-            }, i_error);
-        }
-        else {
-            i_success(false);
+            }, onError);
+        } else {
+            onSuccess(false);
         }
     };
 
-    ContentManager.prototype.getChecksum = function (i_id, i_success, i_error) {
+    ContentManager.prototype.getChecksum = function (id, onSuccess, onError) {
         // first we try to get table object matching to the given key
-        var match = this._key_regex.exec(i_id);
+        const match = this._key_regex.exec(id);
         if (!match) {
-            i_error('Invalid id: "' + i_id + '"');
+            onError(`Invalid id: '${id}'`);
             return;
         }
-        var table = this._tablesForExt[match[2]];
-        var valcol = this._valColsForExt[match[2]];
+        const table = this._tablesForExt[match[2]];
+        const valcol = this._valColsForExt[match[2]];
         if (!table) {
-            i_error('Invalid table name: "' + i_id + '"');
+            onError(`Invalid table name: '${id}'`);
             return;
         }
-        var that = this;
-        this._getSqlAdapter(function (i_adapter) {
-            var key = match[1], raw = i_id;
-            var success = function () {
-                i_adapter.close();
-                i_success(Utilities.md5(raw));
-            };
-            var error = function (i_exc) {
-                i_adapter.close();
-                i_error(i_exc);
+        const that = this;
+        this._getSqlAdapter(adapter => {
+            const key = match[1], raw = id;
+            function success() {
+                adapter.close();
+                onSuccess(Utilities.md5(raw));
+            }
+            function error(err) {
+                adapter.close();
+                onError(err);
             };
             // if JsonFX or plain text is available we decode the string and
             // return with or without all includes included
             if (typeof valcol === 'string') {
                 // note: no language required here because we got only one anyway
-                that._getRawString(i_adapter, table, key, undefined, function (i_rawString) {
-                    if (i_rawString !== false) {
+                that._getRawString(adapter, table, key, undefined, rawString => {
+                    if (rawString !== false) {
                         raw += ':';
-                        raw += i_rawString;
+                        raw += rawString;
                     }
                     success();
                 }, error);
-            }
-            else {
-                var attr;
-                for (attr in valcol) {
+            } else {
+                for (const attr in valcol) {
                     if (valcol.hasOwnProperty(attr)) {
-                        i_adapter.addColumn(table.name + '.' + valcol[attr] + ' AS ' + attr);
+                        adapter.addColumn(`${table.name}.${valcol[attr]} AS ${attr}`);
                     }
                 }
-                i_adapter.addWhere(table.name + '.' + table.key_column + ' = ' + SqlHelper.escape(key));
-                i_adapter.performSelect(table.name, undefined, undefined, 1, function (i_results, i_fields) {
-                    if (i_results.length === 1) {
-                        var object = i_results[0], attr;
-                        for (attr in valcol) {
+                adapter.addWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+                adapter.performSelect(table.name, undefined, undefined, 1, (results, fields) => {
+                    if (results.length === 1) {
+                        const object = results[0];
+                        for (const attr in valcol) {
                             if (object.hasOwnProperty(attr)) {
-                                raw += ':';
-                                raw += attr;
-                                raw += ':';
-                                raw += object[attr];
+                                raw += `:${attr}:${object[attr]}`;
                             }
                         }
                     }
                     success();
                 }, error);
             }
-        }, i_error);
+        }, onError);
     };
 
     ContentManager.prototype.getObject = function (i_id, i_language, i_mode, i_success, i_error) {
