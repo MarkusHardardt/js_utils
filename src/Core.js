@@ -172,14 +172,14 @@
                 validateArguments(standardFunctionMatch[1], expectedArgumentsArray);
                 return;
             }
-            const lamdaFunctionMatch = lambdaFunctionRegex.exec(functionSource);
-            if (lamdaFunctionMatch) {
-                validateArguments(lamdaFunctionMatch[1], expectedArgumentsArray);
+            const lambdaFunctionMatch = lambdaFunctionRegex.exec(functionSource);
+            if (lambdaFunctionMatch) {
+                validateArguments(lambdaFunctionMatch[1], expectedArgumentsArray);
                 return;
             }
-            const lamdaFunctionSingleArgumentMatch = lambdaFunctionSingleArgumentRegex.exec(functionSource);
-            if (lamdaFunctionSingleArgumentMatch) {
-                validateArguments(lamdaFunctionSingleArgumentMatch[1], expectedArgumentsArray);
+            const lambdaFunctionSingleArgumentMatch = lambdaFunctionSingleArgumentRegex.exec(functionSource);
+            if (lambdaFunctionSingleArgumentMatch) {
+                validateArguments(lambdaFunctionSingleArgumentMatch[1], expectedArgumentsArray);
                 return;
             }
             const classMethodMatch = classMethodRegex.exec(functionSource);
