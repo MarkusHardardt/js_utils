@@ -1755,25 +1755,24 @@
         }, onError);
     };
 
-    ContentManager.prototype.handleRequest = function (i_request, onSuccess, onError) {
-        switch (i_request.command) {
+    ContentManager.prototype.handleRequest = function (request, onSuccess, onError) {
+        switch (request.command) {
             case COMMAND_GET_CONFIG:
-                var that = this, tables = this._config.tables.map(function (i_table) {
-                    var table = {
-                        extension: i_table.extension,
-                        icon: i_table.icon,
-                        JsonFX: i_table.JsonFX === true,
-                        multiedit: i_table.multiedit === true,
+                const tables = this._config.tables.map(table => {
+                    const tab = {
+                        extension: table.extension,
+                        icon: table.icon,
+                        JsonFX: table.JsonFX === true,
+                        multiedit: table.multiedit === true,
                     };
-                    if (i_table.value_column) {
-                        table.value_column = i_table.value_column;
-                        table.multilingual = false;
+                    if (table.value_column) {
+                        tab.value_column = table.value_column;
+                        tab.multilingual = false;
+                    } else {
+                        tab.value_column_prefix = table.value_column_prefix;
+                        tab.multilingual = true;
                     }
-                    else {
-                        table.value_column_prefix = i_table.value_column_prefix;
-                        table.multilingual = true;
-                    }
-                    return table;
+                    return tab;
                 });
                 onSuccess({
                     icon_dir: this._config.icon_dir,
@@ -1786,59 +1785,59 @@
                 });
                 break;
             case COMMAND_EXISTS:
-                this.exists(i_request.id, onSuccess, onError);
+                this.exists(request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_CHECKSUM:
-                this.getChecksum(i_request.id, onSuccess, onError);
+                this.getChecksum(request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_OBJECT:
-                this.getObject(i_request.id, i_request.language, i_request.mode, onSuccess, onError);
+                this.getObject(request.id, request.language, request.mode, onSuccess, onError);
                 break;
             case COMMAND_GET_MODIFICATION_PARAMS:
-                this.getModificationParams(i_request.id, i_request.language, i_request.value, onSuccess, onError);
+                this.getModificationParams(request.id, request.language, request.value, onSuccess, onError);
                 break;
             case COMMAND_SET_OBJECT:
-                this.setObject(i_request.id, i_request.language, i_request.value, i_request.checksum, onSuccess, onError);
+                this.setObject(request.id, request.language, request.value, request.checksum, onSuccess, onError);
                 break;
             case COMMAND_GET_REFACTORING_PARAMS:
-                this.getRefactoringParams(i_request.source, i_request.target, i_request.action, onSuccess, onError);
+                this.getRefactoringParams(request.source, request.target, request.action, onSuccess, onError);
                 break;
             case COMMAND_PERFORM_REFACTORING:
-                this.performRefactoring(i_request.source, i_request.target, i_request.action, i_request.checksum, onSuccess, onError);
+                this.performRefactoring(request.source, request.target, request.action, request.checksum, onSuccess, onError);
                 break;
             case COMMAND_GET_REFERENCES_TO:
-                this.getReferencesTo(i_request.id, onSuccess, onError);
+                this.getReferencesTo(request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_REFERENCES_TO_COUNT:
-                this.getReferencesToCount(i_request.id, onSuccess, onError);
+                this.getReferencesToCount(request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_REFERENCES_FROM:
-                this.getReferencesFrom(i_request.id, onSuccess, onError);
+                this.getReferencesFrom(request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_REFERENCES_FROM_COUNT:
-                this.getReferencesFromCount(i_request.id, onSuccess, onError);
+                this.getReferencesFromCount(request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_TREE_CHILD_NODES:
-                this.getTreeChildNodes(i_request.id, onSuccess, onError);
+                this.getTreeChildNodes(request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_SEARCH_RESULTS:
-                this.getSearchResults(i_request.key, i_request.value, onSuccess, onError);
+                this.getSearchResults(request.key, request.value, onSuccess, onError);
                 break;
             case COMMAND_GET_ID_KEY_VALUES:
-                this.getIdKeyValues(i_request.id, onSuccess, onError);
+                this.getIdKeyValues(request.id, onSuccess, onError);
                 break;
             case COMMAND_GET_ID_SELECTED_VALUES:
-                this.getIdSelectedValues(i_request.id, i_request.language, onSuccess, onError);
+                this.getIdSelectedValues(request.id, request.language, onSuccess, onError);
                 break;
             default:
-                onError('EXCEPTION! Unexpected command: ' + i_request.command);
+                onError(`EXCEPTION! Unexpected command: '${request.command}'`);
                 break;
         }
     };
 
-    ContentManager.prototype.handleFancyTreeRequest = function (i_request, i_id, onSuccess, onError) {
-        var that = this, id = typeof i_id === 'string' && i_id.length > 0 ? i_id : '$';
-        switch (i_request) {
+    ContentManager.prototype.handleFancyTreeRequest = function (request, i_id, onSuccess, onError) {
+        const that = this, id = typeof i_id === 'string' && i_id.length > 0 ? i_id : '$';
+        switch (request) {
             case ContentManager.COMMAND_GET_CHILD_TREE_NODES:
                 /**
                  * the following call returns an array of objects like: <code> 
@@ -1851,13 +1850,13 @@
                  * }
                  * </code>
                  */
-                this.getTreeChildNodes(id, function (i_nodes) {
+                this.getTreeChildNodes(id, nodes => {
                     // transform to fance-tree node style
-                    var nodes = [], i, l = i_nodes.length, node;
-                    for (i = 0; i < l; i++) {
-                        node = i_nodes[i];
-                        nodes.push({
-                            title: node.folder ? node.name : (node.name + '.' + node.extension),
+                    const ns = [], l = nodes.length;
+                    for (let i = 0; i < l; i++) {
+                        const node = nodes[i];
+                        ns.push({
+                            title: node.folder ? node.name : (`${node.name}.${node.extension}`),
                             folder: node.folder,
                             lazy: node.folder,
                             data: {
@@ -1870,17 +1869,17 @@
                             icon: that.getIcon(node.path)
                         });
                     }
-                    onSuccess(nodes);
+                    onSuccess(ns);
                 }, onError);
                 break;
             case ContentManager.COMMAND_GET_REFERENCES_TO_TREE_NODES:
-                this.getReferencesTo(id, function (i_results) {
+                this.getReferencesTo(id, results => {
                     // transform to fance-tree node style
-                    var nodes = [], i, l = i_results.length, tasks = [];
-                    for (i = 0; i < l; i++) {
+                    const nodes = [], l = results.length, tasks = [];
+                    for (let i = 0; i < l; i++) {
                         (function () {
-                            var key = i_results[i];
-                            var node = {
+                            const key = results[i];
+                            const node = {
                                 title: key,
                                 data: {
                                     // url + path: required for building the client side loading
@@ -1892,30 +1891,28 @@
                                 icon: that.getIcon(key)
                             };
                             nodes.push(node);
-                            tasks.push(function (i_suc, i_err) {
-                                that.getReferencesToCount(key, function (i_count) {
-                                    var folder = i_count > 0;
+                            tasks.push((onSuc, onErr) => {
+                                that.getReferencesToCount(key, count => {
+                                    const folder = count > 0;
                                     node.folder = folder;
                                     node.lazy = folder;
-                                    i_suc();
-                                }, i_err);
+                                    onSuc();
+                                }, onErr);
                             });
                         }());
                     }
                     tasks.parallel = true;
-                    Executor.run(tasks, function () {
-                        onSuccess(nodes);
-                    }, onError);
+                    Executor.run(tasks, () => onSuccess(nodes), onError);
                 }, onError);
                 break;
             case ContentManager.COMMAND_GET_REFERENCES_FROM_TREE_NODES:
-                this.getReferencesFrom(id, function (i_results) {
+                this.getReferencesFrom(id, results => {
                     // transform to fance-tree node style
-                    var nodes = [], i, l = i_results.length, tasks = [];
-                    for (i = 0; i < l; i++) {
+                    const nodes = [], l = results.length, tasks = [];
+                    for (let i = 0; i < l; i++) {
                         (function () {
-                            var key = i_results[i];
-                            var node = {
+                            const key = results[i];
+                            const node = {
                                 title: key,
                                 data: {
                                     // url + path: required for building the client side loading
@@ -1927,20 +1924,18 @@
                                 icon: that.getIcon(key)
                             };
                             nodes.push(node);
-                            tasks.push(function (i_suc, i_err) {
-                                that.getReferencesFromCount(key, function (i_count) {
-                                    var folder = i_count > 0;
+                            tasks.push((onSuc, onErr) => {
+                                that.getReferencesFromCount(key, count => {
+                                    const folder = count > 0;
                                     node.folder = folder;
                                     node.lazy = folder;
-                                    i_suc();
-                                }, i_err);
+                                    onSuc();
+                                }, onErr);
                             });
                         }());
                     }
                     tasks.parallel = true;
-                    Executor.run(tasks, function () {
-                        onSuccess(nodes);
-                    }, onError);
+                    Executor.run(tasks, () => onSuccess(nodes), onError);
                 }, onError);
                 break;
             default:
