@@ -1171,7 +1171,7 @@
                             }
                         } else if (params.action === ContentManager.DELETE) {
                             if (params.folder) {
-                                const match = FOLDER_REGEX.exec(params.source), srcTabKey = SqlHelper.escape(match[1]), attr;
+                                const match = FOLDER_REGEX.exec(params.source), srcTabKey = SqlHelper.escape(match[1]);
                                 for (const attr in that._tablesForExt) {
                                     if (that._tablesForExt.hasOwnProperty(attr)) {
                                         (function () {
