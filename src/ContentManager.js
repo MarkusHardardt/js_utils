@@ -17,309 +17,231 @@
     // CROSS REFERENCES
     // //////////////////////////////////////////////////////////////////////////////////////////
 
-    var format_references_from_condition = function (i_escaped_id, i_valCol) {
-        // search for keys in text within single quotation marks
-        var query = 'LOCATE(';
-        query += i_escaped_id;
-        query += ',';
-        query += i_valCol;
-        query += ') > 0';
-        return query;
-    };
+    // search for keys in text within single quotation marks
+    function formatReferencesFromCondition(escapedId, valCol) {
+        return `LOCATE(${escapedId},${valCol}) > 0`;
+    }
 
-    var format_references_to_locate = function (i_userTab, i_userValCol, i_usedTabAlias, i_usedExt, i_usedKeyCol) {
-        // search for keys in text within double quotation marks
-        var query = "LOCATE(CONCAT('$',";
-        query += i_usedTabAlias;
-        query += '.';
-        query += i_usedKeyCol;
-        query += ",'.";
-        query += i_usedExt;
-        query += "'),";
-        query += i_userTab;
-        query += '.';
-        query += i_userValCol;
-        query += ') > 0';
-        return query;
-    };
+    // search for keys in text within double quotation marks
+    function formatReferencesToLocate(userTab, userValCol, usedTabAlias, usedExt, usedKeyCol) {
+        return `LOCATE(CONCAT('$',${usedTabAlias}.${usedKeyCol},'.${usedExt}'),${userTab}.${userValCol}) > 0`;
+    }
 
-    var format_references_to_condition = function (i_userTab, i_userValCol, i_usedTab, i_usedTabAlias, i_usedExt, i_usedKeyCol) {
-        var query = 'INNER JOIN ';
-        query += i_usedTab;
-        query += ' AS ';
-        query += i_usedTabAlias;
-        query += ' ON ';
-        if (typeof i_userValCol === 'string') {
-            query += format_references_to_locate(i_userTab, i_userValCol, i_usedTabAlias, i_usedExt, i_usedKeyCol);
-        }
-        else {
-            var attr, value, next = false;
-            for (attr in i_userValCol) {
-                if (i_userValCol.hasOwnProperty(attr)) {
+    function formatReferencesToCondition(userTab, userValCol, usedTab, usedTabAlias, usedExt, usedKeyCol) {
+        let query = `INNER JOIN ${usedTab} AS ${usedTabAlias} ON `;
+        if (typeof userValCol === 'string') {
+            query += formatReferencesToLocate(userTab, userValCol, usedTabAlias, usedExt, usedKeyCol);
+        } else {
+            let next = false;
+            for (const attr in userValCol) {
+                if (userValCol.hasOwnProperty(attr)) {
                     if (next) {
                         query += ' OR ';
                     }
-                    query += format_references_to_locate(i_userTab, i_userValCol[attr], i_usedTabAlias, i_usedExt, i_usedKeyCol);
+                    query += formatReferencesToLocate(userTab, userValCol[attr], usedTabAlias, usedExt, usedKeyCol);
                     next = true;
                 }
             }
         }
         return query;
-    };
+    }
 
-    var get_modification_params = function (i_previous, i_next) {
+    function getModificationParams(previous, next) {
         // within the next condition checks we detect if the value is available
         // after the update and if the data will be changed
-        if (typeof i_previous === 'string' && i_previous.length > 0) {
-            if (typeof i_next === 'string' && i_next.length > 0) {
-                if (i_previous !== i_next) {
+        if (typeof previous === 'string' && previous.length > 0) {
+            if (typeof next === 'string' && next.length > 0) {
+                if (previous !== next) {
                     // both values available and different
-                    return {
-                        empty: false,
-                        changed: true,
-                        string: i_next
-                    };
-                }
-                else {
+                    return { empty: false, changed: true, string: next };
+                } else {
                     // both values available and equal
-                    return {
-                        empty: false,
-                        changed: false
-                    };
+                    return { empty: false, changed: false };
                 }
-            }
-            else {
+            } else {
                 // reset current value
-                return {
-                    empty: true,
-                    changed: true
-                };
+                return { empty: true, changed: true };
             }
-        }
-        else {
-            if (typeof i_next === 'string' && i_next.length > 0) {
+        } else {
+            if (typeof next === 'string' && next.length > 0) {
                 // new value available
-                return {
-                    empty: false,
-                    changed: true,
-                    string: i_next
-                };
-            }
-            else {
+                return { empty: false, changed: true, string: next };
+            } else {
                 // both values unavailable
-                return {
-                    empty: true,
-                    changed: false
-                };
+                return { empty: true, changed: false };
             }
         }
-    };
+    }
 
-    var COMMAND_GET_CONFIG = 'get_config';
-    var COMMAND_GET_CHECKSUM = 'get_checksum';
-    var COMMAND_GET_OBJECT = 'get_object';
-    var COMMAND_EXISTS = 'exists';
-    var COMMAND_GET_MODIFICATION_PARAMS = 'get_modification_params';
-    var COMMAND_SET_OBJECT = 'set_object';
-    var COMMAND_GET_REFACTORING_PARAMS = 'get_refactoring_params';
-    var COMMAND_PERFORM_REFACTORING = 'perform_refactoring';
-    var COMMAND_GET_REFERENCES_TO = 'get_references_to';
-    var COMMAND_GET_REFERENCES_TO_COUNT = 'get_references_to_count';
-    var COMMAND_GET_REFERENCES_FROM = 'get_references_from';
-    var COMMAND_GET_REFERENCES_FROM_COUNT = 'get_references_from_count';
-    var COMMAND_GET_TREE_CHILD_NODES = 'get_tree_child_nodes';
-    var COMMAND_GET_SEARCH_RESULTS = 'get_search_results';
-    var COMMAND_GET_ID_KEY_VALUES = 'get_id_key_values';
-    var COMMAND_GET_ID_SELECTED_VALUES = 'get_id_selected_values';
+    const COMMAND_GET_CONFIG = 'get_config';
+    const COMMAND_GET_CHECKSUM = 'get_checksum';
+    const COMMAND_GET_OBJECT = 'get_object';
+    const COMMAND_EXISTS = 'exists';
+    const COMMAND_GET_MODIFICATION_PARAMS = 'getModificationParams';
+    const COMMAND_SET_OBJECT = 'set_object';
+    const COMMAND_GET_REFACTORING_PARAMS = 'get_refactoring_params';
+    const COMMAND_PERFORM_REFACTORING = 'perform_refactoring';
+    const COMMAND_GET_REFERENCES_TO = 'get_references_to';
+    const COMMAND_GET_REFERENCES_TO_COUNT = 'get_references_to_count';
+    const COMMAND_GET_REFERENCES_FROM = 'get_references_from';
+    const COMMAND_GET_REFERENCES_FROM_COUNT = 'get_references_from_count';
+    const COMMAND_GET_TREE_CHILD_NODES = 'get_tree_child_nodes';
+    const COMMAND_GET_SEARCH_RESULTS = 'get_search_results';
+    const COMMAND_GET_ID_KEY_VALUES = 'get_id_key_values';
+    const COMMAND_GET_ID_SELECTED_VALUES = 'get_id_selected_values';
 
-    var VALID_EXT_REGEX = /^\w+$/;
-    var VALID_NAME_CHAR = '[a-zA-Z0-9_+\\-*]';
-    var FOLDER_REGEX = new RegExp('^\\$((?:' + VALID_NAME_CHAR + '+\\/)*)$');
-    var EXCHANGE_HEADER = 'hmijs-config-exchange-data';
+    const VALID_EXT_REGEX = /^\w+$/;
+    const VALID_NAME_CHAR = '[a-zA-Z0-9_+\\-*]';
+    const FOLDER_REGEX = new RegExp('^\\$((?:' + VALID_NAME_CHAR + '+\\/)*)$');
+    const EXCHANGE_HEADER = 'hmijs-config-exchange-data';
 
-    var ContentManagerBase = function () {
+    const ContentManagerBase = function () {
         // nothing to do here
     };
 
     ContentManagerBase.prototype = Object.create(Object.prototype);
     ContentManagerBase.prototype.constructor = ContentManagerBase;
 
-    ContentManagerBase.prototype.getExchangeHandler = function (i_array) {
+    ContentManagerBase.prototype.getExchangeHandler = function (array) {
         return new ExchangeHandler(this);
     };
 
-    ContentManagerBase.prototype.getLanguages = function (i_array) {
-        return Utilities.copyArray(this._config.languages, i_array);
+    ContentManagerBase.prototype.getLanguages = function (array) {
+        return Utilities.copyArray(this._config.languages, array);
     };
 
-    ContentManagerBase.prototype.isValidFile = function (i_string) {
-        return this._key_regex.test(i_string);
+    ContentManagerBase.prototype.isValidFile = function (string) {
+        return this._key_regex.test(string);
     };
 
-    ContentManagerBase.prototype.isValidFolder = function (i_string) {
-        return FOLDER_REGEX.test(i_string);
+    ContentManagerBase.prototype.isValidFolder = function (string) {
+        return FOLDER_REGEX.test(string);
     };
 
-    ContentManagerBase.prototype.getDescriptor = function (i_ext, i_desc) {
-        var tab = this._tablesForExt[i_ext];
+    ContentManagerBase.prototype.getDescriptor = function (ext, description) {
+        const tab = this._tablesForExt[ext];
         if (tab) {
-            var desc = i_desc || {};
+            const desc = description || {};
             desc.JsonFX = tab.JsonFX === true;
             desc.multilingual = tab.multilingual === true || (typeof tab.value_column_prefix === 'string' && tab.value_column_prefix.length > 0);
             desc.multiedit = tab.multiedit === true;
             return desc;
-        }
-        else {
+        } else {
             return false;
         }
     };
 
-    ContentManagerBase.prototype.analyzeID = function (i_id) {
-        var match = this._key_regex.exec(i_id);
+    ContentManagerBase.prototype.analyzeID = function (id) {
+        let match = this._key_regex.exec(id);
         if (match) {
-            return this.getDescriptor(match[2], {
-                id: i_id,
-                path: match[1],
-                file: i_id,
-                extension: match[2]
-            });
+            return this.getDescriptor(match[2], { id, path: match[1], file: id, extension: match[2] });
         }
-        match = FOLDER_REGEX.exec(i_id);
+        match = FOLDER_REGEX.exec(id);
         if (match) {
-            return {
-                id: i_id,
-                path: match[1],
-                folder: i_id
-            };
+            return { id, path: match[1], folder: id };
         }
-        return {
-            id: i_id
-        };
+        return { id };
     };
 
-    ContentManagerBase.prototype.getDescriptors = function (i_callback) {
-        var ext, tabs = this._tablesForExt;
-        for (ext in tabs) {
+    ContentManagerBase.prototype.getDescriptors = function (onEach) {
+        const tabs = this._tablesForExt;
+        for (const ext in tabs) {
             if (tabs.hasOwnProperty(ext)) {
-                i_callback(ext, this.getDescriptor(ext));
+                onEach(ext, this.getDescriptor(ext));
             }
         }
     };
 
-    ContentManagerBase.prototype.getPath = function (i_id) {
-        var match = this._key_regex.exec(i_id);
+    ContentManagerBase.prototype.getPath = function (id) {
+        const match = this._key_regex.exec(id);
         return match ? match[1] : false;
     };
 
-    ContentManagerBase.prototype.getExtension = function (i_id) {
-        var match = this._key_regex.exec(i_id);
+    ContentManagerBase.prototype.getExtension = function (id) {
+        const match = this._key_regex.exec(id);
         return match ? match[2] : false;
     };
 
-    ContentManagerBase.prototype.getIcon = function (i_id) {
-        var match = this._key_regex.exec(i_id);
+    ContentManagerBase.prototype.getIcon = function (id) {
+        const match = this._key_regex.exec(id);
         if (match) {
-            var tab = this._tablesForExt[match[2]];
-            if (tab) {
-                return this._config.icon_dir + tab.icon;
-            }
-            else {
-                return false;
-            }
-        }
-        else if (FOLDER_REGEX.test(i_id)) {
+            const tab = this._tablesForExt[match[2]];
+            return tab ? this._config.icon_dir + tab.icon : false;
+        } else if (FOLDER_REGEX.test(id)) {
             return this._config.icon_dir + this._config.folder_icon;
-        }
-        else {
+        } else {
             return false;
         }
     };
 
-    ContentManagerBase.prototype.compare = function (i_id1, i_id2) {
-        if (FOLDER_REGEX.test(i_id1)) {
-            if (FOLDER_REGEX.test(i_id2)) {
-                return Sorting.compareTextsAndNumbers(i_id1, i_id2, false, false);
-            }
-            else {
-                return -1;
-            }
-        }
-        else {
-            if (FOLDER_REGEX.test(i_id2)) {
-                return 1;
-            }
-            else {
-                return Sorting.compareTextsAndNumbers(i_id1, i_id2, false, false);
-            }
+    ContentManagerBase.prototype.compare = function (id1, id2) {
+        if (FOLDER_REGEX.test(id1)) {
+            return FOLDER_REGEX.test(id2) ? Sorting.compareTextsAndNumbers(id1, id2, false, false) : -1;
+        } else {
+            return FOLDER_REGEX.test(id2) ? 1 : Sorting.compareTextsAndNumbers(id1, id2, false, false);
         }
     };
 
     // TODO check if runnning and required
-    ContentManagerBase.prototype.getValueColumns = function (i_id, i_selectables) {
-        var match = this._key_regex.exec(i_id);
+    ContentManagerBase.prototype.getValueColumns = function (id, selectables) {
+        const match = this._key_regex.exec(id);
         if (!match) {
             return;
         }
-        var table = this._tablesForExt[match[2]];
-        var valcol = this._valColsForExt[match[2]];
+        const table = this._tablesForExt[match[2]];
+        const valcol = this._valColsForExt[match[2]];
         if (!table) {
             return;
         }
-        var selectables = i_selectables || [];
+        const sel = selectables || [];
         // TODO is this a "selectable" (only single value for jso/txt
         if (typeof valcol === 'string') {
-            selectables.push(valcol);
-        }
-        else {
-            for (var attr in valcol) {
+            sel.push(valcol);
+        } else {
+            for (const attr in valcol) {
                 if (valcol.hasOwnProperty(attr)) {
                     // TODO isn't "attr" the selectable?
-                    selectables.push(valcol[attr]);
+                    sel.push(valcol[attr]);
                 }
             }
         }
-        return selectables;
+        return sel;
     };
 
     // constructor
-    var ContentManager = function (i_getSqlAdapter, i_config) {
-        if (!i_getSqlAdapter) {
+    const ContentManager = function (getSqlAdapter, config) {
+        if (!getSqlAdapter) {
             throw new Error('No database access provider available!');
-        }
-        else if (!i_config) {
+        } else if (!config) {
             throw new Error('No database configuration available!');
         }
-        this._getSqlAdapter = i_getSqlAdapter;
-        this._config = i_config;
-        this._parallel = typeof i_config.max_parallel_queries === 'number' && i_config.max_parallel_queries > 0 ? i_config.max_parallel_queries : true;
-        var tables = this._config.tables, table, valcol, i, tablen = tables.length, j, langs = i_config.languages.length;
+        this._getSqlAdapter = getSqlAdapter;
+        this._config = config;
+        this._parallel = typeof config.max_parallel_queries === 'number' && config.max_parallel_queries > 0 ? config.max_parallel_queries : true;
+        let tables = this._config.tables, table, valcol, i, tablen = tables.length, j, langs = config.languages.length, lang;
         this._tablesForExt = {};
         this._valColsForExt = {};
         for (i = 0; i < tablen; i++) {
             table = tables[i];
             if (!VALID_EXT_REGEX.test(table.extension)) {
                 throw new Error('Invalid extension: "' + table.extension + '"');
-            }
-            else if (this._tablesForExt[table.extension] !== undefined) {
+            } else if (this._tablesForExt[table.extension] !== undefined) {
                 throw new Error('Extension already exists: "' + table.extension + '"');
             }
             if (table.value_column_prefix) {
                 valcol = {};
                 for (j = 0; j < langs; j++) {
-                    var lang = i_config.languages[j];
+                    lang = config.languages[j];
                     valcol[lang] = table.value_column_prefix + lang;
                 }
-            }
-            else {
+            } else {
                 valcol = table.value_column;
             }
             this._tablesForExt[table.extension] = table;
             this._valColsForExt[table.extension] = valcol;
         }
         // we need all available extensions for building regular expressions
-        var tabexts = tables.map(function (i_table) {
-            return i_table.extension;
-        }).join('|');
+        const tabexts = tables.map(table => table.extension).join('|');
         this._key_regex = new RegExp('^\\$((?:' + VALID_NAME_CHAR + '+\\/)*?' + VALID_NAME_CHAR + '+?)\\.(' + tabexts + ')$');
         this._refactoring_match = '((?:' + VALID_NAME_CHAR + '+\\/)*?' + VALID_NAME_CHAR + '+?\\.(?:' + tabexts + '))\\b';
         this._include_regex_build = new RegExp('(\'|")?include:\\$((?:' + VALID_NAME_CHAR + '+\\/)*' + VALID_NAME_CHAR + '+?)\\.(' + tabexts + ')\\b\\1', 'g');
@@ -785,7 +707,7 @@
                 checksum += valcol;
                 var currval = currentData !== undefined ? currentData[valcol] : undefined;
                 var nextval = typeof i_value === 'string' ? i_value : undefined;
-                var value = get_modification_params(currval, nextval);
+                var value = getModificationParams(currval, nextval);
                 if (!value.empty) {
                     stillNotEmpty = true;
                 }
@@ -821,7 +743,7 @@
                         // within the next condition checks we detect if the value is
                         // available
                         // after the update and if the data will be changed
-                        value = get_modification_params(currval, nextval);
+                        value = getModificationParams(currval, nextval);
                         if (!value.empty) {
                             stillNotEmpty = true;
                         }
@@ -1541,7 +1463,7 @@
                             tasks.push(function (i_suc, i_err) {
                                 i_adapter.addColumn('tab.' + used.key_column + ' AS path');
                                 i_adapter.addWhere(user.name + '.' + user.key_column + ' = ' + key);
-                                i_adapter.addJoin(format_references_to_condition(user.name, valcol, used.name, 'tab', used.extension, used.key_column));
+                                i_adapter.addJoin(formatReferencesToCondition(user.name, valcol, used.name, 'tab', used.extension, used.key_column));
                                 i_adapter.performSelect(user.name, undefined, undefined, undefined, function (i_result) {
                                     for (var i = 0, l = i_result.length; i < l; i++) {
                                         keys['$' + i_result[i].path + '.' + used.extension] = true;
@@ -1594,7 +1516,7 @@
                             tasks.push(function (i_suc, i_err) {
                                 i_adapter.addColumn('COUNT(*) AS cnt');
                                 i_adapter.addWhere(user.name + '.' + user.key_column + ' = ' + key);
-                                i_adapter.addJoin(format_references_to_condition(user.name, valcol, used.name, 'tab', used.extension, used.key_column));
+                                i_adapter.addJoin(formatReferencesToCondition(user.name, valcol, used.name, 'tab', used.extension, used.key_column));
                                 i_adapter.performSelect(user.name, undefined, undefined, undefined, function (i_result) {
                                     result += i_result[0].cnt;
                                     i_suc();
@@ -1629,12 +1551,12 @@
                     tasks.push(function (i_suc, i_err) {
                         i_adapter.addColumn(table.name + '.' + table.key_column + ' AS path');
                         if (typeof valcol === 'string') {
-                            i_adapter.addWhere(format_references_from_condition(key, table.name + '.' + valcol), false);
+                            i_adapter.addWhere(formatReferencesFromCondition(key, table.name + '.' + valcol), false);
                         }
                         else {
                             for (var col in valcol) {
                                 if (valcol.hasOwnProperty(col)) {
-                                    i_adapter.addWhere(format_references_from_condition(key, table.name + '.' + valcol[col]), false);
+                                    i_adapter.addWhere(formatReferencesFromCondition(key, table.name + '.' + valcol[col]), false);
                                 }
                             }
                         }
@@ -1693,12 +1615,12 @@
                             tasks.push(function (i_suc, i_err) {
                                 i_adapter.addColumn('COUNT(*) AS cnt');
                                 if (typeof valcol === 'string') {
-                                    i_adapter.addWhere(format_references_from_condition(key, table.name + '.' + valcol), false);
+                                    i_adapter.addWhere(formatReferencesFromCondition(key, table.name + '.' + valcol), false);
                                 }
                                 else {
                                     for (var col in valcol) {
                                         if (valcol.hasOwnProperty(col)) {
-                                            i_adapter.addWhere(format_references_from_condition(key, table.name + '.' + valcol[col]), false);
+                                            i_adapter.addWhere(formatReferencesFromCondition(key, table.name + '.' + valcol[col]), false);
                                         }
                                     }
                                 }
