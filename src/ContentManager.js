@@ -1,8 +1,7 @@
 (function (root) {
     "use strict";
-
+    const ContentManager = {};
     const isNodeJS = typeof require === 'function';
-
     const Client = isNodeJS ? require('./Client.js') : root.Client;
     const Utilities = isNodeJS ? require('./Utilities.js') : root.Utilities;
     const JsonFX = isNodeJS ? require('./JsonFX.js') : root.JsonFX;
@@ -12,6 +11,21 @@
     const SqlHelper = isNodeJS ? require('./SqlHelper.js') : root.SqlHelper;
 
     const compare_keys = Sorting.getTextsAndNumbersCompareFunction(false, false, true);
+
+    ContentManager.INSERT = 'insert';
+    ContentManager.UPDATE = 'update';
+    ContentManager.DELETE = 'delete';
+    ContentManager.COPY = 'copy';
+    ContentManager.MOVE = 'move';
+    ContentManager.NONE = 'none';
+    ContentManager.RAW = 'raw';
+    ContentManager.INCLUDE = 'include';
+    ContentManager.PARSE = 'parse';
+    ContentManager.GET_CONTENT_DATA_URL = '/get_content_data';
+    ContentManager.GET_CONTENT_TREE_NODES_URL = '/get_content_tree_nodes';
+    ContentManager.COMMAND_GET_CHILD_TREE_NODES = 'get_child_tree_nodes';
+    ContentManager.COMMAND_GET_REFERENCES_TO_TREE_NODES = 'get_references_to_tree_nodes';
+    ContentManager.COMMAND_GET_REFERENCES_FROM_TREE_NODES = 'get_references_from_tree_nodes';
 
     // //////////////////////////////////////////////////////////////////////////////////////////
     // CROSS REFERENCES
@@ -195,8 +209,7 @@
         }
     }
 
-    // constructor
-    class ContentManager extends ContentManagerBase {
+    class ServerManager extends ContentManagerBase {
         constructor(getSqlAdapter, config) {
             super();
             if (typeof getSqlAdapter !== 'function') {
@@ -1918,22 +1931,7 @@
         }
     }
 
-    ContentManager.INSERT = 'insert';
-    ContentManager.UPDATE = 'update';
-    ContentManager.DELETE = 'delete';
-    ContentManager.COPY = 'copy';
-    ContentManager.MOVE = 'move';
-    ContentManager.NONE = 'none';
-    ContentManager.RAW = 'raw';
-    ContentManager.INCLUDE = 'include';
-    ContentManager.PARSE = 'parse';
-    ContentManager.GET_CONTENT_DATA_URL = '/get_content_data';
-    ContentManager.GET_CONTENT_TREE_NODES_URL = '/get_content_tree_nodes';
-    ContentManager.COMMAND_GET_CHILD_TREE_NODES = 'get_child_tree_nodes';
-    ContentManager.COMMAND_GET_REFERENCES_TO_TREE_NODES = 'get_references_to_tree_nodes';
-    ContentManager.COMMAND_GET_REFERENCES_FROM_TREE_NODES = 'get_references_from_tree_nodes';
-
-    class ContentManagerProxy extends ContentManagerBase {
+    class ClientManager extends ContentManagerBase {
         constructor(onSuccess, onError) {
             super();
             const that = this;
@@ -2051,7 +2049,6 @@
             this._post({ command: COMMAND_GET_ID_SELECTED_VALUES, id, language }, onSuccess, onError);
         }
     }
-    ContentManager.Proxy = ContentManagerProxy;
 
     function createChecksum(group, path) {
         return Utilities.md5(`l.6l8033988749895${path}2.7l828l828459045${group}3.l4l592653589793`);
@@ -2242,18 +2239,21 @@
                     ids.sort(compare_keys);
                     that._read_config_data(ids, id, languages, onProgressChanged, onError);
                 }, onError);
-            }
-            else {
+            } else {
                 onProgressChanged();
             }
         }
     }
 
-    // export
+    if (isNodeJS) {
+        ContentManager.Instance = ServerManager;
+    } else {
+        ContentManager.Instance = ClientManager;
+    }
+    Object.freeze(ContentManager);
     if (isNodeJS) {
         module.exports = ContentManager;
-    }
-    else {
+    } else {
         window.ContentManager = ContentManager;
     }
 }(globalThis));
