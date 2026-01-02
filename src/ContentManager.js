@@ -1120,106 +1120,97 @@
         }, onError);
     };
 
-    ContentManager.prototype.getRefactoringParams = function (i_source, i_target, i_action, onSuccess, onError) {
+    ContentManager.prototype.getRefactoringParams = function (source, target, action, onSuccess, onError) {
         const that = this;
-        this._getSqlAdapter(function (i_adapter) {
-            that._getRefactoringParams(i_adapter, i_source, i_target, i_action, function (i_params) {
-                i_adapter.close();
-                onSuccess(i_params);
-            }, function (i_exc) {
-                i_adapter.close();
-                onError(i_exc);
+        this._getSqlAdapter(adapter => {
+            that._getRefactoringParams(adapter, source, target, action, params => {
+                adapter.close();
+                onSuccess(params);
+            }, err => {
+                adapter.close();
+                onError(err);
             });
         }, onError);
     };
 
-    ContentManager.prototype.performRefactoring = function (i_source, i_target, i_action, i_checksum, onSuccess, onError) {
+    ContentManager.prototype.performRefactoring = function (source, target, action, checksum, onSuccess, onError) {
         const that = this;
-        this._getSqlAdapter(function (i_adapter) {
-            var main = [];
+        this._getSqlAdapter(adapter => {
+            const main = [];
             // the main action has to be processed in a sequence wo we do not run
             // in
             // parallel
             main.parallel = false;
             // we run this as a transaction wo enable rollbacks (just in case
             // something unexpected happens)
-            main.push(function (i_suc, i_err) {
-                i_adapter.startTransaction(i_suc, i_err);
-            });
-            main.push(function (i_suc, i_err) {
-                that._getRefactoringParams(i_adapter, i_source, i_target, i_action, function (i_params) {
-                    if (i_params.error !== undefined) {
-                        i_err(i_params.error);
-                    }
-                    else if (i_params.checksum !== i_checksum) {
-                        i_err('Database content has changed! Try again!');
-                    }
-                    else {
+            main.push((onSuc, onErr) => adapter.startTransaction(onSuc, onErr));
+            main.push((onSuc, onErr) => {
+                that._getRefactoringParams(adapter, source, target, action, params => {
+                    if (params.error !== undefined) {
+                        onErr(params.error);
+                    } else if (params.checksum !== checksum) {
+                        onErr('Database content has changed! Try again!');
+                    } else {
                         // for all sources of the parameters
-                        var tasks = [], objects = i_params.objects, source, replace = false;
+                        const tasks = [], objects = params.objects;
                         tasks.parallel = false;
-                        if (i_params.action === ContentManager.MOVE || i_params.action === ContentManager.COPY) {
+                        let replace = false;
+                        if (params.action === ContentManager.MOVE || params.action === ContentManager.COPY) {
                             // in move- or copy-mode we got to perform key-string
                             // replacements
-                            var expr = i_params.folder ? Regex.escape(i_params.source) + that._refactoring_match : Regex.escape(i_params.source) + '\\b';
-                            var rx = new RegExp(expr, 'g'), rp = i_params.folder ? i_params.target + '$1' : i_params.target;
-                            replace = function (i_string) {
-                                return i_string.replace(rx, rp);
-                            };
-                            for (source in objects) {
-                                if (objects.hasOwnProperty(source)) {
+                            const expr = params.folder ? Regex.escape(params.source) + that._refactoring_match : Regex.escape(params.source) + '\\b';
+                            const rx = new RegExp(expr, 'g'), rp = params.folder ? params.target + '$1' : params.target;
+                            replace = string => string.replace(rx, rp);
+                            for (const attr in objects) {
+                                if (objects.hasOwnProperty(attr)) {
                                     (function () {
-                                        var src = source;
-                                        tasks.push(function (i_s, i_e) {
-                                            that._performRefactoring(i_adapter, src, i_params, replace, i_s, i_e);
-                                        });
+                                        const src = attr;
+                                        tasks.push((os, oe) => that._performRefactoring(adapter, src, params, replace, os, oe));
                                     }());
                                 }
                             }
-                        }
-                        else if (i_params.action === ContentManager.DELETE) {
-                            if (i_params.folder) {
-                                var match = FOLDER_REGEX.exec(i_params.source), srcTabKey = SqlHelper.escape(match[1]), attr;
-                                for (attr in that._tablesForExt) {
+                        } else if (params.action === ContentManager.DELETE) {
+                            if (params.folder) {
+                                const match = FOLDER_REGEX.exec(params.source), srcTabKey = SqlHelper.escape(match[1]), attr;
+                                for (const attr in that._tablesForExt) {
                                     if (that._tablesForExt.hasOwnProperty(attr)) {
                                         (function () {
-                                            var table = that._tablesForExt[attr];
-                                            tasks.push(function (i_s, i_e) {
-                                                i_adapter.addWhere('LOCATE(' + srcTabKey + ',' + table.name + '.' + table.key_column + ') = 1');
-                                                i_adapter.performDelete(table.name, undefined, undefined, i_s, i_e);
+                                            const table = that._tablesForExt[attr];
+                                            tasks.push((os, oe) => {
+                                                adapter.addWhere(`LOCATE(${srcTabKey},${table.name}.${table.key_column}) = 1`);
+                                                adapter.performDelete(table.name, undefined, undefined, os, oe);
                                             });
                                         }());
                                     }
                                 }
-                            }
-                            else {
-                                var key_regex = that._key_regex, match = key_regex.exec(i_source);
-                                var table = that._tablesForExt[match[2]], srcTabKey = SqlHelper.escape(match[1]);
-                                tasks.push(function (i_s, i_e) {
-                                    i_adapter.addWhere(table.name + '.' + table.key_column + ' = ' + srcTabKey);
-                                    i_adapter.performDelete(table.name, undefined, 1, i_s, i_e);
+                            } else {
+                                const key_regex = that._key_regex, match = key_regex.exec(source);
+                                const table = that._tablesForExt[match[2]], srcTabKey = SqlHelper.escape(match[1]);
+                                tasks.push((os, oe) => {
+                                    adapter.addWhere(`${table.name}.${table.key_column} = ${srcTabKey}`);
+                                    adapter.performDelete(table.name, undefined, 1, os, oe);
                                 });
                             }
                         }
-                        Executor.run(tasks, i_suc, i_err);
+                        Executor.run(tasks, onSuc, onErr);
                     }
-                }, i_err);
+                }, onErr);
             });
-            Executor.run(main, function () {
-                i_adapter.commitTransaction(function () {
-                    i_adapter.close();
+            Executor.run(main, () => {
+                adapter.commitTransaction(() => {
+                    adapter.close();
                     onSuccess();
-                }, function (i_exc) {
-                    i_adapter.close();
-                    onError(i_exc);
+                }, err => {
+                    adapter.close();
+                    onError(err);
                 });
-            }, function (i_exception) {
-                i_adapter.rollbackTransaction(function () {
-                    i_adapter.close();
-                    onError(i_exception);
-                }, function (i_exc) {
-                    i_adapter.close();
-                    onError(i_exc);
+            }, err => {
+                adapter.rollbackTransaction(() => {
+                    adapter.close();
+                    onError(err);
+                }, er => {
+                    adapter.close();
+                    onError(er);
                 });
             });
         }, onError);
