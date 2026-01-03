@@ -26,21 +26,21 @@
             'GetIcon(id)',
             'CompareIds(id1, id2)',
             'GetValueColumns(id, selectables)',
-            'Exists(id, onSuccess, onError)',
-            'GetChecksum(id, onSuccess, onError)',
-            'GetObject(id, language, mode, onSuccess, onError)',
-            'GetModificationParams(id, language, value, onSuccess, onError)',
-            'SetObject(id, language, value, checksum, onSuccess, onError)',
-            'GetRefactoringParams(source, target, action, onSuccess, onError)',
-            'PerformRefactoring(source, target, action, checksum, onSuccess, onError)',
-            'GetReferencesTo(id, onSuccess, onError)',
-            'GetReferencesToCount(id, onSuccess, onError)',
-            'GetReferencesFrom(id, onSuccess, onError)',
-            'GetReferencesFromCount(id, onSuccess, onError)',
-            'GetTreeChildNodes(id, onSuccess, onError)',
-            'GetSearchResults(key, value, onSuccess, onError)',
-            'GetIdKeyValues(id, onSuccess, onError)',
-            'GetIdSelectedValues(id, language, onSuccess, onError)'
+            'Exists(id, onResponse, onError)',
+            'GetChecksum(id, onResponse, onError)',
+            'GetObject(id, language, mode, onResponse, onError)',
+            'GetModificationParams(id, language, value, onResponse, onError)',
+            'SetObject(id, language, value, checksum, onResponse, onError)',
+            'GetRefactoringParams(source, target, action, onResponse, onError)',
+            'PerformRefactoring(source, target, action, checksum, onResponse, onError)',
+            'GetReferencesTo(id, onResponse, onError)',
+            'GetReferencesToCount(id, onResponse, onError)',
+            'GetReferencesFrom(id, onResponse, onError)',
+            'GetReferencesFromCount(id, onResponse, onError)',
+            'GetTreeChildNodes(id, onResponse, onError)',
+            'GetSearchResults(key, value, onResponse, onError)',
+            'GetIdKeyValues(id, onResponse, onError)',
+            'GetIdSelectedValues(id, language, onResponse, onError)'
         ], validateMethodArguments);
     }
     ContentManager.validateAsContentManager = validateAsContentManager;
@@ -48,8 +48,8 @@
     function validateAsContentManagerOnServer(instance, validateMethodArguments) {
         validateAsContentManager(instance, validateMethodArguments);
         return Core.validateAs('ContentManager', instance, [
-            'HandleRequest(request, onSuccess, onError)', // Called in web server 'POST' handling
-            'HandleFancyTreeRequest(request, identifier, onSuccess, onError)' // Called in web server 'GET' handling (for fancy tree)
+            'HandleRequest(request, onResponse, onError)', // Called in web server 'POST' handling
+            'HandleFancyTreeRequest(request, identifier, onResponse, onError)' // Called in web server 'GET' handling (for fancy tree)
         ], validateMethodArguments);
     }
     ContentManager.validateAsContentManagerOnServer = validateAsContentManagerOnServer;
@@ -295,7 +295,7 @@
             this._exchange_header_regex = new RegExp('\\[\\{\\((' + tabexts + '|language|' + Regex.escape(EXCHANGE_HEADER) + ')<>([a-f0-9]{32})\\)\\}\\]\\n(.*)\\n', 'g');
             validateAsContentManagerOnServer(this, true);
         }
-        _getRawString(adapter, table, key, language, onSuccess, onError) {
+        _getRawString(adapter, table, key, language, onResponse, onError) {
             let valcol = this._valColsForExt[table.extension], column = typeof valcol === 'string' ? valcol : valcol[language];
             if (typeof column === 'string') {
                 adapter.AddColumn(`${table.name}.${column} AS ${column}`);
@@ -306,16 +306,16 @@
                     // data for the requested language may not be available anyway
                     if (results.length === 1) {
                         let raw = results[0][column];
-                        onSuccess(raw !== null ? raw : '');
+                        onResponse(raw !== null ? raw : '');
                     } else {
-                        onSuccess(false);
+                        onResponse(false);
                     }
                 }, onError);
             } else {
                 onError(`Invalid value column for table '${table.name}' and language '${language}'`);
             }
         }
-        Exists(id, onSuccess, onError) {
+        Exists(id, onResponse, onError) {
             const match = this._key_regex.exec(id);
             if (match) {
                 const table = this._tablesForExt[match[2]];
@@ -328,17 +328,17 @@
                     adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(match[1])}`);
                     adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
                         adapter.Close();
-                        onSuccess(result[0].cnt > 0);
+                        onResponse(result[0].cnt > 0);
                     }, error => {
                         adapter.Close();
                         onError(error);
                     });
                 }, onError);
             } else {
-                onSuccess(false);
+                onResponse(false);
             }
         }
-        GetChecksum(id, onSuccess, onError) {
+        GetChecksum(id, onResponse, onError) {
             // first we try to get table object matching to the given key
             const match = this._key_regex.exec(id);
             if (!match) {
@@ -357,7 +357,7 @@
                 let raw = id;
                 function success() {
                     adapter.Close();
-                    onSuccess(Utilities.md5(raw));
+                    onResponse(Utilities.md5(raw));
                 }
                 function error(err) {
                     adapter.Close();
@@ -395,7 +395,7 @@
                 }
             }, onError);
         }
-        GetObject(id, language, mode, onSuccess, onError) {
+        GetObject(id, language, mode, onResponse, onError) {
             // This method works in four modes:
             // 1. JsonFX-object: build object and return
             // 2. plain text (utf-8): build text and return
@@ -428,9 +428,9 @@
                                 // TODO: object = eval('(' + JsonFX.stringify(object, true) + ')\n//# sourceURL=' + key + '.js');
                                 object = eval('(' + JsonFX.stringify(object, true) + ')');
                             }
-                            onSuccess(object);
+                            onResponse(object);
                         } else {
-                            onSuccess(response);
+                            onResponse(response);
                         }
                     } catch (err) {
                         onError(err);
@@ -513,21 +513,21 @@
                 }
             }, onError);
         }
-        _include(adapter, object, ids, language, onSuccess, onError) {
+        _include(adapter, object, ids, language, onResponse, onError) {
             const that = this;
             if (Array.isArray(object)) {
-                this._buildProperties(adapter, object, ids, language, onSuccess, onError);
+                this._buildProperties(adapter, object, ids, language, onResponse, onError);
             } else if (typeof object === 'object' && object !== null) {
                 const includeKey = object.include;
                 const match = typeof includeKey === 'string' && !ids[includeKey] ? this._key_regex.exec(includeKey) : false;
                 if (!match) {
-                    this._buildProperties(adapter, object, ids, language, onSuccess, onError);
+                    this._buildProperties(adapter, object, ids, language, onResponse, onError);
                     return;
                 }
                 const table = this._tablesForExt[match[2]];
                 // TODO: reuse or remove const valcol = this._valColsForExt[match[2]];
                 if (!table) {
-                    this._buildProperties(adapter, object, ids, language, onSuccess, onError);
+                    this._buildProperties(adapter, object, ids, language, onResponse, onError);
                     return;
                 }
                 this._getRawString(adapter, table, match[1], language, rawString => {
@@ -562,17 +562,17 @@
                                         // no attribute keeping - just attribute transfer
                                         Utilities.transferProperties(object, inclObj);
                                     }
-                                    onSuccess(inclObj);
+                                    onResponse(inclObj);
                                 }, onError);
                             } else {
                                 // no real object means just return whatever it is
-                                onSuccess(inclObj);
+                                onResponse(inclObj);
                             }
                         }, onError);
                     } else {
                         // no string available so just step on with building the object
                         // properties
-                        that._buildProperties(adapter, object, ids, language, onSuccess, onError);
+                        that._buildProperties(adapter, object, ids, language, onResponse, onError);
                     }
                 }, onError);
             } else if ((typeof object === 'string')) {
@@ -617,14 +617,14 @@
                 }
                 tasks.parallel = that._parallel;
                 // if our string contains just one single element we return this as is.
-                Executor.run(tasks, () => onSuccess(array.length === 1 ? array[0] : array.join('')), onError);
+                Executor.run(tasks, () => onResponse(array.length === 1 ? array[0] : array.join('')), onError);
             } else {
                 // if our input object is not an array, an object or a string we have
                 // nothing to build so we return the object as is.
-                onSuccess(object);
+                onResponse(object);
             }
         }
-        _buildProperties(adapter, object, ids, language, onSuccess, onError) {
+        _buildProperties(adapter, object, ids, language, onResponse, onError) {
             const that = this;
             const tasks = [];
             for (const a in object) {
@@ -641,23 +641,23 @@
                 }
             }
             tasks.parallel = this._parallel;
-            Executor.run(tasks, () => onSuccess(object), onError);
+            Executor.run(tasks, () => onResponse(object), onError);
         }
-        _getModificationParams(adapter, id, language, value, onSuccess, onError) {
+        _getModificationParams(adapter, id, language, value, onResponse, onError) {
             // here we store the result
             const params = {};
             // check id
             const match = this._key_regex.exec(id);
             if (!match) {
                 params.error = `Invalid id: ${id}`;
-                onSuccess(params);
+                onResponse(params);
                 return;
             }
             // check table
             const table = this._tablesForExt[match[2]];
             if (!table) {
                 params.error = `Invalid table: ${id}`;
-                onSuccess(params);
+                onResponse(params);
                 return;
             }
             const valcol = this._valColsForExt[match[2]];
@@ -665,7 +665,7 @@
             // sure that language is supported
             if (typeof valcol !== 'string' && typeof language === 'string' && valcol[language] === undefined) {
                 params.error = `Invalid language ${' + language + '}`;
-                onSuccess(params);
+                onResponse(params);
                 return;
             }
             // try to get all current database values for given id and copy the new
@@ -746,10 +746,10 @@
                 }
                 checksum += params.action;
                 params.checksum = Utilities.md5(checksum);
-                onSuccess(params);
+                onResponse(params);
             }, onError);
         }
-        GetModificationParams(id, language, value, onSuccess, onError) {
+        GetModificationParams(id, language, value, onResponse, onError) {
             const that = this;
             this._getSqlAdapter(adapter => {
                 that._getModificationParams(adapter, id, language, value, params => {
@@ -759,14 +759,14 @@
                                 params.externalUsers = referencesFrom;
                             }
                             adapter.Close();
-                            onSuccess(params);
+                            onResponse(params);
                         }, err => {
                             adapter.Close();
                             onError(err);
                         });
                     } else {
                         adapter.Close();
-                        onSuccess(params);
+                        onResponse(params);
                     }
                 }, err => {
                     adapter.Close();
@@ -774,7 +774,7 @@
                 });
             }, onError);
         }
-        SetObject(id, language, value, checksum, onSuccess, onError) {
+        SetObject(id, language, value, checksum, onResponse, onError) {
             const that = this, match = this._key_regex.exec(id);
             if (!match) {
                 onError('Invalid id: ' + id);
@@ -847,7 +847,7 @@
                 Executor.run(main, () => {
                     adapter.CommitTransaction(() => {
                         adapter.Close();
-                        onSuccess();
+                        onResponse();
                     }, err => {
                         adapter.Close();
                         onError(err);
@@ -863,13 +863,13 @@
                 });
             }, onError);
         }
-        _getRefactoringParams(adapter, source, target, action, onSuccess, onError) {
+        _getRefactoringParams(adapter, source, target, action, onResponse, onError) {
             // here we store the result
             const params = {}, key_regex = this._key_regex;
             // check action
             if (action !== ContentManager.COPY && action !== ContentManager.MOVE && action !== ContentManager.DELETE) {
                 params.error = 'Invalid action';
-                onSuccess(params);
+                onResponse(params);
                 return;
             }
             params.action = action;
@@ -880,7 +880,7 @@
                 checksum += source;
             } else {
                 params.error = 'Missing source';
-                onSuccess(params);
+                onResponse(params);
                 return;
             }
             // check target - but only if required
@@ -890,7 +890,7 @@
                     checksum += target;
                 } else {
                     params.error = 'Missing target';
-                    onSuccess(params);
+                    onResponse(params);
                     return;
                 }
             }
@@ -901,7 +901,7 @@
                 srcTab = this._tablesForExt[match[2]];
                 if (!srcTab) {
                     params.error = `Invalid source table: '${source}'`;
-                    onSuccess(params);
+                    onResponse(params);
                     return;
                 }
                 sourceIsFolder = false;
@@ -911,7 +911,7 @@
                 sourceIsFolder = !!match;
                 if (!sourceIsFolder) {
                     params.error = `Invalid source folder: '${source}'`;
-                    onSuccess(params);
+                    onResponse(params);
                     return;
                 }
                 srcTabKey = match[1];
@@ -925,7 +925,7 @@
                     tgtTab = this._tablesForExt[match[2]];
                     if (!tgtTab) {
                         params.error = `Invalid target table: '${target}'`;
-                        onSuccess(params);
+                        onResponse(params);
                         return;
                     }
                     targetIsFolder = false;
@@ -935,7 +935,7 @@
                     targetIsFolder = !!match;
                     if (!targetIsFolder) {
                         params.error = `Invalid target folder: '${target}'`;
-                        onSuccess(params);
+                        onResponse(params);
                         return;
                     }
                     tgtTabKey = match[1];
@@ -945,23 +945,23 @@
                 if (sourceIsFolder) {
                     if (!targetIsFolder) {
                         params.error = 'Target is not a folder';
-                        onSuccess(params);
+                        onResponse(params);
                         return;
                     }
                 } else {
                     if (targetIsFolder) {
                         params.error = 'Target is not a single object';
-                        onSuccess(params);
+                        onResponse(params);
                         return;
                     }
                     if (tgtTab === false) {
                         params.error = 'Unknown target table';
-                        onSuccess(params);
+                        onResponse(params);
                         return;
                     }
                     if (srcTab !== tgtTab) {
                         params.error = 'Different source and target table';
-                        onSuccess(params);
+                        onResponse(params);
                         return;
                     }
                 }
@@ -1008,7 +1008,7 @@
                 const srcLen = srcKeysArr.length;
                 if (srcLen === 0) {
                     params.error = 'No data available';
-                    onSuccess(params);
+                    onResponse(params);
                     return;
                 }
                 srcKeysArr.sort(compareKeys);
@@ -1038,7 +1038,7 @@
                         const tgt = objects[src];
                         if (objects[tgt] !== undefined) {
                             params.error = 'Found at least one target equal to source: "' + tgt + '"';
-                            onSuccess(params);
+                            onResponse(params);
                             return;
                         }
                     }
@@ -1133,22 +1133,22 @@
                     }
                 }
                 params.checksum = Utilities.md5(checksum);
-                onSuccess(params);
+                onResponse(params);
             }, onError);
         }
-        GetRefactoringParams(source, target, action, onSuccess, onError) {
+        GetRefactoringParams(source, target, action, onResponse, onError) {
             const that = this;
             this._getSqlAdapter(adapter => {
                 that._getRefactoringParams(adapter, source, target, action, params => {
                     adapter.Close();
-                    onSuccess(params);
+                    onResponse(params);
                 }, err => {
                     adapter.Close();
                     onError(err);
                 });
             }, onError);
         }
-        PerformRefactoring(source, target, action, checksum, onSuccess, onError) {
+        PerformRefactoring(source, target, action, checksum, onResponse, onError) {
             const that = this;
             this._getSqlAdapter(adapter => {
                 const main = [];
@@ -1214,7 +1214,7 @@
                 Executor.run(main, () => {
                     adapter.CommitTransaction(() => {
                         adapter.Close();
-                        onSuccess();
+                        onResponse();
                     }, err => {
                         adapter.Close();
                         onError(err);
@@ -1230,7 +1230,7 @@
                 });
             }, onError);
         }
-        _performRefactoring(adapter, source, params, getReplacement, onSuccess, onError) {
+        _performRefactoring(adapter, source, params, getReplacement, onResponse, onError) {
             const that = this, key_regex = this._key_regex;
             const match = key_regex.exec(source);
             const table = this._tablesForExt[match[2]];
@@ -1359,9 +1359,9 @@
                     }, onErr);
                 });
             }
-            Executor.run(main, onSuccess, onError);
+            Executor.run(main, onResponse, onError);
         }
-        GetReferencesTo(id, onSuccess, onError) {
+        GetReferencesTo(id, onResponse, onError) {
             const match = this._key_regex.exec(id);
             if (match) {
                 const user = this._tablesForExt[match[2]];
@@ -1402,7 +1402,7 @@
                             }
                         }
                         adapter.Close();
-                        onSuccess(array);
+                        onResponse(array);
                     }, err => {
                         adapter.Close();
                         onError(err);
@@ -1411,10 +1411,10 @@
             }
             else {
                 // if invalid key we simply found no reference
-                onSuccess([]);
+                onResponse([]);
             }
         }
-        GetReferencesToCount(id, onSuccess, onError) {
+        GetReferencesToCount(id, onResponse, onError) {
             const match = this._key_regex.exec(id);
             if (match) {
                 const user = this._tablesForExt[match[2]];
@@ -1447,7 +1447,7 @@
                     tasks.parallel = that._parallel;
                     Executor.run(tasks, () => {
                         adapter.Close();
-                        onSuccess(result);
+                        onResponse(result);
                     }, err => {
                         adapter.Close();
                         onError(err);
@@ -1455,10 +1455,10 @@
                 }, onError);
             } else {
                 // if invalid key we simply found no reference
-                onSuccess(0);
+                onResponse(0);
             }
         }
-        _getReferencesFrom(adapter, id, onSuccess, onError) {
+        _getReferencesFrom(adapter, id, onResponse, onError) {
             const that = this, key = SqlHelper.escape(id), keys = {}, tasks = [];
             for (const attr in this._tablesForExt) {
                 if (this._tablesForExt.hasOwnProperty(attr)) {
@@ -1494,16 +1494,16 @@
                         array.push(key);
                     }
                 }
-                onSuccess(array);
+                onResponse(array);
             }, onError);
         }
-        GetReferencesFrom(id, onSuccess, onError) {
+        GetReferencesFrom(id, onResponse, onError) {
             if (this._key_regex.test(id)) {
                 const that = this;
                 this._getSqlAdapter(adapter => {
                     that._getReferencesFrom(adapter, id, results => {
                         adapter.Close();
-                        onSuccess(results);
+                        onResponse(results);
                     }, err => {
                         adapter.Close();
                         onError(err);
@@ -1511,10 +1511,10 @@
                 }, onError);
             } else {
                 // if invalid key we simply found no reference
-                onSuccess([]);
+                onResponse([]);
             }
         }
-        GetReferencesFromCount(id, onSuccess, onError) {
+        GetReferencesFromCount(id, onResponse, onError) {
             if (this._key_regex.test(id)) {
                 const that = this;
                 this._getSqlAdapter(adapter => {
@@ -1548,7 +1548,7 @@
                     tasks.parallel = that._parallel;
                     Executor.run(tasks, () => {
                         adapter.Close();
-                        onSuccess(result);
+                        onResponse(result);
                     }, err => {
                         adapter.Close();
                         onError(err);
@@ -1556,10 +1556,10 @@
                 }, onError);
             } else {
                 // if invalid key we simply found no reference
-                onSuccess(0);
+                onResponse(0);
             }
         }
-        GetTreeChildNodes(id, onSuccess, onError) {
+        GetTreeChildNodes(id, onResponse, onError) {
             const match = FOLDER_REGEX.exec(id);
             if (match) {
                 const that = this, key = match[1];
@@ -1621,19 +1621,19 @@
                     tasks.parallel = that._parallel;
                     Executor.run(tasks, () => {
                         adapter.Close();
-                        onSuccess(nodes);
+                        onResponse(nodes);
                     }, err => {
                         adapter.Close();
                         onError(err);
                     });
                 }, onError);
             } else if (this._key_regex.test(id)) {
-                onSuccess([]);
+                onResponse([]);
             } else {
                 onError(`Invalid key: '${id}'`);
             }
         }
-        GetSearchResults(key, value, onSuccess, onError) {
+        GetSearchResults(key, value, onResponse, onError) {
             if (key.length > 0 || value.length > 0) {
                 const that = this;
                 this._getSqlAdapter(adapter => {
@@ -1685,7 +1685,7 @@
                     tasks.parallel = that._parallel;
                     Executor.run(tasks, () => {
                         adapter.Close();
-                        onSuccess(results);
+                        onResponse(results);
                     }, err => {
                         adapter.Close();
                         onError(err);
@@ -1693,7 +1693,7 @@
                 }, onError);
             }
         }
-        GetIdKeyValues(id, onSuccess, onError) {
+        GetIdKeyValues(id, onResponse, onError) {
             const that = this, data = this.AnalyzeId(id);
             if (data.file || data.folder) {
                 this._getSqlAdapter(adapter => {
@@ -1720,7 +1720,7 @@
                     tasks.parallel = that._parallel;
                     Executor.run(tasks, () => {
                         adapter.Close();
-                        onSuccess(results);
+                        onResponse(results);
                     }, err => {
                         adapter.Close();
                         onError(err);
@@ -1730,7 +1730,7 @@
                 onError(`Invalid selection: '${data.string}'`);
             }
         }
-        GetIdSelectedValues(id, language, onSuccess, onError) {
+        GetIdSelectedValues(id, language, onResponse, onError) {
             const match = this._key_regex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
@@ -1752,14 +1752,14 @@
                         array.push([`${result[i].path}.${table.extension}`, result[i].val]);
                     }
                     adapter.Close();
-                    onSuccess(array);
+                    onResponse(array);
                 }, err => {
                     adapter.Close();
                     onError(err);
                 });
             }, onError);
         }
-        HandleRequest(request, onSuccess, onError) {
+        HandleRequest(request, onResponse, onError) {
             switch (request.command) {
                 case COMMAND_GET_CONFIG:
                     const tables = this._config.tables.map(table => {
@@ -1778,7 +1778,7 @@
                         }
                         return tab;
                     });
-                    onSuccess({
+                    onResponse({
                         icon_dir: this._config.icon_dir,
                         languages: this._config.languages,
                         folder_icon: this._config.folder_icon,
@@ -1789,56 +1789,56 @@
                     });
                     break;
                 case COMMAND_EXISTS:
-                    this.Exists(request.id, onSuccess, onError);
+                    this.Exists(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_CHECKSUM:
-                    this.GetChecksum(request.id, onSuccess, onError);
+                    this.GetChecksum(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_OBJECT:
-                    this.GetObject(request.id, request.language, request.mode, onSuccess, onError);
+                    this.GetObject(request.id, request.language, request.mode, onResponse, onError);
                     break;
                 case COMMAND_GET_MODIFICATION_PARAMS:
-                    this.GetModificationParams(request.id, request.language, request.value, onSuccess, onError);
+                    this.GetModificationParams(request.id, request.language, request.value, onResponse, onError);
                     break;
                 case COMMAND_SET_OBJECT:
-                    this.SetObject(request.id, request.language, request.value, request.checksum, onSuccess, onError);
+                    this.SetObject(request.id, request.language, request.value, request.checksum, onResponse, onError);
                     break;
                 case COMMAND_GET_REFACTORING_PARAMS:
-                    this.GetRefactoringParams(request.source, request.target, request.action, onSuccess, onError);
+                    this.GetRefactoringParams(request.source, request.target, request.action, onResponse, onError);
                     break;
                 case COMMAND_PERFORM_REFACTORING:
-                    this.PerformRefactoring(request.source, request.target, request.action, request.checksum, onSuccess, onError);
+                    this.PerformRefactoring(request.source, request.target, request.action, request.checksum, onResponse, onError);
                     break;
                 case COMMAND_GET_REFERENCES_TO:
-                    this.GetReferencesTo(request.id, onSuccess, onError);
+                    this.GetReferencesTo(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_REFERENCES_TO_COUNT:
-                    this.GetReferencesToCount(request.id, onSuccess, onError);
+                    this.GetReferencesToCount(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_REFERENCES_FROM:
-                    this.GetReferencesFrom(request.id, onSuccess, onError);
+                    this.GetReferencesFrom(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_REFERENCES_FROM_COUNT:
-                    this.GetReferencesFromCount(request.id, onSuccess, onError);
+                    this.GetReferencesFromCount(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_TREE_CHILD_NODES:
-                    this.GetTreeChildNodes(request.id, onSuccess, onError);
+                    this.GetTreeChildNodes(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_SEARCH_RESULTS:
-                    this.GetSearchResults(request.key, request.value, onSuccess, onError);
+                    this.GetSearchResults(request.key, request.value, onResponse, onError);
                     break;
                 case COMMAND_GET_ID_KEY_VALUES:
-                    this.GetIdKeyValues(request.id, onSuccess, onError);
+                    this.GetIdKeyValues(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_ID_SELECTED_VALUES:
-                    this.GetIdSelectedValues(request.id, request.language, onSuccess, onError);
+                    this.GetIdSelectedValues(request.id, request.language, onResponse, onError);
                     break;
                 default:
                     onError(`EXCEPTION! Unexpected command: '${request.command}'`);
                     break;
             }
         }
-        HandleFancyTreeRequest(request, identifier, onSuccess, onError) {
+        HandleFancyTreeRequest(request, identifier, onResponse, onError) {
             const that = this, id = typeof identifier === 'string' && identifier.length > 0 ? identifier : '$';
             switch (request) {
                 case ContentManager.COMMAND_GET_CHILD_TREE_NODES:
@@ -1872,7 +1872,7 @@
                                 icon: that.GetIcon(node.path)
                             });
                         }
-                        onSuccess(ns);
+                        onResponse(ns);
                     }, onError);
                     break;
                 case ContentManager.COMMAND_GET_REFERENCES_TO_TREE_NODES:
@@ -1905,7 +1905,7 @@
                             }());
                         }
                         tasks.parallel = true;
-                        Executor.run(tasks, () => onSuccess(nodes), onError);
+                        Executor.run(tasks, () => onResponse(nodes), onError);
                     }, onError);
                     break;
                 case ContentManager.COMMAND_GET_REFERENCES_FROM_TREE_NODES:
@@ -1938,16 +1938,16 @@
                             }());
                         }
                         tasks.parallel = true;
-                        Executor.run(tasks, () => onSuccess(nodes), onError);
+                        Executor.run(tasks, () => onResponse(nodes), onError);
                     }, onError);
                     break;
                 default:
-                    onSuccess([]);
+                    onResponse([]);
                     break;
             }
         }
         // Note: this next is a template method - copy when new request has to be implemented
-        _$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$(onSuccess, onError) {
+        _$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$(onResponse, onError) {
             const that = this;
             this._getSqlAdapter(adapter => {
                 const main = [];
@@ -1959,7 +1959,7 @@
                 Executor.run(main, () => {
                     adapter.CommitTransaction(() => {
                         adapter.Close();
-                        onSuccess();
+                        onResponse();
                     }, (err) => {
                         adapter.Close();
                         onError(err);
@@ -1978,7 +1978,7 @@
     }
 
     class ClientManager extends ContentManagerBase {
-        constructor(onSuccess, onError) {
+        constructor(onResponse, onError) {
             super();
             const that = this;
             this._post({
@@ -2006,33 +2006,33 @@
                     }
                     that._valColsForExt[table.extension] = valcol;
                 }
-                if (typeof onSuccess === 'function') {
-                    onSuccess();
+                if (typeof onResponse === 'function') {
+                    onResponse();
                 }
             }, onError);
             validateAsContentManager(this, true);
         }
         // prototype
-        _post(request, onSuccess, onError) {
+        _post(request, onResponse, onError) {
             Client.fetch(ContentManager.GET_CONTENT_DATA_URL, JsonFX.stringify(request, false), response => {
                 if (response.length > 0) {
                     try {
-                        onSuccess(JsonFX.parse(response, false, false));
+                        onResponse(JsonFX.parse(response, false, false));
                     } catch (error) {
                         onError(error);
                     }
                 } else {
-                    onSuccess();
+                    onResponse();
                 }
             }, onError);
         }
-        Exists(id, onSuccess, onError) {
-            this._post({ command: COMMAND_EXISTS, id }, onSuccess, onError);
+        Exists(id, onResponse, onError) {
+            this._post({ command: COMMAND_EXISTS, id }, onResponse, onError);
         }
-        GetChecksum(id, onSuccess, onError) {
-            this._post({ command: COMMAND_GET_CHECKSUM, id }, onSuccess, onError);
+        GetChecksum(id, onResponse, onError) {
+            this._post({ command: COMMAND_GET_CHECKSUM, id }, onResponse, onError);
         }
-        GetObject(id, language, mode, onSuccess, onError) {
+        GetObject(id, language, mode, onResponse, onError) {
             const that = this, parse = mode === ContentManager.PARSE;
             this._post({
                 command: COMMAND_GET_OBJECT,
@@ -2050,50 +2050,50 @@
                             // TOOD: response = eval('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
                             object = eval('(' + JsonFX.stringify(object, true) + ')');
                         }
-                        onSuccess(object);
+                        onResponse(object);
                     } catch (exc) {
                         onError(exc);
                     }
                 } else {
-                    onSuccess();
+                    onResponse();
                 }
-            } : onSuccess, onError);
+            } : onResponse, onError);
         }
-        GetModificationParams(id, language, value, onSuccess, onError) {
-            this._post({ command: COMMAND_GET_MODIFICATION_PARAMS, id, language, value }, onSuccess, onError);
+        GetModificationParams(id, language, value, onResponse, onError) {
+            this._post({ command: COMMAND_GET_MODIFICATION_PARAMS, id, language, value }, onResponse, onError);
         }
-        SetObject(id, language, value, checksum, onSuccess, onError) {
-            this._post({ command: COMMAND_SET_OBJECT, id, language, value, checksum }, onSuccess, onError);
+        SetObject(id, language, value, checksum, onResponse, onError) {
+            this._post({ command: COMMAND_SET_OBJECT, id, language, value, checksum }, onResponse, onError);
         }
-        GetRefactoringParams(source, target, action, onSuccess, onError) {
-            this._post({ command: COMMAND_GET_REFACTORING_PARAMS, source, target, action }, onSuccess, onError);
+        GetRefactoringParams(source, target, action, onResponse, onError) {
+            this._post({ command: COMMAND_GET_REFACTORING_PARAMS, source, target, action }, onResponse, onError);
         }
-        PerformRefactoring(source, target, action, checksum, onSuccess, onError) {
-            this._post({ command: COMMAND_PERFORM_REFACTORING, source, target, action, checksum }, onSuccess, onError);
+        PerformRefactoring(source, target, action, checksum, onResponse, onError) {
+            this._post({ command: COMMAND_PERFORM_REFACTORING, source, target, action, checksum }, onResponse, onError);
         }
-        GetReferencesTo(id, onSuccess, onError) {
-            this._post({ command: COMMAND_GET_REFERENCES_TO, id }, onSuccess, onError);
+        GetReferencesTo(id, onResponse, onError) {
+            this._post({ command: COMMAND_GET_REFERENCES_TO, id }, onResponse, onError);
         }
-        GetReferencesToCount(id, onSuccess, onError) {
-            this._post({ command: COMMAND_GET_REFERENCES_TO_COUNT, id }, onSuccess, onError);
+        GetReferencesToCount(id, onResponse, onError) {
+            this._post({ command: COMMAND_GET_REFERENCES_TO_COUNT, id }, onResponse, onError);
         }
-        GetReferencesFrom(id, onSuccess, onError) {
-            this._post({ command: COMMAND_GET_REFERENCES_FROM, id }, onSuccess, onError);
+        GetReferencesFrom(id, onResponse, onError) {
+            this._post({ command: COMMAND_GET_REFERENCES_FROM, id }, onResponse, onError);
         }
-        GetReferencesFromCount(id, onSuccess, onError) {
-            this._post({ command: COMMAND_GET_REFERENCES_FROM_COUNT, id }, onSuccess, onError);
+        GetReferencesFromCount(id, onResponse, onError) {
+            this._post({ command: COMMAND_GET_REFERENCES_FROM_COUNT, id }, onResponse, onError);
         }
-        GetTreeChildNodes(id, onSuccess, onError) {
-            this._post({ command: COMMAND_GET_TREE_CHILD_NODES, id }, onSuccess, onError);
+        GetTreeChildNodes(id, onResponse, onError) {
+            this._post({ command: COMMAND_GET_TREE_CHILD_NODES, id }, onResponse, onError);
         }
-        GetSearchResults(key, value, onSuccess, onError) {
-            this._post({ command: COMMAND_GET_SEARCH_RESULTS, key, value }, onSuccess, onError);
+        GetSearchResults(key, value, onResponse, onError) {
+            this._post({ command: COMMAND_GET_SEARCH_RESULTS, key, value }, onResponse, onError);
         }
-        GetIdKeyValues(id, onSuccess, onError) {
-            this._post({ command: COMMAND_GET_ID_KEY_VALUES, id }, onSuccess, onError);
+        GetIdKeyValues(id, onResponse, onError) {
+            this._post({ command: COMMAND_GET_ID_KEY_VALUES, id }, onResponse, onError);
         }
-        GetIdSelectedValues(id, language, onSuccess, onError) {
-            this._post({ command: COMMAND_GET_ID_SELECTED_VALUES, id, language }, onSuccess, onError);
+        GetIdSelectedValues(id, language, onResponse, onError) {
+            this._post({ command: COMMAND_GET_ID_SELECTED_VALUES, id, language }, onResponse, onError);
         }
     }
 
