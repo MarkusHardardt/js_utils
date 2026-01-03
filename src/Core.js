@@ -228,6 +228,21 @@
             return objectInstance;
         }
         Core.validateAs = validateAs;
+
+        function validateMethod(instanceType, objectInstance, methodName) {
+            if (objectInstance === undefined) {
+                throw new Error(`${instanceType} is undefined!`);
+            } if (objectInstance === null) {
+                throw new Error(`${instanceType} is null`);
+            } else if (typeof objectInstance !== 'object') {
+                throw new Error(`${instanceType} is not an object`);
+            } else if (typeof objectInstance[methodName] !== 'function') {
+                throw new Error(`${instanceType} method '${methodName}' is not a function`);
+            } else {
+                return objectInstance;
+            }
+        }
+        Core.validateMethod = validateMethod;
     }());
 
     Object.freeze(Core);
