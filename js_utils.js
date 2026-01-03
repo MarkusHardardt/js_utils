@@ -12,13 +12,13 @@
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Sorting.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Utilities.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Core.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentManager.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Common.js');
+        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentManager.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectLifecycleManager.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataPoint.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/TargetSystem.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
+        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/ext/md5.js'); // external
     }
@@ -36,13 +36,13 @@
         Utilities: require('./src/Utilities.js'),
         Core: require('./src/Core.js'),
         WebServer: require('./src/WebServer.js'),
-        ContentManager: require('./src/ContentManager.js'),
         Common: require('./src/Common.js'),
+        ContentManager: require('./src/ContentManager.js'),
         ObjectLifecycleManager: require('./src/ObjectLifecycleManager.js'),
-        ContentEditor: require('./src/ContentEditor.js'),
         DataPoint: require('./src/DataPoint.js'),
         TargetSystem: require('./src/TargetSystem.js'),
         WebSocketConnection: require('./src/WebSocketConnection.js'),
+        ContentEditor: require('./src/ContentEditor.js'),
         DataConnector: require('./src/DataConnector.js'),
         md5: require('./ext/md5.js'), // external
         addStaticWebServerJsUtilsFiles

@@ -3,15 +3,58 @@
     const ContentManager = {};
     const isNodeJS = typeof require === 'function';
     const Client = isNodeJS ? require('./Client.js') : root.Client;
-    const Utilities = isNodeJS ? require('./Utilities.js') : root.Utilities;
+    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
     const JsonFX = isNodeJS ? require('./JsonFX.js') : root.JsonFX;
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
-    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
     const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
     const SqlHelper = isNodeJS ? require('./SqlHelper.js') : root.SqlHelper;
+    const Utilities = isNodeJS ? require('./Utilities.js') : root.Utilities;
+    const Core = isNodeJS ? require('./Core.js') : root.Core;
 
-    const compare_keys = Sorting.getTextsAndNumbersCompareFunction(false, false, true);
+    /*  ContentManager inferface  */
+    function validateAsContentManager(instance, validateMethodArguments) {
+        return Core.validateAs('ContentManager', instance, [
+            'GetExchangeHandler()',
+            'GetLanguages(array)',
+            'IsValidFile(string)',
+            'IsValidFolder(string)',
+            'GetDescriptor(ext, description)',
+            'AnalyzeId(id)',
+            'GetDescriptors(onEach)',
+            'GetPath(id)',
+            'GetExtension(id)',
+            'GetIcon(id)',
+            'CompareIds(id1, id2)',
+            'GetValueColumns(id, selectables)',
+            'Exists(id, onSuccess, onError)',
+            'GetChecksum(id, onSuccess, onError)',
+            'GetObject(id, language, mode, onSuccess, onError)',
+            'GetModificationParams(id, language, value, onSuccess, onError)',
+            'SetObject(id, language, value, checksum, onSuccess, onError)',
+            'GetRefactoringParams(source, target, action, onSuccess, onError)',
+            'PerformRefactoring(source, target, action, checksum, onSuccess, onError)',
+            'GetReferencesTo(id, onSuccess, onError)',
+            'GetReferencesToCount(id, onSuccess, onError)',
+            'GetReferencesFrom(id, onSuccess, onError)',
+            'GetReferencesFromCount(id, onSuccess, onError)',
+            'GetTreeChildNodes(id, onSuccess, onError)',
+            'GetSearchResults(key, value, onSuccess, onError)',
+            'GetIdKeyValues(id, onSuccess, onError)',
+            'GetIdSelectedValues(id, language, onSuccess, onError)'
+        ], validateMethodArguments);
+    }
+    ContentManager.validateAsContentManager = validateAsContentManager;
+    
+    function validateAsContentManagerOnServer(instance, validateMethodArguments) {
+        validateAsContentManager(instance, validateMethodArguments);
+        return Core.validateAs('ContentManager', instance, [
+            'HandleRequest(request, onSuccess, onError)', // Called in web server 'POST' handling
+            'HandleFancyTreeRequest(request, identifier, onSuccess, onError)' // Called in web server 'GET' handling (for fancy tree)
+        ], validateMethodArguments);
+    }
+    ContentManager.validateAsContentManagerOnServer = validateAsContentManagerOnServer;
 
+    /*  Used by ContentEditor  */
     ContentManager.INSERT = 'insert';
     ContentManager.UPDATE = 'update';
     ContentManager.DELETE = 'delete';
@@ -209,6 +252,8 @@
         }
     }
 
+    const compareKeys = Sorting.getTextsAndNumbersCompareFunction(false, false, true);
+
     class ServerManager extends ContentManagerBase {
         constructor(getSqlAdapter, config) {
             super();
@@ -248,6 +293,7 @@
             this._refactoring_match = '((?:' + VALID_NAME_CHAR + '+\\/)*?' + VALID_NAME_CHAR + '+?\\.(?:' + tabexts + '))\\b';
             this._include_regex_build = new RegExp('(\'|")?include:\\$((?:' + VALID_NAME_CHAR + '+\\/)*' + VALID_NAME_CHAR + '+?)\\.(' + tabexts + ')\\b\\1', 'g');
             this._exchange_header_regex = new RegExp('\\[\\{\\((' + tabexts + '|language|' + Regex.escape(EXCHANGE_HEADER) + ')<>([a-f0-9]{32})\\)\\}\\]\\n(.*)\\n', 'g');
+            validateAsContentManagerOnServer(this, true);
         }
         _getRawString(adapter, table, key, language, onSuccess, onError) {
             let valcol = this._valColsForExt[table.extension], column = typeof valcol === 'string' ? valcol : valcol[language];
@@ -965,7 +1011,7 @@
                     onSuccess(params);
                     return;
                 }
-                srcKeysArr.sort(compare_keys);
+                srcKeysArr.sort(compareKeys);
                 for (let i = 0; i < srcLen; i++) {
                     checksum += srcKeysArr[i];
                 }
@@ -1037,7 +1083,7 @@
                     }
                 }
                 if (tgtExArr.length > 0) {
-                    tgtExArr.sort(compare_keys);
+                    tgtExArr.sort(compareKeys);
                     const existingTargets = {};
                     const l = tgtExArr.length;
                     for (let i = 0; i < l; i++) {
@@ -1079,7 +1125,7 @@
                     }
                 }
                 if (extRefsArray.length > 0) {
-                    extRefsArray.sort(compare_keys);
+                    extRefsArray.sort(compareKeys);
                     params.referencesFromOthers = extRefsArray;
                     const l = extRefsArray.length;
                     for (let i = 0; i < l; i++) {
@@ -1587,11 +1633,11 @@
                 onError(`Invalid key: '${id}'`);
             }
         }
-        GetSearchResults(searchKey, searchValue, onSuccess, onError) {
-            if (searchKey.length > 0 || searchValue.length > 0) {
+        GetSearchResults(key, value, onSuccess, onError) {
+            if (key.length > 0 || value.length > 0) {
                 const that = this;
                 this._getSqlAdapter(adapter => {
-                    const results = [], tasks = [], key = SqlHelper.escape(searchKey), value = SqlHelper.escape(searchValue);
+                    const results = [], tasks = [];
                     for (const attr in that._tablesForExt) {
                         if (that._tablesForExt.hasOwnProperty(attr)) {
                             (function () {
@@ -1600,15 +1646,15 @@
                                 tasks.push((onSuc, onErr) => {
                                     adapter.AddColumn(`${table.name}.${table.key_column} AS path`);
                                     let where = '';
-                                    if (searchKey.length > 0) {
-                                        where += `LOCATE(${SqlHelper.escape(searchKey)}, ${table.name}.${table.key_column}) > 0`;
-                                        if (searchValue.length > 0) {
+                                    if (key.length > 0) {
+                                        where += `LOCATE(${SqlHelper.escape(key)}, ${table.name}.${table.key_column}) > 0`;
+                                        if (value.length > 0) {
                                             where += ' AND ';
                                         }
                                     }
-                                    if (searchValue.length > 0) {
+                                    if (value.length > 0) {
                                         if (typeof valcol === 'string') {
-                                            where += `LOCATE(${value}, ${table.name}.${valcol}) > 0`;
+                                            where += `LOCATE(${SqlHelper.escape(value)}, ${table.name}.${valcol}) > 0`;
                                         } else {
                                             where += '(';
                                             let next = false;
@@ -1618,7 +1664,7 @@
                                                         where += ' OR ';
                                                     }
                                                     next = true;
-                                                    where += `LOCATE(${value}, ${table.name}.${valcol[val]}) > 0`;
+                                                    where += `LOCATE(${SqlHelper.escape(value)}, ${table.name}.${valcol[val]}) > 0`;
                                                 }
                                             }
                                             where += ')';
@@ -1964,6 +2010,7 @@
                     onSuccess();
                 }
             }, onError);
+            validateAsContentManager(this, true);
         }
         // prototype
         _post(request, onSuccess, onError) {
@@ -2231,12 +2278,12 @@
             const that = this, cms = this._cms, data = cms.AnalyzeId(id);
             onProgressChanged('load languages ...');
             const languages = cms.GetLanguages();
-            languages.sort(compare_keys);
+            languages.sort(compareKeys);
             if (data.file) {
                 that._read_config_data([data.file], id, languages, onProgressChanged, onError);
             } else if (data.folder) {
                 cms.GetIdKeyValues(data.folder, ids => {
-                    ids.sort(compare_keys);
+                    ids.sort(compareKeys);
                     that._read_config_data(ids, id, languages, onProgressChanged, onError);
                 }, onError);
             } else {
