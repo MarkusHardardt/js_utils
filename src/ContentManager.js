@@ -40,11 +40,12 @@
             'GetTreeChildNodes(id, onResponse, onError)',
             'GetSearchResults(key, value, onResponse, onError)',
             'GetIdKeyValues(id, onResponse, onError)',
-            'GetIdSelectedValues(id, language, onResponse, onError)'
+            'GetIdSelectedValues(id, language, onResponse, onError)',
+            'GetHMIObject(url, onResponse, onError)'
         ], validateMethodArguments);
     }
     ContentManager.validateAsContentManager = validateAsContentManager;
-    
+
     function validateAsContentManagerOnServer(instance, validateMethodArguments) {
         validateAsContentManager(instance, validateMethodArguments);
         return Core.validateAs('ContentManager', instance, [
@@ -146,6 +147,7 @@
     const COMMAND_GET_SEARCH_RESULTS = 'get_search_results';
     const COMMAND_GET_ID_KEY_VALUES = 'get_id_key_values';
     const COMMAND_GET_ID_SELECTED_VALUES = 'get_id_selected_values';
+    const COMMAND_GET_HMI_OBJECT = 'get_hmi_object';
 
     const VALID_EXT_REGEX = /^\w+$/;
     const VALID_NAME_CHAR = '[a-zA-Z0-9_+\\-*]';
@@ -414,104 +416,105 @@
                 onError('Invalid table name: "' + id + '"');
                 return;
             }
+            this._getSqlAdapter(adapter => this._getObject(adapter, id, match[1], table, valcol, language, mode, onResponse, onError), onError);
+        }
+        _getObject(adapter, id, key, table, valcol, language, mode, onResponse, onError) {
             const that = this;
-            this._getSqlAdapter(adapter => {
-                let key = match[1], parse = mode === ContentManager.PARSE, include = parse || mode === ContentManager.INCLUDE;
-                function success(response) {
-                    adapter.Close();
-                    try {
-                        if (parse) {
-                            const object = JsonFX.reconstruct(response);
-                            if (that._config.jsonfx_pretty === true) {
-                                // the 'jsonfx_pretty' flag may be used to format our dynamically
-                                // parsed JavaScript sources for more easy debugging purpose
-                                // TODO: object = eval('(' + JsonFX.stringify(object, true) + ')\n//# sourceURL=' + key + '.js');
-                                object = eval('(' + JsonFX.stringify(object, true) + ')');
-                            }
-                            onResponse(object);
-                        } else {
-                            onResponse(response);
+            let parse = mode === ContentManager.PARSE, include = parse || mode === ContentManager.INCLUDE;
+            function success(response) {
+                adapter.Close();
+                try {
+                    if (parse) {
+                        const object = JsonFX.reconstruct(response);
+                        if (that._config.jsonfx_pretty === true) {
+                            // the 'jsonfx_pretty' flag may be used to format our dynamically
+                            // parsed JavaScript sources for more easy debugging purpose
+                            // TODO: object = eval('(' + JsonFX.stringify(object, true) + ')\n//# sourceURL=' + key + '.js');
+                            object = eval('(' + JsonFX.stringify(object, true) + ')');
                         }
-                    } catch (err) {
-                        onError(err);
+                        onResponse(object);
+                    } else {
+                        onResponse(response);
                     }
-                }
-                function error(err) {
-                    adapter.Close();
+                } catch (err) {
                     onError(err);
                 }
-                // if JsonFX or plain text is available we decode the string and
-                // return with or without all includes included
-                if (typeof valcol === 'string') {
-                    // note: no language required here because we got only one anyway
-                    that._getRawString(adapter, table, key, undefined, rawString => {
-                        if (rawString !== false) {
-                            const object = table.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
-                            if (include) {
-                                const ids = {};
-                                ids[id] = true;
-                                that._include(adapter, object, ids, language, success, error);
-                            } else {
-                                success(object);
-                            }
+            }
+            function error(err) {
+                adapter.Close();
+                onError(err);
+            }
+            // if JsonFX or plain text is available we decode the string and
+            // return with or without all includes included
+            if (typeof valcol === 'string') {
+                // note: no language required here because we got only one anyway
+                that._getRawString(adapter, table, key, undefined, rawString => {
+                    if (rawString !== false) {
+                        const object = table.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
+                        if (include) {
+                            const ids = {};
+                            ids[id] = true;
+                            that._include(adapter, object, ids, language, success, error);
                         } else {
-                            success();
+                            success(object);
                         }
-                    }, error);
-                } else if (typeof language === 'string') {
-                    // if selection is available we return string with or without all
-                    // includes included
-                    that._getRawString(adapter, table, key, language, rawString => {
-                        if (rawString !== false) {
-                            if (include) {
-                                const ids = {};
-                                ids[id] = true;
-                                that._include(adapter, rawString, ids, language, success, error);
-                            } else {
-                                success(rawString);
-                            }
-                        } else {
-                            success();
-                        }
-                    }, error);
-                } else {
-                    for (const attr in valcol) {
-                        if (valcol.hasOwnProperty(attr)) {
-                            adapter.AddColumn(`${table.name}.${valcol[attr]} AS ${attr}`);
-                        }
+                    } else {
+                        success();
                     }
-                    adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
-                    adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
-                        if (results.length === 1) {
-                            const object = results[0];
-                            if (include) {
-                                const tasks = [];
-                                for (const attr in object) {
-                                    if (object.hasOwnProperty(attr)) {
-                                        (function () {
-                                            const language = attr;
-                                            const ids = {};
-                                            ids[id] = true;
-                                            tasks.push((onSuc, onErr) => {
-                                                that._include(adapter, object[language], ids, language, response => {
-                                                    object[language] = response;
-                                                    onSuc();
-                                                }, onErr);
-                                            });
-                                        }());
-                                    }
-                                }
-                                tasks.parallel = that._parallel;
-                                Executor.run(tasks, () => success(object), error);
-                            } else {
-                                success(object);
-                            }
+                }, error);
+            } else if (typeof language === 'string') {
+                // if selection is available we return string with or without all
+                // includes included
+                that._getRawString(adapter, table, key, language, rawString => {
+                    if (rawString !== false) {
+                        if (include) {
+                            const ids = {};
+                            ids[id] = true;
+                            that._include(adapter, rawString, ids, language, success, error);
                         } else {
-                            success();
+                            success(rawString);
                         }
-                    }, error);
+                    } else {
+                        success();
+                    }
+                }, error);
+            } else {
+                for (const attr in valcol) {
+                    if (valcol.hasOwnProperty(attr)) {
+                        adapter.AddColumn(`${table.name}.${valcol[attr]} AS ${attr}`);
+                    }
                 }
-            }, onError);
+                adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+                adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
+                    if (results.length === 1) {
+                        const object = results[0];
+                        if (include) {
+                            const tasks = [];
+                            for (const attr in object) {
+                                if (object.hasOwnProperty(attr)) {
+                                    (function () {
+                                        const language = attr;
+                                        const ids = {};
+                                        ids[id] = true;
+                                        tasks.push((onSuc, onErr) => {
+                                            that._include(adapter, object[language], ids, language, response => {
+                                                object[language] = response;
+                                                onSuc();
+                                            }, onErr);
+                                        });
+                                    }());
+                                }
+                            }
+                            tasks.parallel = that._parallel;
+                            Executor.run(tasks, () => success(object), error);
+                        } else {
+                            success(object);
+                        }
+                    } else {
+                        success();
+                    }
+                }, error);
+            }
         }
         _include(adapter, object, ids, language, onResponse, onError) {
             const that = this;
@@ -1742,7 +1745,6 @@
                 onError(`Invalid table: '${id}'`);
                 return;
             }
-            const that = this;
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn(`${table.name}.${table.key_column} AS path`);
                 adapter.AddColumn((typeof valcol === 'string' ? valcol : valcol[language]) + ' AS val');
@@ -1753,6 +1755,38 @@
                     }
                     adapter.Close();
                     onResponse(array);
+                }, err => {
+                    adapter.Close();
+                    onError(err);
+                });
+            }, onError);
+        }
+        GetHMIObject(url, onResponse, onError) {
+            // TODO
+            const hmis = this._config.hmis;
+            this._getSqlAdapter(adapter => {
+                adapter.AddColumn(`${hmis.name}.${hmis.key_column} AS path`);
+                adapter.AddWhere(`${hmis.name}.${hmis.url_column} = ${SqlHelper.escape(url)}`);
+                adapter.PerformSelect(hmis.name, undefined, 'path ASC', undefined, result => {
+                    console.log(`Loaded HMI object id: ${result}`);
+                    const match = this._key_regex.exec(result);
+                    if (!match) {
+                        onError('Invalid id: "' + result + '"');
+                        return;
+                    }
+                    const table = this._tablesForExt[match[2]];
+                    const valcol = this._valColsForExt[match[2]];
+                    if (!table) {
+                        onError('Invalid table name: "' + result + '"');
+                        return;
+                    }
+                    this._getObject(adapter, result, match[1], table, valcol, language, ContentManager.PARSE, obj => {
+                        adapter.Close();
+                        onResponse(obj);
+                    }, err => {
+                        adapter.Close();
+                        onError(err);
+                    })
                 }, err => {
                     adapter.Close();
                     onError(err);
@@ -1832,6 +1866,9 @@
                     break;
                 case COMMAND_GET_ID_SELECTED_VALUES:
                     this.GetIdSelectedValues(request.id, request.language, onResponse, onError);
+                    break;
+                case COMMAND_GET_HMI_OBJECT:
+                    this.GetHMIObject(request.url, onResponse, onError);
                     break;
                 default:
                     onError(`EXCEPTION! Unexpected command: '${request.command}'`);
@@ -2094,6 +2131,28 @@
         }
         GetIdSelectedValues(id, language, onResponse, onError) {
             this._post({ command: COMMAND_GET_ID_SELECTED_VALUES, id, language }, onResponse, onError);
+        }
+        GetHMIObject(url, onResponse, onError) {
+            const that = this;
+            this._post({ command: COMMAND_GET_HMI_OBJECT, url }, response => {
+                if (response !== undefined) {
+                    try {
+                        let object = JsonFX.reconstruct(response);
+                        if (this._config !== undefined && this._config.jsonfx_pretty === true) {
+                            // the 'jsonfx_pretty' flag may be used to format our dynamically
+                            // parsed JavaScript sources for more easy debugging purpose
+                            // TODO: reuse or remove const match = that._key_regex.exec(id);
+                            // TOOD: response = eval('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
+                            object = eval('(' + JsonFX.stringify(object, true) + ')');
+                        }
+                        onResponse(object);
+                    } catch (exc) {
+                        onError(exc);
+                    }
+                } else {
+                    onResponse();
+                }
+            }, onError);
         }
     }
 
