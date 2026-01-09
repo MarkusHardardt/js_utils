@@ -425,7 +425,7 @@
                 adapter.Close();
                 try {
                     if (parse) {
-                        const object = JsonFX.reconstruct(response);
+                        let object = JsonFX.reconstruct(response);
                         if (that._config.jsonfx_pretty === true) {
                             // the 'jsonfx_pretty' flag may be used to format our dynamically
                             // parsed JavaScript sources for more easy debugging purpose
@@ -1768,25 +1768,20 @@
                 adapter.AddColumn(`${hmis.name}.${hmis.key_column} AS path`);
                 adapter.AddWhere(`${hmis.name}.${hmis.url_column} = ${SqlHelper.escape(url)}`);
                 adapter.PerformSelect(hmis.name, undefined, 'path ASC', undefined, result => {
-                    console.log(`Loaded HMI object id: ${result}`);
-                    const match = this._key_regex.exec(result);
+                    const id = result[0].path;
+                    console.log(`Loaded HMI object id: ${id}`);
+                    const match = this._key_regex.exec(id);
                     if (!match) {
-                        onError('Invalid id: "' + result + '"');
+                        onError('Invalid id: "' + id + '"');
                         return;
                     }
                     const table = this._tablesForExt[match[2]];
                     const valcol = this._valColsForExt[match[2]];
                     if (!table) {
-                        onError('Invalid table name: "' + result + '"');
+                        onError('Invalid table name: "' + id + '"');
                         return;
                     }
-                    this._getObject(adapter, result, match[1], table, valcol, language, ContentManager.PARSE, obj => {
-                        adapter.Close();
-                        onResponse(obj);
-                    }, err => {
-                        adapter.Close();
-                        onError(err);
-                    })
+                    this._getObject(adapter, id, match[1], table, valcol, null, ContentManager.PARSE, onResponse, onError);
                 }, err => {
                     adapter.Close();
                     onError(err);
