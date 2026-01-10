@@ -2060,8 +2060,19 @@
             },
             longClicked: () => {
                 try {
-                    // TODO perform_commit(editor.getValue());
-                    console.log('longClicked hmis button');
+                    cms.IsHMIObject(sel_data.id, response => {
+                        if (response === true) {
+                            cms.RemoveAsHMIObject(sel_data.id, response => update(), error => {
+                                update();
+                                adapter.notifyError(error);
+                            });
+                        } else {
+                            cms.AddAsHMIObject(sel_data.id, response => update(), error => {
+                                update();
+                                adapter.notifyError(error);
+                            });
+                        }
+                    }, error => adapter.notifyError(error));
                 }
                 catch (exc) {
                     adapter.notifyError(exc);

@@ -42,6 +42,8 @@
             'GetIdKeyValues(id, onResponse, onError)',
             'GetIdSelectedValues(id, language, onResponse, onError)',
             'IsHMIObject(id, onResponse, onError)',
+            'AddAsHMIObject(id, onResponse, onError)',
+            'RemoveAsHMIObject(id, onResponse, onError)',
             'GetHMIObject(url, onResponse, onError)'
         ], validateMethodArguments);
     }
@@ -149,6 +151,8 @@
     const COMMAND_GET_ID_KEY_VALUES = 'get_id_key_values';
     const COMMAND_GET_ID_SELECTED_VALUES = 'get_id_selected_values';
     const COMMAND_IS_HMI_OBJECT = 'is_hmi_object';
+    const COMMAND_ADD_AS_HMI_OBJECT = 'set_as_hmi_object';
+    const COMMAND_REMOVE_AS_HMI_OBJECT = 'reset_as_hmi_object';
     const COMMAND_GET_HMI_OBJECT = 'get_hmi_object';
 
     const VALID_EXT_REGEX = /^\w+$/;
@@ -794,10 +798,10 @@
             }
             const rawKey = match[1];
             this._getSqlAdapter(adapter => {
-                const main = [];
-                main.parallel = false;
-                main.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
-                main.push((onSuc, onErr) => {
+                const tasks = [];
+                tasks.parallel = false;
+                tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
+                tasks.push((onSuc, onErr) => {
                     that._getModificationParams(adapter, id, language, value, params => {
                         if (params.error !== undefined) {
                             onErr(params.error);
@@ -850,7 +854,7 @@
                         }
                     }, onErr);
                 });
-                Executor.run(main, () => {
+                Executor.run(tasks, () => {
                     adapter.CommitTransaction(() => {
                         adapter.Close();
                         onResponse();
@@ -1788,6 +1792,59 @@
                 });
             }, onError);
         }
+        AddAsHMIObject(id, onResponse, onError) {
+            this._setAsHMIObject(id, true, onResponse, onError)
+        }
+        RemoveAsHMIObject(id, onResponse, onError) {
+            this._setAsHMIObject(id, false, onResponse, onError)
+        }
+        _setAsHMIObject(id, set, onResponse, onError) {
+            const match = this._key_regex.exec(id);
+            if (!match) {
+                onError(`Invalid id: '${id}'`);
+                return;
+            }
+            const table = this._tablesForExt[match[2]];
+            if (!table) {
+                onError(`Invalid table: '${id}'`);
+                return;
+            } else if (!table.JsonFX) {
+                onError(`Is not a JsonFX object: '${id}'`);
+                return;
+            }
+            const hmis = this._config.hmis;
+            this._getSqlAdapter(adapter => {
+                const tasks = [];
+                tasks.parallel = false;
+                tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
+                tasks.push((onSuc, onErr) => {
+                    if (set === true) {
+                        adapter.AddValue(`${hmis.name}.${hmis.key_column}`, SqlHelper.escape(id));
+                        adapter.PerformInsert(hmis.name, onSuc, onErr);
+                    } else {
+                        adapter.AddWhere(`${hmis.name}.${hmis.key_column} = ${SqlHelper.escape(id)}`);
+                        adapter.PerformDelete(hmis.name, undefined, 1, onSuc, onErr);
+                    }
+                });
+                Executor.run(tasks, () => {
+                    adapter.CommitTransaction(() => {
+                        adapter.Close();
+                        onResponse();
+                    }, err => {
+                        adapter.Close();
+                        onError(err);
+                    });
+                }, err => {
+                    adapter.RollbackTransaction(() => {
+                        adapter.Close();
+                        onError(err);
+                    }, ee => {
+                        adapter.Close();
+                        onError(ee);
+                    });
+                });
+            }, onError);
+        }
         GetHMIObject(url, onResponse, onError) {
             const hmis = this._config.hmis;
             this._getSqlAdapter(adapter => {
@@ -1895,6 +1952,12 @@
                     break;
                 case COMMAND_IS_HMI_OBJECT:
                     this.IsHMIObject(request.id, onResponse, onError);
+                    break;
+                case COMMAND_ADD_AS_HMI_OBJECT:
+                    this.AddAsHMIObject(request.id, onResponse, onError);
+                    break;
+                case COMMAND_REMOVE_AS_HMI_OBJECT:
+                    this.RemoveAsHMIObject(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_HMI_OBJECT:
                     this.GetHMIObject(request.url, onResponse, onError);
@@ -2162,6 +2225,12 @@
         }
         IsHMIObject(id, onResponse, onError) {
             this._post({ command: COMMAND_IS_HMI_OBJECT, id }, onResponse, onError);
+        }
+        AddAsHMIObject(id, onResponse, onError) {
+            this._post({ command: COMMAND_ADD_AS_HMI_OBJECT, id }, onResponse, onError);
+        }
+        RemoveAsHMIObject(id, onResponse, onError) {
+            this._post({ command: COMMAND_REMOVE_AS_HMI_OBJECT, id }, onResponse, onError);
         }
         GetHMIObject(url, onResponse, onError) {
             const that = this;
