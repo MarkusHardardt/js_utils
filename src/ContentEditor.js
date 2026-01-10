@@ -1937,7 +1937,7 @@
                 handler = sel_data !== false && sel_data.extension ? handlers[sel_data.extension] : false;
                 let next = handler ? handler.cont : false;
                 editListenerEnabled = false;
-                updateContainer(edit_container, editor, next, sel_data, sel_lang, () => {
+                updateContainer(editContainer, editor, next, sel_data, sel_lang, () => {
                     editListenerEnabled = true;
                     editor = next;
                     if (sel_data.file) {
@@ -1953,8 +1953,24 @@
         };
         let edited = false, editListenerEnabled = true, pending_commit = false, pending_reset = false;
         function update() {
-            button_commit.hmi_setEnabled(edited && !pending_commit && !pending_reset && edit_data.extension === sel_data.extension);
-            button_reset.hmi_setEnabled(edited && !pending_commit && !pending_reset);
+            // TODO: console.log(`Selected: ${JSON.stringify(sel_data)}`);
+            const isJsonFX = sel_data.JsonFX === true;
+            hmisButton.hmi_setEnabled(isJsonFX);
+            if (isJsonFX) {
+                cms.IsHMIObject(sel_data.id, response => {
+                    hmisButton.hmi_css('background', response === true ? 'lightblue' : null);
+                    if (typeof response === 'string') {
+                        adapter.notifyError(response);
+                    }
+                }, error => {
+                    hmisButton.hmi_css('background', null);
+                    adapter.notifyError(error);
+                });
+            } else {
+                hmisButton.hmi_css('background', null);
+            }
+            commitButton.hmi_setEnabled(edited && !pending_commit && !pending_reset && edit_data.extension === sel_data.extension);
+            resetButton.hmi_setEnabled(edited && !pending_commit && !pending_reset);
             if (edited && !pending_commit && !pending_reset) {
                 let info = 'edited: "';
                 info += edit_data.id;
@@ -2024,12 +2040,38 @@
         let jso = getJsoEditor(hmi, adapter);
         let handlers = {};
         cms.GetDescriptors((ext, desc) => handlers[ext] = getHandler(desc, lab, htm, txt, jso));
-        let edit_container = {
+        let editContainer = {
             type: 'container'
         };
-        let button_commit = {
+        let hmisButton = {
             enabled: false,
             x: 1,
+            y: 0,
+            border: true,
+            text: 'hmis',
+            clicked: () => {
+                try {
+                    // TODO perform_commit(editor.getValue());
+                    console.log('Clicked hmis button');
+                }
+                catch (exc) {
+                    adapter.notifyError(exc);
+                }
+            },
+            longClicked: () => {
+                try {
+                    // TODO perform_commit(editor.getValue());
+                    console.log('longClicked hmis button');
+                }
+                catch (exc) {
+                    adapter.notifyError(exc);
+                }
+            },
+            timeout: 2000
+        };
+        let commitButton = {
+            enabled: false,
+            x: 2,
             y: 0,
             border: true,
             text: 'commit',
@@ -2042,8 +2084,8 @@
                 }
             }
         };
-        let button_reset = {
-            x: 2,
+        let resetButton = {
+            x: 3,
             y: 0,
             text: 'reset',
             enabled: false,
@@ -2057,7 +2099,7 @@
         };
         return {
             type: 'grid',
-            columns: [1, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH],
+            columns: [1, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH],
             rows: 1,
             separator: SEPARATOR,
             children: [{
@@ -2065,7 +2107,7 @@
                 y: 0,
                 align: 'right',
                 text: 'editor:'
-            }, button_commit, button_reset],
+            }, hmisButton, commitButton, resetButton],
             update: (data, lang) => {
                 sel_data = data;
                 sel_lang = lang;
@@ -2074,7 +2116,7 @@
                 }
                 update();
             },
-            editor: edit_container,
+            editor: editContainer,
             scrolls_htm: htm.scrolls,
             scrolls_txt: txt.scrolls,
             scrolls_jso: jso.scrolls

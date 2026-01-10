@@ -41,6 +41,7 @@
             'GetSearchResults(key, value, onResponse, onError)',
             'GetIdKeyValues(id, onResponse, onError)',
             'GetIdSelectedValues(id, language, onResponse, onError)',
+            'IsHMIObject(id, onResponse, onError)',
             'GetHMIObject(url, onResponse, onError)'
         ], validateMethodArguments);
     }
@@ -147,6 +148,7 @@
     const COMMAND_GET_SEARCH_RESULTS = 'get_search_results';
     const COMMAND_GET_ID_KEY_VALUES = 'get_id_key_values';
     const COMMAND_GET_ID_SELECTED_VALUES = 'get_id_selected_values';
+    const COMMAND_IS_HMI_OBJECT = 'is_hmi_object';
     const COMMAND_GET_HMI_OBJECT = 'get_hmi_object';
 
     const VALID_EXT_REGEX = /^\w+$/;
@@ -1741,11 +1743,11 @@
                 return;
             }
             const table = this._tablesForExt[match[2]];
-            const valcol = this._valColsForExt[match[2]];
             if (!table) {
                 onError(`Invalid table: '${id}'`);
                 return;
             }
+            const valcol = this._valColsForExt[match[2]];
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn(`${table.name}.${table.key_column} AS path`);
                 adapter.AddColumn((typeof valcol === 'string' ? valcol : valcol[language]) + ' AS val');
@@ -1759,6 +1761,30 @@
                 }, err => {
                     adapter.Close();
                     onError(err);
+                });
+            }, onError);
+        }
+        IsHMIObject(id, onResponse, onError) {
+            const match = this._key_regex.exec(id);
+            if (!match) {
+                onResponse(false);
+                return;
+            }
+            const table = this._tablesForExt[match[2]];
+            if (!table || !table.JsonFX) {
+                onResponse(false);
+                return;
+            }
+            const hmis = this._config.hmis;
+            this._getSqlAdapter(adapter => {
+                adapter.AddColumn('COUNT(*) AS cnt');
+                adapter.AddWhere(`${hmis.name}.${hmis.key_column} = ${SqlHelper.escape(id)}`);
+                adapter.PerformSelect(hmis.name, undefined, undefined, undefined, result => {
+                    adapter.Close();
+                    onResponse(result[0].cnt > 0);
+                }, error => {
+                    adapter.Close();
+                    onError(error);
                 });
             }, onError);
         }
@@ -1866,6 +1892,9 @@
                     break;
                 case COMMAND_GET_ID_SELECTED_VALUES:
                     this.GetIdSelectedValues(request.id, request.language, onResponse, onError);
+                    break;
+                case COMMAND_IS_HMI_OBJECT:
+                    this.IsHMIObject(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_HMI_OBJECT:
                     this.GetHMIObject(request.url, onResponse, onError);
@@ -2049,7 +2078,6 @@
             }, onError);
             validateAsContentManager(this, true);
         }
-        // prototype
         _post(request, onResponse, onError) {
             Client.fetch(ContentManager.GET_CONTENT_DATA_URL, JsonFX.stringify(request, false), response => {
                 if (response.length > 0) {
@@ -2131,6 +2159,9 @@
         }
         GetIdSelectedValues(id, language, onResponse, onError) {
             this._post({ command: COMMAND_GET_ID_SELECTED_VALUES, id, language }, onResponse, onError);
+        }
+        IsHMIObject(id, onResponse, onError) {
+            this._post({ command: COMMAND_IS_HMI_OBJECT, id }, onResponse, onError);
         }
         GetHMIObject(url, onResponse, onError) {
             const that = this;
