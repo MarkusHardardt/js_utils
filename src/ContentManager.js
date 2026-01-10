@@ -109,7 +109,7 @@
         return query;
     }
 
-    function GetModificationParams(previous, next) {
+    function getModificationParams(previous, next) {
         // within the next condition checks we detect if the value is available
         // after the update and if the data will be changed
         if (typeof previous === 'string' && previous.length > 0) {
@@ -140,7 +140,7 @@
     const COMMAND_GET_CHECKSUM = 'get_checksum';
     const COMMAND_GET_OBJECT = 'get_object';
     const COMMAND_EXISTS = 'exists';
-    const COMMAND_GET_MODIFICATION_PARAMS = 'GetModificationParams';
+    const COMMAND_GET_MODIFICATION_PARAMS = 'getModificationParams';
     const COMMAND_SET_OBJECT = 'set_object';
     const COMMAND_GET_REFACTORING_PARAMS = 'get_refactoring_params';
     const COMMAND_PERFORM_REFACTORING = 'perform_refactoring';
@@ -276,20 +276,21 @@
             this._getSqlAdapter = getSqlAdapter;
             this._config = config;
             this._parallel = typeof config.max_parallel_queries === 'number' && config.max_parallel_queries > 0 ? config.max_parallel_queries : true;
-            let tables = this._config.tables, table, valcol, i, tablen = tables.length, j, langs = config.languages.length, lang;
+            const tables = this._config.tables, tablen = tables.length, langs = config.languages.length;
             this._tablesForExt = {};
             this._valColsForExt = {};
-            for (i = 0; i < tablen; i++) {
-                table = tables[i];
+            for (let i = 0; i < tablen; i++) {
+                let table = tables[i];
                 if (!VALID_EXT_REGEX.test(table.extension)) {
                     throw new Error('Invalid extension: "' + table.extension + '"');
                 } else if (this._tablesForExt[table.extension] !== undefined) {
                     throw new Error('Extension already exists: "' + table.extension + '"');
                 }
+                let valcol;
                 if (table.value_column_prefix) {
                     valcol = {};
-                    for (j = 0; j < langs; j++) {
-                        lang = config.languages[j];
+                    for (let j = 0; j < langs; j++) {
+                        let lang = config.languages[j];
                         valcol[lang] = table.value_column_prefix + lang;
                     }
                 } else {
@@ -705,7 +706,7 @@
                     checksum += valcol;
                     let currval = currentData !== undefined ? currentData[valcol] : undefined;
                     let nextval = typeof value === 'string' ? value : undefined;
-                    let params = GetModificationParams(currval, nextval);
+                    let params = getModificationParams(currval, nextval);
                     if (!params.empty) {
                         stillNotEmpty = true;
                     }
@@ -732,7 +733,7 @@
                             // within the next condition checks we detect if the value is
                             // available
                             // after the update and if the data will be changed
-                            const params = GetModificationParams(currval, nextval);
+                            const params = getModificationParams(currval, nextval);
                             if (!params.empty) {
                                 stillNotEmpty = true;
                             }
@@ -930,7 +931,7 @@
                 srcTabKey = match[1];
             }
             checksum += sourceIsFolder ? "sf" : "so";
-            let tgtTab = false, tgtTabKey, targetIsFolder;
+            let tgtTab = false, targetIsFolder;
             // check target identifier
             if (typeof target === 'string') {
                 match = key_regex.exec(target);
@@ -942,7 +943,6 @@
                         return;
                     }
                     targetIsFolder = false;
-                    tgtTabKey = match[1];
                 } else {
                     match = FOLDER_REGEX.exec(target);
                     targetIsFolder = !!match;
@@ -951,7 +951,6 @@
                         onResponse(params);
                         return;
                     }
-                    tgtTabKey = match[1];
                 }
                 checksum += targetIsFolder ? "tf" : "to";
                 // check source to target conditions
@@ -1006,8 +1005,7 @@
                     }
                     tasks.parallel = that._parallel;
                     Executor.run(tasks, onSuc, onErr);
-                }
-                else {
+                } else {
                     srcKeysObj[source] = true;
                     onSuc();
                 }
@@ -1975,7 +1973,7 @@
                         languages: this._config.languages,
                         folder_icon: this._config.folder_icon,
                         jsonfx_pretty: this._config.jsonfx_pretty,
-                        tables: tables,
+                        tables,
                         key_regex: this._key_regex.source,
                         exchange_header_regex: this._exchange_header_regex.source
                     });
