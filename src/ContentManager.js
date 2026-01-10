@@ -407,13 +407,13 @@
             // first we try to get table object matching to the given key
             const match = this._key_regex.exec(id);
             if (!match) {
-                onError('Invalid id: "' + id + '"');
+                onError(`Invalid id: '${id}'`);
                 return;
             }
             const table = this._tablesForExt[match[2]];
             const valcol = this._valColsForExt[match[2]];
             if (!table) {
-                onError('Invalid table name: "' + id + '"');
+                onError(`Invalid table name: '${id}'`);
                 return;
             }
             this._getSqlAdapter(adapter => this._getObject(adapter, id, match[1], table, valcol, language, mode, response => {
@@ -781,13 +781,13 @@
         SetObject(id, language, value, checksum, onResponse, onError) {
             const that = this, match = this._key_regex.exec(id);
             if (!match) {
-                onError('Invalid id: ' + id);
+                onError(`Invalid id: '${id}'`);
                 return;
             }
             const table = this._tablesForExt[match[2]];
             const valcol = this._valColsForExt[match[2]];
             if (!table) {
-                onError('Invalid table: ' + id);
+                onError(`Invalid table name: '${id}'`);
                 return;
             }
             const rawKey = match[1];
@@ -1769,16 +1769,15 @@
                 adapter.AddWhere(`${hmis.name}.${hmis.url_column} = ${SqlHelper.escape(url)}`);
                 adapter.PerformSelect(hmis.name, undefined, 'path ASC', undefined, result => {
                     const id = result[0].path;
-                    console.log(`Loaded HMI object id: ${id}`);
                     const match = this._key_regex.exec(id);
                     if (!match) {
-                        onError('Invalid id: "' + id + '"');
+                        onError(`Invalid id: '${id}'`);
                         return;
                     }
                     const table = this._tablesForExt[match[2]];
                     const valcol = this._valColsForExt[match[2]];
                     if (!table) {
-                        onError('Invalid table name: "' + id + '"');
+                        onError(`Invalid table name: '${id}'`);
                         return;
                     }
                     this._getObject(adapter, id, match[1], table, valcol, null, ContentManager.PARSE, response => {
