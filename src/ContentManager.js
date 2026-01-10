@@ -297,11 +297,11 @@
             this._exchange_header_regex = new RegExp('\\[\\{\\((' + tabexts + '|language|' + Regex.escape(EXCHANGE_HEADER) + ')<>([a-f0-9]{32})\\)\\}\\]\\n(.*)\\n', 'g');
             validateAsContentManagerOnServer(this, true);
         }
-        _getRawString(adapter, table, key, language, onResponse, onError) {
+        _getRawString(adapter, table, rawKey, language, onResponse, onError) {
             let valcol = this._valColsForExt[table.extension], column = typeof valcol === 'string' ? valcol : valcol[language];
             if (typeof column === 'string') {
                 adapter.AddColumn(`${table.name}.${column} AS ${column}`);
-                adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+                adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(rawKey)}`);
                 adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
                     // in case of an result we are dealing with an existing key, but
                     // the
@@ -355,7 +355,7 @@
             }
             const that = this;
             this._getSqlAdapter(adapter => {
-                const key = match[1];
+                const rawKey = match[1];
                 let raw = id;
                 function success() {
                     adapter.Close();
@@ -369,7 +369,7 @@
                 // return with or without all includes included
                 if (typeof valcol === 'string') {
                     // note: no language required here because we got only one anyway
-                    that._getRawString(adapter, table, key, undefined, rawString => {
+                    that._getRawString(adapter, table, rawKey, undefined, rawString => {
                         if (rawString !== false) {
                             raw += ':';
                             raw += rawString;
@@ -382,7 +382,7 @@
                             adapter.AddColumn(`${table.name}.${valcol[attr]} AS ${attr}`);
                         }
                     }
-                    adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+                    adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(rawKey)}`);
                     adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
                         if (results.length === 1) {
                             const object = results[0];
@@ -424,7 +424,7 @@
                 onError(error);
             }), onError);
         }
-        _getObject(adapter, id, key, table, valcol, language, mode, onResponse, onError) {
+        _getObject(adapter, id, rawKey, table, valcol, language, mode, onResponse, onError) {
             const that = this;
             let parse = mode === ContentManager.PARSE, include = parse || mode === ContentManager.INCLUDE;
             function success(response) {
@@ -434,7 +434,7 @@
                         if (that._config.jsonfx_pretty === true) {
                             // the 'jsonfx_pretty' flag may be used to format our dynamically
                             // parsed JavaScript sources for more easy debugging purpose
-                            // TODO: object = eval('(' + JsonFX.stringify(object, true) + ')\n//# sourceURL=' + key + '.js');
+                            // TODO: object = eval('(' + JsonFX.stringify(object, true) + ')\n//# sourceURL=' + rawKey + '.js');
                             object = eval('(' + JsonFX.stringify(object, true) + ')');
                         }
                         onResponse(object);
@@ -449,7 +449,7 @@
             // return with or without all includes included
             if (typeof valcol === 'string') {
                 // note: no language required here because we got only one anyway
-                that._getRawString(adapter, table, key, undefined, rawString => {
+                that._getRawString(adapter, table, rawKey, undefined, rawString => {
                     if (rawString !== false) {
                         const object = table.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
                         if (include) {
@@ -466,7 +466,7 @@
             } else if (typeof language === 'string') {
                 // if selection is available we return string with or without all
                 // includes included
-                that._getRawString(adapter, table, key, language, rawString => {
+                that._getRawString(adapter, table, rawKey, language, rawString => {
                     if (rawString !== false) {
                         if (include) {
                             const ids = {};
@@ -485,7 +485,7 @@
                         adapter.AddColumn(`${table.name}.${valcol[attr]} AS ${attr}`);
                     }
                 }
-                adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+                adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(rawKey)}`);
                 adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
                     if (results.length === 1) {
                         const object = results[0];
@@ -596,9 +596,9 @@
                         tab = that._tablesForExt[match[3]];
                         if (tab) {
                             (function () {
-                                let idx = i, orig = match[0], includeKey = `$${match[2]}.${match[3]}`, table = tab, key = match[2];
+                                let idx = i, orig = match[0], includeKey = `$${match[2]}.${match[3]}`, table = tab, rawKey = match[2];
                                 tasks.push((onSuc, onErr) => {
-                                    that._getRawString(adapter, table, key, language, rawString => {
+                                    that._getRawString(adapter, table, rawKey, language, rawString => {
                                         if (rawString !== false) {
                                             ids[includeKey] = true;
                                             const object = table.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
@@ -790,7 +790,7 @@
                 onError('Invalid table: ' + id);
                 return;
             }
-            const key = match[1];
+            const rawKey = match[1];
             this._getSqlAdapter(adapter => {
                 const main = [];
                 main.parallel = false;
@@ -804,7 +804,7 @@
                         } else if (params.action === ContentManager.NONE) {
                             onErr('No action to perform!');
                         } else if (params.action === ContentManager.INSERT) {
-                            adapter.AddValue(`${table.name}.${table.key_column}`, SqlHelper.escape(key));
+                            adapter.AddValue(`${table.name}.${table.key_column}`, SqlHelper.escape(rawKey));
                             if (typeof valcol === 'string') {
                                 const value = params.values[valcol];
                                 if (value.changed) {
@@ -838,10 +838,10 @@
                                     }
                                 }
                             }
-                            adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+                            adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(rawKey)}`);
                             adapter.PerformUpdate(table.name, undefined, 1, onSuc, onErr);
                         } else if (params.action === ContentManager.DELETE) {
-                            adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(key)}`);
+                            adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(rawKey)}`);
                             adapter.PerformDelete(table.name, undefined, 1, onSuc, onErr);
                         } else {
                             onErr(`Unexpected action: '${params.action}'`);
@@ -1376,7 +1376,7 @@
                 }
                 const that = this;
                 this._getSqlAdapter(adapter => {
-                    const key = SqlHelper.escape(match[1]);
+                    const rawKey = SqlHelper.escape(match[1]);
                     const keys = {};
                     const tasks = [];
                     for (const attr in that._tablesForExt) {
@@ -1385,7 +1385,7 @@
                                 const used = that._tablesForExt[attr];
                                 tasks.push((onSuc, onErr) => {
                                     adapter.AddColumn(`tab.${used.key_column} AS path`);
-                                    adapter.AddWhere(`${user.name}.${user.key_column} = ${key}`);
+                                    adapter.AddWhere(`${user.name}.${user.key_column} = ${rawKey}`);
                                     adapter.AddJoin(formatReferencesToCondition(user.name, valcol, used.name, 'tab', used.extension, used.key_column));
                                     adapter.PerformSelect(user.name, undefined, undefined, undefined, result => {
                                         for (let i = 0, l = result.length; i < l; i++) {
@@ -1429,7 +1429,7 @@
                 }
                 const that = this;
                 this._getSqlAdapter(adapter => {
-                    const key = SqlHelper.escape(match[1]);
+                    const rawKey = SqlHelper.escape(match[1]);
                     const tasks = [];
                     let result = 0;
                     for (const attr in that._tablesForExt) {
@@ -1438,7 +1438,7 @@
                                 const used = that._tablesForExt[attr];
                                 tasks.push((onSuc, onErr) => {
                                     adapter.AddColumn('COUNT(*) AS cnt');
-                                    adapter.AddWhere(`${user.name}.${user.key_column} = ${key}`);
+                                    adapter.AddWhere(`${user.name}.${user.key_column} = ${rawKey}`);
                                     adapter.AddJoin(formatReferencesToCondition(user.name, valcol, used.name, 'tab', used.extension, used.key_column));
                                     adapter.PerformSelect(user.name, undefined, undefined, undefined, response => {
                                         result += response[0].cnt;
