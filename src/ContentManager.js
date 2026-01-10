@@ -44,7 +44,9 @@
             'GetIdSelectedValues(id, language, onResponse, onError)',
             'IsHMIObject(id, onResponse, onError)',
             'SetAvailabilityAsHMIObject(id, available, onResponse, onError)',
-            'GetHMIObject(url, onResponse, onError)'
+            'GetHMIObject(url, onResponse, onError)',
+            'IsTaskObject(id, onResponse, onError)',
+            'SetAvailabilityAsTaskObject(id, available, onResponse, onError)'
         ], validateMethodArguments);
     }
     ContentManager.validateAsContentManager = validateAsContentManager;
@@ -153,6 +155,8 @@
     const COMMAND_IS_HMI_OBJECT = 'is_hmi_object';
     const COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT = 'set_availability_as_hmi_object';
     const COMMAND_GET_HMI_OBJECT = 'get_hmi_object';
+    const COMMAND_IS_TASK_OBJECT = 'is_task_object';
+    const COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT = 'set_availability_as_task_object';
 
     const VALID_EXT_REGEX = /^\w+$/;
     const VALID_NAME_CHAR = '[a-zA-Z0-9_+\\-*]';
@@ -1876,6 +1880,77 @@
                 });
             }, onError);
         }
+        IsTaskObject(id, onResponse, onError) {
+            const match = this._key_regex.exec(id);
+            if (!match) {
+                onResponse(false);
+                return;
+            }
+            const table = this._tablesForExt[match[2]];
+            if (!table || !table.JsonFX) {
+                onResponse(false);
+                return;
+            }
+            const exes = this._config.exes;
+            this._getSqlAdapter(adapter => {
+                adapter.AddColumn('COUNT(*) AS cnt');
+                adapter.AddWhere(`${exes.name}.${exes.key_column} = ${SqlHelper.escape(id)}`);
+                adapter.PerformSelect(exes.name, undefined, undefined, undefined, result => {
+                    adapter.Close();
+                    onResponse(result[0].cnt > 0);
+                }, error => {
+                    adapter.Close();
+                    onError(error);
+                });
+            }, onError);
+        }
+        SetAvailabilityAsTaskObject(id, available, onResponse, onError) {
+            const match = this._key_regex.exec(id);
+            if (!match) {
+                onError(`Invalid id: '${id}'`);
+                return;
+            }
+            const table = this._tablesForExt[match[2]];
+            if (!table) {
+                onError(`Invalid table: '${id}'`);
+                return;
+            } else if (!table.JsonFX) {
+                onError(`Is not a JsonFX object: '${id}'`);
+                return;
+            }
+            const exes = this._config.exes;
+            this._getSqlAdapter(adapter => {
+                const tasks = [];
+                tasks.parallel = false;
+                tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
+                tasks.push((onSuc, onErr) => {
+                    if (available === true) {
+                        adapter.AddValue(`${exes.name}.${exes.key_column}`, SqlHelper.escape(id));
+                        adapter.PerformInsert(exes.name, onSuc, onErr);
+                    } else {
+                        adapter.AddWhere(`${exes.name}.${exes.key_column} = ${SqlHelper.escape(id)}`);
+                        adapter.PerformDelete(exes.name, undefined, 1, onSuc, onErr);
+                    }
+                });
+                Executor.run(tasks, () => {
+                    adapter.CommitTransaction(() => {
+                        adapter.Close();
+                        onResponse();
+                    }, err => {
+                        adapter.Close();
+                        onError(err);
+                    });
+                }, err => {
+                    adapter.RollbackTransaction(() => {
+                        adapter.Close();
+                        onError(err);
+                    }, ee => {
+                        adapter.Close();
+                        onError(ee);
+                    });
+                });
+            }, onError);
+        }
         HandleRequest(request, onResponse, onError) {
             switch (request.command) {
                 case COMMAND_GET_CONFIG:
@@ -1958,6 +2033,12 @@
                     break;
                 case COMMAND_GET_HMI_OBJECT:
                     this.GetHMIObject(request.url, onResponse, onError);
+                    break;
+                case COMMAND_IS_TASK_OBJECT:
+                    this.IsTaskObject(request.id, onResponse, onError);
+                    break;
+                case COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT:
+                    this.SetAvailabilityAsTaskObject(request.id, request.available, onResponse, onError);
                     break;
                 default:
                     onError(`EXCEPTION! Unexpected command: '${request.command}'`);
@@ -2247,6 +2328,12 @@
                     onResponse();
                 }
             }, onError);
+        }
+        IsTaskObject(id, onResponse, onError) {
+            this._post({ command: COMMAND_IS_TASK_OBJECT, id }, onResponse, onError);
+        }
+        SetAvailabilityAsTaskObject(id, available, onResponse, onError) {
+            this._post({ command: COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT, id, available }, onResponse, onError);
         }
     }
 

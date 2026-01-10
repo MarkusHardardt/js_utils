@@ -1955,19 +1955,33 @@
         function update() {
             // TODO: console.log(`Selected: ${JSON.stringify(sel_data)}`);
             const isJsonFX = sel_data.JsonFX === true;
-            hmisButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset && isJsonFX);
+            tasksButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset && isJsonFX);
             if (isJsonFX) {
-                cms.IsHMIObject(sel_data.id, response => {
-                    hmisButton.hmi_css('background', response === true ? 'lightblue' : null);
+                cms.IsTaskObject(sel_data.id, response => {
+                    tasksButton.hmi_setSelected(response === true);
                     if (typeof response === 'string') {
                         adapter.notifyError(response);
                     }
                 }, error => {
-                    hmisButton.hmi_css('background', null);
+                    tasksButton.hmi_setSelected(false);
                     adapter.notifyError(error);
                 });
             } else {
-                hmisButton.hmi_css('background', null);
+                tasksButton.hmi_setSelected(false);
+            }
+            hmisButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset && isJsonFX);
+            if (isJsonFX) {
+                cms.IsHMIObject(sel_data.id, response => {
+                    hmisButton.hmi_setSelected(response === true);
+                    if (typeof response === 'string') {
+                        adapter.notifyError(response);
+                    }
+                }, error => {
+                    hmisButton.hmi_setSelected(false);
+                    adapter.notifyError(error);
+                });
+            } else {
+                hmisButton.hmi_setSelected(false);
             }
             commitButton.hmi_setEnabled(edited && !pending_commit && !pending_reset && edit_data.extension === sel_data.extension);
             resetButton.hmi_setEnabled(edited && !pending_commit && !pending_reset);
@@ -2071,9 +2085,37 @@
             },
             timeout: 2000
         };
-        let commitButton = {
+        let tasksButton = {
             enabled: false,
             x: 2,
+            y: 0,
+            border: true,
+            text: 'tasks',
+            clicked: () => {
+                try {
+                    // TODO perform_commit(editor.getValue());
+                    console.log('Clicked hmis button');
+                } catch (exc) {
+                    adapter.notifyError(exc);
+                }
+            },
+            longClicked: () => {
+                try {
+                    cms.IsTaskObject(sel_data.id, response => {
+                        cms.SetAvailabilityAsTaskObject(sel_data.id, response !== true, resp => update(), error => {
+                            update();
+                            adapter.notifyError(error);
+                        });
+                    }, error => adapter.notifyError(error));
+                } catch (exc) {
+                    adapter.notifyError(exc);
+                }
+            },
+            timeout: 2000
+        };
+        let commitButton = {
+            enabled: false,
+            x: 3,
             y: 0,
             border: true,
             text: 'commit',
@@ -2086,7 +2128,7 @@
             }
         };
         let resetButton = {
-            x: 3,
+            x: 4,
             y: 0,
             text: 'reset',
             enabled: false,
@@ -2100,7 +2142,7 @@
         };
         return {
             type: 'grid',
-            columns: [1, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH],
+            columns: [1, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH],
             rows: 1,
             separator: SEPARATOR,
             children: [{
@@ -2108,7 +2150,7 @@
                 y: 0,
                 align: 'right',
                 text: 'editor:'
-            }, hmisButton, commitButton, resetButton],
+            }, tasksButton, hmisButton, commitButton, resetButton],
             update: (data, lang) => {
                 sel_data = data;
                 sel_lang = lang;
