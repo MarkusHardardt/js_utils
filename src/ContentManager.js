@@ -3,6 +3,7 @@
     const ContentManager = {};
     const isNodeJS = typeof require === 'function';
     const Client = isNodeJS ? require('./Client.js') : root.Client;
+    const Server = isNodeJS ? require('./Server.js') : root.Server;
     const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
     const JsonFX = isNodeJS ? require('./JsonFX.js') : root.JsonFX;
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
@@ -42,8 +43,7 @@
             'GetIdKeyValues(id, onResponse, onError)',
             'GetIdSelectedValues(id, language, onResponse, onError)',
             'IsHMIObject(id, onResponse, onError)',
-            'AddAsHMIObject(id, onResponse, onError)',
-            'RemoveAsHMIObject(id, onResponse, onError)',
+            'SetAvailabilityAsHMIObject(id, available, onResponse, onError)',
             'GetHMIObject(url, onResponse, onError)'
         ], validateMethodArguments);
     }
@@ -151,8 +151,7 @@
     const COMMAND_GET_ID_KEY_VALUES = 'get_id_key_values';
     const COMMAND_GET_ID_SELECTED_VALUES = 'get_id_selected_values';
     const COMMAND_IS_HMI_OBJECT = 'is_hmi_object';
-    const COMMAND_ADD_AS_HMI_OBJECT = 'set_as_hmi_object';
-    const COMMAND_REMOVE_AS_HMI_OBJECT = 'reset_as_hmi_object';
+    const COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT = 'set_availability_as_hmi_object';
     const COMMAND_GET_HMI_OBJECT = 'get_hmi_object';
 
     const VALID_EXT_REGEX = /^\w+$/;
@@ -1792,13 +1791,7 @@
                 });
             }, onError);
         }
-        AddAsHMIObject(id, onResponse, onError) {
-            this._setAsHMIObject(id, true, onResponse, onError)
-        }
-        RemoveAsHMIObject(id, onResponse, onError) {
-            this._setAsHMIObject(id, false, onResponse, onError)
-        }
-        _setAsHMIObject(id, set, onResponse, onError) {
+        SetAvailabilityAsHMIObject(id, available, onResponse, onError) {
             const match = this._key_regex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
@@ -1818,8 +1811,11 @@
                 tasks.parallel = false;
                 tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
                 tasks.push((onSuc, onErr) => {
-                    if (set === true) {
+                    if (available === true) {
                         adapter.AddValue(`${hmis.name}.${hmis.key_column}`, SqlHelper.escape(id));
+                        const checksum = Server.createSHA256(id);
+                        const url = `${checksum.substring(0, 4)}${checksum.substring(checksum.length - 4, checksum.length)}`;
+                        adapter.AddValue(`${hmis.name}.${hmis.url_column}`, SqlHelper.escape(url));
                         adapter.PerformInsert(hmis.name, onSuc, onErr);
                     } else {
                         adapter.AddWhere(`${hmis.name}.${hmis.key_column} = ${SqlHelper.escape(id)}`);
@@ -1851,6 +1847,10 @@
                 adapter.AddColumn(`${hmis.name}.${hmis.key_column} AS path`);
                 adapter.AddWhere(`${hmis.name}.${hmis.url_column} = ${SqlHelper.escape(url)}`);
                 adapter.PerformSelect(hmis.name, undefined, 'path ASC', undefined, result => {
+                    if (!result || !Array.isArray(result) || result.length !== 1) {
+                        onError(`Invalid url: '${url}'`);
+                        return;
+                    }
                     const id = result[0].path;
                     const match = this._key_regex.exec(id);
                     if (!match) {
@@ -1953,11 +1953,8 @@
                 case COMMAND_IS_HMI_OBJECT:
                     this.IsHMIObject(request.id, onResponse, onError);
                     break;
-                case COMMAND_ADD_AS_HMI_OBJECT:
-                    this.AddAsHMIObject(request.id, onResponse, onError);
-                    break;
-                case COMMAND_REMOVE_AS_HMI_OBJECT:
-                    this.RemoveAsHMIObject(request.id, onResponse, onError);
+                case COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT:
+                    this.SetAvailabilityAsHMIObject(request.id, request.available, onResponse, onError);
                     break;
                 case COMMAND_GET_HMI_OBJECT:
                     this.GetHMIObject(request.url, onResponse, onError);
@@ -2226,11 +2223,8 @@
         IsHMIObject(id, onResponse, onError) {
             this._post({ command: COMMAND_IS_HMI_OBJECT, id }, onResponse, onError);
         }
-        AddAsHMIObject(id, onResponse, onError) {
-            this._post({ command: COMMAND_ADD_AS_HMI_OBJECT, id }, onResponse, onError);
-        }
-        RemoveAsHMIObject(id, onResponse, onError) {
-            this._post({ command: COMMAND_REMOVE_AS_HMI_OBJECT, id }, onResponse, onError);
+        SetAvailabilityAsHMIObject(id, available, onResponse, onError) {
+            this._post({ command: COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT, id, available }, onResponse, onError);
         }
         GetHMIObject(url, onResponse, onError) {
             const that = this;

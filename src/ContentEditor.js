@@ -1955,7 +1955,7 @@
         function update() {
             // TODO: console.log(`Selected: ${JSON.stringify(sel_data)}`);
             const isJsonFX = sel_data.JsonFX === true;
-            hmisButton.hmi_setEnabled(isJsonFX);
+            hmisButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset && isJsonFX);
             if (isJsonFX) {
                 cms.IsHMIObject(sel_data.id, response => {
                     hmisButton.hmi_css('background', response === true ? 'lightblue' : null);
@@ -2053,28 +2053,19 @@
                 try {
                     // TODO perform_commit(editor.getValue());
                     console.log('Clicked hmis button');
-                }
-                catch (exc) {
+                } catch (exc) {
                     adapter.notifyError(exc);
                 }
             },
             longClicked: () => {
                 try {
                     cms.IsHMIObject(sel_data.id, response => {
-                        if (response === true) {
-                            cms.RemoveAsHMIObject(sel_data.id, response => update(), error => {
-                                update();
-                                adapter.notifyError(error);
-                            });
-                        } else {
-                            cms.AddAsHMIObject(sel_data.id, response => update(), error => {
-                                update();
-                                adapter.notifyError(error);
-                            });
-                        }
+                        cms.SetAvailabilityAsHMIObject(sel_data.id, response !== true, resp => update(), error => {
+                            update();
+                            adapter.notifyError(error);
+                        });
                     }, error => adapter.notifyError(error));
-                }
-                catch (exc) {
+                } catch (exc) {
                     adapter.notifyError(exc);
                 }
             },
@@ -2089,8 +2080,7 @@
             clicked: () => {
                 try {
                     perform_commit(editor.getValue());
-                }
-                catch (exc) {
+                } catch (exc) {
                     adapter.notifyError(exc);
                 }
             }
