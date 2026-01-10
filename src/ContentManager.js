@@ -416,13 +416,18 @@
                 onError('Invalid table name: "' + id + '"');
                 return;
             }
-            this._getSqlAdapter(adapter => this._getObject(adapter, id, match[1], table, valcol, language, mode, onResponse, onError), onError);
+            this._getSqlAdapter(adapter => this._getObject(adapter, id, match[1], table, valcol, language, mode, response => {
+                adapter.Close();
+                onResponse(response);
+            }, error => {
+                adapter.Close();
+                onError(error);
+            }), onError);
         }
         _getObject(adapter, id, key, table, valcol, language, mode, onResponse, onError) {
             const that = this;
             let parse = mode === ContentManager.PARSE, include = parse || mode === ContentManager.INCLUDE;
             function success(response) {
-                adapter.Close();
                 try {
                     if (parse) {
                         let object = JsonFX.reconstruct(response);
@@ -440,10 +445,6 @@
                     onError(err);
                 }
             }
-            function error(err) {
-                adapter.Close();
-                onError(err);
-            }
             // if JsonFX or plain text is available we decode the string and
             // return with or without all includes included
             if (typeof valcol === 'string') {
@@ -454,14 +455,14 @@
                         if (include) {
                             const ids = {};
                             ids[id] = true;
-                            that._include(adapter, object, ids, language, success, error);
+                            that._include(adapter, object, ids, language, success, onError);
                         } else {
                             success(object);
                         }
                     } else {
                         success();
                     }
-                }, error);
+                }, onError);
             } else if (typeof language === 'string') {
                 // if selection is available we return string with or without all
                 // includes included
@@ -470,14 +471,14 @@
                         if (include) {
                             const ids = {};
                             ids[id] = true;
-                            that._include(adapter, rawString, ids, language, success, error);
+                            that._include(adapter, rawString, ids, language, success, onError);
                         } else {
                             success(rawString);
                         }
                     } else {
                         success();
                     }
-                }, error);
+                }, onError);
             } else {
                 for (const attr in valcol) {
                     if (valcol.hasOwnProperty(attr)) {
@@ -506,14 +507,14 @@
                                 }
                             }
                             tasks.parallel = that._parallel;
-                            Executor.run(tasks, () => success(object), error);
+                            Executor.run(tasks, () => success(object), onError);
                         } else {
                             success(object);
                         }
                     } else {
                         success();
                     }
-                }, error);
+                }, onError);
             }
         }
         _include(adapter, object, ids, language, onResponse, onError) {
@@ -1762,7 +1763,6 @@
             }, onError);
         }
         GetHMIObject(url, onResponse, onError) {
-            // TODO
             const hmis = this._config.hmis;
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn(`${hmis.name}.${hmis.key_column} AS path`);
@@ -1781,10 +1781,16 @@
                         onError('Invalid table name: "' + id + '"');
                         return;
                     }
-                    this._getObject(adapter, id, match[1], table, valcol, null, ContentManager.PARSE, onResponse, onError);
-                }, err => {
+                    this._getObject(adapter, id, match[1], table, valcol, null, ContentManager.PARSE, response => {
+                        adapter.Close();
+                        onResponse(response);
+                    }, error => {
+                        adapter.Close();
+                        onError(error);
+                    });
+                }, error => {
                     adapter.Close();
-                    onError(err);
+                    onError(error);
                 });
             }, onError);
         }
