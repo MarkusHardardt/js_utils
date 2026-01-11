@@ -276,11 +276,11 @@
             this._getSqlAdapter = getSqlAdapter;
             this._config = config;
             this._parallel = typeof config.max_parallel_queries === 'number' && config.max_parallel_queries > 0 ? config.max_parallel_queries : true;
-            const tables = this._config.tables, tablen = tables.length, langs = config.languages.length;
             this._tablesForExt = {};
             this._valColsForExt = {};
-            for (let i = 0; i < tablen; i++) {
-                let table = tables[i];
+            const extensions = [];
+            for (let i = 0; i < this._config.tables.length; i++) {
+                const table = this._config.tables[i];
                 if (!VALID_EXT_REGEX.test(table.extension)) {
                     throw new Error('Invalid extension: "' + table.extension + '"');
                 } else if (this._tablesForExt[table.extension] !== undefined) {
@@ -289,8 +289,8 @@
                 let valcol;
                 if (table.value_column_prefix) {
                     valcol = {};
-                    for (let j = 0; j < langs; j++) {
-                        let lang = config.languages[j];
+                    for (let j = 0; j < config.languages.length; j++) {
+                        const lang = config.languages[j];
                         valcol[lang] = table.value_column_prefix + lang;
                     }
                 } else {
@@ -300,7 +300,7 @@
                 this._valColsForExt[table.extension] = valcol;
             }
             // we need all available extensions for building regular expressions
-            const tabexts = tables.map(table => table.extension).join('|');
+            const tabexts = this._config.tables.map(table => table.extension).join('|'); // TODO: filter 
             this._key_regex = new RegExp('^\\$((?:' + VALID_NAME_CHAR + '+\\/)*?' + VALID_NAME_CHAR + '+?)\\.(' + tabexts + ')$');
             this._refactoring_match = '((?:' + VALID_NAME_CHAR + '+\\/)*?' + VALID_NAME_CHAR + '+?\\.(?:' + tabexts + '))\\b';
             this._include_regex_build = new RegExp('(\'|")?include:\\$((?:' + VALID_NAME_CHAR + '+\\/)*' + VALID_NAME_CHAR + '+?)\\.(' + tabexts + ')\\b\\1', 'g');
@@ -539,7 +539,6 @@
                     return;
                 }
                 const table = this._tablesForExt[match[2]];
-                // TODO: reuse or remove const valcol = this._valColsForExt[match[2]];
                 if (!table) {
                     this._buildProperties(adapter, object, ids, language, onResponse, onError);
                     return;
@@ -1713,7 +1712,6 @@
                         if (that._tablesForExt.hasOwnProperty(attr)) {
                             (function () {
                                 const table = that._tablesForExt[attr];
-                                // TODO: remove or reuse const valcol = that._valColsForExt[attr];
                                 tasks.push((onSuc, onErr) => {
                                     adapter.AddColumn(`${table.name}.${table.key_column} AS path`);
                                     adapter.AddWhere(`LOCATE(${path},${table.name}.${table.key_column}) = 1`);
