@@ -44,9 +44,9 @@
             'GetIdSelectedValues(id, language, onResponse, onError)',
             'IsHMIObject(id, onResponse, onError)',
             'SetAvailabilityAsHMIObject(id, available, onResponse, onError)',
-            'GetHMIObject(url, onResponse, onError)',
-            'IsTaskObject(id, onResponse, onError)',
-            'SetAvailabilityAsTaskObject(id, available, onResponse, onError)'
+            'GetHMIObject(queryParameterValue, onResponse, onError)',
+            'IsProcessObject(id, onResponse, onError)',
+            'SetAvailabilityAsProcessObject(id, available, onResponse, onError)'
         ], validateMethodArguments);
     }
     ContentManager.validateAsContentManager = validateAsContentManager;
@@ -59,6 +59,15 @@
         ], validateMethodArguments);
     }
     ContentManager.validateAsContentManagerOnServer = validateAsContentManagerOnServer;
+
+    const DataTableType = Object.freeze({
+        JsonFX: 'JsonFX',
+        Text: 'Text',
+        Label: 'Label',
+        HTML: 'HTML',
+        HMI: 'HMI',
+        Process: 'Process'
+    });
 
     /*  Used by ContentEditor  */
     ContentManager.INSERT = 'insert';
@@ -165,7 +174,9 @@
 
     class ContentManagerBase {
         constructor() {
-            // nothing to do here
+            if (this.constructor === ContentManagerBase) {
+                throw new Error('The abstract base class ContentManagerBase cannot be instantiated.')
+            }
         }
         GetExchangeHandler() {
             return new ExchangeHandler(this);
@@ -180,11 +191,11 @@
             return FOLDER_REGEX.test(string);
         }
         GetDescriptor(ext, description) {
-            const tab = this._tablesForExt[ext];
+            const tab = this._contentTablesByExtension[ext];
             if (tab) {
                 const desc = description || {};
                 desc.JsonFX = tab.JsonFX === true;
-                desc.multilingual = tab.multilingual === true || (typeof tab.value_column_prefix === 'string' && tab.value_column_prefix.length > 0);
+                desc.multilingual = tab.multilingual === true || (typeof tab.valueColumnPrefix === 'string' && tab.valueColumnPrefix.length > 0);
                 desc.multiedit = tab.multiedit === true;
                 return desc;
             } else {
@@ -203,7 +214,7 @@
             return { id };
         }
         GetDescriptors(onEach) {
-            const tabs = this._tablesForExt;
+            const tabs = this._contentTablesByExtension;
             for (const ext in tabs) {
                 if (tabs.hasOwnProperty(ext)) {
                     onEach(ext, this.GetDescriptor(ext));
@@ -221,7 +232,7 @@
         GetIcon(id) {
             const match = this._key_regex.exec(id);
             if (match) {
-                const tab = this._tablesForExt[match[2]];
+                const tab = this._contentTablesByExtension[match[2]];
                 return tab ? this._config.icon_dir + tab.icon : false;
             } else if (FOLDER_REGEX.test(id)) {
                 return this._config.icon_dir + this._config.folder_icon;
@@ -242,20 +253,19 @@
             if (!match) {
                 return;
             }
-            const table = this._tablesForExt[match[2]];
-            const valcol = this._valColsForExt[match[2]];
+            const table = this._contentTablesByExtension[match[2]];
             if (!table) {
                 return;
             }
             const sel = selectables || [];
             // TODO is this a "selectable" (only single value for jso/txt
-            if (typeof valcol === 'string') {
-                sel.push(valcol);
+            if (typeof table.valcol === 'string') {
+                sel.push(table.valcol);
             } else {
-                for (const attr in valcol) {
-                    if (valcol.hasOwnProperty(attr)) {
+                for (const attr in table.valcol) {
+                    if (table.valcol.hasOwnProperty(attr)) {
                         // TODO isn't "attr" the selectable?
-                        sel.push(valcol[attr]);
+                        sel.push(table.valcol[attr]);
                     }
                 }
             }
@@ -276,31 +286,73 @@
             this._getSqlAdapter = getSqlAdapter;
             this._config = config;
             this._parallel = typeof config.max_parallel_queries === 'number' && config.max_parallel_queries > 0 ? config.max_parallel_queries : true;
-            this._tablesForExt = {};
-            this._valColsForExt = {};
+            this._tables = [];
+            this._contentTablesByExtension = {};
             const extensions = [];
             for (let i = 0; i < this._config.tables.length; i++) {
                 const table = this._config.tables[i];
-                if (!VALID_EXT_REGEX.test(table.extension)) {
-                    throw new Error('Invalid extension: "' + table.extension + '"');
-                } else if (this._tablesForExt[table.extension] !== undefined) {
-                    throw new Error('Extension already exists: "' + table.extension + '"');
+                switch (table.type) {
+                    case DataTableType.JsonFX:
+                    case DataTableType.Text:
+                    case DataTableType.Label:
+                    case DataTableType.HTML:
+                        if (!VALID_EXT_REGEX.test(table.extension)) {
+                            throw new Error(`Invalid extension: '${table.extension}'`);
+                        } else if (this._contentTablesByExtension[table.extension] !== undefined) {
+                            throw new Error(`Extension already exists: '${table.extension}'`);
+                        }
+                        let valcol;
+                        if (table.valueColumnPrefix) {
+                            valcol = {};
+                            for (let j = 0; j < config.languages.length; j++) {
+                                const lang = config.languages[j];
+                                valcol[lang] = table.valueColumnPrefix + lang;
+                            }
+                        } else {
+                            valcol = table.valueColumn;
+                        }
+                        const tab = {
+                            type: table.type,
+                            name: table.name,
+                            extension: table.extension,
+                            keyColumn: table.keyColumn,
+                            valueColumn: table.valueColumn,
+                            valueColumnPrefix: table.valueColumnPrefix,
+                            multilingual: typeof table.valueColumnPrefix === 'string',
+                            icon: table.icon,
+                            JsonFX: table.type === DataTableType.JsonFX,
+                            multiedit: table.type === DataTableType.Label,
+                            valcol
+                        };
+                        this._tables.push(tab);
+                        this._contentTablesByExtension[table.extension] = tab;
+                        extensions.push(table.extension);
+                        break;
+                    case DataTableType.HMI:
+                        this._hmiTable = {
+                            type: table.type,
+                            name: table.name,
+                            queryParameterValueColumn: table.queryParameterValueColumn,
+                            valueColumn: table.valueColumn,
+                            icon: table.icon
+                        };
+                        this._tables.push(this._hmiTable);
+                        break;
+                    case DataTableType.Process:
+                        this._processTable = {
+                            type: table.type,
+                            name: table.name,
+                            valueColumn: table.valueColumn,
+                            icon: table.icon
+                        };
+                        this._tables.push(this._processTable);
+                        break;
+                    default:
+                        throw new Error(`Unsupported table type: '${table.type}'`);
                 }
-                let valcol;
-                if (table.value_column_prefix) {
-                    valcol = {};
-                    for (let j = 0; j < config.languages.length; j++) {
-                        const lang = config.languages[j];
-                        valcol[lang] = table.value_column_prefix + lang;
-                    }
-                } else {
-                    valcol = table.value_column;
-                }
-                this._tablesForExt[table.extension] = table;
-                this._valColsForExt[table.extension] = valcol;
             }
             // we need all available extensions for building regular expressions
-            const tabexts = this._config.tables.map(table => table.extension).join('|'); // TODO: filter 
+            const tabexts = extensions.join('|');
             this._key_regex = new RegExp('^\\$((?:' + VALID_NAME_CHAR + '+\\/)*?' + VALID_NAME_CHAR + '+?)\\.(' + tabexts + ')$');
             this._refactoring_match = '((?:' + VALID_NAME_CHAR + '+\\/)*?' + VALID_NAME_CHAR + '+?\\.(?:' + tabexts + '))\\b';
             this._include_regex_build = new RegExp('(\'|")?include:\\$((?:' + VALID_NAME_CHAR + '+\\/)*' + VALID_NAME_CHAR + '+?)\\.(' + tabexts + ')\\b\\1', 'g');
@@ -308,10 +360,10 @@
             validateAsContentManagerOnServer(this, true);
         }
         _getRawString(adapter, table, rawKey, language, onResponse, onError) {
-            let valcol = this._valColsForExt[table.extension], column = typeof valcol === 'string' ? valcol : valcol[language];
+            let valcol = this._contentTablesByExtension[table.extension].valcol, column = typeof valcol === 'string' ? valcol : valcol[language];
             if (typeof column === 'string') {
                 adapter.AddColumn(`${table.name}.${column} AS ${column}`);
-                adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(rawKey)}`);
+                adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
                 adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
                     // in case of an result we are dealing with an existing key, but
                     // the
@@ -330,14 +382,14 @@
         Exists(id, onResponse, onError) {
             const match = this._key_regex.exec(id);
             if (match) {
-                const table = this._tablesForExt[match[2]];
+                const table = this._contentTablesByExtension[match[2]];
                 if (!table) {
                     onError(`Invalid table: ${id}`);
                     return;
                 }
                 this._getSqlAdapter(adapter => {
                     adapter.AddColumn('COUNT(*) AS cnt');
-                    adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(match[1])}`);
+                    adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(match[1])}`);
                     adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
                         adapter.Close();
                         onResponse(result[0].cnt > 0);
@@ -357,8 +409,7 @@
                 onError(`Invalid id: '${id}'`);
                 return;
             }
-            const table = this._tablesForExt[match[2]];
-            const valcol = this._valColsForExt[match[2]];
+            const table = this._contentTablesByExtension[match[2]];
             if (!table) {
                 onError(`Invalid table name: '${id}'`);
                 return;
@@ -377,7 +428,7 @@
                 };
                 // if JsonFX or plain text is available we decode the string and
                 // return with or without all includes included
-                if (typeof valcol === 'string') {
+                if (typeof table.valcol === 'string') {
                     // note: no language required here because we got only one anyway
                     that._getRawString(adapter, table, rawKey, undefined, rawString => {
                         if (rawString !== false) {
@@ -387,16 +438,16 @@
                         success();
                     }, error);
                 } else {
-                    for (const attr in valcol) {
-                        if (valcol.hasOwnProperty(attr)) {
-                            adapter.AddColumn(`${table.name}.${valcol[attr]} AS ${attr}`);
+                    for (const attr in table.valcol) {
+                        if (table.valcol.hasOwnProperty(attr)) {
+                            adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${attr}`);
                         }
                     }
-                    adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(rawKey)}`);
+                    adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
                     adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
                         if (results.length === 1) {
                             const object = results[0];
-                            for (const attr in valcol) {
+                            for (const attr in table.valcol) {
                                 if (object.hasOwnProperty(attr)) {
                                     raw += `:${attr}:${object[attr]}`;
                                 }
@@ -420,13 +471,12 @@
                 onError(`Invalid id: '${id}'`);
                 return;
             }
-            const table = this._tablesForExt[match[2]];
-            const valcol = this._valColsForExt[match[2]];
+            const table = this._contentTablesByExtension[match[2]];
             if (!table) {
                 onError(`Invalid table name: '${id}'`);
                 return;
             }
-            this._getSqlAdapter(adapter => this._getObject(adapter, id, match[1], table, valcol, language, mode, response => {
+            this._getSqlAdapter(adapter => this._getObject(adapter, id, match[1], table, language, mode, response => {
                 adapter.Close();
                 onResponse(response);
             }, error => {
@@ -434,7 +484,7 @@
                 onError(error);
             }), onError);
         }
-        _getObject(adapter, id, rawKey, table, valcol, language, mode, onResponse, onError) {
+        _getObject(adapter, id, rawKey, table, language, mode, onResponse, onError) {
             const that = this;
             let parse = mode === ContentManager.PARSE, include = parse || mode === ContentManager.INCLUDE;
             function success(response) {
@@ -457,7 +507,7 @@
             }
             // if JsonFX or plain text is available we decode the string and
             // return with or without all includes included
-            if (typeof valcol === 'string') {
+            if (typeof table.valcol === 'string') {
                 // note: no language required here because we got only one anyway
                 that._getRawString(adapter, table, rawKey, undefined, rawString => {
                     if (rawString !== false) {
@@ -490,12 +540,12 @@
                     }
                 }, onError);
             } else {
-                for (const attr in valcol) {
-                    if (valcol.hasOwnProperty(attr)) {
-                        adapter.AddColumn(`${table.name}.${valcol[attr]} AS ${attr}`);
+                for (const attr in table.valcol) {
+                    if (table.valcol.hasOwnProperty(attr)) {
+                        adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${attr}`);
                     }
                 }
-                adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(rawKey)}`);
+                adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
                 adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
                     if (results.length === 1) {
                         const object = results[0];
@@ -538,7 +588,7 @@
                     this._buildProperties(adapter, object, ids, language, onResponse, onError);
                     return;
                 }
-                const table = this._tablesForExt[match[2]];
+                const table = this._contentTablesByExtension[match[2]];
                 if (!table) {
                     this._buildProperties(adapter, object, ids, language, onResponse, onError);
                     return;
@@ -602,7 +652,7 @@
                 for (i = 0; i < l; i++) {
                     match = array[i];
                     if (Array.isArray(match)) {
-                        tab = that._tablesForExt[match[3]];
+                        tab = that._contentTablesByExtension[match[3]];
                         if (tab) {
                             (function () {
                                 let idx = i, orig = match[0], includeKey = `$${match[2]}.${match[3]}`, table = tab, rawKey = match[2];
@@ -667,16 +717,15 @@
                 return;
             }
             // check table
-            const table = this._tablesForExt[match[2]];
+            const table = this._contentTablesByExtension[match[2]];
             if (!table) {
                 params.error = `Invalid table: ${id}`;
                 onResponse(params);
                 return;
             }
-            const valcol = this._valColsForExt[match[2]];
             // in case of a multiligual data type and a given language we got to make
             // sure that language is supported
-            if (typeof valcol !== 'string' && typeof language === 'string' && valcol[language] === undefined) {
+            if (typeof table.valcol !== 'string' && typeof language === 'string' && table.valcol[language] === undefined) {
                 params.error = `Invalid language ${' + language + '}`;
                 onResponse(params);
                 return;
@@ -684,16 +733,16 @@
             // try to get all current database values for given id and copy the new
             // values
             const that = this;
-            if (typeof valcol === 'string') {
-                adapter.AddColumn(`${table.name}.${valcol} AS ${valcol}`);
+            if (typeof table.valcol === 'string') {
+                adapter.AddColumn(`${table.name}.${table.valcol} AS ${table.valcol}`);
             } else {
-                for (const attr in valcol) {
-                    if (valcol.hasOwnProperty(attr)) {
-                        adapter.AddColumn(`${table.name}.${valcol[attr]} AS ${valcol[attr]}`);
+                for (const attr in table.valcol) {
+                    if (table.valcol.hasOwnProperty(attr)) {
+                        adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${table.valcol[attr]}`);
                     }
                 }
             }
-            adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(match[1])}`);
+            adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(match[1])}`);
             adapter.PerformSelect(table.name, undefined, undefined, 1, (result, fields) => {
                 const currentData = result.length === 1 ? result[0] : undefined;
                 // here we store the conditions
@@ -701,9 +750,9 @@
                 let changed = false;
                 const values = {};
                 let checksum = '';
-                if (typeof valcol === 'string') { // in case of a JSON or UTF8 table
-                    checksum += valcol;
-                    let currval = currentData !== undefined ? currentData[valcol] : undefined;
+                if (typeof table.valcol === 'string') { // in case of a JSON or UTF8 table
+                    checksum += table.valcol;
+                    let currval = currentData !== undefined ? currentData[table.valcol] : undefined;
                     let nextval = typeof value === 'string' ? value : undefined;
                     let params = getModificationParams(currval, nextval);
                     if (!params.empty) {
@@ -712,17 +761,17 @@
                     if (params.changed) {
                         changed = true;
                     }
-                    values[valcol] = params;
+                    values[table.valcol] = params;
                     checksum += params.empty ? 'e' : 'd';
                     checksum += params.changed ? 'e' : 'd';
                     if (typeof params.string === 'string') {
                         checksum += params.string;
                     }
                 } else { // labels or html
-                    for (const attr in valcol) {
-                        if (valcol.hasOwnProperty(attr)) {
+                    for (const attr in table.valcol) {
+                        if (table.valcol.hasOwnProperty(attr)) {
                             // for all columns we try to get the current and new value
-                            const currval = currentData !== undefined ? currentData[valcol[attr]] : undefined;
+                            const currval = currentData !== undefined ? currentData[table.valcol[attr]] : undefined;
                             let nextval = undefined;
                             if (typeof language === 'string') {
                                 nextval = language === attr ? (typeof value === 'string' ? value : undefined) : currval;
@@ -793,8 +842,7 @@
                 onError(`Invalid id: '${id}'`);
                 return;
             }
-            const table = this._tablesForExt[match[2]];
-            const valcol = this._valColsForExt[match[2]];
+            const table = this._contentTablesByExtension[match[2]];
             if (!table) {
                 onError(`Invalid table name: '${id}'`);
                 return;
@@ -813,44 +861,43 @@
                         } else if (params.action === ContentManager.NONE) {
                             onErr('No action to perform!');
                         } else if (params.action === ContentManager.INSERT) {
-                            adapter.AddValue(`${table.name}.${table.key_column}`, SqlHelper.escape(rawKey));
-                            if (typeof valcol === 'string') {
-                                const value = params.values[valcol];
+                            adapter.AddValue(`${table.name}.${table.keyColumn}`, SqlHelper.escape(rawKey));
+                            if (typeof table.valcol === 'string') {
+                                const value = params.values[table.valcol];
                                 if (value.changed) {
-                                    adapter.AddValue(`${table.name}.${valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                    adapter.AddValue(`${table.name}.${table.valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                 }
                             } else {
-                                for (const attr in valcol) {
-                                    if (valcol.hasOwnProperty(attr)) {
-                                        // value = i_params.values[valcol[attr]];
+                                for (const attr in table.valcol) {
+                                    if (table.valcol.hasOwnProperty(attr)) {
                                         const value = params.values[attr];
                                         if (value.changed) {
-                                            adapter.AddValue(`${table.name}.${valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                            adapter.AddValue(`${table.name}.${table.valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                         }
                                     }
                                 }
                             }
                             adapter.PerformInsert(table.name, onSuc, onErr);
                         } else if (params.action === ContentManager.UPDATE) {
-                            if (typeof valcol === 'string') {
-                                const value = params.values[valcol];
+                            if (typeof table.valcol === 'string') {
+                                const value = params.values[table.valcol];
                                 if (value.changed) {
-                                    adapter.AddValue(`${table.name}.${valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                    adapter.AddValue(`${table.name}.${table.valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                 }
                             } else {
-                                for (const attr in valcol) {
-                                    if (valcol.hasOwnProperty(attr)) {
+                                for (const attr in table.valcol) {
+                                    if (table.valcol.hasOwnProperty(attr)) {
                                         const value = params.values[attr];
                                         if (value.changed) {
-                                            adapter.AddValue(`${table.name}.${valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                            adapter.AddValue(`${table.name}.${table.valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                         }
                                     }
                                 }
                             }
-                            adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(rawKey)}`);
+                            adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
                             adapter.PerformUpdate(table.name, undefined, 1, onSuc, onErr);
                         } else if (params.action === ContentManager.DELETE) {
-                            adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(rawKey)}`);
+                            adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
                             adapter.PerformDelete(table.name, undefined, 1, onSuc, onErr);
                         } else {
                             onErr(`Unexpected action: '${params.action}'`);
@@ -911,7 +958,7 @@
             let srcTab = false, srcTabKey, sourceIsFolder;
             let match = key_regex.exec(source);
             if (match) {
-                srcTab = this._tablesForExt[match[2]];
+                srcTab = this._contentTablesByExtension[match[2]];
                 if (!srcTab) {
                     params.error = `Invalid source table: '${source}'`;
                     onResponse(params);
@@ -935,7 +982,7 @@
             if (typeof target === 'string') {
                 match = key_regex.exec(target);
                 if (match) {
-                    tgtTab = this._tablesForExt[match[2]];
+                    tgtTab = this._contentTablesByExtension[match[2]];
                     if (!tgtTab) {
                         params.error = `Invalid target table: '${target}'`;
                         onResponse(params);
@@ -984,14 +1031,14 @@
                 // within the following loop we collect all source paths
                 if (sourceIsFolder) {
                     const tasks = [];
-                    for (const attr in that._tablesForExt) {
-                        if (that._tablesForExt.hasOwnProperty(attr)) {
+                    for (const attr in that._contentTablesByExtension) {
+                        if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
-                                const table = that._tablesForExt[attr];
+                                const table = that._contentTablesByExtension[attr];
                                 tasks.push((os, oe) => {
-                                    adapter.AddColumn(`${table.name}.${table.key_column} AS path`);
+                                    adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
                                     // select all paths within the range
-                                    adapter.AddWhere(`LOCATE(${SqlHelper.escape(srcTabKey)},${table.name}.${table.key_column}) = 1`);
+                                    adapter.AddWhere(`LOCATE(${SqlHelper.escape(srcTabKey)},${table.name}.${table.keyColumn}) = 1`);
                                     adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
                                         for (let i = 0, l = result.length; i < l; i++) {
                                             srcKeysObj['$' + result[i].path + '.' + table.extension] = true;
@@ -1033,7 +1080,7 @@
                         for (let i = 0; i < srcLen; i++) {
                             const src = srcKeysArr[i];
                             const match = key_regex.exec(src);
-                            const table = that._tablesForExt[match[2]];
+                            const table = that._contentTablesByExtension[match[2]];
                             const tgt = target + src.substring(source.length);
                             objects[src] = tgt;
                             checksum += tgt;
@@ -1057,11 +1104,11 @@
                         (function () {
                             const tgt = objects[srcKeysArr[i]];
                             const match = key_regex.exec(tgt);
-                            const table = that._tablesForExt[match[2]];
+                            const table = that._contentTablesByExtension[match[2]];
                             const tabKeyEsc = SqlHelper.escape(match[1]);
                             tasks.push((os, or) => {
                                 adapter.AddColumn('COUNT(*) AS cnt');
-                                adapter.AddWhere(`${table.name}.${table.key_column} = ${tabKeyEsc}`);
+                                adapter.AddWhere(`${table.name}.${table.keyColumn} = ${tabKeyEsc}`);
                                 adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
                                     if (result[0].cnt > 0) {
                                         tgtExObj[tgt] = true;
@@ -1197,12 +1244,12 @@
                             } else if (params.action === ContentManager.DELETE) {
                                 if (params.folder) {
                                     const match = FOLDER_REGEX.exec(params.source), srcTabKey = SqlHelper.escape(match[1]);
-                                    for (const attr in that._tablesForExt) {
-                                        if (that._tablesForExt.hasOwnProperty(attr)) {
+                                    for (const attr in that._contentTablesByExtension) {
+                                        if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                                             (function () {
-                                                const table = that._tablesForExt[attr];
+                                                const table = that._contentTablesByExtension[attr];
                                                 tasks.push((os, oe) => {
-                                                    adapter.AddWhere(`LOCATE(${srcTabKey},${table.name}.${table.key_column}) = 1`);
+                                                    adapter.AddWhere(`LOCATE(${srcTabKey},${table.name}.${table.keyColumn}) = 1`);
                                                     adapter.PerformDelete(table.name, undefined, undefined, os, oe);
                                                 });
                                             }());
@@ -1210,9 +1257,9 @@
                                     }
                                 } else {
                                     const key_regex = that._key_regex, match = key_regex.exec(source);
-                                    const table = that._tablesForExt[match[2]], srcTabKey = SqlHelper.escape(match[1]);
+                                    const table = that._contentTablesByExtension[match[2]], srcTabKey = SqlHelper.escape(match[1]);
                                     tasks.push((os, oe) => {
-                                        adapter.AddWhere(`${table.name}.${table.key_column} = ${srcTabKey}`);
+                                        adapter.AddWhere(`${table.name}.${table.keyColumn} = ${srcTabKey}`);
                                         adapter.PerformDelete(table.name, undefined, 1, os, oe);
                                     });
                                 }
@@ -1243,8 +1290,7 @@
         _performRefactoring(adapter, source, params, getReplacement, onResponse, onError) {
             const that = this, key_regex = this._key_regex;
             const match = key_regex.exec(source);
-            const table = this._tablesForExt[match[2]];
-            const valcol = this._valColsForExt[match[2]];
+            const table = this._contentTablesByExtension[match[2]];
             const srcTabKey = match[1];
             const main = [];
             main.parallel = false;
@@ -1253,33 +1299,33 @@
                     // get the target and check if already exists
                     const target = params.objects[source];
                     const targetAlreadyExists = params.existingTargets && params.existingTargets[target] === true;
-                    if (typeof valcol === 'string') {
-                        adapter.AddColumn(`${table.name}.${valcol}`);
+                    if (typeof table.valcol === 'string') {
+                        adapter.AddColumn(`${table.name}.${table.valcol}`);
                     } else {
-                        for (const attr in valcol) {
-                            if (valcol.hasOwnProperty(attr)) {
-                                adapter.AddColumn(`${table.name}.${valcol[attr]}`);
+                        for (const attr in table.valcol) {
+                            if (table.valcol.hasOwnProperty(attr)) {
+                                adapter.AddColumn(`${table.name}.${table.valcol[attr]}`);
                             }
                         }
                     }
-                    adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(srcTabKey)}`);
+                    adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(srcTabKey)}`);
                     adapter.PerformSelect(table.name, undefined, undefined, 1, results => {
                         const values = results[0];
                         // replace internal cross references and prepare database
                         // update or insert value
-                        if (typeof valcol === 'string') {
-                            let string = values[valcol];
+                        if (typeof table.valcol === 'string') {
+                            let string = values[table.valcol];
                             if (typeof string === 'string' && string.length > 0) {
                                 string = getReplacement(string);
-                                adapter.AddValue(`${table.name}.${valcol}`, SqlHelper.escape(string));
+                                adapter.AddValue(`${table.name}.${table.valcol}`, SqlHelper.escape(string));
                             }
                         } else {
-                            for (const attr in valcol) {
-                                if (valcol.hasOwnProperty(attr)) {
-                                    let string = values[valcol[attr]];
+                            for (const attr in table.valcol) {
+                                if (table.valcol.hasOwnProperty(attr)) {
+                                    let string = values[table.valcol[attr]];
                                     if (typeof string === 'string' && string.length > 0) {
                                         string = getReplacement(string);
-                                        adapter.AddValue(`${table.name}.${valcol[attr]}`, SqlHelper.escape(string));
+                                        adapter.AddValue(`${table.name}.${table.valcol[attr]}`, SqlHelper.escape(string));
                                     }
                                 }
                             }
@@ -1288,19 +1334,19 @@
                         const tgtTabKey = match[1];
                         function success() {
                             if (targetAlreadyExists && params.action === ContentManager.MOVE) {
-                                adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(srcTabKey)}`);
+                                adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(srcTabKey)}`);
                                 adapter.PerformDelete(table.name, undefined, 1, onSuc, onErr);
                             } else {
                                 onSuc();
                             }
                         };
                         if (targetAlreadyExists) {
-                            adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(tgtTabKey)}`);
+                            adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(tgtTabKey)}`);
                             adapter.PerformUpdate(table.name, undefined, 1, success, onErr);
                         } else {
-                            adapter.AddValue(`${table.name}.${table.key_column}`, SqlHelper.escape(tgtTabKey));
+                            adapter.AddValue(`${table.name}.${table.keyColumn}`, SqlHelper.escape(tgtTabKey));
                             if (params.action === ContentManager.MOVE) {
-                                adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(srcTabKey)}`);
+                                adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(srcTabKey)}`);
                                 adapter.PerformUpdate(table.name, undefined, 1, success, onErr);
                             } else {
                                 adapter.PerformInsert(table.name, success, onErr);
@@ -1321,44 +1367,43 @@
                             if (params.objects[refFrom] === undefined) {
                                 (function () {
                                     const match = key_regex.exec(refFrom);
-                                    const table = that._tablesForExt[match[2]];
-                                    const valcol = that._valColsForExt[match[2]];
+                                    const table = that._contentTablesByExtension[match[2]];
                                     const usrKey = match[1];
                                     tasks.push((os, oe) => {
-                                        if (typeof valcol === 'string') {
-                                            adapter.AddColumn(`${table.name}.${valcol} AS ${valcol}`);
+                                        if (typeof table.valcol === 'string') {
+                                            adapter.AddColumn(`${table.name}.${table.valcol} AS ${table.valcol}`);
                                         } else {
-                                            for (const attr in valcol) {
-                                                if (valcol.hasOwnProperty(attr)) {
-                                                    adapter.AddColumn(`${table.name}.${valcol[attr]} AS ${valcol[attr]}`);
+                                            for (const attr in table.valcol) {
+                                                if (table.valcol.hasOwnProperty(attr)) {
+                                                    adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${table.valcol[attr]}`);
                                                 }
                                             }
                                         }
-                                        adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(usrKey)}`);
+                                        adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(usrKey)}`);
                                         adapter.PerformSelect(table.name, undefined, undefined, 1, result => {
                                             // replace in all existing value strings all occurrences
                                             // of
                                             // any source path with the resulting target path and
                                             // update object
                                             const values = result[0];
-                                            if (typeof valcol === 'string') {
-                                                let string = values[valcol];
+                                            if (typeof table.valcol === 'string') {
+                                                let string = values[table.valcol];
                                                 if (typeof string === 'string' && string.length > 0) {
                                                     string = getReplacement(string);
-                                                    adapter.AddValue(`${table.name}.${valcol}`, SqlHelper.escape(string));
+                                                    adapter.AddValue(`${table.name}.${table.valcol}`, SqlHelper.escape(string));
                                                 }
                                             } else {
-                                                for (const attr in valcol) {
-                                                    if (valcol.hasOwnProperty(attr)) {
-                                                        let string = values[valcol[attr]];
+                                                for (const attr in table.valcol) {
+                                                    if (table.valcol.hasOwnProperty(attr)) {
+                                                        let string = values[table.valcol[attr]];
                                                         if (typeof string === 'string' && string.length > 0) {
                                                             string = getReplacement(string);
-                                                            adapter.AddValue(`${table.name}.${valcol[attr]}`, SqlHelper.escape(string));
+                                                            adapter.AddValue(`${table.name}.${table.valcol[attr]}`, SqlHelper.escape(string));
                                                         }
                                                     }
                                                 }
                                             }
-                                            adapter.AddWhere(`${table.name}.${table.key_column} = ${SqlHelper.escape(usrKey)}`);
+                                            adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(usrKey)}`);
                                             adapter.PerformUpdate(table.name, undefined, 1, os, oe);
                                         }, oe);
                                     });
@@ -1374,8 +1419,7 @@
         GetReferencesTo(id, onResponse, onError) {
             const match = this._key_regex.exec(id);
             if (match) {
-                const user = this._tablesForExt[match[2]];
-                const valcol = this._valColsForExt[match[2]];
+                const user = this._contentTablesByExtension[match[2]];
                 if (!user) {
                     onError(`Invalid table: '${id}'`);
                     return;
@@ -1385,14 +1429,14 @@
                     const rawKey = SqlHelper.escape(match[1]);
                     const keys = {};
                     const tasks = [];
-                    for (const attr in that._tablesForExt) {
-                        if (that._tablesForExt.hasOwnProperty(attr)) {
+                    for (const attr in that._contentTablesByExtension) {
+                        if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
-                                const used = that._tablesForExt[attr];
+                                const used = that._contentTablesByExtension[attr];
                                 tasks.push((onSuc, onErr) => {
-                                    adapter.AddColumn(`tab.${used.key_column} AS path`);
-                                    adapter.AddWhere(`${user.name}.${user.key_column} = ${rawKey}`);
-                                    adapter.AddJoin(formatReferencesToCondition(user.name, valcol, used.name, 'tab', used.extension, used.key_column));
+                                    adapter.AddColumn(`tab.${used.keyColumn} AS path`);
+                                    adapter.AddWhere(`${user.name}.${user.keyColumn} = ${rawKey}`);
+                                    adapter.AddJoin(formatReferencesToCondition(user.name, user.valcol, used.name, 'tab', used.extension, used.keyColumn));
                                     adapter.PerformSelect(user.name, undefined, undefined, undefined, result => {
                                         for (let i = 0, l = result.length; i < l; i++) {
                                             keys[`$${result[i].path}.${used.extension}`] = true;
@@ -1427,8 +1471,7 @@
         GetReferencesToCount(id, onResponse, onError) {
             const match = this._key_regex.exec(id);
             if (match) {
-                const user = this._tablesForExt[match[2]];
-                const valcol = this._valColsForExt[match[2]];
+                const user = this._contentTablesByExtension[match[2]];
                 if (!user) {
                     onError(`Invalid table: '${id}'`);
                     return;
@@ -1438,14 +1481,14 @@
                     const rawKey = SqlHelper.escape(match[1]);
                     const tasks = [];
                     let result = 0;
-                    for (const attr in that._tablesForExt) {
-                        if (that._tablesForExt.hasOwnProperty(attr)) {
+                    for (const attr in that._contentTablesByExtension) {
+                        if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
-                                const used = that._tablesForExt[attr];
+                                const used = that._contentTablesByExtension[attr];
                                 tasks.push((onSuc, onErr) => {
                                     adapter.AddColumn('COUNT(*) AS cnt');
-                                    adapter.AddWhere(`${user.name}.${user.key_column} = ${rawKey}`);
-                                    adapter.AddJoin(formatReferencesToCondition(user.name, valcol, used.name, 'tab', used.extension, used.key_column));
+                                    adapter.AddWhere(`${user.name}.${user.keyColumn} = ${rawKey}`);
+                                    adapter.AddJoin(formatReferencesToCondition(user.name, user.valcol, used.name, 'tab', used.extension, used.keyColumn));
                                     adapter.PerformSelect(user.name, undefined, undefined, undefined, response => {
                                         result += response[0].cnt;
                                         onSuc();
@@ -1470,19 +1513,18 @@
         }
         _getReferencesFrom(adapter, id, onResponse, onError) {
             const that = this, key = SqlHelper.escape(id), keys = {}, tasks = [];
-            for (const attr in this._tablesForExt) {
-                if (this._tablesForExt.hasOwnProperty(attr)) {
+            for (const attr in this._contentTablesByExtension) {
+                if (this._contentTablesByExtension.hasOwnProperty(attr)) {
                     (function () {
-                        const table = that._tablesForExt[attr];
-                        const valcol = that._valColsForExt[attr];
+                        const table = that._contentTablesByExtension[attr];
                         tasks.push((onSuc, onErr) => {
-                            adapter.AddColumn(`${table.name}.${table.key_column} AS path`);
-                            if (typeof valcol === 'string') {
-                                adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${valcol}`), false);
+                            adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
+                            if (typeof table.valcol === 'string') {
+                                adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol}`), false);
                             } else {
-                                for (const col in valcol) {
-                                    if (valcol.hasOwnProperty(col)) {
-                                        adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${valcol[col]}`), false);
+                                for (const col in table.valcol) {
+                                    if (table.valcol.hasOwnProperty(col)) {
+                                        adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol[col]}`), false);
                                     }
                                 }
                             }
@@ -1531,19 +1573,18 @@
                     const key = SqlHelper.escape(id);
                     let result = 0;
                     const tasks = [];
-                    for (const attr in that._tablesForExt) {
-                        if (that._tablesForExt.hasOwnProperty(attr)) {
+                    for (const attr in that._contentTablesByExtension) {
+                        if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
-                                const table = that._tablesForExt[attr];
-                                const valcol = that._valColsForExt[attr];
+                                const table = that._contentTablesByExtension[attr];
                                 tasks.push((onSuc, onErr) => {
                                     adapter.AddColumn('COUNT(*) AS cnt');
-                                    if (typeof valcol === 'string') {
-                                        adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${valcol}`), false);
+                                    if (typeof table.valcol === 'string') {
+                                        adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol}`), false);
                                     } else {
-                                        for (const col in valcol) {
-                                            if (valcol.hasOwnProperty(col)) {
-                                                adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${valcol[col]}`), false);
+                                        for (const col in table.valcol) {
+                                            if (table.valcol.hasOwnProperty(col)) {
+                                                adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol[col]}`), false);
                                             }
                                         }
                                     }
@@ -1578,10 +1619,10 @@
                     function compareRawNodes(node1, node2) {
                         return that.CompareIds(node1.path, node2.path);
                     };
-                    for (const attr in that._tablesForExt) {
-                        if (that._tablesForExt.hasOwnProperty(attr)) {
+                    for (const attr in that._contentTablesByExtension) {
+                        if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
-                                const table = that._tablesForExt[attr];
+                                const table = that._contentTablesByExtension[attr];
                                 tasks.push((onSuc, onErr) => {
                                     /**
                                      * the following call returns an array of objects like: <code>
@@ -1603,7 +1644,7 @@
                                      * }
                                      * </code>
                                      */
-                                    adapter.GetChildNodes(table.name, table.key_column, '/', key, children => {
+                                    adapter.GetChildNodes(table.name, table.keyColumn, '/', key, children => {
                                         const l = children.length;
                                         for (let i = 0; i < l; i++) {
                                             const node = children[i];
@@ -1648,33 +1689,32 @@
                 const that = this;
                 this._getSqlAdapter(adapter => {
                     const results = [], tasks = [];
-                    for (const attr in that._tablesForExt) {
-                        if (that._tablesForExt.hasOwnProperty(attr)) {
+                    for (const attr in that._contentTablesByExtension) {
+                        if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
-                                const table = that._tablesForExt[attr];
-                                const valcol = that._valColsForExt[attr];
+                                const table = that._contentTablesByExtension[attr];
                                 tasks.push((onSuc, onErr) => {
-                                    adapter.AddColumn(`${table.name}.${table.key_column} AS path`);
+                                    adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
                                     let where = '';
                                     if (key.length > 0) {
-                                        where += `LOCATE(${SqlHelper.escape(key)}, ${table.name}.${table.key_column}) > 0`;
+                                        where += `LOCATE(${SqlHelper.escape(key)}, ${table.name}.${table.keyColumn}) > 0`;
                                         if (value.length > 0) {
                                             where += ' AND ';
                                         }
                                     }
                                     if (value.length > 0) {
-                                        if (typeof valcol === 'string') {
-                                            where += `LOCATE(${SqlHelper.escape(value)}, ${table.name}.${valcol}) > 0`;
+                                        if (typeof table.valcol === 'string') {
+                                            where += `LOCATE(${SqlHelper.escape(value)}, ${table.name}.${table.valcol}) > 0`;
                                         } else {
                                             where += '(';
                                             let next = false;
-                                            for (const val in valcol) {
-                                                if (valcol.hasOwnProperty(val)) {
+                                            for (const val in table.valcol) {
+                                                if (table.valcol.hasOwnProperty(val)) {
                                                     if (next) {
                                                         where += ' OR ';
                                                     }
                                                     next = true;
-                                                    where += `LOCATE(${SqlHelper.escape(value)}, ${table.name}.${valcol[val]}) > 0`;
+                                                    where += `LOCATE(${SqlHelper.escape(value)}, ${table.name}.${table.valcol[val]}) > 0`;
                                                 }
                                             }
                                             where += ')';
@@ -1708,13 +1748,13 @@
             if (data.file || data.folder) {
                 this._getSqlAdapter(adapter => {
                     const results = [], tasks = [], path = SqlHelper.escape(data.path);
-                    for (const attr in that._tablesForExt) {
-                        if (that._tablesForExt.hasOwnProperty(attr)) {
+                    for (const attr in that._contentTablesByExtension) {
+                        if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
-                                const table = that._tablesForExt[attr];
+                                const table = that._contentTablesByExtension[attr];
                                 tasks.push((onSuc, onErr) => {
-                                    adapter.AddColumn(`${table.name}.${table.key_column} AS path`);
-                                    adapter.AddWhere(`LOCATE(${path},${table.name}.${table.key_column}) = 1`);
+                                    adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
+                                    adapter.AddWhere(`LOCATE(${path},${table.name}.${table.keyColumn}) = 1`);
                                     adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
                                         const l = result.length;
                                         for (let i = 0; i < l; i++) {
@@ -1745,15 +1785,14 @@
                 onError(`Invalid id: '${id}'`);
                 return;
             }
-            const table = this._tablesForExt[match[2]];
+            const table = this._contentTablesByExtension[match[2]];
             if (!table) {
                 onError(`Invalid table: '${id}'`);
                 return;
             }
-            const valcol = this._valColsForExt[match[2]];
             this._getSqlAdapter(adapter => {
-                adapter.AddColumn(`${table.name}.${table.key_column} AS path`);
-                adapter.AddColumn((typeof valcol === 'string' ? valcol : valcol[language]) + ' AS val');
+                adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
+                adapter.AddColumn((typeof table.valcol === 'string' ? table.valcol : table.valcol[language]) + ' AS val');
                 adapter.PerformSelect(table.name, undefined, 'path ASC', undefined, result => {
                     const array = [], l = result.length;
                     for (let i = 0; i < l; i++) {
@@ -1773,16 +1812,16 @@
                 onResponse(false);
                 return;
             }
-            const table = this._tablesForExt[match[2]];
+            const table = this._contentTablesByExtension[match[2]];
             if (!table || !table.JsonFX) {
                 onResponse(false);
                 return;
             }
-            const hmis = this._config.hmis;
+            const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn('COUNT(*) AS cnt');
-                adapter.AddWhere(`${hmis.name}.${hmis.key_column} = ${SqlHelper.escape(id)}`);
-                adapter.PerformSelect(hmis.name, undefined, undefined, undefined, result => {
+                adapter.AddWhere(`${hmiTable.name}.${hmiTable.valueColumn} = ${SqlHelper.escape(id)}`);
+                adapter.PerformSelect(hmiTable.name, undefined, undefined, undefined, result => {
                     adapter.Close();
                     onResponse(result[0].cnt > 0);
                 }, error => {
@@ -1797,7 +1836,7 @@
                 onError(`Invalid id: '${id}'`);
                 return;
             }
-            const table = this._tablesForExt[match[2]];
+            const table = this._contentTablesByExtension[match[2]];
             if (!table) {
                 onError(`Invalid table: '${id}'`);
                 return;
@@ -1805,21 +1844,21 @@
                 onError(`Is not a JsonFX object: '${id}'`);
                 return;
             }
-            const hmis = this._config.hmis;
+            const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
                 const tasks = [];
                 tasks.parallel = false;
                 tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
                 tasks.push((onSuc, onErr) => {
                     if (available === true) {
-                        adapter.AddValue(`${hmis.name}.${hmis.key_column}`, SqlHelper.escape(id));
+                        adapter.AddValue(`${hmiTable.name}.${hmiTable.valueColumn}`, SqlHelper.escape(id));
                         const checksum = Server.createSHA256(id);
-                        const url = `${checksum.substring(0, 4)}${checksum.substring(checksum.length - 4, checksum.length)}`;
-                        adapter.AddValue(`${hmis.name}.${hmis.url_column}`, SqlHelper.escape(url));
-                        adapter.PerformInsert(hmis.name, onSuc, onErr);
+                        const queryParameterValue = `${checksum.substring(0, 4)}${checksum.substring(checksum.length - 4, checksum.length)}`;
+                        adapter.AddValue(`${hmiTable.name}.${hmiTable.queryParameterValueColumn}`, SqlHelper.escape(queryParameterValue));
+                        adapter.PerformInsert(hmiTable.name, onSuc, onErr);
                     } else {
-                        adapter.AddWhere(`${hmis.name}.${hmis.key_column} = ${SqlHelper.escape(id)}`);
-                        adapter.PerformDelete(hmis.name, undefined, 1, onSuc, onErr);
+                        adapter.AddWhere(`${hmiTable.name}.${hmiTable.keyColumn} = ${SqlHelper.escape(id)}`);
+                        adapter.PerformDelete(hmiTable.name, undefined, 1, onSuc, onErr);
                     }
                 });
                 Executor.run(tasks, () => {
@@ -1841,14 +1880,14 @@
                 });
             }, onError);
         }
-        GetHMIObject(url, onResponse, onError) {
-            const hmis = this._config.hmis;
+        GetHMIObject(queryParameterValue, onResponse, onError) {
+            const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
-                adapter.AddColumn(`${hmis.name}.${hmis.key_column} AS path`);
-                adapter.AddWhere(`${hmis.name}.${hmis.url_column} = ${SqlHelper.escape(url)}`);
-                adapter.PerformSelect(hmis.name, undefined, 'path ASC', undefined, result => {
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.valueColumn} AS path`);
+                adapter.AddWhere(`${hmiTable.name}.${hmiTable.queryParameterValueColumn} = ${SqlHelper.escape(queryParameterValue)}`);
+                adapter.PerformSelect(hmiTable.name, undefined, 'path ASC', undefined, result => {
                     if (!result || !Array.isArray(result) || result.length !== 1) {
-                        onError(`Invalid url: '${url}'`);
+                        onError(`Invalid url: '${queryParameterValue}'`);
                         return;
                     }
                     const id = result[0].path;
@@ -1857,13 +1896,12 @@
                         onError(`Invalid id: '${id}'`);
                         return;
                     }
-                    const table = this._tablesForExt[match[2]];
-                    const valcol = this._valColsForExt[match[2]];
+                    const table = this._contentTablesByExtension[match[2]];
                     if (!table) {
                         onError(`Invalid table name: '${id}'`);
                         return;
                     }
-                    this._getObject(adapter, id, match[1], table, valcol, null, ContentManager.PARSE, response => {
+                    this._getObject(adapter, id, match[1], table, null, ContentManager.PARSE, response => {
                         adapter.Close();
                         onResponse(response);
                     }, error => {
@@ -1876,22 +1914,22 @@
                 });
             }, onError);
         }
-        IsTaskObject(id, onResponse, onError) {
+        IsProcessObject(id, onResponse, onError) {
             const match = this._key_regex.exec(id);
             if (!match) {
                 onResponse(false);
                 return;
             }
-            const table = this._tablesForExt[match[2]];
+            const table = this._contentTablesByExtension[match[2]];
             if (!table || !table.JsonFX) {
                 onResponse(false);
                 return;
             }
-            const exes = this._config.exes;
+            const processTable = this._processTable;
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn('COUNT(*) AS cnt');
-                adapter.AddWhere(`${exes.name}.${exes.key_column} = ${SqlHelper.escape(id)}`);
-                adapter.PerformSelect(exes.name, undefined, undefined, undefined, result => {
+                adapter.AddWhere(`${processTable.name}.${processTable.valueColumn} = ${SqlHelper.escape(id)}`);
+                adapter.PerformSelect(processTable.name, undefined, undefined, undefined, result => {
                     adapter.Close();
                     onResponse(result[0].cnt > 0);
                 }, error => {
@@ -1900,13 +1938,13 @@
                 });
             }, onError);
         }
-        SetAvailabilityAsTaskObject(id, available, onResponse, onError) {
+        SetAvailabilityAsProcessObject(id, available, onResponse, onError) {
             const match = this._key_regex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
                 return;
             }
-            const table = this._tablesForExt[match[2]];
+            const table = this._contentTablesByExtension[match[2]];
             if (!table) {
                 onError(`Invalid table: '${id}'`);
                 return;
@@ -1914,18 +1952,18 @@
                 onError(`Is not a JsonFX object: '${id}'`);
                 return;
             }
-            const exes = this._config.exes;
+            const processTable = this._processTable;
             this._getSqlAdapter(adapter => {
                 const tasks = [];
                 tasks.parallel = false;
                 tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
                 tasks.push((onSuc, onErr) => {
                     if (available === true) {
-                        adapter.AddValue(`${exes.name}.${exes.key_column}`, SqlHelper.escape(id));
-                        adapter.PerformInsert(exes.name, onSuc, onErr);
+                        adapter.AddValue(`${processTable.name}.${processTable.valueColumn}`, SqlHelper.escape(id));
+                        adapter.PerformInsert(processTable.name, onSuc, onErr);
                     } else {
-                        adapter.AddWhere(`${exes.name}.${exes.key_column} = ${SqlHelper.escape(id)}`);
-                        adapter.PerformDelete(exes.name, undefined, 1, onSuc, onErr);
+                        adapter.AddWhere(`${processTable.name}.${processTable.valueColumn} = ${SqlHelper.escape(id)}`);
+                        adapter.PerformDelete(processTable.name, undefined, 1, onSuc, onErr);
                     }
                 });
                 Executor.run(tasks, () => {
@@ -1950,28 +1988,14 @@
         HandleRequest(request, onResponse, onError) {
             switch (request.command) {
                 case COMMAND_GET_CONFIG:
-                    const tables = this._config.tables.map(table => {
-                        const tab = {
-                            extension: table.extension,
-                            icon: table.icon,
-                            JsonFX: table.JsonFX === true,
-                            multiedit: table.multiedit === true,
-                        };
-                        if (table.value_column) {
-                            tab.value_column = table.value_column;
-                            tab.multilingual = false;
-                        } else {
-                            tab.value_column_prefix = table.value_column_prefix;
-                            tab.multilingual = true;
-                        }
-                        return tab;
-                    });
                     onResponse({
                         icon_dir: this._config.icon_dir,
                         languages: this._config.languages,
                         folder_icon: this._config.folder_icon,
                         jsonfx_pretty: this._config.jsonfx_pretty,
-                        tables,
+                        contentTablesByExtension: this._contentTablesByExtension,
+                        hmiTable: this._hmiTable,
+                        processTable: this._processTable,
                         key_regex: this._key_regex.source,
                         exchange_header_regex: this._exchange_header_regex.source
                     });
@@ -2028,13 +2052,13 @@
                     this.SetAvailabilityAsHMIObject(request.id, request.available, onResponse, onError);
                     break;
                 case COMMAND_GET_HMI_OBJECT:
-                    this.GetHMIObject(request.url, onResponse, onError);
+                    this.GetHMIObject(request.queryParameterValue, onResponse, onError);
                     break;
                 case COMMAND_IS_TASK_OBJECT:
-                    this.IsTaskObject(request.id, onResponse, onError);
+                    this.IsProcessObject(request.id, onResponse, onError);
                     break;
                 case COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT:
-                    this.SetAvailabilityAsTaskObject(request.id, request.available, onResponse, onError);
+                    this.SetAvailabilityAsProcessObject(request.id, request.available, onResponse, onError);
                     break;
                 default:
                     onError(`EXCEPTION! Unexpected command: '${request.command}'`);
@@ -2191,24 +2215,9 @@
                 that._key_regex = new RegExp(config.key_regex);
                 that._exchange_header_regex = new RegExp(config.exchange_header_regex, 'g');
                 const langs = config.languages.length;
-                that._tablesForExt = {};
-                that._valColsForExt = {};
-                const tablen = config.tables.length;
-                for (let i = 0; i < tablen; i++) {
-                    const table = config.tables[i];
-                    that._tablesForExt[table.extension] = table;
-                    let valcol = undefined;
-                    if (table.value_column_prefix) {
-                        valcol = {};
-                        for (let j = 0; j < langs; j++) {
-                            const lang = config.languages[j];
-                            valcol[lang] = table.value_column_prefix + lang;
-                        }
-                    } else {
-                        valcol = table.value_column;
-                    }
-                    that._valColsForExt[table.extension] = valcol;
-                }
+                that._contentTablesByExtension = config.contentTablesByExtension;
+                that._hmiTable = config.hmiTable;
+                that._processTable = config.processTable;
                 if (typeof onResponse === 'function') {
                     onResponse();
                 }
@@ -2303,9 +2312,9 @@
         SetAvailabilityAsHMIObject(id, available, onResponse, onError) {
             this._post({ command: COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT, id, available }, onResponse, onError);
         }
-        GetHMIObject(url, onResponse, onError) {
+        GetHMIObject(queryParameterValue, onResponse, onError) {
             const that = this;
-            this._post({ command: COMMAND_GET_HMI_OBJECT, url }, response => {
+            this._post({ command: COMMAND_GET_HMI_OBJECT, queryParameterValue }, response => {
                 if (response !== undefined) {
                     try {
                         let object = JsonFX.reconstruct(response);
@@ -2325,10 +2334,10 @@
                 }
             }, onError);
         }
-        IsTaskObject(id, onResponse, onError) {
+        IsProcessObject(id, onResponse, onError) {
             this._post({ command: COMMAND_IS_TASK_OBJECT, id }, onResponse, onError);
         }
-        SetAvailabilityAsTaskObject(id, available, onResponse, onError) {
+        SetAvailabilityAsProcessObject(id, available, onResponse, onError) {
             this._post({ command: COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT, id, available }, onResponse, onError);
         }
     }

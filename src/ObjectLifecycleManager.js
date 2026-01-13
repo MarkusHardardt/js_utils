@@ -8071,7 +8071,7 @@
                                     perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Cleanup, false, () => {
                                         onStateChanged(LifecycleState.Idle);
                                         i_suc();
-                                    }, i_err, false);
+                                    }, i_err, false); // Note: passing false als 'hmi' will delete the reference on the object
                                 }, i_err);
                             }, i_err);
                         }, i_err);

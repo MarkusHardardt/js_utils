@@ -1957,7 +1957,7 @@
             const isJsonFX = sel_data.JsonFX === true;
             tasksButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset && isJsonFX);
             if (isJsonFX) {
-                cms.IsTaskObject(sel_data.id, response => {
+                cms.IsProcessObject(sel_data.id, response => {
                     tasksButton.hmi_setSelected(response === true);
                     if (typeof response === 'string') {
                         adapter.notifyError(response);
@@ -2101,8 +2101,8 @@
             },
             longClicked: () => {
                 try {
-                    cms.IsTaskObject(sel_data.id, response => {
-                        cms.SetAvailabilityAsTaskObject(sel_data.id, response !== true, resp => update(), error => {
+                    cms.IsProcessObject(sel_data.id, response => {
+                        cms.SetAvailabilityAsProcessObject(sel_data.id, response !== true, resp => update(), error => {
                             update();
                             adapter.notifyError(error);
                         });
