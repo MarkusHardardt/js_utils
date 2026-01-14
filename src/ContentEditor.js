@@ -807,8 +807,9 @@
                 buttonRefFrom.hmi_setSelected(buttonRefFrom === button);
             }
             unstress((onSuccess, onError) => {
-                text.hmi_value(sel_data.id);
-                tree.hmi_setRootPath(sel_data.id, onSuccess, onError);
+                const id = sel_data ? sel_data.id : '';
+                text.hmi_value(id);
+                tree.hmi_setRootPath(id, onSuccess, onError);
             });
         };
         let buttonRefTo = {
