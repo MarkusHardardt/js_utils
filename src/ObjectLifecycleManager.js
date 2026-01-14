@@ -17,18 +17,18 @@
      * prevent memory leaks:
      * 
      * #grid: 2 x _hmi_init_dom: called on all children but with "is
-     * HandlerObjectImpl?" true without or false with html division 1 x
+     * TaskObjectImpl?" true without or false with html division 1 x
      * _hmi_destroy_dom: called on all children
      * 
      * #float: 2 x _hmi_init_dom: called on all children but with "is
-     * HandlerObjectImpl?" true without or false with html division 1 x
+     * TaskObjectImpl?" true without or false with html division 1 x
      * _hmi_destroy_dom: called on all children
      * 
      * #split: 2 x _hmi_init_dom: called on all possible split parts and all with
-     * "is HandlerObjectImpl?" 1 x _hmi_destroy_dom: called on all possible split
-     * parts and all with "is HandlerObjectImpl?"
+     * "is TaskObjectImpl?" 1 x _hmi_destroy_dom: called on all possible split
+     * parts and all with "is TaskObjectImpl?"
      * 
-     * #handler: HandlerObjectImpl 1 x _hmi_init_dom: called on children that are
+     * #task: TaskObjectImpl 1 x _hmi_init_dom: called on children that are
      * handlers as well (all others ignored) 1 x _hmi_destroy_dom: called on
      * children that are handlers as well (all others ignored)
      * 
@@ -761,25 +761,25 @@
                 }, that.hmi, i_initData, that, i_object.id, that.hmi_node(), i_disableVisuEvents, i_enableEditorEvents, dumpLifecycle);
             }
         };
-        this.hmi_removeContent = (i_success, i_error) => {
+        this.hmi_removeContent = (onSuccess, onError) => {
             if (_object !== undefined) {
                 const obj = _object;
                 _object = undefined;
                 destroy_hmi_object_branch(obj, () => {
                     _div.empty();
-                    if (typeof i_success === 'function') {
-                        i_success();
+                    if (typeof onSuccess === 'function') {
+                        onSuccess();
                     }
-                }, i_exception => {
-                    if (typeof i_error === 'function') {
-                        i_error(i_exception);
+                }, error => {
+                    if (typeof onError === 'function') {
+                        onError(error);
                     } else {
-                        console.error(i_exception);
+                        console.error(error);
                     }
                 }, dumpLifecycle);
             }
-            else if (typeof i_success === 'function') {
-                i_success();
+            else if (typeof onSuccess === 'function') {
+                onSuccess();
             }
         };
         this._hmi_resizes.push(() => {
@@ -1337,7 +1337,7 @@
         for (var i = 0; i < _children.length; i++) {
             var child = _children[i];
             var hmiobj = child._hmi_object;
-            if (hmiobj && hmiobj.type !== 'handler') {
+            if (hmiobj && hmiobj.type !== 'task') {
                 var x = typeof child.x === 'number' ? child.x : 0;
                 var y = typeof child.y === 'number' ? child.y : 0;
                 var width = typeof child.width === 'number' ? child.width : 1;
@@ -1409,7 +1409,7 @@
                         for (var i = 0; intersects === false && i < _children.length; i++) {
                             var child = _children[i];
                             var hmiobj = child._hmi_object;
-                            if (hmiobj && hmiobj.type !== 'handler') {
+                            if (hmiobj && hmiobj.type !== 'task') {
                                 var x = typeof child.x === 'number' ? child.x : 0;
                                 var y = typeof child.y === 'number' ? child.y : 0;
                                 var width = typeof child.width === 'number' ? child.width : 1;
@@ -1676,7 +1676,7 @@
                     var child = _children[idx];
                     var hmiobj = child._hmi_object;
                     if (hmiobj) {
-                        if (hmiobj.type === 'handler') {
+                        if (hmiobj.type === 'task') {
                             if (hmiobj._hmi_init_dom) {
                                 tasks.push(function (i_suc, i_err) {
                                     // #grid: 1
@@ -1882,7 +1882,7 @@
                 var child = _children[i];
                 var hmiobj = child._hmi_object;
                 if (hmiobj) {
-                    if (hmiobj.type === 'handler') {
+                    if (hmiobj.type === 'task') {
                         if (hmiobj._hmi_init_dom) {
                             tasks.push(function (i_suc, i_err) {
                                 // #float: 1
@@ -2130,7 +2130,7 @@
                 var child = that.children[i];
                 var hmiobj = child._hmi_object;
                 if (hmiobj) {
-                    if (hmiobj.type === 'handler') {
+                    if (hmiobj.type === 'task') {
                         if (hmiobj._hmi_init_dom) {
                             tasks.push(function (i_suc, i_err) {
                                 // #split: 2
@@ -3934,7 +3934,7 @@
         });
     };
 
-    function HandlerObjectImpl(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
+    function TaskObjectImpl(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
         var that = this;
         var tasks = [];
         var _cont = that._hmi_context.container;
@@ -3954,9 +3954,9 @@
                 (function () {
                     var child = _children[i];
                     var hmiobj = child._hmi_object;
-                    if (hmiobj && hmiobj.type === 'handler' && hmiobj._hmi_init_dom) {
+                    if (hmiobj && hmiobj.type === 'task' && hmiobj._hmi_init_dom) {
                         tasks.push(function (i_suc, i_err) {
-                            // #handler: 1
+                            // #task: 1
                             hmiobj._hmi_init_dom({
                                 container: _cont
                             }, i_suc, i_err);
@@ -3971,10 +3971,10 @@
                 for (var i = _children.length - 1; i >= 0; i--) {
                     var child = _children[i];
                     var hmiobj = child._hmi_object;
-                    if (hmiobj && hmiobj.type === 'handler' && hmiobj._hmi_destroy_dom) {
+                    if (hmiobj && hmiobj.type === 'task' && hmiobj._hmi_destroy_dom) {
                         (function () {
                             tasks.push(function (i_s, i_e) {
-                                // #handler: 1
+                                // #task: 1
                                 hmiobj._hmi_destroy_dom(i_s, i_e);
                             })
                         }());
@@ -6734,7 +6734,7 @@
                                 hmiobj._hmi_context.transform.setToCoordinateTransform(child, _tf);
                             }
                         }
-                        else if (hmiobj.type !== 'handler') {
+                        else if (hmiobj.type !== 'task') {
                             var width = get_pixel_size(child.width, _tf.scale);
                             var height = get_pixel_size(child.height, _tf.scale);
                             if (typeof width === 'number' && typeof height === 'number') {
@@ -6850,7 +6850,7 @@
                                     }, i_suc, i_err);
                                 });
                             }
-                            else if (hmiobj.type === 'handler') {
+                            else if (hmiobj.type === 'task') {
                                 tasks.push(function (i_suc, i_err) {
                                     // #graph: 2
                                     hmiobj._hmi_init_dom({
@@ -7059,9 +7059,9 @@
             var tasks = [];
             that._hmi_context = i_context;
             _cont = i_context.container;
-            if (that.type === 'handler') {
+            if (that.type === 'task') {
                 tasks.push(function (i_suc, i_err) {
-                    HandlerObjectImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
+                    TaskObjectImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
                 });
             }
             else {
@@ -7371,7 +7371,7 @@
                         delete button._hmi_element;
                     }
                 }
-                destroy_hmi_object_branch(i_config.object);
+                destroy_hmi_object_branch(i_config.object, () => {}, error => console.error(`Error closing dialog: ${error}`));
                 _popup.dialog('destroy');
                 _popup.remove();
                 if (typeof i_config.closed === 'function') {

@@ -1928,9 +1928,128 @@
         return container;
     }
 
+    const HmiObjectsTableColumn = Object.freeze({
+        Object: 0,
+        QueryParameter: 1,
+        Enable: 2
+    });
+
+    function showHmisConfigurationDialog(hmi, adapter) {
+        hmi.cms.GetHMIObjects(hmiObjects => {
+            console.log(JSON.stringify(hmiObjects)); // TODO: remove
+            const table = {
+                y: 0,
+                type: 'table',
+                searching: true,
+                paging: false,
+                highlightSelectedRow: true,
+                columns: [{
+                    width: 100,
+                    text: 'hmi object',
+                    textsAndNumbers: true
+                }, {
+                    width: 100,
+                    text: 'query parameter',
+                    textsAndNumbers: true
+                }, {
+                    width: 10,
+                    text: 'enabled',
+                    textsAndNumbers: true
+                }],
+                getRowCount: () => hmiObjects.length,
+                getCellHtml: (rowIndex, columnIndex) => {
+                    const row = hmiObjects[rowIndex];
+                    switch (columnIndex) {
+                        case HmiObjectsTableColumn.Object:
+                            return row.path;
+                        case HmiObjectsTableColumn.QueryParameter:
+                            return row.queryParameterValue;
+                        case HmiObjectsTableColumn.Enable:
+                            return row.enable ? 'enabled' : 'disabled';
+                        default:
+                            return '';
+                    }
+                },
+                prepare: (that, onSuccess, onError) => {
+                    try {
+                        that.hmi_reload();
+                        onSuccess();
+                    } catch (error) {
+                        adapter.notifyError(`Error preparing hmi objects table: ${error}`);
+                        console.error(`Error preparing hmi objects table: ${error}`);
+                        onError(error);
+                    }
+                },
+                handleTableRowClicked: rowIndex => detailsContainer.showRowData(hmiObjects[rowIndex])
+            };
+            const detailsContainer = {
+                y: 1,
+                type: 'container',
+                showRowData: hmiObject => {
+                    const buttons = {
+                        x: 2, y: 0, width: 1, height: 2, separator: SEPARATOR,
+                        type: 'grid',
+                        children: []
+                    };
+                    const textIdCell = {
+                        x: 0, y: 0, type: 'textfield', editable: false, value: textId
+                    };
+                    const nodeIdCell = {
+                        x: 0, y: 1, width: 2, height: 1,
+                        type: 'textfield', editable: false,
+                        value: als21DetailsNodeId ? als21DetailsNodeId : ''
+                    };
+                    const detailsGrid = {
+                        id: 'details',
+                        type: 'grid',
+                        separator: SEPARATOR,
+                        columns: ['200px', '200px', 1],
+                        rows: 2,
+                        children: [textIdCell, valueCell, nodeIdCell, buttons],
+                        refresh: function (i_date) {
+                            let time = i_date.getTime();
+                            if (als21DetailsNodeId && adapter.opcuaReadCycleMillis && time >= previousTime + adapter.opcuaReadCycleMillis / 2) {
+                                previousTime = time;
+                                update(adapter.getNodeValue(als21DetailsNodeId));
+                            }
+                        }
+                    };
+                    const that = this;
+                    that.hmi_removeContent(() => that.hmi_setContent(detailsGrid, () => {}, error => adapter.notifyError(`Error setting content for ${hmiObject.textId}: ${error}`)), error => adapter.notifyError(`Error removing content: ${error}`));
+                }
+            };
+            const dialogObject = {
+                title: 'HMI object configuration',
+                width: Math.floor($(window).width() * 0.9),
+                height: Math.floor($(window).height() * 0.95),
+                object: {
+                    type: 'grid',
+                    rows: [1, '200px'],
+                    children: [table, detailsContainer]
+                },
+                buttons: []
+            };
+            hmi.showPopup(dialogObject);
+        }, error => console.error(`Error loading hmi objetcs: ${error}`));
+    }
+
+    function showTasksConfigurationDialog(hmi, adapter) {
+        hmi.cms.GetTaskObjects(result => {
+            console.log(JSON.stringify(result)); // TODO: remove
+            const dialogObject = { // TODO: implement dialog
+                title: 'Task object configuration',
+                width: Math.floor($(window).width() * 0.9),
+                height: Math.floor($(window).height() * 0.95),
+                object: { text: JSON.stringify(result, undefined, 2) },
+                buttons: []
+            };
+            hmi.showPopup(dialogObject);
+        }, error => console.error(`Error loading hmi objetcs: ${error}`));
+    }
+
     function getEditController(hmi, adapter) {
         let cms = hmi.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
-        let editor = false, handler = false, valid_file = false, sel_data = false, sel_cs = false, edit_data = false, edit_cs = false, sel_lang, edit_lang;
+        let editor = false, handler = false, sel_data = false, sel_cs = false, edit_data = false, edit_cs = false, sel_lang, edit_lang;
         function reload() {
             unstress((onSuccess, onError) => {
                 sel_cs = false;
@@ -1957,7 +2076,7 @@
             const isJsonFX = sel_data.JsonFX === true;
             tasksButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset && isJsonFX);
             if (isJsonFX) {
-                cms.IsProcessObject(sel_data.id, response => {
+                cms.IsTaskObject(sel_data.id, response => {
                     tasksButton.hmi_setSelected(response === true);
                     if (typeof response === 'string') {
                         adapter.notifyError(response);
@@ -2063,14 +2182,7 @@
             y: 0,
             border: true,
             text: 'hmis',
-            clicked: () => {
-                try {
-                    // TODO perform_commit(editor.getValue());
-                    console.log('Clicked hmis button');
-                } catch (exc) {
-                    adapter.notifyError(exc);
-                }
-            },
+            clicked: () => showHmisConfigurationDialog(hmi, adapter),
             longClicked: () => {
                 try {
                     cms.IsHMIObject(sel_data.id, response => {
@@ -2091,18 +2203,11 @@
             y: 0,
             border: true,
             text: 'tasks',
-            clicked: () => {
-                try {
-                    // TODO perform_commit(editor.getValue());
-                    console.log('Clicked hmis button');
-                } catch (exc) {
-                    adapter.notifyError(exc);
-                }
-            },
+            clicked: () => showTasksConfigurationDialog(hmi, adapter),
             longClicked: () => {
                 try {
-                    cms.IsProcessObject(sel_data.id, response => {
-                        cms.SetAvailabilityAsProcessObject(sel_data.id, response !== true, resp => update(), error => {
+                    cms.IsTaskObject(sel_data.id, response => {
+                        cms.SetAvailabilityAsTaskObject(sel_data.id, response !== true, resp => update(), error => {
                             update();
                             adapter.notifyError(error);
                         });

@@ -45,8 +45,10 @@
             'IsHMIObject(id, onResponse, onError)',
             'SetAvailabilityAsHMIObject(id, available, onResponse, onError)',
             'GetHMIObject(queryParameterValue, onResponse, onError)',
-            'IsProcessObject(id, onResponse, onError)',
-            'SetAvailabilityAsProcessObject(id, available, onResponse, onError)'
+            'GetHMIObjects(onResponse, onError)',
+            'IsTaskObject(id, onResponse, onError)',
+            'SetAvailabilityAsTaskObject(id, available, onResponse, onError)',
+            'GetTaskObjects(onResponse, onError)'
         ], validateMethodArguments);
     }
     ContentManager.validateAsContentManager = validateAsContentManager;
@@ -66,7 +68,7 @@
         Label: 'Label',
         HTML: 'HTML',
         HMI: 'HMI',
-        Process: 'Process'
+        Task: 'Task'
     });
 
     /*  Used by ContentEditor  */
@@ -164,8 +166,10 @@
     const COMMAND_IS_HMI_OBJECT = 'is_hmi_object';
     const COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT = 'set_availability_as_hmi_object';
     const COMMAND_GET_HMI_OBJECT = 'get_hmi_object';
+    const COMMAND_GET_HMI_OBJECTS = 'get_hmi_objects';
     const COMMAND_IS_TASK_OBJECT = 'is_task_object';
     const COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT = 'set_availability_as_task_object';
+    const COMMAND_GET_TASK_OBJECTS = 'get_task_objects';
 
     const VALID_EXT_REGEX = /^\w+$/;
     const VALID_NAME_CHAR = '[a-zA-Z0-9_+\\-*]';
@@ -334,18 +338,20 @@
                             name: table.name,
                             queryParameterValueColumn: table.queryParameterValueColumn,
                             valueColumn: table.valueColumn,
+                            enableColumn: table.enableColumn,
                             icon: table.icon
                         };
                         this._tables.push(this._hmiTable);
                         break;
-                    case DataTableType.Process:
-                        this._processTable = {
+                    case DataTableType.Task:
+                        this._taskTable = {
                             type: table.type,
                             name: table.name,
                             valueColumn: table.valueColumn,
+                            autostartColumn: table.autostartColumn,
                             icon: table.icon
                         };
-                        this._tables.push(this._processTable);
+                        this._tables.push(this._taskTable);
                         break;
                     default:
                         throw new Error(`Unsupported table type: '${table.type}'`);
@@ -353,10 +359,10 @@
             }
             // we need all available extensions for building regular expressions
             const tabexts = extensions.join('|');
-            this._key_regex = new RegExp('^\\$((?:' + VALID_NAME_CHAR + '+\\/)*?' + VALID_NAME_CHAR + '+?)\\.(' + tabexts + ')$');
-            this._refactoring_match = '((?:' + VALID_NAME_CHAR + '+\\/)*?' + VALID_NAME_CHAR + '+?\\.(?:' + tabexts + '))\\b';
-            this._include_regex_build = new RegExp('(\'|")?include:\\$((?:' + VALID_NAME_CHAR + '+\\/)*' + VALID_NAME_CHAR + '+?)\\.(' + tabexts + ')\\b\\1', 'g');
-            this._exchange_header_regex = new RegExp('\\[\\{\\((' + tabexts + '|language|' + Regex.escape(EXCHANGE_HEADER) + ')<>([a-f0-9]{32})\\)\\}\\]\\n(.*)\\n', 'g');
+            this._key_regex = new RegExp(`^\\$((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?)\\.(${tabexts})$`);
+            this._refactoring_match = `((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?\\.(?:${tabexts}))\\b`;
+            this._include_regex_build = new RegExp(`(\'|")?include:\\$((?:${VALID_NAME_CHAR}+\\/)*${VALID_NAME_CHAR}+?)\\.(${tabexts})\\b\\1`, 'g');
+            this._exchange_header_regex = new RegExp(`\\[\\{\\((${tabexts}|language|${Regex.escape(EXCHANGE_HEADER)})<>([a-f0-9]{32})\\)\\}\\]\\n(.*)\\n`, 'g');
             validateAsContentManagerOnServer(this, true);
         }
         _getRawString(adapter, table, rawKey, language, onResponse, onError) {
@@ -1031,7 +1037,7 @@
                 // within the following loop we collect all source paths
                 if (sourceIsFolder) {
                     const tasks = [];
-                    for (const attr in that._contentTablesByExtension) {
+                    for (const attr in that._contentTablesByExtension) { // TODO: use this._tables
                         if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
                                 const table = that._contentTablesByExtension[attr];
@@ -1080,7 +1086,7 @@
                         for (let i = 0; i < srcLen; i++) {
                             const src = srcKeysArr[i];
                             const match = key_regex.exec(src);
-                            const table = that._contentTablesByExtension[match[2]];
+                            // const table = that._contentTablesByExtension[match[2]];
                             const tgt = target + src.substring(source.length);
                             objects[src] = tgt;
                             checksum += tgt;
@@ -1104,7 +1110,7 @@
                         (function () {
                             const tgt = objects[srcKeysArr[i]];
                             const match = key_regex.exec(tgt);
-                            const table = that._contentTablesByExtension[match[2]];
+                            const table = that._contentTablesByExtension[match[2]];// TODO: use this._tables
                             const tabKeyEsc = SqlHelper.escape(match[1]);
                             tasks.push((os, or) => {
                                 adapter.AddColumn('COUNT(*) AS cnt');
@@ -1244,7 +1250,7 @@
                             } else if (params.action === ContentManager.DELETE) {
                                 if (params.folder) {
                                     const match = FOLDER_REGEX.exec(params.source), srcTabKey = SqlHelper.escape(match[1]);
-                                    for (const attr in that._contentTablesByExtension) {
+                                    for (const attr in that._contentTablesByExtension) {// TODO: use this._tables
                                         if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                                             (function () {
                                                 const table = that._contentTablesByExtension[attr];
@@ -1257,7 +1263,7 @@
                                     }
                                 } else {
                                     const key_regex = that._key_regex, match = key_regex.exec(source);
-                                    const table = that._contentTablesByExtension[match[2]], srcTabKey = SqlHelper.escape(match[1]);
+                                    const table = that._contentTablesByExtension[match[2]], srcTabKey = SqlHelper.escape(match[1]);// TODO: use this._tables
                                     tasks.push((os, oe) => {
                                         adapter.AddWhere(`${table.name}.${table.keyColumn} = ${srcTabKey}`);
                                         adapter.PerformDelete(table.name, undefined, 1, os, oe);
@@ -1367,7 +1373,7 @@
                             if (params.objects[refFrom] === undefined) {
                                 (function () {
                                     const match = key_regex.exec(refFrom);
-                                    const table = that._contentTablesByExtension[match[2]];
+                                    const table = that._contentTablesByExtension[match[2]];// TODO: use this._tables
                                     const usrKey = match[1];
                                     tasks.push((os, oe) => {
                                         if (typeof table.valcol === 'string') {
@@ -1419,7 +1425,7 @@
         GetReferencesTo(id, onResponse, onError) {
             const match = this._key_regex.exec(id);
             if (match) {
-                const user = this._contentTablesByExtension[match[2]];
+                const user = this._contentTablesByExtension[match[2]];// TODO: use this._tables
                 if (!user) {
                     onError(`Invalid table: '${id}'`);
                     return;
@@ -1429,7 +1435,7 @@
                     const rawKey = SqlHelper.escape(match[1]);
                     const keys = {};
                     const tasks = [];
-                    for (const attr in that._contentTablesByExtension) {
+                    for (const attr in that._contentTablesByExtension) {// TODO: use this._tables
                         if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
                                 const used = that._contentTablesByExtension[attr];
@@ -1481,7 +1487,7 @@
                     const rawKey = SqlHelper.escape(match[1]);
                     const tasks = [];
                     let result = 0;
-                    for (const attr in that._contentTablesByExtension) {
+                    for (const attr in that._contentTablesByExtension) {// TODO: use this._tables
                         if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
                                 const used = that._contentTablesByExtension[attr];
@@ -1513,7 +1519,7 @@
         }
         _getReferencesFrom(adapter, id, onResponse, onError) {
             const that = this, key = SqlHelper.escape(id), keys = {}, tasks = [];
-            for (const attr in this._contentTablesByExtension) {
+            for (const attr in this._contentTablesByExtension) {// TODO: use this._tables
                 if (this._contentTablesByExtension.hasOwnProperty(attr)) {
                     (function () {
                         const table = that._contentTablesByExtension[attr];
@@ -1573,7 +1579,7 @@
                     const key = SqlHelper.escape(id);
                     let result = 0;
                     const tasks = [];
-                    for (const attr in that._contentTablesByExtension) {
+                    for (const attr in that._contentTablesByExtension) {// TODO: use this._tables
                         if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
                                 const table = that._contentTablesByExtension[attr];
@@ -1914,7 +1920,22 @@
                 });
             }, onError);
         }
-        IsProcessObject(id, onResponse, onError) {
+        GetHMIObjects(onResponse, onError) {
+            const hmiTable = this._hmiTable;
+            this._getSqlAdapter(adapter => {
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.queryParameterValueColumn} AS queryParameterValue`);
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.valueColumn} AS path`);
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.enableColumn} AS enable`);
+                adapter.PerformSelect(hmiTable.name, undefined, 'path ASC', undefined, result => {
+                    adapter.Close();
+                    onResponse(result);
+                }, error => {
+                    adapter.Close();
+                    onError(error);
+                });
+            }, onError);
+        }
+        IsTaskObject(id, onResponse, onError) {
             const match = this._key_regex.exec(id);
             if (!match) {
                 onResponse(false);
@@ -1925,11 +1946,11 @@
                 onResponse(false);
                 return;
             }
-            const processTable = this._processTable;
+            const taskTable = this._taskTable;
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn('COUNT(*) AS cnt');
-                adapter.AddWhere(`${processTable.name}.${processTable.valueColumn} = ${SqlHelper.escape(id)}`);
-                adapter.PerformSelect(processTable.name, undefined, undefined, undefined, result => {
+                adapter.AddWhere(`${taskTable.name}.${taskTable.valueColumn} = ${SqlHelper.escape(id)}`);
+                adapter.PerformSelect(taskTable.name, undefined, undefined, undefined, result => {
                     adapter.Close();
                     onResponse(result[0].cnt > 0);
                 }, error => {
@@ -1938,7 +1959,7 @@
                 });
             }, onError);
         }
-        SetAvailabilityAsProcessObject(id, available, onResponse, onError) {
+        SetAvailabilityAsTaskObject(id, available, onResponse, onError) {
             const match = this._key_regex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
@@ -1952,18 +1973,18 @@
                 onError(`Is not a JsonFX object: '${id}'`);
                 return;
             }
-            const processTable = this._processTable;
+            const taskTable = this._taskTable;
             this._getSqlAdapter(adapter => {
                 const tasks = [];
                 tasks.parallel = false;
                 tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
                 tasks.push((onSuc, onErr) => {
                     if (available === true) {
-                        adapter.AddValue(`${processTable.name}.${processTable.valueColumn}`, SqlHelper.escape(id));
-                        adapter.PerformInsert(processTable.name, onSuc, onErr);
+                        adapter.AddValue(`${taskTable.name}.${taskTable.valueColumn}`, SqlHelper.escape(id));
+                        adapter.PerformInsert(taskTable.name, onSuc, onErr);
                     } else {
-                        adapter.AddWhere(`${processTable.name}.${processTable.valueColumn} = ${SqlHelper.escape(id)}`);
-                        adapter.PerformDelete(processTable.name, undefined, 1, onSuc, onErr);
+                        adapter.AddWhere(`${taskTable.name}.${taskTable.valueColumn} = ${SqlHelper.escape(id)}`);
+                        adapter.PerformDelete(taskTable.name, undefined, 1, onSuc, onErr);
                     }
                 });
                 Executor.run(tasks, () => {
@@ -1985,6 +2006,20 @@
                 });
             }, onError);
         }
+        GetTaskObjects(onResponse, onError) {
+            const taskTable = this._taskTable;
+            this._getSqlAdapter(adapter => {
+                adapter.AddColumn(`${taskTable.name}.${taskTable.valueColumn} AS path`);
+                adapter.AddColumn(`${taskTable.name}.${taskTable.autostartColumn} AS autostart`);
+                adapter.PerformSelect(taskTable.name, undefined, 'path ASC', undefined, result => {
+                    adapter.Close();
+                    onResponse(result);
+                }, error => {
+                    adapter.Close();
+                    onError(error);
+                });
+            }, onError);
+        }
         HandleRequest(request, onResponse, onError) {
             switch (request.command) {
                 case COMMAND_GET_CONFIG:
@@ -1995,7 +2030,7 @@
                         jsonfx_pretty: this._config.jsonfx_pretty,
                         contentTablesByExtension: this._contentTablesByExtension,
                         hmiTable: this._hmiTable,
-                        processTable: this._processTable,
+                        taskTable: this._taskTable,
                         key_regex: this._key_regex.source,
                         exchange_header_regex: this._exchange_header_regex.source
                     });
@@ -2054,11 +2089,17 @@
                 case COMMAND_GET_HMI_OBJECT:
                     this.GetHMIObject(request.queryParameterValue, onResponse, onError);
                     break;
+                case COMMAND_GET_HMI_OBJECTS:
+                    this.GetHMIObjects(onResponse, onError);
+                    break;
                 case COMMAND_IS_TASK_OBJECT:
-                    this.IsProcessObject(request.id, onResponse, onError);
+                    this.IsTaskObject(request.id, onResponse, onError);
                     break;
                 case COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT:
-                    this.SetAvailabilityAsProcessObject(request.id, request.available, onResponse, onError);
+                    this.SetAvailabilityAsTaskObject(request.id, request.available, onResponse, onError);
+                    break;
+                case COMMAND_GET_TASK_OBJECTS:
+                    this.GetTaskObjects(onResponse, onError);
                     break;
                 default:
                     onError(`EXCEPTION! Unexpected command: '${request.command}'`);
@@ -2217,7 +2258,7 @@
                 const langs = config.languages.length;
                 that._contentTablesByExtension = config.contentTablesByExtension;
                 that._hmiTable = config.hmiTable;
-                that._processTable = config.processTable;
+                that._taskTable = config.taskTable;
                 if (typeof onResponse === 'function') {
                     onResponse();
                 }
@@ -2334,11 +2375,17 @@
                 }
             }, onError);
         }
-        IsProcessObject(id, onResponse, onError) {
+        GetHMIObjects(onResponse, onError) {
+            this._post({ command: COMMAND_GET_HMI_OBJECTS }, onResponse, onError);
+        }
+        IsTaskObject(id, onResponse, onError) {
             this._post({ command: COMMAND_IS_TASK_OBJECT, id }, onResponse, onError);
         }
-        SetAvailabilityAsProcessObject(id, available, onResponse, onError) {
+        SetAvailabilityAsTaskObject(id, available, onResponse, onError) {
             this._post({ command: COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT, id, available }, onResponse, onError);
+        }
+        GetTaskObjects(onResponse, onError) {
+            this._post({ command: COMMAND_GET_TASK_OBJECTS }, onResponse, onError);
         }
     }
 
