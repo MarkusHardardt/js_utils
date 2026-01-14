@@ -336,10 +336,13 @@
                         this._hmiTable = {
                             type: table.type,
                             name: table.name,
+                            extension: table.extension,
+                            keyColumn: table.valueColumn, // required for _getReferencesFrom(), ...
                             queryParameterValueColumn: table.queryParameterValueColumn,
                             valueColumn: table.valueColumn,
                             enableColumn: table.enableColumn,
-                            icon: table.icon
+                            icon: table.icon,
+                            valcol: table.valueColumn
                         };
                         this._tables.push(this._hmiTable);
                         break;
@@ -347,9 +350,12 @@
                         this._taskTable = {
                             type: table.type,
                             name: table.name,
+                            extension: table.extension,
+                            keyColumn: table.valueColumn, // required for _getReferencesFrom(), ...
                             valueColumn: table.valueColumn,
                             autostartColumn: table.autostartColumn,
-                            icon: table.icon
+                            icon: table.icon,
+                            valcol: table.valueColumn
                         };
                         this._tables.push(this._taskTable);
                         break;
@@ -1519,7 +1525,43 @@
         }
         _getReferencesFrom(adapter, id, onResponse, onError) {
             const that = this, key = SqlHelper.escape(id), keys = {}, tasks = [];
-            for (const attr in this._contentTablesByExtension) {// TODO: use this._tables
+            for (let i = 0; i < this._tables.length; i++) {
+                (function () {
+                    const table = that._tables[i];
+                    tasks.push((onSuc, onErr) => {
+                        adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
+                        if (typeof table.valcol === 'string') {
+                            adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol}`), false);
+                        } else {
+                            for (const col in table.valcol) {
+                                if (table.valcol.hasOwnProperty(col)) {
+                                    adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol[col]}`), false);
+                                }
+                            }
+                        }
+                        adapter.PerformSelect(table.name, undefined, undefined, undefined, response => {
+                            for (let i = 0, l = response.length; i < l; i++) {
+                                keys[`$${response[i].path}.${table.extension}`] = true;
+                            }
+                            onSuc();
+                        }, onErr);
+                    });
+                }());
+            }
+            tasks.parallel = that._parallel;
+            Executor.run(tasks, () => {
+                const array = [];
+                for (const key in keys) {
+                    if (keys.hasOwnProperty(key)) {
+                        array.push(key);
+                    }
+                }
+                onResponse(array);
+            }, onError);
+        }
+        _getReferencesFrom_discarded(adapter, id, onResponse, onError) { // TODO: remove or reuse
+            const that = this, key = SqlHelper.escape(id), keys = {}, tasks = [];
+            for (const attr in this._contentTablesByExtension) {
                 if (this._contentTablesByExtension.hasOwnProperty(attr)) {
                     (function () {
                         const table = that._contentTablesByExtension[attr];
