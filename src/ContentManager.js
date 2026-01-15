@@ -176,6 +176,8 @@
     const FOLDER_REGEX = new RegExp('^\\$((?:' + VALID_NAME_CHAR + '+\\/)*)$');
     const EXCHANGE_HEADER = 'hmijs-config-exchange-data';
 
+    const AUTO_KEY_LENGTH = 8;
+
     class ContentManagerBase {
         constructor() {
             if (this.constructor === ContentManagerBase) {
@@ -189,7 +191,7 @@
             return Utilities.copyArray(this._config.languages, array);
         }
         IsValidFile(string) {
-            return this._key_regex.test(string);
+            return this._contentTablesKeyRegex.test(string);
         }
         IsValidFolder(string) {
             return FOLDER_REGEX.test(string);
@@ -207,7 +209,7 @@
             }
         }
         AnalyzeId(id) {
-            let match = this._key_regex.exec(id);
+            let match = this._contentTablesKeyRegex.exec(id);
             if (match) {
                 return this.GetDescriptor(match[2], { id, path: match[1], file: id, extension: match[2] });
             }
@@ -226,18 +228,33 @@
             }
         }
         GetPath(id) {
-            const match = this._key_regex.exec(id);
+            const match = this._contentTablesKeyRegex.exec(id);
             return match ? match[1] : false;
         }
         GetExtension(id) {
-            const match = this._key_regex.exec(id);
+            const match = this._contentTablesKeyRegex.exec(id);
             return match ? match[2] : false;
         }
         GetIcon(id) {
-            const match = this._key_regex.exec(id);
+            const match = this._allTablesKeyRegex.exec(id);
             if (match) {
-                const tab = this._contentTablesByExtension[match[2]];
-                return tab ? this._config.icon_dir + tab.icon : false;
+                for (let table of this._tables) {
+                    if (table.extension === match[2]) {
+                        return this._config.icon_dir + table.icon;
+                    }
+                }
+                return false;
+            } else if (FOLDER_REGEX.test(id)) {
+                return this._config.icon_dir + this._config.folder_icon;
+            } else {
+                return false;
+            }
+        }
+        _GetIcon_discarded(id) { // TODO: remove or reuse
+            const match = this._contentTablesKeyRegex.exec(id);
+            if (match) {
+                const table = this._contentTablesByExtension[match[2]];
+                return table ? this._config.icon_dir + table.icon : false;
             } else if (FOLDER_REGEX.test(id)) {
                 return this._config.icon_dir + this._config.folder_icon;
             } else {
@@ -253,7 +270,7 @@
         }
         // TODO check if runnning and required
         GetValueColumns(id, selectables) {
-            const match = this._key_regex.exec(id);
+            const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 return;
             }
@@ -292,7 +309,8 @@
             this._parallel = typeof config.max_parallel_queries === 'number' && config.max_parallel_queries > 0 ? config.max_parallel_queries : true;
             this._tables = [];
             this._contentTablesByExtension = {};
-            const extensions = [];
+            const contentTableExtensions = [];
+            const allTableExtensions = [];
             for (let i = 0; i < this._config.tables.length; i++) {
                 const table = this._config.tables[i];
                 switch (table.type) {
@@ -326,14 +344,12 @@
                             icon: table.icon,
                             JsonFX: table.type === DataTableType.JsonFX,
                             multiedit: table.type === DataTableType.Label,
-                            valcol,
-                            formatId: function (rawId) { // TODO: use or remove
-                                return `$${rawId}.${this.extension}`
-                            } 
+                            valcol
                         };
                         this._tables.push(tab);
                         this._contentTablesByExtension[table.extension] = tab;
-                        extensions.push(table.extension);
+                        contentTableExtensions.push(table.extension);
+                        allTableExtensions.push(table.extension);
                         break;
                     case DataTableType.HMI:
                         this._hmiTable = {
@@ -345,36 +361,33 @@
                             valueColumn: table.valueColumn,
                             enableColumn: table.enableColumn,
                             icon: table.icon,
-                            valcol: table.valueColumn, // required for _getReferencesFrom(), ...
-                            formatId: function (rawId) { // TODO: use or remove
-                                return `hmi: '${rawId}'`
-                            } 
+                            valcol: table.valueColumn // required for _getReferencesFrom(), ...
                         };
                         this._tables.push(this._hmiTable);
+                        allTableExtensions.push(table.extension);
                         break;
                     case DataTableType.Task:
                         this._taskTable = {
                             type: table.type,
                             name: table.name,
                             extension: table.extension,
-                            keyColumn: table.valueColumn, // required for _getReferencesFrom(), ...
+                            keyColumn: table.keyColumn, // required for _getReferencesFrom(), ...
                             valueColumn: table.valueColumn,
                             autostartColumn: table.autostartColumn,
                             icon: table.icon,
-                            valcol: table.valueColumn, // required for _getReferencesFrom(), ...
-                            formatId: function (rawId) { // TODO: use or remove
-                                return `task: '${rawId}'`
-                            } 
+                            valcol: table.valueColumn // required for _getReferencesFrom(), ...
                         };
                         this._tables.push(this._taskTable);
+                        allTableExtensions.push(table.extension);
                         break;
                     default:
                         throw new Error(`Unsupported table type: '${table.type}'`);
                 }
             }
             // we need all available extensions for building regular expressions
-            const tabexts = extensions.join('|');
-            this._key_regex = new RegExp(`^\\$((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?)\\.(${tabexts})$`);
+            const tabexts = contentTableExtensions.join('|');
+            this._contentTablesKeyRegex = new RegExp(`^\\$((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?)\\.(${tabexts})$`);
+            this._allTablesKeyRegex = new RegExp(`^\\$((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?)\\.(${allTableExtensions.join('|')})$`);
             this._refactoring_match = `((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?\\.(?:${tabexts}))\\b`;
             this._include_regex_build = new RegExp(`(\'|")?include:\\$((?:${VALID_NAME_CHAR}+\\/)*${VALID_NAME_CHAR}+?)\\.(${tabexts})\\b\\1`, 'g');
             this._exchange_header_regex = new RegExp(`\\[\\{\\((${tabexts}|language|${Regex.escape(EXCHANGE_HEADER)})<>([a-f0-9]{32})\\)\\}\\]\\n(.*)\\n`, 'g');
@@ -401,7 +414,7 @@
             }
         }
         Exists(id, onResponse, onError) {
-            const match = this._key_regex.exec(id);
+            const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
                 const table = this._contentTablesByExtension[match[2]];
                 if (!table) {
@@ -425,7 +438,7 @@
         }
         GetChecksum(id, onResponse, onError) {
             // first we try to get table object matching to the given key
-            const match = this._key_regex.exec(id);
+            const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
                 return;
@@ -487,7 +500,7 @@
             // 4. label/html without language selection: build strings and return as
             // object
             // first we try to get table object matching to the given key
-            const match = this._key_regex.exec(id);
+            const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
                 return;
@@ -604,7 +617,7 @@
                 this._buildProperties(adapter, object, ids, language, onResponse, onError);
             } else if (typeof object === 'object' && object !== null) {
                 const includeKey = object.include;
-                const match = typeof includeKey === 'string' && !ids[includeKey] ? this._key_regex.exec(includeKey) : false;
+                const match = typeof includeKey === 'string' && !ids[includeKey] ? this._contentTablesKeyRegex.exec(includeKey) : false;
                 if (!match) {
                     this._buildProperties(adapter, object, ids, language, onResponse, onError);
                     return;
@@ -731,7 +744,7 @@
             // here we store the result
             const params = {};
             // check id
-            const match = this._key_regex.exec(id);
+            const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 params.error = `Invalid id: ${id}`;
                 onResponse(params);
@@ -858,7 +871,7 @@
             }, onError);
         }
         SetObject(id, language, value, checksum, onResponse, onError) {
-            const that = this, match = this._key_regex.exec(id);
+            const that = this, match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
                 return;
@@ -946,7 +959,7 @@
         }
         _getRefactoringParams(adapter, source, target, action, onResponse, onError) {
             // here we store the result
-            const params = {}, key_regex = this._key_regex;
+            const params = {}, key_regex = this._contentTablesKeyRegex;
             // check action
             if (action !== ContentManager.COPY && action !== ContentManager.MOVE && action !== ContentManager.DELETE) {
                 params.error = 'Invalid action';
@@ -1052,7 +1065,7 @@
                 // within the following loop we collect all source paths
                 if (sourceIsFolder) {
                     const tasks = [];
-                    for (const attr in that._contentTablesByExtension) { // TODO: use this._tables
+                    for (const attr in that._contentTablesByExtension) { // TODO: use this._tables ???
                         if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
                                 const table = that._contentTablesByExtension[attr];
@@ -1125,7 +1138,7 @@
                         (function () {
                             const tgt = objects[srcKeysArr[i]];
                             const match = key_regex.exec(tgt);
-                            const table = that._contentTablesByExtension[match[2]];// TODO: use this._tables
+                            const table = that._contentTablesByExtension[match[2]];// TODO: use this._tables ???
                             const tabKeyEsc = SqlHelper.escape(match[1]);
                             tasks.push((os, or) => {
                                 adapter.AddColumn('COUNT(*) AS cnt');
@@ -1277,7 +1290,7 @@
                                         }
                                     }
                                 } else {
-                                    const key_regex = that._key_regex, match = key_regex.exec(source);
+                                    const key_regex = that._contentTablesKeyRegex, match = key_regex.exec(source);
                                     const table = that._contentTablesByExtension[match[2]], srcTabKey = SqlHelper.escape(match[1]);// TODO: use this._tables
                                     tasks.push((os, oe) => {
                                         adapter.AddWhere(`${table.name}.${table.keyColumn} = ${srcTabKey}`);
@@ -1309,7 +1322,7 @@
             }, onError);
         }
         _performRefactoring(adapter, source, params, getReplacement, onResponse, onError) {
-            const that = this, key_regex = this._key_regex;
+            const that = this, key_regex = this._contentTablesKeyRegex;
             const match = key_regex.exec(source);
             const table = this._contentTablesByExtension[match[2]];
             const srcTabKey = match[1];
@@ -1438,7 +1451,7 @@
             Executor.run(main, onResponse, onError);
         }
         GetReferencesTo(id, onResponse, onError) {
-            const match = this._key_regex.exec(id);
+            const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
                 const user = this._contentTablesByExtension[match[2]];// TODO: use this._tables
                 if (!user) {
@@ -1490,7 +1503,7 @@
             }
         }
         GetReferencesToCount(id, onResponse, onError) {
-            const match = this._key_regex.exec(id);
+            const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
                 const user = this._contentTablesByExtension[match[2]];
                 if (!user) {
@@ -1550,8 +1563,6 @@
                         }
                         adapter.PerformSelect(table.name, undefined, undefined, undefined, response => {
                             for (let i = 0, l = response.length; i < l; i++) {
-                                // keys[table.extension ? `$${response[i].path}.${table.extension}` : response[i].path] = true;
-                                // keys[table.formatId(response[i].path)] = true;
                                 keys[`$${response[i].path}.${table.extension}`] = true;
                             }
                             onSuc();
@@ -1571,7 +1582,7 @@
             }, onError);
         }
         GetReferencesFrom(id, onResponse, onError) {
-            if (this._key_regex.test(id)) {
+            if (this._contentTablesKeyRegex.test(id)) {
                 const that = this;
                 this._getSqlAdapter(adapter => {
                     that._getReferencesFrom(adapter, id, results => {
@@ -1588,7 +1599,7 @@
             }
         }
         GetReferencesFromCount(id, onResponse, onError) {
-            if (this._key_regex.test(id)) {
+            if (this._contentTablesKeyRegex.test(id)) {
                 const that = this;
                 this._getSqlAdapter(adapter => {
                     const key = SqlHelper.escape(id);
@@ -1699,7 +1710,7 @@
                         onError(err);
                     });
                 }, onError);
-            } else if (this._key_regex.test(id)) {
+            } else if (this._contentTablesKeyRegex.test(id)) {
                 onResponse([]);
             } else {
                 onError(`Invalid key: '${id}'`);
@@ -1801,7 +1812,7 @@
             }
         }
         GetIdSelectedValues(id, language, onResponse, onError) {
-            const match = this._key_regex.exec(id);
+            const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
                 return;
@@ -1828,7 +1839,7 @@
             }, onError);
         }
         IsHMIObject(id, onResponse, onError) {
-            const match = this._key_regex.exec(id);
+            const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onResponse(false);
                 return;
@@ -1852,7 +1863,7 @@
             }, onError);
         }
         SetAvailabilityAsHMIObject(id, available, onResponse, onError) {
-            const match = this._key_regex.exec(id);
+            const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
                 return;
@@ -1874,7 +1885,7 @@
                     if (available === true) {
                         adapter.AddValue(`${hmiTable.name}.${hmiTable.valueColumn}`, SqlHelper.escape(id));
                         const checksum = Server.createSHA256(id);
-                        const queryParameterValue = `${checksum.substring(0, 4)}${checksum.substring(checksum.length - 4, checksum.length)}`;
+                        const queryParameterValue = `${checksum.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${checksum.substring(checksum.length - Math.ceil(AUTO_KEY_LENGTH / 2), checksum.length)}`;
                         adapter.AddValue(`${hmiTable.name}.${hmiTable.queryParameterValueColumn}`, SqlHelper.escape(queryParameterValue));
                         adapter.PerformInsert(hmiTable.name, onSuc, onErr);
                     } else {
@@ -1912,7 +1923,7 @@
                         return;
                     }
                     const id = result[0].path;
-                    const match = this._key_regex.exec(id);
+                    const match = this._contentTablesKeyRegex.exec(id);
                     if (!match) {
                         onError(`Invalid id: '${id}'`);
                         return;
@@ -1951,7 +1962,7 @@
             }, onError);
         }
         IsTaskObject(id, onResponse, onError) {
-            const match = this._key_regex.exec(id);
+            const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onResponse(false);
                 return;
@@ -1975,7 +1986,7 @@
             }, onError);
         }
         SetAvailabilityAsTaskObject(id, available, onResponse, onError) {
-            const match = this._key_regex.exec(id);
+            const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
                 return;
@@ -1996,6 +2007,9 @@
                 tasks.push((onSuc, onErr) => {
                     if (available === true) {
                         adapter.AddValue(`${taskTable.name}.${taskTable.valueColumn}`, SqlHelper.escape(id));
+                        const checksum = Server.createSHA256(id);
+                        const keyValue = `${checksum.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${checksum.substring(checksum.length - Math.ceil(AUTO_KEY_LENGTH / 2), checksum.length)}`;
+                        adapter.AddValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(keyValue));
                         adapter.PerformInsert(taskTable.name, onSuc, onErr);
                     } else {
                         adapter.AddWhere(`${taskTable.name}.${taskTable.valueColumn} = ${SqlHelper.escape(id)}`);
@@ -2046,7 +2060,7 @@
                         contentTablesByExtension: this._contentTablesByExtension,
                         hmiTable: this._hmiTable,
                         taskTable: this._taskTable,
-                        key_regex: this._key_regex.source,
+                        key_regex: this._contentTablesKeyRegex.source,
                         exchange_header_regex: this._exchange_header_regex.source
                     });
                     break;
@@ -2268,7 +2282,7 @@
                 command: COMMAND_GET_CONFIG
             }, config => {
                 that._config = config;
-                that._key_regex = new RegExp(config.key_regex);
+                that._contentTablesKeyRegex = new RegExp(config.key_regex);
                 that._exchange_header_regex = new RegExp(config.exchange_header_regex, 'g');
                 const langs = config.languages.length;
                 that._contentTablesByExtension = config.contentTablesByExtension;
@@ -2313,7 +2327,7 @@
                         if (that._config !== undefined && that._config.jsonfx_pretty === true) {
                             // the 'jsonfx_pretty' flag may be used to format our dynamically
                             // parsed JavaScript sources for more easy debugging purpose
-                            // TODO: reuse or remove const match = that._key_regex.exec(id);
+                            // TODO: reuse or remove const match = that._contentTablesKeyRegex.exec(id);
                             // TOOD: response = eval('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
                             object = eval('(' + JsonFX.stringify(object, true) + ')');
                         }
@@ -2377,7 +2391,7 @@
                         if (this._config !== undefined && this._config.jsonfx_pretty === true) {
                             // the 'jsonfx_pretty' flag may be used to format our dynamically
                             // parsed JavaScript sources for more easy debugging purpose
-                            // TODO: reuse or remove const match = that._key_regex.exec(id);
+                            // TODO: reuse or remove const match = that._contentTablesKeyRegex.exec(id);
                             // TOOD: response = eval('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
                             object = eval('(' + JsonFX.stringify(object, true) + ')');
                         }
