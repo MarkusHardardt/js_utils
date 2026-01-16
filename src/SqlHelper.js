@@ -360,7 +360,8 @@
     }
 
     function getAdapterFactory(config, verbose) {
-        const helper = mysql.createPool(config);
+        const db_access = require(typeof config === 'string' ? config : '../cfg/db_access.json'); 
+        const helper = mysql.createPool(db_access);
         return (onSuccess, onError) => {
             helper.getConnection((onErr, connection) => {
                 if (onErr) {

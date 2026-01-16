@@ -238,12 +238,12 @@
             if (match) {
                 for (let table of this._tables) {
                     if (table.extension === match[2]) {
-                        return this._config.icon_dir + table.icon;
+                        return this._iconDirectory + table.icon;
                     }
                 }
                 return false;
             } else if (FOLDER_REGEX.test(id)) {
-                return this._config.icon_dir + this._config.folder_icon;
+                return this._iconDirectory + this._config.folder_icon;
             } else {
                 return false;
             }
@@ -260,16 +260,16 @@
     const compareKeys = Sorting.getTextsAndNumbersCompareFunction(false, false, true);
 
     class ServerManager extends ContentManagerBase {
-        constructor(getSqlAdapter, config) {
+        constructor(getSqlAdapter, iconDirectory, config) {
             super();
             if (typeof getSqlAdapter !== 'function') {
                 throw new Error('No database access provider available!');
-            } else if (!config) {
-                throw new Error('No database configuration available!');
             }
             this._getSqlAdapter = getSqlAdapter;
-            this._config = config;
-            this._parallel = typeof config.max_parallel_queries === 'number' && config.max_parallel_queries > 0 ? config.max_parallel_queries : true;
+            this._iconDirectory = `/${iconDirectory}/`;
+            const db_config = require(typeof config === 'string' ? config : '../cfg/db_config.json'); 
+            this._config = db_config;
+            this._parallel = typeof db_config.max_parallel_queries === 'number' && db_config.max_parallel_queries > 0 ? db_config.max_parallel_queries : true;
             this._tables = [];
             this._contentTablesByExtension = {};
             const contentTableExtensions = [];
@@ -294,8 +294,8 @@
                 };
                 if (tableConfig.valueColumnPrefix) {
                     table.valcol = {};
-                    for (let j = 0; j < config.languages.length; j++) {
-                        const lang = config.languages[j];
+                    for (let j = 0; j < db_config.languages.length; j++) {
+                        const lang = db_config.languages[j];
                         table.valcol[lang] = tableConfig.valueColumnPrefix + lang;
                     }
                 } else {
@@ -1990,7 +1990,7 @@
             switch (request.command) {
                 case COMMAND_GET_CONFIG:
                     onResponse({
-                        icon_dir: this._config.icon_dir,
+                        iconDirectory: this._iconDirectory,
                         languages: this._config.languages,
                         folder_icon: this._config.folder_icon,
                         jsonfx_pretty: this._config.jsonfx_pretty,
@@ -2219,6 +2219,7 @@
                 command: COMMAND_GET_CONFIG
             }, config => {
                 that._config = config;
+                that._iconDirectory = config.iconDirectory;
                 that._contentTablesKeyRegex = new RegExp(config.key_regex);
                 that._exchange_header_regex = new RegExp(config.exchange_header_regex, 'g');
                 const langs = config.languages.length;

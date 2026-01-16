@@ -1,6 +1,7 @@
 {
     "icon_dir": "./config/icons",
     "folder_icon": "folder.gif",
+    "jsonfx_pretty": true,
     "max_parallel_queries": 8,
     "languages": [
         "de",
