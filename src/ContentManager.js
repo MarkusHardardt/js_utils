@@ -20,7 +20,6 @@
             'IsValidFile(string)',
             'IsValidFolder(string)',
             'AnalyzeId(id)',
-            'GetDescriptors(onEach)',
             'GetPath(id)',
             'GetExtension(id)',
             'GetExtensionForType(type)',
@@ -206,13 +205,6 @@
                 return { id, path: match[1], folder: id };
             }
             return { id };
-        }
-        GetDescriptors(onEach) {
-            for (const extension in this._contentTablesByExtension) {
-                if (this._contentTablesByExtension.hasOwnProperty(extension)) {
-                    onEach(extension, this._getDescriptor(extension));
-                }
-            }
         }
         _getDescriptor(extension, description) {
             const table = this._contentTablesByExtension[extension];
