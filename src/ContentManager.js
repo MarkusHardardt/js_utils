@@ -25,7 +25,6 @@
             'GetExtension(id)',
             'GetIcon(id)',
             'CompareIds(id1, id2)',
-            'GetValueColumns(id, selectables)',
             'Exists(id, onResponse, onError)',
             'GetChecksum(id, onResponse, onError)',
             'GetObject(id, language, mode, onResponse, onError)',
@@ -249,47 +248,12 @@
                 return false;
             }
         }
-        _GetIcon_discarded(id) { // TODO: remove or reuse
-            const match = this._contentTablesKeyRegex.exec(id);
-            if (match) {
-                const table = this._contentTablesByExtension[match[2]];
-                return table ? this._config.icon_dir + table.icon : false;
-            } else if (FOLDER_REGEX.test(id)) {
-                return this._config.icon_dir + this._config.folder_icon;
-            } else {
-                return false;
-            }
-        }
         CompareIds(id1, id2) {
             if (FOLDER_REGEX.test(id1)) {
                 return FOLDER_REGEX.test(id2) ? Sorting.compareTextsAndNumbers(id1, id2, false, false) : -1;
             } else {
                 return FOLDER_REGEX.test(id2) ? 1 : Sorting.compareTextsAndNumbers(id1, id2, false, false);
             }
-        }
-        // TODO check if runnning and required
-        GetValueColumns(id, selectables) {
-            const match = this._contentTablesKeyRegex.exec(id);
-            if (!match) {
-                return;
-            }
-            const table = this._contentTablesByExtension[match[2]];
-            if (!table) {
-                return;
-            }
-            const sel = selectables || [];
-            // TODO is this a "selectable" (only single value for jso/txt
-            if (typeof table.valcol === 'string') {
-                sel.push(table.valcol);
-            } else {
-                for (const attr in table.valcol) {
-                    if (table.valcol.hasOwnProperty(attr)) {
-                        // TODO isn't "attr" the selectable?
-                        sel.push(table.valcol[attr]);
-                    }
-                }
-            }
-            return sel;
         }
     }
 
@@ -369,7 +333,7 @@
             validateAsContentManagerOnServer(this, true);
         }
         _getRawString(adapter, table, rawKey, language, onResponse, onError) {
-            let valcol = this._contentTablesByExtension[table.extension].valcol, column = typeof valcol === 'string' ? valcol : valcol[language];
+            const valcol = this._contentTablesByExtension[table.extension].valcol, column = typeof valcol === 'string' ? valcol : valcol[language];
             if (typeof column === 'string') {
                 adapter.AddColumn(`${table.name}.${column} AS ${column}`);
                 adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
@@ -472,8 +436,7 @@
             // 1. JsonFX-object: build object and return
             // 2. plain text (utf-8): build text and return
             // 3. label/html with language selection: build string and return
-            // 4. label/html without language selection: build strings and return as
-            // object
+            // 4. label/html without language selection: build strings and return as object
             // first we try to get table object matching to the given key
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
