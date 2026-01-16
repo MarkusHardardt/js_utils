@@ -1,0 +1,8 @@
+{
+  "host": "localhost",
+  "user": "js_hmi_config",
+  "password": "js_hmi_config",
+  "database": "js_hmi_config",
+  "port": 3306,
+  "_socketPath": "The path to a unix domain socket to connect to. When used host and port are ignored."
+}
