@@ -206,9 +206,8 @@
             return { id };
         }
         GetDescriptors(onEach) {
-            const tabs = this._contentTablesByExtension;
-            for (const extension in tabs) {
-                if (tabs.hasOwnProperty(extension)) {
+            for (const extension in this._contentTablesByExtension) {
+                if (this._contentTablesByExtension.hasOwnProperty(extension)) {
                     onEach(extension, this._getDescriptor(extension));
                 }
             }
@@ -275,15 +274,15 @@
             for (const tableType in this._config.tables) {
                 if (this._config.tables.hasOwnProperty(tableType)) {
                     const tableConfig = this._config.tables[tableType];
-                    if (!VALID_EXT_REGEX.test(tableConfig.extension)) {
-                        throw new Error(`Invalid extension: '${tableConfig.extension}'`);
-                    } else if (this._contentTablesByExtension[tableConfig.extension] !== undefined) {
-                        throw new Error(`Extension already exists: '${tableConfig.extension}'`);
+                    const extension = tableConfig.extension;
+                    if (!VALID_EXT_REGEX.test(extension)) {
+                        throw new Error(`Invalid extension: '${extension}'`);
+                    } else if (this._contentTablesByExtension[extension] !== undefined) {
+                        throw new Error(`Extension already exists: '${extension}'`);
                     }
                     const table = {
-                        type: tableType,
                         name: tableConfig.name,
-                        extension: tableConfig.extension,
+                        extension,
                         keyColumn: tableConfig.keyColumn,
                         valueColumn: tableConfig.valueColumn,
                         multilingual: typeof tableConfig.valueColumnPrefix === 'string' && tableConfig.valueColumnPrefix.length > 0,
@@ -300,8 +299,8 @@
                     } else {
                         table.valcol = tableConfig.valueColumn;
                     }
-                    this._contentTablesByExtension[tableConfig.extension] = table;
-                    tableExtensions.push(tableConfig.extension);
+                    this._contentTablesByExtension[extension] = table;
+                    tableExtensions.push(extension);
                     switch (tableType) {
                         case DataTableType.JsonFX:
                         case DataTableType.Text:
@@ -1000,17 +999,18 @@
                 // within the following loop we collect all source paths
                 if (sourceIsFolder) {
                     const tasks = [];
-                    for (const attr in that._contentTablesByExtension) {
-                        if (that._contentTablesByExtension.hasOwnProperty(attr)) {
+                    for (const extension in that._contentTablesByExtension) {
+                        if (that._contentTablesByExtension.hasOwnProperty(extension)) {
                             (function () {
-                                const table = that._contentTablesByExtension[attr];
+                                const ext = extension;
+                                const table = that._contentTablesByExtension[extension];
                                 tasks.push((os, oe) => {
                                     adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
                                     // select all paths within the range
                                     adapter.AddWhere(`LOCATE(${SqlHelper.escape(srcTabKey)},${table.name}.${table.keyColumn}) = 1`);
                                     adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
                                         for (let i = 0, l = result.length; i < l; i++) {
-                                            srcKeysObj[`$${result[i].path}.${table.extension}`] = true;
+                                            srcKeysObj[`$${result[i].path}.${ext}`] = true;
                                         }
                                         os();
                                     }, oe);
@@ -1397,17 +1397,18 @@
                     const rawKey = SqlHelper.escape(match[1]);
                     const keys = {};
                     const tasks = [];
-                    for (const attr in that._contentTablesByExtension) {
-                        if (that._contentTablesByExtension.hasOwnProperty(attr)) {
+                    for (const extension in that._contentTablesByExtension) {
+                        if (that._contentTablesByExtension.hasOwnProperty(extension)) {
                             (function () {
-                                const used = that._contentTablesByExtension[attr];
+                                const ext = extension;
+                                const used = that._contentTablesByExtension[extension];
                                 tasks.push((onSuc, onErr) => {
                                     adapter.AddColumn(`tab.${used.keyColumn} AS path`);
                                     adapter.AddWhere(`${user.name}.${user.keyColumn} = ${rawKey}`);
-                                    adapter.AddJoin(formatReferencesToCondition(user.name, user.valcol, used.name, 'tab', used.extension, used.keyColumn));
+                                    adapter.AddJoin(formatReferencesToCondition(user.name, user.valcol, used.name, 'tab', ext, used.keyColumn));
                                     adapter.PerformSelect(user.name, undefined, undefined, undefined, result => {
                                         for (let i = 0, l = result.length; i < l; i++) {
-                                            keys[`$${result[i].path}.${used.extension}`] = true;
+                                            keys[`$${result[i].path}.${ext}`] = true;
                                         }
                                         onSuc();
                                     }, onErr);
@@ -1449,14 +1450,15 @@
                     const rawKey = SqlHelper.escape(match[1]);
                     const tasks = [];
                     let result = 0;
-                    for (const attr in that._contentTablesByExtension) {
-                        if (that._contentTablesByExtension.hasOwnProperty(attr)) {
+                    for (const extension in that._contentTablesByExtension) {
+                        if (that._contentTablesByExtension.hasOwnProperty(extension)) {
                             (function () {
-                                const used = that._contentTablesByExtension[attr];
+                                const ext = extension;
+                                const used = that._contentTablesByExtension[extension];
                                 tasks.push((onSuc, onErr) => {
                                     adapter.AddColumn('COUNT(*) AS cnt');
                                     adapter.AddWhere(`${user.name}.${user.keyColumn} = ${rawKey}`);
-                                    adapter.AddJoin(formatReferencesToCondition(user.name, user.valcol, used.name, 'tab', used.extension, used.keyColumn));
+                                    adapter.AddJoin(formatReferencesToCondition(user.name, user.valcol, used.name, 'tab', ext, used.keyColumn));
                                     adapter.PerformSelect(user.name, undefined, undefined, undefined, response => {
                                         result += response[0].cnt;
                                         onSuc();
@@ -1484,6 +1486,7 @@
             for (const extension in this._contentTablesByExtension) {
                 if (this._contentTablesByExtension.hasOwnProperty(extension)) {
                     (function () {
+                        const ext = extension;
                         const table = that._contentTablesByExtension[extension];
                         tasks.push((onSuc, onErr) => {
                             adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
@@ -1498,7 +1501,7 @@
                             }
                             adapter.PerformSelect(table.name, undefined, undefined, undefined, response => {
                                 for (let i = 0, l = response.length; i < l; i++) {
-                                    keys[`$${response[i].path}.${table.extension}`] = true;
+                                    keys[`$${response[i].path}.${ext}`] = true;
                                 }
                                 onSuc();
                             }, onErr);
@@ -1587,10 +1590,11 @@
                     function compareRawNodes(node1, node2) {
                         return that.CompareIds(node1.path, node2.path);
                     };
-                    for (const attr in that._contentTablesByExtension) {
-                        if (that._contentTablesByExtension.hasOwnProperty(attr)) {
+                    for (const extension in that._contentTablesByExtension) {
+                        if (that._contentTablesByExtension.hasOwnProperty(extension)) {
                             (function () {
-                                const table = that._contentTablesByExtension[attr];
+                                const ext = extension;
+                                const table = that._contentTablesByExtension[extension];
                                 tasks.push((onSuc, onErr) => {
                                     /**
                                      * the following call returns an array of objects like: <code>
@@ -1620,13 +1624,13 @@
                                             // the extension
                                             let path = `$${node.path}`;
                                             if (!node.folder) {
-                                                path += `.${table.extension}`;
+                                                path += `.${ext}`;
                                             }
                                             node.path = path;
                                             const idx = Sorting.getInsertionIndex(node, nodes, true, compareRawNodes);
                                             if (idx >= 0) {
                                                 if (!node.folder) {
-                                                    node.extension = table.extension;
+                                                    node.extension = ext;
                                                 }
                                                 nodes.splice(idx, 0, node);
                                             }
@@ -1657,10 +1661,11 @@
                 const that = this;
                 this._getSqlAdapter(adapter => {
                     const results = [], tasks = [];
-                    for (const attr in that._contentTablesByExtension) {
-                        if (that._contentTablesByExtension.hasOwnProperty(attr)) {
+                    for (const extension in that._contentTablesByExtension) {
+                        if (that._contentTablesByExtension.hasOwnProperty(extension)) {
                             (function () {
-                                const table = that._contentTablesByExtension[attr];
+                                const ext = extension;
+                                const table = that._contentTablesByExtension[extension];
                                 tasks.push((onSuc, onErr) => {
                                     adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
                                     let where = '';
@@ -1692,7 +1697,7 @@
                                     adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
                                         const l = result.length;
                                         for (let i = 0; i < l; i++) {
-                                            results.push(`$${result[i].path}.${table.extension}`);
+                                            results.push(`$${result[i].path}.${ext}`);
                                         }
                                         onSuc();
                                     }, onErr);
@@ -1716,17 +1721,18 @@
             if (data.file || data.folder) {
                 this._getSqlAdapter(adapter => {
                     const results = [], tasks = [], path = SqlHelper.escape(data.path);
-                    for (const attr in that._contentTablesByExtension) {
-                        if (that._contentTablesByExtension.hasOwnProperty(attr)) {
+                    for (const extension in that._contentTablesByExtension) {
+                        if (that._contentTablesByExtension.hasOwnProperty(extension)) {
                             (function () {
-                                const table = that._contentTablesByExtension[attr];
+                                const ext = extension;
+                                const table = that._contentTablesByExtension[extension];
                                 tasks.push((onSuc, onErr) => {
                                     adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
                                     adapter.AddWhere(`LOCATE(${path},${table.name}.${table.keyColumn}) = 1`);
                                     adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
                                         const l = result.length;
                                         for (let i = 0; i < l; i++) {
-                                            results.push('$' + result[i].path + '.' + table.extension);
+                                            results.push(`$${result[i].path}.${ext}`);
                                         }
                                         onSuc();
                                     }, onErr);
@@ -1753,7 +1759,8 @@
                 onError(`Invalid id: '${id}'`);
                 return;
             }
-            const table = this._contentTablesByExtension[match[2]];
+            const extension = match[2];
+            const table = this._contentTablesByExtension[extension];
             if (!table) {
                 onError(`Invalid table: '${id}'`);
                 return;
@@ -1764,7 +1771,7 @@
                 adapter.PerformSelect(table.name, undefined, 'path ASC', undefined, result => {
                     const array = [], l = result.length;
                     for (let i = 0; i < l; i++) {
-                        array.push([`${result[i].path}.${table.extension}`, result[i].val]);
+                        array.push([`${result[i].path}.${extension}`, result[i].val]);
                     }
                     adapter.Close();
                     onResponse(array);
