@@ -1013,7 +1013,7 @@
                                     adapter.AddWhere(`LOCATE(${SqlHelper.escape(srcTabKey)},${table.name}.${table.keyColumn}) = 1`);
                                     adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
                                         for (let i = 0, l = result.length; i < l; i++) {
-                                            srcKeysObj['$' + result[i].path + '.' + table.extension] = true;
+                                            srcKeysObj[`$${result[i].path}.${table.extension}`] = true;
                                         }
                                         os();
                                     }, oe);
@@ -1052,7 +1052,6 @@
                         for (let i = 0; i < srcLen; i++) {
                             const src = srcKeysArr[i];
                             const match = key_regex.exec(src);
-                            // const table = that._contentTablesByExtension[match[2]];
                             const tgt = target + src.substring(source.length);
                             objects[src] = tgt;
                             checksum += tgt;
