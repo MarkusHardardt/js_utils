@@ -89,17 +89,17 @@
         }
     }
 
-    function getHandler(desc, lab, htm, txt, jso) {
-        if (!desc) {
+    function getHandler(descriptor, labelHandler, htmlHandler, textHandler, jsonFxHandler) {
+        if (!descriptor) {
             return false;
-        } else if (desc.JsonFX) {
-            return { cont: jso, desc };
-        } else if (!desc.multilingual) {
-            return { cont: txt, desc };
-        } else if (desc.multiedit) {
-            return { cont: lab, desc };
+        } else if (descriptor.JsonFX) {
+            return { cont: jsonFxHandler, desc: descriptor };
+        } else if (!descriptor.multilingual) {
+            return { cont: textHandler, desc: descriptor };
+        } else if (descriptor.multiedit) {
+            return { cont: labelHandler, desc: descriptor };
         } else {
-            return { cont: htm, desc };
+            return { cont: htmlHandler, desc: descriptor };
         }
     }
 
@@ -1751,7 +1751,7 @@
         const txt = getTxtPreview(hmi, adapter);
         const jso = getJsoPreview(hmi, adapter);
         const handlers = {};
-        cms.GetDescriptors((ext, desc) => handlers[ext] = getHandler(desc, lab, htm, txt, jso));
+        cms.GetDescriptors((extension, descriptor) => handlers[extension] = getHandler(descriptor, lab, htm, txt, jso));
         const container = {
             type: 'container',
             update: (data, lang) => {
@@ -2173,7 +2173,7 @@
         const txt = getTxtEditor(hmi, adapter);
         const jso = getJsoEditor(hmi, adapter);
         const handlers = {};
-        cms.GetDescriptors((ext, desc) => handlers[ext] = getHandler(desc, lab, htm, txt, jso));
+        cms.GetDescriptors((extension, descriptor) => handlers[extension] = getHandler(descriptor, lab, htm, txt, jso));
         const editContainer = {
             type: 'container'
         };
