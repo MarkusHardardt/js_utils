@@ -282,7 +282,6 @@
                     }
                     const table = {
                         name: tableConfig.name,
-                        extension,
                         keyColumn: tableConfig.keyColumn,
                         valueColumn: tableConfig.valueColumn,
                         multilingual: typeof tableConfig.valueColumnPrefix === 'string' && tableConfig.valueColumnPrefix.length > 0,
@@ -329,7 +328,7 @@
             validateAsContentManagerOnServer(this, true);
         }
         _getRawString(adapter, table, rawKey, language, onResponse, onError) {
-            const valcol = this._contentTablesByExtension[table.extension].valcol, column = typeof valcol === 'string' ? valcol : valcol[language];
+            const valcol = table.valcol, column = typeof valcol === 'string' ? valcol : valcol[language];
             if (typeof column === 'string') {
                 adapter.AddColumn(`${table.name}.${column} AS ${column}`);
                 adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);

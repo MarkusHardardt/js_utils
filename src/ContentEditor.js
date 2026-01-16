@@ -89,7 +89,7 @@
         }
     }
 
-    function getHandler(descriptor, labelHandler, htmlHandler, textHandler, jsonFxHandler) {
+    function getHandler(descriptor, hmiHandler, taskHandler, labelHandler, htmlHandler, textHandler, jsonFxHandler) {
         if (!descriptor) {
             return false;
         } else if (descriptor.JsonFX) {
@@ -860,11 +860,35 @@
     }
 
     // ///////////////////////////////////////////////////////////////////////////////////////////////
+    // HMIS - PREVIEW & EDITOR
+    // ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    function getHmiPreview(hmi, adapter) {
+        return { text: 'hmi editor not implemented' };
+    }
+
+    function getHmiEditor(hmi, adapter) {
+        return { text: 'hmi editor not implemented' };
+    }
+
+    // ///////////////////////////////////////////////////////////////////////////////////////////////
+    // TASKS - PREVIEW & EDITOR
+    // ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    function getTaskPreview(hmi, adapter) {
+        return { text: 'task editor not implemented' };
+    }
+
+    function getTaskEditor(hmi, adapter) {
+        return { text: 'task editor not implemented' };
+    }
+
+    // ///////////////////////////////////////////////////////////////////////////////////////////////
     // LABELS - PREVIEW & EDITOR
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    function getLabPreview(hmi, adapter) {
-        let cms = hmi.cms, langs = hmi.cms.GetLanguages(), children = [], rows = [], values = {};
+    function getLabelPreview(hmi, adapter) {
+        const cms = hmi.cms, langs = hmi.cms.GetLanguages(), children = [], rows = [], values = {};
         function reload(data, language, onSuccess, onError) {
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.INCLUDE, build => {
@@ -893,7 +917,7 @@
             }
         };
         for (let i = 0, l = langs.length; i < l; i++) {
-            let lang = langs[i];
+            const lang = langs[i];
             children.push({
                 x: 0,
                 y: i,
@@ -901,7 +925,7 @@
                 border: false,
                 classes: 'hmi-dark'
             });
-            let obj = {
+            const obj = {
                 x: 1,
                 y: i,
                 align: 'left',
@@ -922,14 +946,14 @@
         };
     }
 
-    function getLabEditor(hmi, adapter) {
-        let cms = hmi.cms, langs = cms.GetLanguages(), children = [], rows = [], values = {};
+    function getLabelEditor(hmi, adapter) {
+        const cms = hmi.cms, langs = cms.GetLanguages(), children = [], rows = [], values = {};
         function reload(data, language, onSuccess, onError) {
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, raw => {
                     if (raw !== undefined) {
                         for (let i = 0, l = langs.length; i < l; i++) {
-                            let lang = langs[i], lab = raw[lang];
+                            const lang = langs[i], lab = raw[lang];
                             values[lang].hmi_value(lab || '');
                         }
                     } else {
@@ -952,7 +976,7 @@
             }
         };
         for (let i = 0, l = langs.length; i < l; i++) {
-            let lang = langs[i];
+            const lang = langs[i];
             children.push({
                 x: 0,
                 y: i,
@@ -960,7 +984,7 @@
                 border: false,
                 classes: 'hmi-dark'
             });
-            let obj = {
+            const obj = {
                 x: 1,
                 y: i,
                 type: 'textfield',
@@ -1003,7 +1027,7 @@
     // HTML - PREVIEW & EDITOR
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    function getHtmPreview(hmi, adapter) {
+    function getHtmlPreview(hmi, adapter) {
         let mode = ContentManager.RAW;
         function update_mode(md) {
             mode = md;
@@ -1040,7 +1064,7 @@
                 onSuccess();
             }
         };
-        let preview = {
+        const preview = {
             x: 0,
             y: 0,
             width: 3,
@@ -1048,19 +1072,19 @@
             border: false,
             scrollable: true
         };
-        let info_lang = {
+        const info_lang = {
             x: 0,
             y: 1,
             align: 'left'
         };
-        let button_include = {
+        const button_include = {
             x: 1,
             y: 1,
             text: 'include',
             border: true,
             clicked: () => update_mode(ContentManager.INCLUDE)
         };
-        let button_raw = {
+        const button_raw = {
             x: 2,
             y: 1,
             text: 'raw',
@@ -1090,8 +1114,8 @@
         };
     }
 
-    function getHtmEditor(hmi, adapter) {
-        let cms = hmi.cms, scrolls = {};
+    function getHtmlEditor(hmi, adapter) {
+        const cms = hmi.cms, scrolls = {};
         function reload(data, language, onSuccess, onError) {
             info_lang.hmi_text('language: "' + language + '"');
             if (textarea.file) {
@@ -1115,7 +1139,7 @@
                 onSuccess();
             }
         };
-        var textarea = {
+        const textarea = {
             x: 0,
             y: 0,
             type: 'textarea',
@@ -1131,7 +1155,7 @@
                 onSuccess();
             }
         };
-        var info_lang = {
+        const info_lang = {
             x: 0,
             y: 1,
             align: 'left'
@@ -1151,8 +1175,8 @@
     // TEXT - PREVIEW & EDITOR
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    function getTxtPreview(hmi, adapter) {
-        let cms = hmi.cms, mode = ContentManager.RAW, scrolls_raw = {}, scrolls_build = {};
+    function getTextPreview(hmi, adapter) {
+        const cms = hmi.cms, mode = ContentManager.RAW, scrolls_raw = {}, scrolls_build = {};
         function update_mode(md) {
             mode = md;
             button_include.selected = md === ContentManager.INCLUDE;
@@ -1204,7 +1228,7 @@
                 onSuccess();
             }
         };
-        let textarea = {
+        const textarea = {
             x: 0,
             y: 0,
             width: 3,
@@ -1213,19 +1237,19 @@
             code: 'javascript',
             editable: false
         };
-        let info_lang = {
+        const info_lang = {
             x: 0,
             y: 1,
             align: 'left'
         };
-        let button_include = {
+        const button_include = {
             x: 1,
             y: 1,
             text: 'include',
             border: true,
             clicked: () => update_mode(ContentManager.INCLUDE)
         };
-        let button_raw = {
+        const button_raw = {
             x: 2,
             y: 1,
             text: 'raw',
@@ -1257,8 +1281,8 @@
         };
     }
 
-    function getTxtEditor(hmi, adapter) {
-        let cms = hmi.cms, scrolls = {};
+    function getTextEditor(hmi, adapter) {
+        const cms = hmi.cms, scrolls = {};
         function reload(data, language, onSuccess, onError) {
             info_lang.hmi_text('language: "' + language + '"');
             if (textarea.file) {
@@ -1282,7 +1306,7 @@
                 onSuccess();
             }
         };
-        let textarea = {
+        const textarea = {
             x: 0,
             y: 0,
             type: 'textarea',
@@ -1297,7 +1321,7 @@
                 onSuccess();
             }
         };
-        let info_lang = {
+        const info_lang = {
             x: 0,
             y: 1,
             align: 'left'
@@ -1317,8 +1341,9 @@
     // JSONFX - PREVIEW & EDITOR
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    function getJsoPreview(hmi, adapter) {
-        let cms = hmi.cms, scrolls_raw = {}, scrolls_build = {}, mode = ContentManager.RAW;
+    function getJsonFxPreview(hmi, adapter) {
+        const cms = hmi.cms, scrolls_raw = {}, scrolls_build = {};
+        let mode = ContentManager.RAW;
         function update_mode(md) {
             mode = md;
             button_hmi.selected = md === ContentManager.PARSE;
@@ -1392,7 +1417,7 @@
                 container.hmi_removeContent(onSuccess, onError);
             }
         };
-        let textarea = {
+        const textarea = {
             x: 0,
             y: 0,
             width: 3,
@@ -1401,33 +1426,33 @@
             code: 'javascript',
             editable: false
         };
-        let container = {
+        const container = {
             x: 0,
             y: 0,
             width: 4,
             height: 1,
             type: 'container'
         };
-        let info_lang = {
+        const info_lang = {
             x: 0,
             y: 1,
             align: 'left'
         };
-        let button_hmi = {
+        const button_hmi = {
             x: 1,
             y: 1,
             text: 'hmi',
             border: true,
             clicked: () => update_mode(ContentManager.PARSE)
         };
-        let button_include = {
+        const button_include = {
             x: 2,
             y: 1,
             text: 'include',
             border: true,
             clicked: () => update_mode(ContentManager.INCLUDE)
         };
-        let button_raw = {
+        const button_raw = {
             x: 3,
             y: 1,
             text: 'raw',
@@ -1462,8 +1487,9 @@
         };
     }
 
-    function getJsoEditor(hmi, adapter) {
-        let cms = hmi.cms, scrolls = {}, mode = ContentManager.RAW;
+    function getJsonFxEditor(hmi, adapter) {
+        const cms = hmi.cms, scrolls = {};
+        let mode = ContentManager.RAW;
         function update_mode(md) {
             mode = md;
             button_hmi.selected = md === ContentManager.PARSE;
@@ -1472,7 +1498,7 @@
             button_raw.hmi_setSelected(button_raw.selected);
             adapter.triggerReload();
         };
-        let edited = false, object, raw, sel_data;
+        let edited = false, object, raw;
         function reload(data, language, onSuccess, onError) {
             if (textarea.file) {
                 handleScrolls(scrolls, textarea.file, textarea, false);
@@ -1539,7 +1565,7 @@
                 container.hmi_removeContent(onSuccess, onError);
             }
         };
-        let textarea = {
+        const textarea = {
             type: 'textarea',
             code: 'javascript',
             beautify: true,
@@ -1563,7 +1589,7 @@
                 onSuccess();
             }
         };
-        let edit_listener = {
+        const edit_listener = {
             notifyEdited: () => {
                 if (!edited) {
                     edited = true;
@@ -1575,7 +1601,7 @@
             showChildObjectEditor: (index, child) => {
                 if (!edited) {
                     if (raw !== undefined && Array.isArray(raw.children)) {
-                        let obj = raw.children[index] || {
+                        const obj = raw.children[index] || {
                             x: child && typeof child.x === 'number' ? child.x : 0,
                             y: child && typeof child.y === 'number' ? child.y : 0,
                             width: child && typeof child.width === 'number' ? child.width : 1,
@@ -1585,21 +1611,21 @@
                             classes: 'highlighted-yellow',
                             text: 'enter text here',
                         };
-                        let value = JsonFX.stringify(JsonFX.reconstruct(obj), true);
-                        let src_obj = {
+                        const value = JsonFX.stringify(JsonFX.reconstruct(obj), true);
+                        const src_obj = {
                             x: 0,
                             y: 0,
                             type: 'textarea',
                             code: 'javascript',
                             beautify: true,
-                            value: value
+                            value
                         };
-                        let info_obj = {
+                        const info_obj = {
                             x: 0,
                             y: 1,
                             align: 'left'
                         };
-                        let popup_obj = {
+                        const popup_obj = {
                             type: 'grid',
                             columns: 1,
                             rows: [1, '30px'],
@@ -1614,8 +1640,8 @@
                                 text: 'commit',
                                 click: onClose => {
                                     try {
-                                        let value = src_obj.hmi_value().trim();
-                                        let object = value.length > 0 ? JsonFX.parse(value, true, true) : undefined;
+                                        const value = src_obj.hmi_value().trim();
+                                        const object = value.length > 0 ? JsonFX.parse(value, true, true) : undefined;
                                         if (object !== undefined) {
                                             raw.children[typeof index === 'number' && index >= 0 ? index : raw.children.length] = object;
                                         } else if (typeof index === 'number' && index >= 0) {
@@ -1637,24 +1663,24 @@
                 }
             }
         };
-        let container = {
+        const container = {
             x: 0,
             y: 0,
             type: 'container'
         };
-        let info_lang = {
+        const info_lang = {
             x: 0,
             y: 0,
             align: 'left'
         };
-        let button_hmi = {
+        const button_hmi = {
             x: 1,
             y: 0,
             text: 'hmi',
             border: true,
             clicked: () => update_mode(ContentManager.PARSE)
         };
-        let button_raw = {
+        const button_raw = {
             x: 2,
             y: 0,
             text: 'raw',
@@ -1665,14 +1691,14 @@
         function get_value() {
             switch (mode) {
                 case ContentManager.RAW:
-                    let value = textarea.hmi_value().trim();
+                    const value = textarea.hmi_value().trim();
                     return value.length > 0 ? JsonFX.stringify(JsonFX.parse(value, true, true), false) : '';
                 case ContentManager.PARSE:
                     if ((object.type === 'grid' || object.type === 'float') && Array.isArray(raw.children) && Array.isArray(object.children)) {
                         // first we got to update our raw coordinates
                         for (let i = 0, l = raw.children.length; i < l; i++) {
-                            let raw_child = raw.children[i];
-                            let obj_child = object.children[i];
+                            const raw_child = raw.children[i];
+                            const obj_child = object.children[i];
                             if (typeof obj_child.x === 'number') {
                                 raw_child.x = obj_child.x;
                             }
@@ -1702,7 +1728,6 @@
             }],
             keyChanged: (data, language, onSuccess, onError) => {
                 edited = false;
-                sel_data = data;
                 info_lang.hmi_text('language: "' + language + '"');
                 button_hmi.hmi_setEnabled(false);
                 button_raw.hmi_setEnabled(false);
@@ -1746,12 +1771,14 @@
             });
         };
         adapter.triggerReload = reload;
-        const lab = getLabPreview(hmi, adapter);
-        const htm = getHtmPreview(hmi, adapter);
-        const txt = getTxtPreview(hmi, adapter);
-        const jso = getJsoPreview(hmi, adapter);
+        const hmiPreview = getHmiPreview(hmi, adapter);
+        const taskPreview = getTaskPreview(hmi, adapter);
+        const labelPreview = getLabelPreview(hmi, adapter);
+        const htmlPreview = getHtmlPreview(hmi, adapter);
+        const textPreview = getTextPreview(hmi, adapter);
+        const jsonFxPreview = getJsonFxPreview(hmi, adapter);
         const handlers = {};
-        cms.GetDescriptors((extension, descriptor) => handlers[extension] = getHandler(descriptor, lab, htm, txt, jso));
+        cms.GetDescriptors((extension, descriptor) => handlers[extension] = getHandler(descriptor, hmiPreview, taskPreview, labelPreview, htmlPreview, textPreview, jsonFxPreview));
         const container = {
             type: 'container',
             update: (data, lang) => {
@@ -1759,10 +1786,10 @@
                 language = lang;
                 reload();
             },
-            scrolls_txt_raw: txt.scrolls_raw,
-            scrolls_txt_build: txt.scrolls_build,
-            scrolls_jso_raw: jso.scrolls_raw,
-            scrolls_jso_build: jso.scrolls_build
+            scrolls_txt_raw: textPreview.scrolls_raw,
+            scrolls_txt_build: textPreview.scrolls_build,
+            scrolls_jso_raw: jsonFxPreview.scrolls_raw,
+            scrolls_jso_build: jsonFxPreview.scrolls_build
         };
         return container;
     }
@@ -2016,7 +2043,7 @@
                         }
                     };
                     const that = this;
-                    that.hmi_removeContent(() => that.hmi_setContent(detailsGrid, () => {}, error => adapter.notifyError(`Error setting content for ${hmiObject.textId}: ${error}`)), error => adapter.notifyError(`Error removing content: ${error}`));
+                    that.hmi_removeContent(() => that.hmi_setContent(detailsGrid, () => { }, error => adapter.notifyError(`Error setting content for ${hmiObject.textId}: ${error}`)), error => adapter.notifyError(`Error removing content: ${error}`));
                 }
             };
             const dialogObject = {
@@ -2168,12 +2195,14 @@
             edit_lang = sel_lang;
             perform_commit(value);
         };
-        const lab = getLabEditor(hmi, adapter);
-        const htm = getHtmEditor(hmi, adapter);
-        const txt = getTxtEditor(hmi, adapter);
-        const jso = getJsoEditor(hmi, adapter);
+        const hmiEditor = getHmiEditor(hmi, adapter);
+        const taskEditor = getTaskEditor(hmi, adapter);
+        const labelEditor = getLabelEditor(hmi, adapter);
+        const htmlEditor = getHtmlEditor(hmi, adapter);
+        const textEditor = getTextEditor(hmi, adapter);
+        const jsonFxEditor = getJsonFxEditor(hmi, adapter);
         const handlers = {};
-        cms.GetDescriptors((extension, descriptor) => handlers[extension] = getHandler(descriptor, lab, htm, txt, jso));
+        cms.GetDescriptors((extension, descriptor) => handlers[extension] = getHandler(descriptor, hmiEditor, taskEditor, labelEditor, htmlEditor, textEditor, jsonFxEditor));
         const editContainer = {
             type: 'container'
         };
@@ -2266,9 +2295,9 @@
                 update();
             },
             editor: editContainer,
-            scrolls_htm: htm.scrolls,
-            scrolls_txt: txt.scrolls,
-            scrolls_jso: jso.scrolls
+            scrolls_htm: htmlEditor.scrolls,
+            scrolls_txt: textEditor.scrolls,
+            scrolls_jso: jsonFxEditor.scrolls
         };
     }
 
