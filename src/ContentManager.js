@@ -218,9 +218,9 @@
             const table = this._contentTablesByExtension[extension];
             if (table) {
                 const desc = description || {};
-                desc.JsonFX = table.JsonFX === true;
-                desc.multilingual = table.multilingual === true || (typeof table.valueColumnPrefix === 'string' && table.valueColumnPrefix.length > 0);
-                desc.multiedit = table.multiedit === true;
+                desc.JsonFX = table.JsonFX;
+                desc.multilingual = table.multilingual;
+                desc.multiedit = table.multiedit;
                 return desc;
             } else {
                 return false;
@@ -312,14 +312,18 @@
             const allTableExtensions = [];
             for (let i = 0; i < this._config.tables.length; i++) {
                 const tableConfig = this._config.tables[i];
+                if (!VALID_EXT_REGEX.test(tableConfig.extension)) {
+                    throw new Error(`Invalid extension: '${tableConfig.extension}'`);
+                } else if (this._contentTablesByExtension[tableConfig.extension] !== undefined) {
+                    throw new Error(`Extension already exists: '${tableConfig.extension}'`);
+                }
                 const table = {
                     type: tableConfig.type,
                     name: tableConfig.name,
                     extension: tableConfig.extension,
                     keyColumn: tableConfig.keyColumn,
                     valueColumn: tableConfig.valueColumn,
-                    valueColumnPrefix: tableConfig.valueColumnPrefix,
-                    multilingual: typeof tableConfig.valueColumnPrefix === 'string',
+                    multilingual: typeof tableConfig.valueColumnPrefix === 'string' && tableConfig.valueColumnPrefix.length > 0,
                     icon: tableConfig.icon,
                     JsonFX: tableConfig.type === DataTableType.JsonFX,
                     multiedit: tableConfig.type === DataTableType.Label
@@ -333,32 +337,23 @@
                 } else {
                     table.valcol = tableConfig.valueColumn;
                 }
+                this._tables.push(table);
+                allTableExtensions.push(tableConfig.extension);
                 switch (tableConfig.type) {
                     case DataTableType.JsonFX:
                     case DataTableType.Text:
                     case DataTableType.Label:
                     case DataTableType.HTML:
-                        if (!VALID_EXT_REGEX.test(tableConfig.extension)) {
-                            throw new Error(`Invalid extension: '${tableConfig.extension}'`);
-                        } else if (this._contentTablesByExtension[tableConfig.extension] !== undefined) {
-                            throw new Error(`Extension already exists: '${tableConfig.extension}'`);
-                        }
-                        this._tables.push(table);
                         this._contentTablesByExtension[tableConfig.extension] = table;
                         contentTableExtensions.push(tableConfig.extension);
-                        allTableExtensions.push(tableConfig.extension);
                         break;
                     case DataTableType.HMI:
                         table.enableColumn = tableConfig.enableColumn;
                         this._hmiTable = table;
-                        this._tables.push(table);
-                        allTableExtensions.push(tableConfig.extension);
                         break;
                     case DataTableType.Task:
                         table.autostartColumn = tableConfig.autostartColumn;
                         this._taskTable = table;
-                        this._tables.push(table);
-                        allTableExtensions.push(tableConfig.extension);
                         break;
                     default:
                         throw new Error(`Unsupported table type: '${tableConfig.type}'`);
