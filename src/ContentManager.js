@@ -311,76 +311,57 @@
             const contentTableExtensions = [];
             const allTableExtensions = [];
             for (let i = 0; i < this._config.tables.length; i++) {
-                const table = this._config.tables[i];
-                switch (table.type) {
+                const tableConfig = this._config.tables[i];
+                const table = {
+                    type: tableConfig.type,
+                    name: tableConfig.name,
+                    extension: tableConfig.extension,
+                    keyColumn: tableConfig.keyColumn,
+                    valueColumn: tableConfig.valueColumn,
+                    valueColumnPrefix: tableConfig.valueColumnPrefix,
+                    multilingual: typeof tableConfig.valueColumnPrefix === 'string',
+                    icon: tableConfig.icon,
+                    JsonFX: tableConfig.type === DataTableType.JsonFX,
+                    multiedit: tableConfig.type === DataTableType.Label
+                };
+                if (tableConfig.valueColumnPrefix) {
+                    table.valcol = {};
+                    for (let j = 0; j < config.languages.length; j++) {
+                        const lang = config.languages[j];
+                        table.valcol[lang] = tableConfig.valueColumnPrefix + lang;
+                    }
+                } else {
+                    table.valcol = tableConfig.valueColumn;
+                }
+                switch (tableConfig.type) {
                     case DataTableType.JsonFX:
                     case DataTableType.Text:
                     case DataTableType.Label:
                     case DataTableType.HTML:
-                        if (!VALID_EXT_REGEX.test(table.extension)) {
-                            throw new Error(`Invalid extension: '${table.extension}'`);
-                        } else if (this._contentTablesByExtension[table.extension] !== undefined) {
-                            throw new Error(`Extension already exists: '${table.extension}'`);
+                        if (!VALID_EXT_REGEX.test(tableConfig.extension)) {
+                            throw new Error(`Invalid extension: '${tableConfig.extension}'`);
+                        } else if (this._contentTablesByExtension[tableConfig.extension] !== undefined) {
+                            throw new Error(`Extension already exists: '${tableConfig.extension}'`);
                         }
-                        let valcol;
-                        if (table.valueColumnPrefix) {
-                            valcol = {};
-                            for (let j = 0; j < config.languages.length; j++) {
-                                const lang = config.languages[j];
-                                valcol[lang] = table.valueColumnPrefix + lang;
-                            }
-                        } else {
-                            valcol = table.valueColumn;
-                        }
-                        const tab = {
-                            type: table.type,
-                            name: table.name,
-                            extension: table.extension,
-                            keyColumn: table.keyColumn,
-                            valueColumn: table.valueColumn,
-                            valueColumnPrefix: table.valueColumnPrefix,
-                            multilingual: typeof table.valueColumnPrefix === 'string',
-                            icon: table.icon,
-                            JsonFX: table.type === DataTableType.JsonFX,
-                            multiedit: table.type === DataTableType.Label,
-                            valcol
-                        };
-                        this._tables.push(tab);
-                        this._contentTablesByExtension[table.extension] = tab;
-                        contentTableExtensions.push(table.extension);
-                        allTableExtensions.push(table.extension);
+                        this._tables.push(table);
+                        this._contentTablesByExtension[tableConfig.extension] = table;
+                        contentTableExtensions.push(tableConfig.extension);
+                        allTableExtensions.push(tableConfig.extension);
                         break;
                     case DataTableType.HMI:
-                        this._hmiTable = {
-                            type: table.type,
-                            name: table.name,
-                            extension: table.extension,
-                            keyColumn: table.queryParameterValueColumn, // required for _getReferencesFrom(), ...
-                            queryParameterValueColumn: table.queryParameterValueColumn,
-                            valueColumn: table.valueColumn,
-                            enableColumn: table.enableColumn,
-                            icon: table.icon,
-                            valcol: table.valueColumn // required for _getReferencesFrom(), ...
-                        };
-                        this._tables.push(this._hmiTable);
-                        allTableExtensions.push(table.extension);
+                        table.enableColumn = tableConfig.enableColumn;
+                        this._hmiTable = table;
+                        this._tables.push(table);
+                        allTableExtensions.push(tableConfig.extension);
                         break;
                     case DataTableType.Task:
-                        this._taskTable = {
-                            type: table.type,
-                            name: table.name,
-                            extension: table.extension,
-                            keyColumn: table.keyColumn, // required for _getReferencesFrom(), ...
-                            valueColumn: table.valueColumn,
-                            autostartColumn: table.autostartColumn,
-                            icon: table.icon,
-                            valcol: table.valueColumn // required for _getReferencesFrom(), ...
-                        };
-                        this._tables.push(this._taskTable);
-                        allTableExtensions.push(table.extension);
+                        table.autostartColumn = tableConfig.autostartColumn;
+                        this._taskTable = table;
+                        this._tables.push(table);
+                        allTableExtensions.push(tableConfig.extension);
                         break;
                     default:
-                        throw new Error(`Unsupported table type: '${table.type}'`);
+                        throw new Error(`Unsupported table type: '${tableConfig.type}'`);
                 }
             }
             // we need all available extensions for building regular expressions
@@ -1885,7 +1866,7 @@
                         adapter.AddValue(`${hmiTable.name}.${hmiTable.valueColumn}`, SqlHelper.escape(id));
                         const checksum = Server.createSHA256(id);
                         const queryParameterValue = `${checksum.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${checksum.substring(checksum.length - Math.ceil(AUTO_KEY_LENGTH / 2), checksum.length)}`;
-                        adapter.AddValue(`${hmiTable.name}.${hmiTable.queryParameterValueColumn}`, SqlHelper.escape(queryParameterValue));
+                        adapter.AddValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(queryParameterValue));
                         adapter.PerformInsert(hmiTable.name, onSuc, onErr);
                     } else {
                         adapter.AddWhere(`${hmiTable.name}.${hmiTable.keyColumn} = ${SqlHelper.escape(id)}`);
@@ -1915,7 +1896,7 @@
             const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.valueColumn} AS path`);
-                adapter.AddWhere(`${hmiTable.name}.${hmiTable.queryParameterValueColumn} = ${SqlHelper.escape(queryParameterValue)}`);
+                adapter.AddWhere(`${hmiTable.name}.${hmiTable.keyColumn} = ${SqlHelper.escape(queryParameterValue)}`);
                 adapter.PerformSelect(hmiTable.name, undefined, 'path ASC', undefined, result => {
                     if (!result || !Array.isArray(result) || result.length !== 1) {
                         onError(`Invalid url: '${queryParameterValue}'`);
@@ -1948,7 +1929,7 @@
         GetHMIObjects(onResponse, onError) {
             const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.queryParameterValueColumn} AS queryParameterValue`);
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.keyColumn} AS queryParameterValue`);
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.valueColumn} AS path`);
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.enableColumn} AS enable`);
                 adapter.PerformSelect(hmiTable.name, undefined, 'path ASC', undefined, result => {
