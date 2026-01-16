@@ -188,10 +188,10 @@
         GetLanguages(array) {
             return Utilities.copyArray(this._config.languages, array);
         }
-        IsValidFile(string) {
+        IsValidFile(string) { // TODO: remove if not used
             return this._contentTablesKeyRegex.test(string);
         }
-        IsValidFolder(string) {
+        IsValidFolder(string) { // TODO: remove if not used
             return FOLDER_REGEX.test(string);
         }
         AnalyzeId(id) {
@@ -234,11 +234,11 @@
             return match ? match[2] : false;
         }
         GetIcon(id) {
-            const match = this._allTablesKeyRegex.exec(id);
+            const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
-                for (let table of this._tables) {
-                    if (table.extension === match[2]) {
-                        return this._iconDirectory + table.icon;
+                for (const extension in this._contentTablesByExtension) {
+                    if (extension === match[2] && this._contentTablesByExtension.hasOwnProperty(extension)) {
+                        return this._iconDirectory + this._contentTablesByExtension[extension].icon;
                     }
                 }
                 return false;
@@ -270,10 +270,8 @@
             const db_config = require(typeof config === 'string' ? config : '../cfg/db_config.json');
             this._config = db_config;
             this._parallel = typeof db_config.maxParallelQueries === 'number' && db_config.maxParallelQueries > 0 ? db_config.maxParallelQueries : true;
-            this._tables = [];
             this._contentTablesByExtension = {};
-            const contentTableExtensions = [];
-            const allTableExtensions = [];
+            const tableExtensions = [];
             for (const tableType in this._config.tables) {
                 if (this._config.tables.hasOwnProperty(tableType)) {
                     const tableConfig = this._config.tables[tableType];
@@ -302,23 +300,21 @@
                     } else {
                         table.valcol = tableConfig.valueColumn;
                     }
-                    this._tables.push(table);
-                    allTableExtensions.push(tableConfig.extension);
+                    this._contentTablesByExtension[tableConfig.extension] = table;
+                    tableExtensions.push(tableConfig.extension);
                     switch (tableType) {
                         case DataTableType.JsonFX:
                         case DataTableType.Text:
                         case DataTableType.Label:
                         case DataTableType.HTML:
-                            this._contentTablesByExtension[tableConfig.extension] = table;
-                            contentTableExtensions.push(tableConfig.extension);
                             break;
                         case DataTableType.HMI:
                             table.enableColumn = tableConfig.enableColumn;
-                            this._hmiTable = table;
+                            this._hmiTable = table; // TODO: Required? Maybe use _contentTablesByExtension instead
                             break;
                         case DataTableType.Task:
                             table.autostartColumn = tableConfig.autostartColumn;
-                            this._taskTable = table;
+                            this._taskTable = table; // TODO: Required? Maybe use _contentTablesByExtension instead
                             break;
                         default:
                             throw new Error(`Unsupported table type: '${tableType}'`);
@@ -326,9 +322,8 @@
                 }
             }
             // we need all available extensions for building regular expressions
-            const tabexts = contentTableExtensions.join('|');
+            const tabexts = tableExtensions.join('|');
             this._contentTablesKeyRegex = new RegExp(`^\\$((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?)\\.(${tabexts})$`);
-            this._allTablesKeyRegex = new RegExp(`^\\$((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?)\\.(${allTableExtensions.join('|')})$`);
             this._refactoring_match = `((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?\\.(?:${tabexts}))\\b`;
             this._include_regex_build = new RegExp(`(\'|")?include:\\$((?:${VALID_NAME_CHAR}+\\/)*${VALID_NAME_CHAR}+?)\\.(${tabexts})\\b\\1`, 'g');
             this._exchange_header_regex = new RegExp(`\\[\\{\\((${tabexts}|language|${Regex.escape(EXCHANGE_HEADER)})<>([a-f0-9]{32})\\)\\}\\]\\n(.*)\\n`, 'g');
@@ -1005,7 +1000,7 @@
                 // within the following loop we collect all source paths
                 if (sourceIsFolder) {
                     const tasks = [];
-                    for (const attr in that._contentTablesByExtension) { // TODO: use this._tables ???
+                    for (const attr in that._contentTablesByExtension) {
                         if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
                                 const table = that._contentTablesByExtension[attr];
@@ -1077,7 +1072,7 @@
                         (function () {
                             const tgt = objects[srcKeysArr[i]];
                             const match = key_regex.exec(tgt);
-                            const table = that._contentTablesByExtension[match[2]];// TODO: use this._tables ???
+                            const table = that._contentTablesByExtension[match[2]];
                             const tabKeyEsc = SqlHelper.escape(match[1]);
                             tasks.push((os, or) => {
                                 adapter.AddColumn('COUNT(*) AS cnt');
@@ -1217,7 +1212,7 @@
                             } else if (params.action === ContentManager.DELETE) {
                                 if (params.folder) {
                                     const match = FOLDER_REGEX.exec(params.source), srcTabKey = SqlHelper.escape(match[1]);
-                                    for (const attr in that._contentTablesByExtension) {// TODO: use this._tables
+                                    for (const attr in that._contentTablesByExtension) {
                                         if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                                             (function () {
                                                 const table = that._contentTablesByExtension[attr];
@@ -1230,7 +1225,7 @@
                                     }
                                 } else {
                                     const key_regex = that._contentTablesKeyRegex, match = key_regex.exec(source);
-                                    const table = that._contentTablesByExtension[match[2]], srcTabKey = SqlHelper.escape(match[1]);// TODO: use this._tables
+                                    const table = that._contentTablesByExtension[match[2]], srcTabKey = SqlHelper.escape(match[1]);
                                     tasks.push((os, oe) => {
                                         adapter.AddWhere(`${table.name}.${table.keyColumn} = ${srcTabKey}`);
                                         adapter.PerformDelete(table.name, undefined, 1, os, oe);
@@ -1340,7 +1335,7 @@
                             if (params.objects[refFrom] === undefined) {
                                 (function () {
                                     const match = key_regex.exec(refFrom);
-                                    const table = that._contentTablesByExtension[match[2]];// TODO: use this._tables
+                                    const table = that._contentTablesByExtension[match[2]];
                                     const usrKey = match[1];
                                     tasks.push((os, oe) => {
                                         if (typeof table.valcol === 'string') {
@@ -1392,7 +1387,7 @@
         GetReferencesTo(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
-                const user = this._contentTablesByExtension[match[2]];// TODO: use this._tables
+                const user = this._contentTablesByExtension[match[2]];
                 if (!user) {
                     onError(`Invalid table: '${id}'`);
                     return;
@@ -1402,7 +1397,7 @@
                     const rawKey = SqlHelper.escape(match[1]);
                     const keys = {};
                     const tasks = [];
-                    for (const attr in that._contentTablesByExtension) {// TODO: use this._tables
+                    for (const attr in that._contentTablesByExtension) {
                         if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
                                 const used = that._contentTablesByExtension[attr];
@@ -1454,7 +1449,7 @@
                     const rawKey = SqlHelper.escape(match[1]);
                     const tasks = [];
                     let result = 0;
-                    for (const attr in that._contentTablesByExtension) {// TODO: use this._tables
+                    for (const attr in that._contentTablesByExtension) {
                         if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
                                 const used = that._contentTablesByExtension[attr];
@@ -1486,28 +1481,30 @@
         }
         _getReferencesFrom(adapter, id, onResponse, onError) {
             const that = this, key = SqlHelper.escape(id), keys = {}, tasks = [];
-            for (let i = 0; i < this._tables.length; i++) {
-                (function () {
-                    const table = that._tables[i];
-                    tasks.push((onSuc, onErr) => {
-                        adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
-                        if (typeof table.valcol === 'string') {
-                            adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol}`), false);
-                        } else {
-                            for (const col in table.valcol) {
-                                if (table.valcol.hasOwnProperty(col)) {
-                                    adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol[col]}`), false);
+            for (const extension in this._contentTablesByExtension) {
+                if (this._contentTablesByExtension.hasOwnProperty(extension)) {
+                    (function () {
+                        const table = that._contentTablesByExtension[extension];
+                        tasks.push((onSuc, onErr) => {
+                            adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
+                            if (typeof table.valcol === 'string') {
+                                adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol}`), false);
+                            } else {
+                                for (const col in table.valcol) {
+                                    if (table.valcol.hasOwnProperty(col)) {
+                                        adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol[col]}`), false);
+                                    }
                                 }
                             }
-                        }
-                        adapter.PerformSelect(table.name, undefined, undefined, undefined, response => {
-                            for (let i = 0, l = response.length; i < l; i++) {
-                                keys[`$${response[i].path}.${table.extension}`] = true;
-                            }
-                            onSuc();
-                        }, onErr);
-                    });
-                }());
+                            adapter.PerformSelect(table.name, undefined, undefined, undefined, response => {
+                                for (let i = 0, l = response.length; i < l; i++) {
+                                    keys[`$${response[i].path}.${table.extension}`] = true;
+                                }
+                                onSuc();
+                            }, onErr);
+                        });
+                    }());
+                }
             }
             tasks.parallel = that._parallel;
             Executor.run(tasks, () => {
@@ -1544,7 +1541,7 @@
                     const key = SqlHelper.escape(id);
                     let result = 0;
                     const tasks = [];
-                    for (const attr in that._contentTablesByExtension) {// TODO: use this._tables
+                    for (const attr in that._contentTablesByExtension) {
                         if (that._contentTablesByExtension.hasOwnProperty(attr)) {
                             (function () {
                                 const table = that._contentTablesByExtension[attr];
