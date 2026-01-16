@@ -1757,23 +1757,27 @@
         return box;
     }
 
-    function getHmiEditor(hmi, adapter) { // TODO: Copied from label editor => implement for HMI
-        const cms = hmi.cms, langs = cms.GetLanguages(), children = [], rows = [], values = {};
+    function getHmiEditor(hmi, adapter) {
+        const cms = hmi.cms;
         function reload(data, language, onSuccess, onError) {
             if (data && data.file) {
                 cms.GetHMIData(data.file, data => {
                     if (data !== undefined) {
                         keyValue.hmi_value(data.jsonFxObjectKey);
+                        checkbox.setValue(data.enable);
                     } else {
                         keyValue.hmi_value('');
+                        checkbox.setValue(false);
                     }
                     onSuccess();
                 }, error => {
                     keyValue.hmi_value('');
+                    checkbox.setValue(false);
                     onError(error);
                 });
             } else {
                 keyValue.hmi_value('');
+                checkbox.setValue(false);
                 onSuccess();
             }
         };
@@ -1800,20 +1804,35 @@
                 onSuccess();
             }
         };
+        const enableLabel = {
+            x: 0,
+            y: 1,
+            text: 'enable:',
+            border: false,
+            classes: 'hmi-dark'
+        };
+        let enable = false;
+        const checkbox = getCheckbox(checked => enable = checked == true);
+        const enableValue = {
+            x: 1,
+            y: 1,
+            type:'grid',
+            columns:['40px', 1],
+            children:[{
+                object: checkbox
+            }]
+        };
         return {
             type: 'grid',
             columns: ['140px', 1],
-            rows: [DEFAULT_ROW_HEIGHT, 1],
-            children: [keyLabel, keyValue],
+            rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
+            children: [keyLabel, keyValue, enableLabel, enableValue],
             keyChanged: reload,
             getValue: () => {
-                let value = {};
-                for (let lang in values) {
-                    if (values.hasOwnProperty(lang)) {
-                        value[lang] = values[lang].hmi_value().trim();
-                    }
-                }
-                return value;
+                const data = {
+                    jsonFxObjectKey: keyValue.hmi_value()
+                };
+                return data;
             }
         };
     }
