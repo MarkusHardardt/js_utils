@@ -1733,7 +1733,7 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getPreview(hmi, adapter) {
-        let cms = hmi.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
+        const cms = hmi.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
         let preview = false, sel_data, language;
         function reload() {
             unstress((onSuccess, onError) => {
@@ -1746,13 +1746,13 @@
             });
         };
         adapter.triggerReload = reload;
-        let lab = getLabPreview(hmi, adapter);
-        let htm = getHtmPreview(hmi, adapter);
-        let txt = getTxtPreview(hmi, adapter);
-        let jso = getJsoPreview(hmi, adapter);
-        let handlers = {};
+        const lab = getLabPreview(hmi, adapter);
+        const htm = getHtmPreview(hmi, adapter);
+        const txt = getTxtPreview(hmi, adapter);
+        const jso = getJsoPreview(hmi, adapter);
+        const handlers = {};
         cms.GetDescriptors((ext, desc) => handlers[ext] = getHandler(desc, lab, htm, txt, jso));
-        let container = {
+        const container = {
             type: 'container',
             update: (data, lang) => {
                 sel_data = data;
@@ -2049,13 +2049,13 @@
     }
 
     function getEditController(hmi, adapter) {
-        let cms = hmi.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
+        const cms = hmi.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
         let editor = false, handler = false, sel_data = false, sel_cs = false, edit_data = false, edit_cs = false, sel_lang, edit_lang;
         function reload() {
             unstress((onSuccess, onError) => {
                 sel_cs = false;
                 handler = sel_data !== false && sel_data.extension ? handlers[sel_data.extension] : false;
-                let next = handler ? handler.cont : false;
+                const next = handler ? handler.cont : false;
                 editListenerEnabled = false;
                 updateContainer(editContainer, editor, next, sel_data, sel_lang, () => {
                     editListenerEnabled = true;
@@ -2126,8 +2126,8 @@
         function perform_commit(value) {
             pending_commit = true;
             update();
-            var data = adapter.getIdData();
-            var lang = sel_data.multiedit ? undefined : edit_lang;
+            const data = adapter.getIdData();
+            const lang = sel_data.multiedit ? undefined : edit_lang;
             performModification(hmi, edit_cs, edit_data.file, data.file, lang, value, params => {
                 pending_commit = false;
                 if (params) {
@@ -2168,16 +2168,16 @@
             edit_lang = sel_lang;
             perform_commit(value);
         };
-        let lab = getLabEditor(hmi, adapter);
-        let htm = getHtmEditor(hmi, adapter);
-        let txt = getTxtEditor(hmi, adapter);
-        let jso = getJsoEditor(hmi, adapter);
-        let handlers = {};
+        const lab = getLabEditor(hmi, adapter);
+        const htm = getHtmEditor(hmi, adapter);
+        const txt = getTxtEditor(hmi, adapter);
+        const jso = getJsoEditor(hmi, adapter);
+        const handlers = {};
         cms.GetDescriptors((ext, desc) => handlers[ext] = getHandler(desc, lab, htm, txt, jso));
-        let editContainer = {
+        const editContainer = {
             type: 'container'
         };
-        let hmisButton = {
+        const hmisButton = {
             enabled: false,
             x: 1,
             y: 0,
@@ -2198,7 +2198,7 @@
             },
             timeout: 2000
         };
-        let tasksButton = {
+        const tasksButton = {
             enabled: false,
             x: 2,
             y: 0,
@@ -2219,7 +2219,7 @@
             },
             timeout: 2000
         };
-        let commitButton = {
+        const commitButton = {
             enabled: false,
             x: 3,
             y: 0,
@@ -2233,7 +2233,7 @@
                 }
             }
         };
-        let resetButton = {
+        const resetButton = {
             x: 4,
             y: 0,
             text: 'reset',

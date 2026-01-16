@@ -19,7 +19,6 @@
             'GetLanguages(array)',
             'IsValidFile(string)',
             'IsValidFolder(string)',
-            'GetDescriptor(ext, description)',
             'AnalyzeId(id)',
             'GetDescriptors(onEach)',
             'GetPath(id)',
@@ -196,22 +195,10 @@
         IsValidFolder(string) {
             return FOLDER_REGEX.test(string);
         }
-        GetDescriptor(ext, description) {
-            const tab = this._contentTablesByExtension[ext];
-            if (tab) {
-                const desc = description || {};
-                desc.JsonFX = tab.JsonFX === true;
-                desc.multilingual = tab.multilingual === true || (typeof tab.valueColumnPrefix === 'string' && tab.valueColumnPrefix.length > 0);
-                desc.multiedit = tab.multiedit === true;
-                return desc;
-            } else {
-                return false;
-            }
-        }
         AnalyzeId(id) {
             let match = this._contentTablesKeyRegex.exec(id);
             if (match) {
-                return this.GetDescriptor(match[2], { id, path: match[1], file: id, extension: match[2] });
+                return this._getDescriptor(match[2], { id, path: match[1], file: id, extension: match[2] });
             }
             match = FOLDER_REGEX.exec(id);
             if (match) {
@@ -221,10 +208,22 @@
         }
         GetDescriptors(onEach) {
             const tabs = this._contentTablesByExtension;
-            for (const ext in tabs) {
-                if (tabs.hasOwnProperty(ext)) {
-                    onEach(ext, this.GetDescriptor(ext));
+            for (const extension in tabs) {
+                if (tabs.hasOwnProperty(extension)) {
+                    onEach(extension, this._getDescriptor(extension));
                 }
+            }
+        }
+        _getDescriptor(extension, description) {
+            const table = this._contentTablesByExtension[extension];
+            if (table) {
+                const desc = description || {};
+                desc.JsonFX = table.JsonFX === true;
+                desc.multilingual = table.multilingual === true || (typeof table.valueColumnPrefix === 'string' && table.valueColumnPrefix.length > 0);
+                desc.multiedit = table.multiedit === true;
+                return desc;
+            } else {
+                return false;
             }
         }
         GetPath(id) {
