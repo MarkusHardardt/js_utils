@@ -243,7 +243,7 @@
                 }
                 return false;
             } else if (FOLDER_REGEX.test(id)) {
-                return this._iconDirectory + this._config.folder_icon;
+                return this._iconDirectory + this._config.folderIcon;
             } else {
                 return false;
             }
@@ -267,60 +267,62 @@
             }
             this._getSqlAdapter = getSqlAdapter;
             this._iconDirectory = `/${iconDirectory}/`;
-            const db_config = require(typeof config === 'string' ? config : '../cfg/db_config.json'); 
+            const db_config = require(typeof config === 'string' ? config : '../cfg/db_config.json');
             this._config = db_config;
-            this._parallel = typeof db_config.max_parallel_queries === 'number' && db_config.max_parallel_queries > 0 ? db_config.max_parallel_queries : true;
+            this._parallel = typeof db_config.maxParallelQueries === 'number' && db_config.maxParallelQueries > 0 ? db_config.maxParallelQueries : true;
             this._tables = [];
             this._contentTablesByExtension = {};
             const contentTableExtensions = [];
             const allTableExtensions = [];
-            for (let i = 0; i < this._config.tables.length; i++) {
-                const tableConfig = this._config.tables[i];
-                if (!VALID_EXT_REGEX.test(tableConfig.extension)) {
-                    throw new Error(`Invalid extension: '${tableConfig.extension}'`);
-                } else if (this._contentTablesByExtension[tableConfig.extension] !== undefined) {
-                    throw new Error(`Extension already exists: '${tableConfig.extension}'`);
-                }
-                const table = {
-                    type: tableConfig.type,
-                    name: tableConfig.name,
-                    extension: tableConfig.extension,
-                    keyColumn: tableConfig.keyColumn,
-                    valueColumn: tableConfig.valueColumn,
-                    multilingual: typeof tableConfig.valueColumnPrefix === 'string' && tableConfig.valueColumnPrefix.length > 0,
-                    icon: tableConfig.icon,
-                    JsonFX: tableConfig.type === DataTableType.JsonFX,
-                    multiedit: tableConfig.type === DataTableType.Label
-                };
-                if (tableConfig.valueColumnPrefix) {
-                    table.valcol = {};
-                    for (let j = 0; j < db_config.languages.length; j++) {
-                        const lang = db_config.languages[j];
-                        table.valcol[lang] = tableConfig.valueColumnPrefix + lang;
+            for (const tableType in this._config.tables) {
+                if (this._config.tables.hasOwnProperty(tableType)) {
+                    const tableConfig = this._config.tables[tableType];
+                    if (!VALID_EXT_REGEX.test(tableConfig.extension)) {
+                        throw new Error(`Invalid extension: '${tableConfig.extension}'`);
+                    } else if (this._contentTablesByExtension[tableConfig.extension] !== undefined) {
+                        throw new Error(`Extension already exists: '${tableConfig.extension}'`);
                     }
-                } else {
-                    table.valcol = tableConfig.valueColumn;
-                }
-                this._tables.push(table);
-                allTableExtensions.push(tableConfig.extension);
-                switch (tableConfig.type) {
-                    case DataTableType.JsonFX:
-                    case DataTableType.Text:
-                    case DataTableType.Label:
-                    case DataTableType.HTML:
-                        this._contentTablesByExtension[tableConfig.extension] = table;
-                        contentTableExtensions.push(tableConfig.extension);
-                        break;
-                    case DataTableType.HMI:
-                        table.enableColumn = tableConfig.enableColumn;
-                        this._hmiTable = table;
-                        break;
-                    case DataTableType.Task:
-                        table.autostartColumn = tableConfig.autostartColumn;
-                        this._taskTable = table;
-                        break;
-                    default:
-                        throw new Error(`Unsupported table type: '${tableConfig.type}'`);
+                    const table = {
+                        type: tableType,
+                        name: tableConfig.name,
+                        extension: tableConfig.extension,
+                        keyColumn: tableConfig.keyColumn,
+                        valueColumn: tableConfig.valueColumn,
+                        multilingual: typeof tableConfig.valueColumnPrefix === 'string' && tableConfig.valueColumnPrefix.length > 0,
+                        icon: tableConfig.icon,
+                        JsonFX: tableType === DataTableType.JsonFX,
+                        multiedit: tableType === DataTableType.Label
+                    };
+                    if (tableConfig.valueColumnPrefix) {
+                        table.valcol = {};
+                        for (let j = 0; j < db_config.languages.length; j++) {
+                            const lang = db_config.languages[j];
+                            table.valcol[lang] = tableConfig.valueColumnPrefix + lang;
+                        }
+                    } else {
+                        table.valcol = tableConfig.valueColumn;
+                    }
+                    this._tables.push(table);
+                    allTableExtensions.push(tableConfig.extension);
+                    switch (tableType) {
+                        case DataTableType.JsonFX:
+                        case DataTableType.Text:
+                        case DataTableType.Label:
+                        case DataTableType.HTML:
+                            this._contentTablesByExtension[tableConfig.extension] = table;
+                            contentTableExtensions.push(tableConfig.extension);
+                            break;
+                        case DataTableType.HMI:
+                            table.enableColumn = tableConfig.enableColumn;
+                            this._hmiTable = table;
+                            break;
+                        case DataTableType.Task:
+                            table.autostartColumn = tableConfig.autostartColumn;
+                            this._taskTable = table;
+                            break;
+                        default:
+                            throw new Error(`Unsupported table type: '${tableType}'`);
+                    }
                 }
             }
             // we need all available extensions for building regular expressions
@@ -463,8 +465,8 @@
                 try {
                     if (parse) {
                         let object = JsonFX.reconstruct(response);
-                        if (that._config.jsonfx_pretty === true) {
-                            // the 'jsonfx_pretty' flag may be used to format our dynamically
+                        if (that._config.jsonfxPretty === true) {
+                            // the 'jsonfxPretty' flag may be used to format our dynamically
                             // parsed JavaScript sources for more easy debugging purpose
                             // TODO: object = eval('(' + JsonFX.stringify(object, true) + ')\n//# sourceURL=' + rawKey + '.js');
                             object = eval('(' + JsonFX.stringify(object, true) + ')');
@@ -1992,8 +1994,8 @@
                     onResponse({
                         iconDirectory: this._iconDirectory,
                         languages: this._config.languages,
-                        folder_icon: this._config.folder_icon,
-                        jsonfx_pretty: this._config.jsonfx_pretty,
+                        folderIcon: this._config.folderIcon,
+                        jsonfxPretty: this._config.jsonfxPretty,
                         contentTablesByExtension: this._contentTablesByExtension,
                         hmiTable: this._hmiTable,
                         taskTable: this._taskTable,
@@ -2262,8 +2264,8 @@
                 if (response !== undefined) {
                     try {
                         let object = JsonFX.reconstruct(response);
-                        if (that._config !== undefined && that._config.jsonfx_pretty === true) {
-                            // the 'jsonfx_pretty' flag may be used to format our dynamically
+                        if (that._config !== undefined && that._config.jsonfxPretty === true) {
+                            // the 'jsonfxPretty' flag may be used to format our dynamically
                             // parsed JavaScript sources for more easy debugging purpose
                             // TODO: reuse or remove const match = that._contentTablesKeyRegex.exec(id);
                             // TOOD: response = eval('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
@@ -2326,8 +2328,8 @@
                 if (response !== undefined) {
                     try {
                         let object = JsonFX.reconstruct(response);
-                        if (this._config !== undefined && this._config.jsonfx_pretty === true) {
-                            // the 'jsonfx_pretty' flag may be used to format our dynamically
+                        if (this._config !== undefined && this._config.jsonfxPretty === true) {
+                            // the 'jsonfxPretty' flag may be used to format our dynamically
                             // parsed JavaScript sources for more easy debugging purpose
                             // TODO: reuse or remove const match = that._contentTablesKeyRegex.exec(id);
                             // TOOD: response = eval('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');

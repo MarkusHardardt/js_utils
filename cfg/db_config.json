@@ -1,8 +1,7 @@
 {
-    "icon_dir": "./config/icons",
-    "folder_icon": "folder.gif",
-    "jsonfx_pretty": true,
-    "max_parallel_queries": 8,
+    "folderIcon": "folder.gif",
+    "jsonfxPretty": true,
+    "maxParallelQueries": 8,
     "languages": [
         "de",
         "en",
@@ -10,9 +9,8 @@
         "fr",
         "it"
     ],
-    "tables": [
-        {
-            "type": "HMI",
+    "tables": {
+        "HMI": {
             "name": "hmi",
             "extension": "hmi",
             "keyColumn": "queryParameterValue",
@@ -21,8 +19,7 @@
             "icon": "hmi.gif",
             "hmis": true
         },
-        {
-            "type": "Task",
+        "Task": {
             "name": "task",
             "extension": "task",
             "keyColumn": "key",
@@ -31,8 +28,7 @@
             "icon": "task.gif",
             "exes": true
         },
-        {
-            "type": "JsonFX",
+        "JsonFX": {
             "name": "jsonfx",
             "extension": "j",
             "keyColumn": "key",
@@ -40,16 +36,14 @@
             "icon": "jsonfx.gif",
             "JsonFX": true
         },
-        {
-            "type": "Text",
+        "Text": {
             "name": "text",
             "extension": "t",
             "keyColumn": "key",
             "valueColumn": "value",
             "icon": "text.gif"
         },
-        {
-            "type": "Label",
+        "Label": {
             "name": "label",
             "extension": "l",
             "keyColumn": "key",
@@ -57,13 +51,12 @@
             "icon": "label.gif",
             "multiedit": true
         },
-        {
-            "type": "HTML",
+        "HTML": {
             "name": "html",
             "extension": "h",
             "keyColumn": "key",
             "valueColumnPrefix": "value_",
             "icon": "html.gif"
         }
-    ]
+    }
 }
