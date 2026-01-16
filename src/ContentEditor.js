@@ -1719,70 +1719,92 @@
     // HMIS - EDITOR
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
+    function getCheckbox(onChanged) {
+        let checked = false;
+        function setValue(value) {
+            checked = value === true;
+            check.hmi_setVisible(checked);
+            if (typeof onChanged === 'function') {
+                onChanged(checked);
+            }
+        }
+        const check = {
+            type: "graph",
+            strokeStyle: "black",
+            lineWidth: 0.1,
+            visible: false,
+            points: [{ x: 0.2, y: 0.6 }, { x: 0.5, y: 0.2 }, { x: 0.8, y: 0.8 }]
+        };
+        const box = {
+            type: "graph",
+            strokeStyle: "black",
+            lineWidth: 0.1,
+            x: 0.5,
+            y: 0.5,
+            width: 1,
+            height: 1,
+            pressed: () => setValue(!checked),
+            bounds: {
+                x: -0.2,
+                y: -0.2,
+                width: 1.4,
+                height: 1.4
+            },
+            children: [check],
+            setValue,
+            getValue: () => checked
+        };
+        return box;
+    }
+
     function getHmiEditor(hmi, adapter) { // TODO: Copied from label editor => implement for HMI
         const cms = hmi.cms, langs = cms.GetLanguages(), children = [], rows = [], values = {};
         function reload(data, language, onSuccess, onError) {
             if (data && data.file) {
-                cms.GetObject(data.file, undefined, ContentManager.RAW, raw => {
-                    if (raw !== undefined) {
-                        for (let i = 0, l = langs.length; i < l; i++) {
-                            const lang = langs[i], lab = raw[lang];
-                            values[lang].hmi_value(lab || '');
-                        }
+                cms.GetHMIData(data.file, data => {
+                    if (data !== undefined) {
+                        keyValue.hmi_value(data.jsonFxObjectKey);
                     } else {
-                        for (let i = 0, l = langs.length; i < l; i++) {
-                            values[langs[i]].hmi_value('');
-                        }
+                        keyValue.hmi_value('');
                     }
                     onSuccess();
                 }, error => {
-                    for (let i = 0, l = langs.length; i < l; i++) {
-                        values[langs[i]].hmi_value('');
-                    }
+                    keyValue.hmi_value('');
                     onError(error);
                 });
             } else {
-                for (let i = 0, l = langs.length; i < l; i++) {
-                    values[langs[i]].hmi_value('');
-                }
+                keyValue.hmi_value('');
                 onSuccess();
             }
         };
-        for (let i = 0, l = langs.length; i < l; i++) {
-            const lang = langs[i];
-            children.push({
-                x: 0,
-                y: i,
-                text: lang,
-                border: false,
-                classes: 'hmi-dark'
-            });
-            const obj = {
-                x: 1,
-                y: i,
-                type: 'textfield',
-                editable: true,
-                border: false,
-                classes: 'hmi-dark',
-                prepare: (that, onSuccess, onError) => {
-                    that.hmi_addChangeListener(adapter.edited);
-                    onSuccess();
-                },
-                destroy: (that, onSuccess, onError) => {
-                    that.hmi_removeChangeListener(adapter.edited);
-                    onSuccess();
-                }
-            };
-            children.push(obj);
-            values[lang] = obj;
-            rows.push(DEFAULT_ROW_HEIGHT);
-        }
-        rows.push(1);
+        const keyLabel = {
+            x: 0,
+            y: 0,
+            text: 'JsonFx object:',
+            border: false,
+            classes: 'hmi-dark'
+        };
+        const keyValue = {
+            x: 1,
+            y: 0,
+            type: 'textfield',
+            editable: true,
+            border: false,
+            classes: 'hmi-dark',
+            prepare: (that, onSuccess, onError) => {
+                that.hmi_addChangeListener(adapter.edited);
+                onSuccess();
+            },
+            destroy: (that, onSuccess, onError) => {
+                that.hmi_removeChangeListener(adapter.edited);
+                onSuccess();
+            }
+        };
         return {
             type: 'grid',
-            columns: [DEFAULT_COLUMN_WIDTH, 1],
-            rows,
-            children,
+            columns: ['140px', 1],
+            rows: [DEFAULT_ROW_HEIGHT, 1],
+            children: [keyLabel, keyValue],
             keyChanged: reload,
             getValue: () => {
                 let value = {};
