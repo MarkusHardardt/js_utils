@@ -89,20 +89,6 @@
         }
     }
 
-    function getHandler(descriptor, hmiHandler, taskHandler, labelHandler, htmlHandler, textHandler, jsonFxHandler) {
-        if (!descriptor) {
-            return false;
-        } else if (descriptor.JsonFX) {
-            return { cont: jsonFxHandler, desc: descriptor };
-        } else if (!descriptor.multilingual) {
-            return { cont: textHandler, desc: descriptor };
-        } else if (descriptor.multiedit) {
-            return { cont: labelHandler, desc: descriptor };
-        } else {
-            return { cont: htmlHandler, desc: descriptor };
-        }
-    }
-
     function updateContainer(container, previous, next, data, language, onSuccess, onError) {
         if (previous) {
             if (next) {
@@ -1762,8 +1748,8 @@
         let preview = false, sel_data, language;
         function reload() {
             unstress((onSuccess, onError) => {
-                var handler = sel_data.extension ? handlers[sel_data.extension] : false;
-                var next = handler ? handler.cont : false;
+                const handler = sel_data.extension ? handlers[sel_data.extension] : false;
+                const next = handler ? handler : false;
                 updateContainer(container, preview, next, sel_data, language, () => {
                     preview = next;
                     onSuccess();
@@ -1771,14 +1757,19 @@
             });
         };
         adapter.triggerReload = reload;
-        const hmiPreview = getHmiPreview(hmi, adapter);
-        const taskPreview = getTaskPreview(hmi, adapter);
+        const jsonFxPreview = getJsonFxPreview(hmi, adapter);
+        const textPreview = getTextPreview(hmi, adapter);
         const labelPreview = getLabelPreview(hmi, adapter);
         const htmlPreview = getHtmlPreview(hmi, adapter);
-        const textPreview = getTextPreview(hmi, adapter);
-        const jsonFxPreview = getJsonFxPreview(hmi, adapter);
+        const hmiPreview = getHmiPreview(hmi, adapter);
+        const taskPreview = getTaskPreview(hmi, adapter);
         const handlers = {};
-        cms.GetDescriptors((extension, descriptor) => handlers[extension] = getHandler(descriptor, hmiPreview, taskPreview, labelPreview, htmlPreview, textPreview, jsonFxPreview));
+        handlers[cms.GetExtensionForType(ContentManager.DataTableType.JsonFX)] = jsonFxPreview;
+        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Text)] = textPreview;
+        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Label)] = labelPreview;
+        handlers[cms.GetExtensionForType(ContentManager.DataTableType.HTML)] = htmlPreview;
+        handlers[cms.GetExtensionForType(ContentManager.DataTableType.HMI)] = hmiPreview;
+        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Task)] = taskPreview;
         const container = {
             type: 'container',
             update: (data, lang) => {
@@ -2077,12 +2068,12 @@
 
     function getEditController(hmi, adapter) {
         const cms = hmi.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
-        let editor = false, handler = false, sel_data = false, sel_cs = false, edit_data = false, edit_cs = false, sel_lang, edit_lang;
+        let editor = false, sel_data = false, sel_cs = false, edit_data = false, edit_cs = false, sel_lang, edit_lang;
         function reload() {
             unstress((onSuccess, onError) => {
                 sel_cs = false;
-                handler = sel_data !== false && sel_data.extension ? handlers[sel_data.extension] : false;
-                const next = handler ? handler.cont : false;
+                const handler = sel_data !== false && sel_data.extension ? handlers[sel_data.extension] : false;
+                const next = handler ? handler : false;
                 editListenerEnabled = false;
                 updateContainer(editContainer, editor, next, sel_data, sel_lang, () => {
                     editListenerEnabled = true;
@@ -2195,14 +2186,19 @@
             edit_lang = sel_lang;
             perform_commit(value);
         };
-        const hmiEditor = getHmiEditor(hmi, adapter);
-        const taskEditor = getTaskEditor(hmi, adapter);
+        const jsonFxEditor = getJsonFxEditor(hmi, adapter);
+        const textEditor = getTextEditor(hmi, adapter);
         const labelEditor = getLabelEditor(hmi, adapter);
         const htmlEditor = getHtmlEditor(hmi, adapter);
-        const textEditor = getTextEditor(hmi, adapter);
-        const jsonFxEditor = getJsonFxEditor(hmi, adapter);
+        const hmiEditor = getHmiEditor(hmi, adapter);
+        const taskEditor = getTaskEditor(hmi, adapter);
         const handlers = {};
-        cms.GetDescriptors((extension, descriptor) => handlers[extension] = getHandler(descriptor, hmiEditor, taskEditor, labelEditor, htmlEditor, textEditor, jsonFxEditor));
+        handlers[cms.GetExtensionForType(ContentManager.DataTableType.JsonFX)] = jsonFxEditor;
+        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Text)] = textEditor;
+        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Label)] = labelEditor;
+        handlers[cms.GetExtensionForType(ContentManager.DataTableType.HTML)] = htmlEditor;
+        handlers[cms.GetExtensionForType(ContentManager.DataTableType.HMI)] = hmiEditor;
+        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Task)] = taskEditor;
         const editContainer = {
             type: 'container'
         };

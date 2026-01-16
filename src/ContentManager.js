@@ -23,6 +23,7 @@
             'GetDescriptors(onEach)',
             'GetPath(id)',
             'GetExtension(id)',
+            'GetExtensionForType(type)',
             'GetIcon(id)',
             'CompareIds(id1, id2)',
             'Exists(id, onResponse, onError)',
@@ -68,6 +69,7 @@
         HMI: 'HMI',
         Task: 'Task'
     });
+    ContentManager.DataTableType = DataTableType;
 
     /*  Used by ContentEditor  */
     ContentManager.INSERT = 'insert';
@@ -232,6 +234,9 @@
             const match = this._contentTablesKeyRegex.exec(id);
             return match ? match[2] : false;
         }
+        GetExtensionForType(type) {
+            return this._extensionsForType[type];
+        }
         GetIcon(id) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
@@ -270,24 +275,26 @@
             this._config = db_config;
             this._parallel = typeof db_config.maxParallelQueries === 'number' && db_config.maxParallelQueries > 0 ? db_config.maxParallelQueries : true;
             this._contentTablesByExtension = {};
+            this._extensionsForType = {};
             const tableExtensions = [];
-            for (const tableType in this._config.tables) {
-                if (this._config.tables.hasOwnProperty(tableType)) {
-                    const tableConfig = this._config.tables[tableType];
+            for (const type in this._config.tables) {
+                if (this._config.tables.hasOwnProperty(type)) {
+                    const tableConfig = this._config.tables[type];
                     const extension = tableConfig.extension;
                     if (!VALID_EXT_REGEX.test(extension)) {
                         throw new Error(`Invalid extension: '${extension}'`);
                     } else if (this._contentTablesByExtension[extension] !== undefined) {
                         throw new Error(`Extension already exists: '${extension}'`);
                     }
+                    this._extensionsForType[type] = extension;
                     const table = {
                         name: tableConfig.name,
                         keyColumn: tableConfig.keyColumn,
                         valueColumn: tableConfig.valueColumn,
                         multilingual: typeof tableConfig.valueColumnPrefix === 'string' && tableConfig.valueColumnPrefix.length > 0,
                         icon: tableConfig.icon,
-                        JsonFX: tableType === DataTableType.JsonFX,
-                        multiedit: tableType === DataTableType.Label
+                        JsonFX: type === DataTableType.JsonFX,
+                        multiedit: type === DataTableType.Label
                     };
                     if (tableConfig.valueColumnPrefix) {
                         table.valcol = {};
@@ -300,7 +307,7 @@
                     }
                     this._contentTablesByExtension[extension] = table;
                     tableExtensions.push(extension);
-                    switch (tableType) {
+                    switch (type) {
                         case DataTableType.JsonFX:
                         case DataTableType.Text:
                         case DataTableType.Label:
@@ -315,7 +322,7 @@
                             this._taskTable = table; // TODO: Required? Maybe use _contentTablesByExtension instead
                             break;
                         default:
-                            throw new Error(`Unsupported table type: '${tableType}'`);
+                            throw new Error(`Unsupported table type: '${type}'`);
                     }
                 }
             }
@@ -1999,6 +2006,7 @@
                         languages: this._config.languages,
                         folderIcon: this._config.folderIcon,
                         jsonfxPretty: this._config.jsonfxPretty,
+                        extensionsForType: this._extensionsForType,
                         contentTablesByExtension: this._contentTablesByExtension,
                         hmiTable: this._hmiTable,
                         taskTable: this._taskTable,
@@ -2225,6 +2233,7 @@
             }, config => {
                 that._config = config;
                 that._iconDirectory = config.iconDirectory;
+                that._extensionsForType = config.extensionsForType;
                 that._contentTablesKeyRegex = new RegExp(config.key_regex);
                 that._exchange_header_regex = new RegExp(config.exchange_header_regex, 'g');
                 const langs = config.languages.length;
