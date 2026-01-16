@@ -846,30 +846,6 @@
     }
 
     // ///////////////////////////////////////////////////////////////////////////////////////////////
-    // HMIS - PREVIEW & EDITOR
-    // ///////////////////////////////////////////////////////////////////////////////////////////////
-
-    function getHmiPreview(hmi, adapter) {
-        return { text: 'hmi editor not implemented' };
-    }
-
-    function getHmiEditor(hmi, adapter) {
-        return { text: 'hmi editor not implemented' };
-    }
-
-    // ///////////////////////////////////////////////////////////////////////////////////////////////
-    // TASKS - PREVIEW & EDITOR
-    // ///////////////////////////////////////////////////////////////////////////////////////////////
-
-    function getTaskPreview(hmi, adapter) {
-        return { text: 'task editor not implemented' };
-    }
-
-    function getTaskEditor(hmi, adapter) {
-        return { text: 'task editor not implemented' };
-    }
-
-    // ///////////////////////////////////////////////////////////////////////////////////////////////
     // LABELS - PREVIEW & EDITOR
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -928,7 +904,7 @@
             columns: [DEFAULT_COLUMN_WIDTH, 1],
             rows,
             children,
-            keyChanged: (data, language, onSuccess, onError) => reload(data, language, onSuccess, onError)
+            keyChanged: reload
         };
     }
 
@@ -1740,6 +1716,102 @@
     }
 
     // ///////////////////////////////////////////////////////////////////////////////////////////////
+    // HMIS - EDITOR
+    // ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    function getHmiEditor(hmi, adapter) { // TODO: Copied from label editor => implement for HMI
+        const cms = hmi.cms, langs = cms.GetLanguages(), children = [], rows = [], values = {};
+        function reload(data, language, onSuccess, onError) {
+            if (data && data.file) {
+                cms.GetObject(data.file, undefined, ContentManager.RAW, raw => {
+                    if (raw !== undefined) {
+                        for (let i = 0, l = langs.length; i < l; i++) {
+                            const lang = langs[i], lab = raw[lang];
+                            values[lang].hmi_value(lab || '');
+                        }
+                    } else {
+                        for (let i = 0, l = langs.length; i < l; i++) {
+                            values[langs[i]].hmi_value('');
+                        }
+                    }
+                    onSuccess();
+                }, error => {
+                    for (let i = 0, l = langs.length; i < l; i++) {
+                        values[langs[i]].hmi_value('');
+                    }
+                    onError(error);
+                });
+            } else {
+                for (let i = 0, l = langs.length; i < l; i++) {
+                    values[langs[i]].hmi_value('');
+                }
+                onSuccess();
+            }
+        };
+        for (let i = 0, l = langs.length; i < l; i++) {
+            const lang = langs[i];
+            children.push({
+                x: 0,
+                y: i,
+                text: lang,
+                border: false,
+                classes: 'hmi-dark'
+            });
+            const obj = {
+                x: 1,
+                y: i,
+                type: 'textfield',
+                editable: true,
+                border: false,
+                classes: 'hmi-dark',
+                prepare: (that, onSuccess, onError) => {
+                    that.hmi_addChangeListener(adapter.edited);
+                    onSuccess();
+                },
+                destroy: (that, onSuccess, onError) => {
+                    that.hmi_removeChangeListener(adapter.edited);
+                    onSuccess();
+                }
+            };
+            children.push(obj);
+            values[lang] = obj;
+            rows.push(DEFAULT_ROW_HEIGHT);
+        }
+        rows.push(1);
+        return {
+            type: 'grid',
+            columns: [DEFAULT_COLUMN_WIDTH, 1],
+            rows,
+            children,
+            keyChanged: reload,
+            getValue: () => {
+                let value = {};
+                for (let lang in values) {
+                    if (values.hasOwnProperty(lang)) {
+                        value[lang] = values[lang].hmi_value().trim();
+                    }
+                }
+                return value;
+            }
+        };
+    }
+
+    // ///////////////////////////////////////////////////////////////////////////////////////////////
+    // TASKS - EDITOR
+    // ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    function getTaskEditor(hmi, adapter) {
+        function reload(data, language, onSuccess, onError) {
+            // TODO: Implement
+            onSuccess();
+        }
+        return {
+            text: 'task editor not implemented',
+            keyChanged: reload
+        };
+    }
+
+    // ///////////////////////////////////////////////////////////////////////////////////////////////
     // MAIN - PREVIEW & EDITOR & CONTENT EDITOR
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1761,15 +1833,11 @@
         const textPreview = getTextPreview(hmi, adapter);
         const labelPreview = getLabelPreview(hmi, adapter);
         const htmlPreview = getHtmlPreview(hmi, adapter);
-        const hmiPreview = getHmiPreview(hmi, adapter);
-        const taskPreview = getTaskPreview(hmi, adapter);
         const handlers = {};
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.JsonFX)] = jsonFxPreview;
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.Text)] = textPreview;
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.Label)] = labelPreview;
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.HTML)] = htmlPreview;
-        handlers[cms.GetExtensionForType(ContentManager.DataTableType.HMI)] = hmiPreview;
-        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Task)] = taskPreview;
         const container = {
             type: 'container',
             update: (data, lang) => {
