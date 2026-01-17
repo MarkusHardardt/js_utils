@@ -2437,7 +2437,12 @@
             Client.fetch(ContentManager.GET_CONTENT_DATA_URL, JsonFX.stringify(request, false), response => {
                 if (response.length > 0) {
                     try {
-                        onResponse(JsonFX.parse(response, false, false));
+                        const resp = JsonFX.parse(response, false, false);
+                        if (resp.result !== undefined) {
+                            onResponse(resp.result);
+                        } else {
+                            onError(resp.error);    
+                        }
                     } catch (error) {
                         onError(error);
                     }
