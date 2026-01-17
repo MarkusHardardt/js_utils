@@ -2621,7 +2621,10 @@
             longClicked: () => {
                 try {
                     cms.IsTaskObject(sel_data.id, response => {
-                        cms.SetAvailabilityAsTaskObject(sel_data.id, response !== true, resp => update(), error => {
+                        cms.SetAvailabilityAsTaskObject(sel_data.id, response !== true, resp => {
+                            update();
+                            adapter.reload();
+                        }, error => {
                             update();
                             adapter.notifyError(error);
                         });
@@ -2688,20 +2691,20 @@
     function create(hmi) {
         // For every kind of text editors or previews we store the scroll positions
         // so it it easy to switch between objects and stay where you are.
-        let scroll_positions = [];
+        const scroll_positions = [];
         // We show messages and show and collect error messages.
-        let log_handler = getLogHandler(hmi);
+        const log_handler = getLogHandler(hmi);
         // All editor controls are encapsulated and do not have any knowledge about
         // any other control.
         // The signals between the controls are handled by the following adapters
         // with define the callbacks used inside the respective control.
-        let language_selector_adapter = {
+        const language_selector_adapter = {
             languageChanged: language => {
                 edit_ctrl.update(key_textfield.getIdData(), language);
                 preview.update(references.getIdData(), language);
             }
         };
-        let key_textfield_adapter = {
+        const key_textfield_adapter = {
             keyEdited: data => {
                 references.setRootIdData(data);
                 refactoring.update(data);
@@ -2718,7 +2721,7 @@
                 preview.update(data, language_selector.getLanguage());
             }
         };
-        let browser_tree_adapter = {
+        const browser_tree_adapter = {
             notifyError: log_handler.pushError,
             notifyTimeout: data => log_handler.pushTimeout('timeout loading browser: "' + data.id + '"'),
             keySelected: data => {
@@ -2729,7 +2732,7 @@
                 preview.update(data, language_selector.getLanguage());
             }
         };
-        let search_container_adapter = {
+        const search_container_adapter = {
             notifyError: log_handler.pushError,
             keySelected: data => {
                 key_textfield.update(data);
@@ -2739,7 +2742,7 @@
                 preview.update(data, language_selector.getLanguage());
             }
         };
-        let references_adapter = {
+        const references_adapter = {
             notifyError: log_handler.pushError,
             notifyTimeout: data => log_handler.pushTimeout('timeout loading references: "' + data.id + '"'),
             keySelected: data => preview.update(data, language_selector.getLanguage()),
@@ -2753,7 +2756,7 @@
                 preview.update(data, language_selector.getLanguage());
             }
         };
-        let refactoring_adapter = {
+        const refactoring_adapter = {
             updateInfo: log_handler.updateInfo,
             notifyError: log_handler.pushError,
             updateScrollParams: params => updateScrolls(scroll_positions, params),
@@ -2761,7 +2764,7 @@
                 if (d) {
                     key_textfield.update(d);
                 }
-                let data = key_textfield.getIdData();
+                const data = key_textfield.getIdData();
                 if (browser_tree.hmi_isVisible()) {
                     browser_tree.expand(data);
                 }
@@ -2773,7 +2776,7 @@
                 log_handler.reset();
             }
         };
-        let navigator_adapter = {
+        const navigator_adapter = {
             showBrowserTree: () => {
                 search_container.hmi_setVisible(false);
                 browser_tree.hmi_setVisible(true);
@@ -2787,14 +2790,14 @@
                 if (browser_tree.hmi_isVisible()) {
                     browser_tree.hmi_updateLoadedNodes();
                 }
-                let data = key_textfield.getIdData();
+                const data = key_textfield.getIdData();
                 references.setRootIdData(data);
                 refactoring.update(data);
                 edit_ctrl.update(data, language_selector.getLanguage());
                 preview.update(data, language_selector.getLanguage());
             }
         };
-        let edit_ctrl_adapter = {
+        const edit_ctrl_adapter = {
             notifyError: log_handler.pushError,
             notifyTimeout: data => log_handler.pushTimeout('timeout loading editor: "' + data.id + '"'),
             updateInfo: log_handler.updateInfo,
@@ -2814,22 +2817,32 @@
                     // TODO correct to call this here?
                     log_handler.reset();
                 }
+            },
+            reload: () => {
+                if (browser_tree.hmi_isVisible()) {
+                    browser_tree.hmi_updateLoadedNodes();
+                }
+                const data = key_textfield.getIdData();
+                references.setRootIdData(data);
+                refactoring.update(data);
+                edit_ctrl.update(data, language_selector.getLanguage());
+                preview.update(data, language_selector.getLanguage());
             }
         };
-        let preview_adapter = {
+        const preview_adapter = {
             notifyError: log_handler.pushError,
             notifyTimeout: data => log_handler.pushTimeout('timeout loading preview: "' + data.id + '"')
         };
         // CONTROLS
-        let language_selector = getLanguageSelector(hmi, language_selector_adapter);
-        let key_textfield = getKeyTextfield(hmi, key_textfield_adapter);
-        let browser_tree = getBrowserTree(hmi, browser_tree_adapter);
-        let search_container = getSearchContainer(hmi, search_container_adapter);
-        let navigator = getNavigator(hmi, navigator_adapter, key_textfield, browser_tree, search_container);
-        let references = getReferences(hmi, references_adapter);
-        let refactoring = getRefactoring(hmi, refactoring_adapter);
-        let edit_ctrl = getEditController(hmi, edit_ctrl_adapter);
-        let preview = getPreview(hmi, preview_adapter);
+        const language_selector = getLanguageSelector(hmi, language_selector_adapter);
+        const key_textfield = getKeyTextfield(hmi, key_textfield_adapter);
+        const browser_tree = getBrowserTree(hmi, browser_tree_adapter);
+        const search_container = getSearchContainer(hmi, search_container_adapter);
+        const navigator = getNavigator(hmi, navigator_adapter, key_textfield, browser_tree, search_container);
+        const references = getReferences(hmi, references_adapter);
+        const refactoring = getRefactoring(hmi, refactoring_adapter);
+        const edit_ctrl = getEditController(hmi, edit_ctrl_adapter);
+        const preview = getPreview(hmi, preview_adapter);
         // SCROLL POSITIONS
         scroll_positions.push(edit_ctrl.scrolls_htm);
         scroll_positions.push(edit_ctrl.scrolls_txt);
@@ -2845,7 +2858,7 @@
         refactoring.y = 0;
         edit_ctrl.x = 2;
         edit_ctrl.y = 0;
-        let header = {
+        const header = {
             x: 0,
             y: 0,
             type: 'grid',
@@ -2858,7 +2871,7 @@
         log_handler.y = 0;
         log_handler.info.x = 1;
         log_handler.info.y = 0;
-        let time = {
+        const time = {
             x: 2,
             y: 0,
             refresh: date => {
@@ -2870,7 +2883,7 @@
                 }
             }
         };
-        let footer = {
+        const footer = {
             x: 0,
             y: 2,
             type: 'grid',
