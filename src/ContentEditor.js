@@ -143,7 +143,7 @@
                         if (typeof onError === 'function') {
                             onError(params.error);
                         }
-                    } else if (params.action === 'delete') {
+                    } else if (params.action === ContentManager.DELETE) {
                         if (Array.isArray(params.externalUsers) && params.externalUsers.length > 0) {
                             let txt = '<b>';
                             txt += 'Object is referenced!';
@@ -1042,14 +1042,14 @@
         const button_include = {
             x: 1,
             y: 1,
-            text: 'include',
+            text: ContentManager.INCLUDE,
             border: true,
             clicked: () => update_mode(ContentManager.INCLUDE)
         };
         const button_raw = {
             x: 2,
             y: 1,
-            text: 'raw',
+            text: ContentManager.RAW,
             border: true,
             selected: true,
             clicked: () => update_mode(ContentManager.RAW)
@@ -1207,14 +1207,14 @@
         const button_include = {
             x: 1,
             y: 1,
-            text: 'include',
+            text: ContentManager.INCLUDE,
             border: true,
             clicked: () => update_mode(ContentManager.INCLUDE)
         };
         const button_raw = {
             x: 2,
             y: 1,
-            text: 'raw',
+            text: ContentManager.RAW,
             border: true,
             selected: true,
             clicked: () => update_mode(ContentManager.RAW)
@@ -1410,14 +1410,14 @@
         const button_include = {
             x: 2,
             y: 1,
-            text: 'include',
+            text: ContentManager.INCLUDE,
             border: true,
             clicked: () => update_mode(ContentManager.INCLUDE)
         };
         const button_raw = {
             x: 3,
             y: 1,
-            text: 'raw',
+            text: ContentManager.RAW,
             border: true,
             selected: true,
             clicked: () => update_mode(ContentManager.RAW)
@@ -1645,7 +1645,7 @@
         const button_raw = {
             x: 2,
             y: 0,
-            text: 'raw',
+            text: ContentManager.RAW,
             border: true,
             selected: true,
             clicked: () => update_mode(ContentManager.RAW)
@@ -2163,7 +2163,7 @@
         const button_move = {
             x: 1,
             y: 0,
-            text: 'move',
+            text: ContentManager.MOVE,
             border: true,
             enabled: false,
             clicked: () => {
@@ -2175,7 +2175,7 @@
         const button_copy = {
             x: 2,
             y: 0,
-            text: 'copy',
+            text: ContentManager.COPY,
             enabled: false,
             border: true,
             clicked: () => {
@@ -2210,7 +2210,7 @@
         const button_delete = {
             x: 4,
             y: 0,
-            text: 'delete',
+            text: ContentManager.DELETE,
             enabled: false,
             border: true,
             clicked: () => {
