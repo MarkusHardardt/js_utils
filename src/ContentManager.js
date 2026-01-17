@@ -2010,8 +2010,8 @@
                     if (available === true) {
                         adapter.AddValue(`${hmiTable.name}.${hmiTable.valueColumn}`, SqlHelper.escape(id));
                         const checksum = Server.createSHA256(id);
-                        const queryParameterValue = `${checksum.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${checksum.substring(checksum.length - Math.ceil(AUTO_KEY_LENGTH / 2), checksum.length)}`;
-                        adapter.AddValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(queryParameterValue));
+                        const key = `${checksum.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${checksum.substring(checksum.length - Math.ceil(AUTO_KEY_LENGTH / 2), checksum.length)}`;
+                        adapter.AddValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(key));
                         adapter.PerformInsert(hmiTable.name, onSuc, onErr);
                     } else {
                         adapter.AddWhere(`${hmiTable.name}.${hmiTable.keyColumn} = ${SqlHelper.escape(id)}`);
@@ -2050,7 +2050,7 @@
                 adapter.AddWhere(`${hmiTable.name}.${hmiTable.keyColumn} = ${SqlHelper.escape(queryParameterValue)}`);
                 adapter.PerformSelect(hmiTable.name, undefined, undefined, undefined, result => {
                     if (!result || !Array.isArray(result) || result.length !== 1) {
-                        onError(`Invalid url: '${queryParameterValue}'`);
+                        onError(`Invalid query parameter: '${queryParameterValue}'`);
                         return;
                     }
                     const id = result[0].path;
@@ -2085,7 +2085,7 @@
         GetHMIObjects(onResponse, onError) {
             const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.keyColumn} AS queryParameterValue`);
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.keyColumn} AS key`);
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.valueColumn} AS path`);
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS enable`);
                 adapter.PerformSelect(hmiTable.name, undefined, 'path ASC', undefined, result => {

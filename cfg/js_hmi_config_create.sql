@@ -21,12 +21,11 @@ USE `js_hmi_config`;
 
 -- Exportiere Struktur von Tabelle js_hmi_config.hmi
 CREATE TABLE IF NOT EXISTS `hmi` (
-  `queryParameterValue` tinytext DEFAULT NULL,
+  `key` tinytext DEFAULT NULL,
   `jsonFxObjectKey` varchar(384) NOT NULL,
   `flags` tinyint(4) NOT NULL DEFAULT 0,
   `description` text DEFAULT NULL,
-  UNIQUE KEY `jsonFxObjectKey` (`jsonFxObjectKey`) USING BTREE,
-  UNIQUE KEY `queryParameterValue` (`queryParameterValue`) USING HASH
+  UNIQUE KEY `key` (`key`) USING HASH
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 -- Daten-Export vom Benutzer nicht ausgewählt
@@ -72,7 +71,6 @@ CREATE TABLE IF NOT EXISTS `task` (
   `jsonFxObjectKey` varchar(384) NOT NULL,
   `flags` tinyint(4) NOT NULL DEFAULT 0,
   `description` text DEFAULT NULL,
-  UNIQUE KEY `jsonFxObjectKey` (`jsonFxObjectKey`) USING BTREE,
   UNIQUE KEY `key` (`key`) USING HASH
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 

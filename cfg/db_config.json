@@ -13,7 +13,7 @@
         "HMI": {
             "name": "hmi",
             "extension": "hmi",
-            "keyColumn": "queryParameterValue",
+            "keyColumn": "key",
             "valueColumn": "jsonFxObjectKey",
             "flagsColumn": "flags",
             "icon": "hmi.gif",

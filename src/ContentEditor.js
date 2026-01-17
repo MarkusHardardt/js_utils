@@ -2320,7 +2320,7 @@
                         case HmiObjectsTableColumn.Object:
                             return row.path;
                         case HmiObjectsTableColumn.QueryParameter:
-                            return row.queryParameterValue;
+                            return row.key;
                         case HmiObjectsTableColumn.Enable:
                             return row.enable ? 'enabled' : 'disabled';
                         default:
