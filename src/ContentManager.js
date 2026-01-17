@@ -1416,14 +1416,21 @@
                     // get the target and check if already exists
                     const target = params.objects[source];
                     const targetAlreadyExists = params.existingTargets && params.existingTargets[target] === true;
-                    if (typeof table.valcol === 'string') {
-                        adapter.AddColumn(`${table.name}.${table.valcol}`);
-                    } else {
-                        for (const attr in table.valcol) {
-                            if (table.valcol.hasOwnProperty(attr)) {
-                                adapter.AddColumn(`${table.name}.${table.valcol[attr]}`);
+                    switch (table.type) {
+                        case DataTableType.JsonFX:
+                        case DataTableType.Text:
+                            adapter.AddColumn(`${table.name}.${table.valcol}`);
+                            break;
+                        case DataTableType.Label:
+                        case DataTableType.HTML:
+                        case DataTableType.HMI:
+                        case DataTableType.Task:
+                            for (const attr in table.valcol) {
+                                if (table.valcol.hasOwnProperty(attr)) {
+                                    adapter.AddColumn(`${table.name}.${table.valcol[attr]}`);
+                                }
                             }
-                        }
+                            break;
                     }
                     adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(srcTabKey)}`);
                     adapter.PerformSelect(table.name, undefined, undefined, 1, results => {
@@ -1445,9 +1452,12 @@
                             case DataTableType.Task:
                                 for (const attr in table.valcol) {
                                     if (table.valcol.hasOwnProperty(attr)) {
-                                        let string = values[table.valcol[attr]];
-                                        if (typeof string === 'string' && string.length > 0) {
-                                            string = getReplacement(string);
+                                        const value = values[table.valcol[attr]];
+                                        if (typeof value === 'string' && value.length > 0) {
+                                            const string = getReplacement(value);
+                                            adapter.AddValue(`${table.name}.${table.valcol[attr]}`, SqlHelper.escape(string));
+                                        } else if (value !== undefined) {
+                                            const string = value.toString();
                                             adapter.AddValue(`${table.name}.${table.valcol[attr]}`, SqlHelper.escape(string));
                                         }
                                     }
@@ -2050,7 +2060,7 @@
                         return;
                     }
                     const table = this._contentTablesByExtension[match[2]];
-                    if (!table || !table.JsonFx) {
+                    if (!table || !table.JsonFX) {
                         onError(`Invalid table name: '${id}'`);
                         return;
                     }

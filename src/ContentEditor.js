@@ -1784,7 +1784,7 @@
         const keyLabel = {
             x: 0,
             y: 0,
-            text: 'JsonFx object:',
+            text: 'JsonFX object:',
             align: 'right',
             border: false,
             classes: 'hmi-dark'
@@ -1873,7 +1873,7 @@
         const keyLabel = {
             x: 0,
             y: 0,
-            text: 'JsonFx object:',
+            text: 'JsonFX object:',
             align: 'right',
             border: false,
             classes: 'hmi-dark'
@@ -2070,7 +2070,7 @@
                     adapter.updateInfo('performed remove');
                     adapter.updateScrollParams(params);
                     adapter.reload();
-                }, error => {
+                }, error => { // TODO: This has not been called for SQL errors
                     mode = false;
                     source = false;
                     update();
