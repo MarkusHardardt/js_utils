@@ -733,21 +733,23 @@
                 switch (table.type) {
                     case DataTableType.JsonFX:
                     case DataTableType.Text:
-                        checksum += table.valcol;
-                        let currval = currentData !== undefined ? currentData[table.valcol] : undefined;
-                        let nextval = typeof value === 'string' ? value : undefined;
-                        let params = getModificationParams(currval, nextval);
-                        if (!params.empty) {
-                            stillNotEmpty = true;
-                        }
-                        if (params.changed) {
-                            changed = true;
-                        }
-                        values[table.valcol] = params;
-                        checksum += params.empty ? 'e' : 'd';
-                        checksum += params.changed ? 'e' : 'd';
-                        if (typeof params.string === 'string') {
-                            checksum += params.string;
+                        {
+                            checksum += table.valcol;
+                            const currval = currentData !== undefined ? currentData[table.valcol] : undefined;
+                            const nextval = typeof value === 'string' ? value : undefined;
+                            const params = getModificationParams(currval, nextval);
+                            if (!params.empty) {
+                                stillNotEmpty = true;
+                            }
+                            if (params.changed) {
+                                changed = true;
+                            }
+                            values[table.valcol] = params;
+                            checksum += params.empty ? 'e' : 'd';
+                            checksum += params.changed ? 'e' : 'd';
+                            if (typeof params.string === 'string') {
+                                checksum += params.string;
+                            }
                         }
                         break;
                     case DataTableType.Label:
@@ -783,8 +785,25 @@
                         break;
                     case DataTableType.HMI:
                         console.log(`currentData: ${JSON.stringify(currentData)}, value: ${JSON.stringify(value)}`);
-                        onError(`Unsupported type for modification: '${table.type}'`);
-                        return;
+                        {
+                            checksum += table.valcol;
+                            const currval = currentData !== undefined ? JSON.stringify(currentData) : undefined;
+                            const nextval = value !== undefined ? JSON.stringify(value) : undefined;
+                            const params = getModificationParams(currval, nextval);
+                            if (!params.empty) {
+                                stillNotEmpty = true;
+                            }
+                            if (params.changed) {
+                                changed = true;
+                            }
+                            values[table.valcol] = params;
+                            checksum += params.empty ? 'e' : 'd';
+                            checksum += params.changed ? 'e' : 'd';
+                            if (typeof params.string === 'string') {
+                                checksum += params.string;
+                            }
+                        }
+                        break;
                     default:
                         onError(`Unsupported type for modification: '${table.type}'`);
                         return;
@@ -854,37 +873,61 @@
                             onErr('No action to perform!');
                         } else if (params.action === ContentManager.INSERT) {
                             adapter.AddValue(`${table.name}.${table.keyColumn}`, SqlHelper.escape(rawKey));
-                            if (typeof table.valcol === 'string') {
-                                const value = params.values[table.valcol];
-                                if (value.changed) {
-                                    adapter.AddValue(`${table.name}.${table.valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
-                                }
-                            } else {
-                                for (const attr in table.valcol) {
-                                    if (table.valcol.hasOwnProperty(attr)) {
-                                        const value = params.values[attr];
+                            switch (table.type) {
+                                case DataTableType.JsonFX:
+                                case DataTableType.Text:
+                                    {
+                                        const value = params.values[table.valcol];
                                         if (value.changed) {
-                                            adapter.AddValue(`${table.name}.${table.valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                            adapter.AddValue(`${table.name}.${table.valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                         }
                                     }
-                                }
+                                    break;
+                                case DataTableType.Label:
+                                case DataTableType.HTML:
+                                    for (const attr in table.valcol) {
+                                        if (table.valcol.hasOwnProperty(attr)) {
+                                            const value = params.values[attr];
+                                            if (value.changed) {
+                                                adapter.AddValue(`${table.name}.${table.valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                            }
+                                        }
+                                    }
+                                    break;
+                                case DataTableType.HMI:
+                                    break;
+                                default:
+                                    onErr(`Cannot insert unsupported type: ${table.type}`);
+                                    return;
                             }
                             adapter.PerformInsert(table.name, onSuc, onErr);
                         } else if (params.action === ContentManager.UPDATE) {
-                            if (typeof table.valcol === 'string') {
-                                const value = params.values[table.valcol];
-                                if (value.changed) {
-                                    adapter.AddValue(`${table.name}.${table.valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
-                                }
-                            } else {
-                                for (const attr in table.valcol) {
-                                    if (table.valcol.hasOwnProperty(attr)) {
-                                        const value = params.values[attr];
+                            switch (table.type) {
+                                case DataTableType.JsonFX:
+                                case DataTableType.Text:
+                                    {
+                                        const value = params.values[table.valcol];
                                         if (value.changed) {
-                                            adapter.AddValue(`${table.name}.${table.valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                            adapter.AddValue(`${table.name}.${table.valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                         }
                                     }
-                                }
+                                    break;
+                                case DataTableType.Label:
+                                case DataTableType.HTML:
+                                    for (const attr in table.valcol) {
+                                        if (table.valcol.hasOwnProperty(attr)) {
+                                            const value = params.values[attr];
+                                            if (value.changed) {
+                                                adapter.AddValue(`${table.name}.${table.valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                            }
+                                        }
+                                    }
+                                    break;
+                                case DataTableType.HMI:
+                                    break;
+                                default:
+                                    onErr(`Cannot update unsupported type: ${table.type}`);
+                                    return;
                             }
                             adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
                             adapter.PerformUpdate(table.name, undefined, 1, onSuc, onErr);
@@ -1888,14 +1931,14 @@
             const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.valueColumn} AS path`);
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS enable`);
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS flags`);
                 adapter.AddWhere(`${hmiTable.name}.${hmiTable.keyColumn} = ${SqlHelper.escape(match[1])}`);
                 adapter.PerformSelect(hmiTable.name, undefined, 'path ASC', undefined, result => {
                     if (!result || !Array.isArray(result) || result.length !== 1) {
                         onError(`Invalid id: '${id}'`);
                         return;
                     }
-                    onResponse({ jsonFxObjectKey: result[0].path, enabled: result[0].enable });
+                    onResponse({ jsonFxObjectKey: result[0].path, flags: result[0].flags });
                 }, error => {
                     adapter.Close();
                     onError(error);
