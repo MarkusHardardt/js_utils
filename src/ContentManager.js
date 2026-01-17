@@ -42,7 +42,6 @@
             'GetIdSelectedValues(id, language, onResponse, onError)',
             'IsHMIObject(id, onResponse, onError)',
             'SetAvailabilityAsHMIObject(id, available, onResponse, onError)',
-            'GetHMIData(id, onResponse, onError)',
             'GetHMIObject(queryParameterValue, onResponse, onError)',
             'GetHMIObjects(onResponse, onError)',
             'IsTaskObject(id, onResponse, onError)',
@@ -176,7 +175,6 @@
     const COMMAND_GET_ID_SELECTED_VALUES = 'get_id_selected_values';
     const COMMAND_IS_HMI_OBJECT = 'is_hmi_object';
     const COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT = 'set_availability_as_hmi_object';
-    const COMMAND_GET_HMI_DATA = 'get_hmi_data';
     const COMMAND_GET_HMI_OBJECT = 'get_hmi_object';
     const COMMAND_GET_HMI_OBJECTS = 'get_hmi_objects';
     const COMMAND_IS_TASK_OBJECT = 'is_task_object';
@@ -867,7 +865,7 @@
                             if (table.valcol.hasOwnProperty(attr)) {
                                 // for all columns we try to get the current and new value
                                 const currval = getValueForAttribute(currentData, table.valcol[attr]);
-                                const nextval = getValueForAttribute(value, table.valcol[attr]);
+                                const nextval = getValueForAttribute(value, attr);
                                 const params = getModificationParams(currval, nextval);
                                 if (!params.empty) {
                                     stillNotEmpty = true;
@@ -2025,29 +2023,6 @@
                 });
             }, onError);
         }
-        GetHMIData(id, onResponse, onError) { // TODO: Required???
-            const match = this._contentTablesKeyRegex.exec(id);
-            if (!match) {
-                onError(`Invalid id: '${id}'`);
-                return;
-            }
-            const hmiTable = this._hmiTable;
-            this._getSqlAdapter(adapter => {
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.valueColumn} AS path`);
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS flags`);
-                adapter.AddWhere(`${hmiTable.name}.${hmiTable.keyColumn} = ${SqlHelper.escape(match[1])}`);
-                adapter.PerformSelect(hmiTable.name, undefined, 'path ASC', undefined, result => {
-                    if (!result || !Array.isArray(result) || result.length !== 1) {
-                        onError(`Invalid id: '${id}'`);
-                        return;
-                    }
-                    onResponse({ jsonFxObjectKey: result[0].path, flags: result[0].flags });
-                }, error => {
-                    adapter.Close();
-                    onError(error);
-                });
-            }, onError);
-        }
         GetHMIObject(queryParameterValue, onResponse, onError) {
             const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
@@ -2251,9 +2226,6 @@
                     break;
                 case COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT:
                     this.SetAvailabilityAsHMIObject(request.id, request.available, onResponse, onError);
-                    break;
-                case COMMAND_GET_HMI_DATA:
-                    this.GetHMIData(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_HMI_OBJECT:
                     this.GetHMIObject(request.queryParameterValue, onResponse, onError);
@@ -2523,9 +2495,6 @@
         }
         SetAvailabilityAsHMIObject(id, available, onResponse, onError) {
             this._post({ command: COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT, id, available }, onResponse, onError);
-        }
-        GetHMIData(id, onResponse, onError) {
-            this._post({ command: COMMAND_GET_HMI_DATA, id }, onResponse, onError);
         }
         GetHMIObject(queryParameterValue, onResponse, onError) {
             const that = this;

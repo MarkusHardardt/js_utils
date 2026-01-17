@@ -1763,20 +1763,6 @@
         const cms = hmi.cms;
         function reload(data, language, onSuccess, onError) {
             if (data && data.file) {
-                /* cms.GetHMIData(data.file, data => {
-                    if (data !== undefined) {
-                        keyValue.hmi_value(data.jsonFxObjectKey);
-                        checkbox.setValue((data.flags & 1) !== 0);
-                    } else {
-                        keyValue.hmi_value('');
-                        checkbox.setValue(false);
-                    }
-                    onSuccess();
-                }, error => {
-                    keyValue.hmi_value('');
-                    checkbox.setValue(false);
-                    onError(error);
-                }); */
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
                         keyValue.hmi_value(data.valueColumn);
