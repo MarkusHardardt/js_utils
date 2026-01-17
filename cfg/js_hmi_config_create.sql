@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS `task` (
   `jsonFxObjectKey` varchar(384) NOT NULL,
   `flags` tinyint(4) NOT NULL DEFAULT 0,
   `description` text DEFAULT NULL,
+  `cycleIntervalMillis` int(11) NOT NULL,
   UNIQUE KEY `key` (`key`) USING HASH
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
