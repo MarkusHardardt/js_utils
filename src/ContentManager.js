@@ -501,7 +501,7 @@
         }
         _getObject(adapter, id, rawKey, table, language, mode, onResponse, onError) {
             const that = this;
-            let parse = mode === ContentManager.PARSE, include = parse || mode === ContentManager.INCLUDE;
+            const parse = mode === ContentManager.PARSE, include = parse || mode === ContentManager.INCLUDE;
             function success(response) {
                 try {
                     if (parse) {
@@ -2025,7 +2025,7 @@
                 });
             }, onError);
         }
-        GetHMIData(id, onResponse, onError) {
+        GetHMIData(id, onResponse, onError) { // TODO: Required???
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);

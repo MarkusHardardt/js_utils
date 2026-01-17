@@ -1757,14 +1757,30 @@
         return box;
     }
 
+    const HMI_FLAG_ENABLE = 0x01;
+
     function getHmiEditor(hmi, adapter) {
         const cms = hmi.cms;
         function reload(data, language, onSuccess, onError) {
             if (data && data.file) {
-                cms.GetHMIData(data.file, data => {
+                /* cms.GetHMIData(data.file, data => {
                     if (data !== undefined) {
                         keyValue.hmi_value(data.jsonFxObjectKey);
                         checkbox.setValue((data.flags & 1) !== 0);
+                    } else {
+                        keyValue.hmi_value('');
+                        checkbox.setValue(false);
+                    }
+                    onSuccess();
+                }, error => {
+                    keyValue.hmi_value('');
+                    checkbox.setValue(false);
+                    onError(error);
+                }); */
+                cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
+                    if (data !== undefined) {
+                        keyValue.hmi_value(data.valueColumn);
+                        checkbox.setValue((data.flagsColumn & HMI_FLAG_ENABLE) !== 0);
                     } else {
                         keyValue.hmi_value('');
                         checkbox.setValue(false);
@@ -1811,8 +1827,7 @@
             border: false,
             classes: 'hmi-dark'
         };
-        let enable = false;
-        const checkbox = getCheckbox(checked => enable = checked == true);
+        const checkbox = getCheckbox(adapter.edited);
         const enableValue = {
             x: 1,
             y: 1,
@@ -1831,11 +1846,11 @@
             getValue: () => {
                 let flags = 0;
                 if (checkbox.getValue()) {
-                    flags |= 1;
+                    flags |= HMI_FLAG_ENABLE;
                 }
                 return {
-                    jsonFxObjectKey: keyValue.hmi_value(),
-                    flags
+                    valueColumn: keyValue.hmi_value(),
+                    flagsColumn: flags
                 };
             }
         };
@@ -2311,7 +2326,7 @@
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.Label)] = labelEditor;
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.HTML)] = htmlEditor;
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.HMI)] = hmiEditor;
-        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Task)] = taskEditor;
+        // TODO: use handlers[cms.GetExtensionForType(ContentManager.DataTableType.Task)] = taskEditor;
         const editContainer = {
             type: 'container'
         };
