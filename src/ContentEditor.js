@@ -850,13 +850,13 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getLabelPreview(hmi, adapter) {
-        const cms = hmi.cms, langs = hmi.cms.GetLanguages(), children = [], rows = [], values = {};
+        const cms = hmi.cms, langs = cms.GetLanguages(), children = [], rows = [], values = {};
         function reload(data, language, onSuccess, onError) {
             if (data && data.file) {
-                cms.GetObject(data.file, undefined, ContentManager.INCLUDE, build => {
-                    if (build !== undefined) {
+                cms.GetObject(data.file, undefined, ContentManager.INCLUDE, result => {
+                    if (result !== undefined) {
                         for (let i = 0, l = langs.length; i < l; i++) {
-                            let lang = langs[i], lab = build[lang];
+                            const lang = langs[i], lab = result[lang];
                             values[lang].hmi_html(lab || '');
                         }
                     } else {
@@ -912,10 +912,10 @@
         const cms = hmi.cms, langs = cms.GetLanguages(), children = [], rows = [], values = {};
         function reload(data, language, onSuccess, onError) {
             if (data && data.file) {
-                cms.GetObject(data.file, undefined, ContentManager.RAW, raw => {
-                    if (raw !== undefined) {
+                cms.GetObject(data.file, undefined, ContentManager.RAW, result => {
+                    if (result !== undefined) {
                         for (let i = 0, l = langs.length; i < l; i++) {
-                            const lang = langs[i], lab = raw[lang];
+                            const lang = langs[i], lab = result[lang];
                             values[lang].hmi_value(lab || '');
                         }
                     } else {
@@ -1743,7 +1743,6 @@
             y: 0.5,
             width: 1,
             height: 1,
-            pressed: () => setValue(!checked),
             bounds: {
                 x: -0.2,
                 y: -0.2,
@@ -1754,7 +1753,77 @@
             setValue,
             getValue: () => checked
         };
+        if (typeof onChanged === 'function') {
+            box.pressed = () => setValue(!checked);
+        }
         return box;
+    }
+
+    function getHmiPreview(hmi, adapter) {
+        const cms = hmi.cms;
+        function reload(data, language, onSuccess, onError) {
+            if (data && data.file) {
+                cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
+                    if (data !== undefined) {
+                        keyValue.hmi_text(data.valueColumn);
+                        checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_ENABLE) !== 0);
+                    } else {
+                        keyValue.hmi_text('');
+                        checkbox.setValue(false);
+                    }
+                    onSuccess();
+                }, error => {
+                    keyValue.hmi_text('');
+                    checkbox.setValue(false);
+                    onError(error);
+                });
+            } else {
+                keyValue.hmi_text('');
+                checkbox.setValue(false);
+                onSuccess();
+            }
+        };
+        const keyLabel = {
+            x: 0,
+            y: 0,
+            text: 'JsonFX object:',
+            align: 'right',
+            border: false,
+            classes: 'hmi-dark'
+        };
+        const keyValue = {
+            x: 1,
+            y: 0,
+            text: '',
+            align: 'left',
+            border: false,
+            classes: 'hmi-dark'
+        };
+        const enableLabel = {
+            x: 0,
+            y: 1,
+            text: 'enable:',
+            align: 'right',
+            border: false,
+            classes: 'hmi-dark'
+        };
+        const checkbox = getCheckbox();
+        const enableValue = {
+            x: 1,
+            y: 1,
+            type:'grid',
+            columns:['40px', 1],
+            children:[{
+                object: checkbox
+            }]
+        };
+        return {
+            type: 'grid',
+            columns: ['140px', 1],
+            rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
+            children: [keyLabel, keyValue, enableLabel, enableValue],
+            keyChanged: reload
+        };
     }
 
     function getHmiEditor(hmi, adapter) {
@@ -1845,6 +1914,83 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
     // TASKS - EDITOR
     // ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    function getTaskPreview(hmi, adapter) {
+        const cms = hmi.cms;
+        function reload(data, language, onSuccess, onError) {
+            if (data && data.file) {
+                cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
+                    if (data !== undefined) {
+                        keyValue.hmi_text(data.valueColumn);
+                        checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_AUTORUN) !== 0);
+                    } else {
+                        keyValue.hmi_text('');
+                        checkbox.setValue(false);
+                    }
+                    onSuccess();
+                }, error => {
+                    keyValue.hmi_text('');
+                    checkbox.setValue(false);
+                    onError(error);
+                });
+            } else {
+                keyValue.hmi_text('');
+                checkbox.setValue(false);
+                onSuccess();
+            }
+        };
+        const keyLabel = {
+            x: 0,
+            y: 0,
+            text: 'JsonFX object:',
+            align: 'right',
+            border: false,
+            classes: 'hmi-dark'
+        };
+        const keyValue = {
+            x: 1,
+            y: 0,
+            text: '',
+            align: 'left',
+            border: false,
+            classes: 'hmi-dark',
+        };
+        const autorunLabel = {
+            x: 0,
+            y: 1,
+            text: 'autorun:',
+            align: 'right',
+            border: false,
+            classes: 'hmi-dark'
+        };
+        const checkbox = getCheckbox();
+        const autorunValue = {
+            x: 1,
+            y: 1,
+            type:'grid',
+            columns:['40px', 1],
+            children:[{
+                object: checkbox
+            }]
+        };
+        return {
+            type: 'grid',
+            columns: ['140px', 1],
+            rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
+            children: [keyLabel, keyValue, autorunLabel, autorunValue],
+            keyChanged: reload,
+            getValue: () => {
+                let flags = 0;
+                if (checkbox.getValue()) {
+                    flags |= ContentManager.HMI_FLAG_AUTORUN;
+                }
+                return {
+                    valueColumn: keyValue.hmi_value(),
+                    flagsColumn: flags
+                };
+            }
+        };
+    }
 
     function getTaskEditor(hmi, adapter) {
         const cms = hmi.cms;
@@ -1953,11 +2099,15 @@
         const textPreview = getTextPreview(hmi, adapter);
         const labelPreview = getLabelPreview(hmi, adapter);
         const htmlPreview = getHtmlPreview(hmi, adapter);
+        const hmiPreviw = getHmiPreview(hmi, adapter);
+        const taskPreviw = getTaskPreview(hmi, adapter);
         const handlers = {};
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.JsonFX)] = jsonFxPreview;
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.Text)] = textPreview;
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.Label)] = labelPreview;
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.HTML)] = htmlPreview;
+        handlers[cms.GetExtensionForType(ContentManager.DataTableType.HMI)] = hmiPreviw;
+        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Task)] = taskPreviw;
         const container = {
             type: 'container',
             update: (data, lang) => {
