@@ -28,11 +28,6 @@
             'SetObject(id, language, value, checksum, onResponse, onError)',
             'GetRefactoringParams(source, target, action, onResponse, onError)',
             'PerformRefactoring(source, target, action, checksum, onResponse, onError)',
-            'GetReferencesTo(id, onResponse, onError)',
-            'GetReferencesToCount(id, onResponse, onError)',
-            'GetReferencesFrom(id, onResponse, onError)',
-            'GetReferencesFromCount(id, onResponse, onError)',
-            'GetTreeChildNodes(id, onResponse, onError)',
             'GetSearchResults(key, value, onResponse, onError)',
             'GetIdKeyValues(id, onResponse, onError)',
             'GetIdSelectedValues(id, language, onResponse, onError)',
@@ -165,11 +160,6 @@
     const COMMAND_SET_OBJECT = 'set_object';
     const COMMAND_GET_REFACTORING_PARAMS = 'get_refactoring_params';
     const COMMAND_PERFORM_REFACTORING = 'perform_refactoring';
-    const COMMAND_GET_REFERENCES_TO = 'get_references_to';
-    const COMMAND_GET_REFERENCES_TO_COUNT = 'get_references_to_count';
-    const COMMAND_GET_REFERENCES_FROM = 'get_references_from';
-    const COMMAND_GET_REFERENCES_FROM_COUNT = 'get_references_from_count';
-    const COMMAND_GET_TREE_CHILD_NODES = 'get_tree_child_nodes';
     const COMMAND_GET_SEARCH_RESULTS = 'get_search_results';
     const COMMAND_GET_ID_KEY_VALUES = 'get_id_key_values';
     const COMMAND_GET_ID_SELECTED_VALUES = 'get_id_selected_values';
@@ -1546,7 +1536,7 @@
             }
             Executor.run(main, onResponse, onError);
         }
-        GetReferencesTo(id, onResponse, onError) {
+        _getReferencesTo(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
                 const user = this._contentTablesByExtension[match[2]];
@@ -1599,7 +1589,7 @@
                 onResponse([]);
             }
         }
-        GetReferencesToCount(id, onResponse, onError) {
+        _getReferencesToCount(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
                 const user = this._contentTablesByExtension[match[2]];
@@ -1689,7 +1679,7 @@
                 onResponse(array);
             }, onError);
         }
-        GetReferencesFrom(id, onResponse, onError) {
+        _getReferencesFrom(id, onResponse, onError) {
             if (this._contentTablesKeyRegex.test(id)) {
                 const that = this;
                 this._getSqlAdapter(adapter => {
@@ -1706,7 +1696,7 @@
                 onResponse([]);
             }
         }
-        GetReferencesFromCount(id, onResponse, onError) {
+        _getReferencesFromCount(id, onResponse, onError) {
             if (this._contentTablesKeyRegex.test(id)) {
                 const that = this;
                 this._getSqlAdapter(adapter => {
@@ -1757,7 +1747,7 @@
                 onResponse(0);
             }
         }
-        GetTreeChildNodes(id, onResponse, onError) {
+        _getTreeChildNodes(id, onResponse, onError) {
             const match = FOLDER_REGEX.exec(id);
             if (match) {
                 const that = this, key = match[1];
@@ -1780,7 +1770,7 @@
                                      *   folder : 'true if name ends with delimiter'
                                      * }
                                      * </code>
-                                     * We add more parameters so our GetTreeChildNodes method will
+                                     * We add more parameters to our _getTreeChildNodes method will
                                      * retourn an array of objects like: <code>
                                      * {
                                      *   name : 'name of the folder or file',
@@ -2223,21 +2213,6 @@
                 case COMMAND_PERFORM_REFACTORING:
                     this.PerformRefactoring(request.source, request.target, request.action, request.checksum, onResponse, onError);
                     break;
-                case COMMAND_GET_REFERENCES_TO:
-                    this.GetReferencesTo(request.id, onResponse, onError);
-                    break;
-                case COMMAND_GET_REFERENCES_TO_COUNT:
-                    this.GetReferencesToCount(request.id, onResponse, onError);
-                    break;
-                case COMMAND_GET_REFERENCES_FROM:
-                    this.GetReferencesFrom(request.id, onResponse, onError);
-                    break;
-                case COMMAND_GET_REFERENCES_FROM_COUNT:
-                    this.GetReferencesFromCount(request.id, onResponse, onError);
-                    break;
-                case COMMAND_GET_TREE_CHILD_NODES:
-                    this.GetTreeChildNodes(request.id, onResponse, onError);
-                    break;
                 case COMMAND_GET_SEARCH_RESULTS:
                     this.GetSearchResults(request.key, request.value, onResponse, onError);
                     break;
@@ -2288,7 +2263,7 @@
                      * }
                      * </code>
                      */
-                    this.GetTreeChildNodes(id, nodes => {
+                    this._getTreeChildNodes(id, nodes => {
                         // transform to fance-tree node style
                         const ns = [], l = nodes.length;
                         for (let i = 0; i < l; i++) {
@@ -2311,7 +2286,7 @@
                     }, onError);
                     break;
                 case ContentManager.COMMAND_GET_REFERENCES_TO_TREE_NODES:
-                    this.GetReferencesTo(id, results => {
+                    this._getReferencesTo(id, results => {
                         // transform to fance-tree node style
                         const nodes = [], l = results.length, tasks = [];
                         for (let i = 0; i < l; i++) {
@@ -2330,7 +2305,7 @@
                                 };
                                 nodes.push(node);
                                 tasks.push((onSuc, onErr) => {
-                                    that.GetReferencesToCount(key, count => {
+                                    that._getReferencesToCount(key, count => {
                                         const folder = count > 0;
                                         node.folder = folder;
                                         node.lazy = folder;
@@ -2344,7 +2319,7 @@
                     }, onError);
                     break;
                 case ContentManager.COMMAND_GET_REFERENCES_FROM_TREE_NODES:
-                    this.GetReferencesFrom(id, results => {
+                    this._getReferencesFrom(id, results => {
                         // transform to fance-tree node style
                         const nodes = [], l = results.length, tasks = [];
                         for (let i = 0; i < l; i++) {
@@ -2363,7 +2338,7 @@
                                 };
                                 nodes.push(node);
                                 tasks.push((onSuc, onErr) => {
-                                    that.GetReferencesFromCount(key, count => {
+                                    that._getReferencesFromCount(key, count => {
                                         const folder = count > 0;
                                         node.folder = folder;
                                         node.lazy = folder;
@@ -2496,21 +2471,6 @@
         }
         PerformRefactoring(source, target, action, checksum, onResponse, onError) {
             this._post({ command: COMMAND_PERFORM_REFACTORING, source, target, action, checksum }, onResponse, onError);
-        }
-        GetReferencesTo(id, onResponse, onError) {
-            this._post({ command: COMMAND_GET_REFERENCES_TO, id }, onResponse, onError);
-        }
-        GetReferencesToCount(id, onResponse, onError) {
-            this._post({ command: COMMAND_GET_REFERENCES_TO_COUNT, id }, onResponse, onError);
-        }
-        GetReferencesFrom(id, onResponse, onError) {
-            this._post({ command: COMMAND_GET_REFERENCES_FROM, id }, onResponse, onError);
-        }
-        GetReferencesFromCount(id, onResponse, onError) {
-            this._post({ command: COMMAND_GET_REFERENCES_FROM_COUNT, id }, onResponse, onError);
-        }
-        GetTreeChildNodes(id, onResponse, onError) {
-            this._post({ command: COMMAND_GET_TREE_CHILD_NODES, id }, onResponse, onError);
         }
         GetSearchResults(key, value, onResponse, onError) {
             this._post({ command: COMMAND_GET_SEARCH_RESULTS, key, value }, onResponse, onError);
