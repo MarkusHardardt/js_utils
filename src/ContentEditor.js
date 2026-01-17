@@ -1923,19 +1923,23 @@
                     if (data !== undefined) {
                         keyValue.hmi_text(data.valueColumn);
                         checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_AUTORUN) !== 0);
+                        cycleMillisValue.hmi_text(data.cycleIntervalMillisColumn);
                     } else {
                         keyValue.hmi_text('');
                         checkbox.setValue(false);
+                        cycleMillisValue.hmi_text('');
                     }
                     onSuccess();
                 }, error => {
                     keyValue.hmi_text('');
                     checkbox.setValue(false);
+                    cycleMillisValue.hmi_text('');
                     onError(error);
                 });
             } else {
                 keyValue.hmi_text('');
                 checkbox.setValue(false);
+                cycleMillisValue.hmi_text('');
                 onSuccess();
             }
         };
@@ -1973,11 +1977,27 @@
                 object: checkbox
             }]
         };
+        const cycleMillisLabel = {
+            x: 0,
+            y: 2,
+            text: 'cycle millis:',
+            align: 'right',
+            border: false,
+            classes: 'hmi-dark'
+        };
+        const cycleMillisValue = {
+            x: 1,
+            y: 2,
+            text: '',
+            align: 'left',
+            border: false,
+            classes: 'hmi-dark',
+        };
         return {
             type: 'grid',
             columns: ['140px', 1],
-            rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
-            children: [keyLabel, keyValue, autorunLabel, autorunValue],
+            rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
+            children: [keyLabel, keyValue, autorunLabel, autorunValue, cycleMillisLabel, cycleMillisValue],
             keyChanged: reload,
             getValue: () => {
                 let flags = 0;
@@ -2000,19 +2020,23 @@
                     if (data !== undefined) {
                         keyValue.hmi_value(data.valueColumn);
                         checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_AUTORUN) !== 0);
+                        cycleMillisValue.hmi_value(data.cycleIntervalMillisColumn.toString());
                     } else {
                         keyValue.hmi_value('');
                         checkbox.setValue(false);
+                        cycleMillisValue.hmi_value('');
                     }
                     onSuccess();
                 }, error => {
                     keyValue.hmi_value('');
                     checkbox.setValue(false);
+                    cycleMillisValue.hmi_value('');
                     onError(error);
                 });
             } else {
                 keyValue.hmi_value('');
                 checkbox.setValue(false);
+                cycleMillisValue.hmi_value('');
                 onSuccess();
             }
         };
@@ -2058,11 +2082,35 @@
                 object: checkbox
             }]
         };
+        const cycleMillisLabel = {
+            x: 0,
+            y: 2,
+            text: 'cycle millis:',
+            align: 'right',
+            border: false,
+            classes: 'hmi-dark'
+        };
+        const cycleMillisValue = {
+            x: 1,
+            y: 2,
+            type: 'textfield',
+            editable: true,
+            border: false,
+            classes: 'hmi-dark',
+            prepare: (that, onSuccess, onError) => {
+                that.hmi_addChangeListener(adapter.edited);
+                onSuccess();
+            },
+            destroy: (that, onSuccess, onError) => {
+                that.hmi_removeChangeListener(adapter.edited);
+                onSuccess();
+            }
+        };
         return {
             type: 'grid',
             columns: ['140px', 1],
-            rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
-            children: [keyLabel, keyValue, autorunLabel, autorunValue],
+            rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
+            children: [keyLabel, keyValue, autorunLabel, autorunValue, cycleMillisLabel, cycleMillisValue],
             keyChanged: reload,
             getValue: () => {
                 let flags = 0;
@@ -2071,7 +2119,8 @@
                 }
                 return {
                     valueColumn: keyValue.hmi_value(),
-                    flagsColumn: flags
+                    flagsColumn: flags,
+                    cycleIntervalMillisColumn: cycleMillisValue.hmi_value()
                 };
             }
         };

@@ -263,6 +263,7 @@
                     } else if (this._contentTablesByExtension[extension] !== undefined) {
                         throw new Error(`Extension already exists: '${extension}'`);
                     }
+                    const valueColumns = {}; // TODO: use or remove
                     let valcol;
                     switch (type) {
                         case DataTableType.JsonFX:
@@ -285,7 +286,6 @@
                             }
                             break;
                         case DataTableType.HMI:
-                        case DataTableType.Task:
                             if (typeof tableConfig.valueColumn !== 'string') {
                                 throw new Error(`Missing value column parameter for table type '${type}'`);
                             } else if (typeof tableConfig.flagsColumn !== 'string') {
@@ -294,6 +294,20 @@
                             valcol = {
                                 valueColumn: tableConfig.valueColumn,
                                 flagsColumn: tableConfig.flagsColumn
+                            };
+                            break;
+                        case DataTableType.Task:
+                            if (typeof tableConfig.valueColumn !== 'string') {
+                                throw new Error(`Missing value column parameter for table type '${type}'`);
+                            } else if (typeof tableConfig.flagsColumn !== 'string') {
+                                throw new Error(`Missing flags column parameter for table type '${type}'`);
+                            } else if (typeof tableConfig.cycleIntervalMillisColumn !== 'string') {
+                                throw new Error(`Missing cycle tnterval millis column column parameter for table type '${type}'`);
+                            }
+                            valcol = {
+                                valueColumn: tableConfig.valueColumn,
+                                flagsColumn: tableConfig.flagsColumn,
+                                cycleIntervalMillisColumn: tableConfig.cycleIntervalMillisColumn
                             };
                             break;
                         default:
@@ -325,6 +339,7 @@
                             break;
                         case DataTableType.Task:
                             table.flagsColumn = tableConfig.flagsColumn; // TODO: use valcol
+                            table.cycleIntervalMillisColumn = tableConfig.cycleIntervalMillisColumn;
                             this._taskTable = table; // TODO: Required? Maybe use _contentTablesByExtension instead
                             break;
                         default:
@@ -368,20 +383,21 @@
                     onError(`Invalid table: ${id}`);
                     return;
                 }
-                this._getSqlAdapter(adapter => {
-                    adapter.AddColumn('COUNT(*) AS cnt');
-                    adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(match[1])}`);
-                    adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
-                        adapter.Close();
-                        onResponse(result[0].cnt > 0);
-                    }, error => {
-                        adapter.Close();
-                        onError(error);
-                    });
-                }, onError);
+                this._getSqlAdapter(adapter => this._exists(adapter, table, match[1], exists => {
+                    adapter.Close();
+                    onResponse(exists);
+                }, error => {
+                    adapter.Close();
+                    onError(error);
+                }), onError);
             } else {
                 onResponse(false);
             }
+        }
+        _exists(adapter, table, rawKey, onResponse, onError) {
+            adapter.AddColumn('COUNT(*) AS cnt');
+            adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
+            adapter.PerformSelect(table.name, undefined, undefined, undefined, result => onResponse(result[0].cnt > 0), onError);
         }
         GetChecksum(id, onResponse, onError) {
             // first we try to get table object matching to the given key
@@ -2002,11 +2018,6 @@
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.valueColumn} AS path`);
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS flags`);
-                /* TODO: remove for (const attr in hmiTable.valcol) {
-                    if (hmiTable.valcol.hasOwnProperty(attr)) {
-                        adapter.AddColumn(`${hmiTable.name}.${hmiTable.valcol[attr]} AS ${attr}`);
-                    }
-                }*/
                 adapter.AddWhere(`${hmiTable.name}.${hmiTable.keyColumn} = ${SqlHelper.escape(queryParameterValue)}`);
                 adapter.PerformSelect(hmiTable.name, undefined, undefined, undefined, result => {
                     if (!result || !Array.isArray(result) || result.length !== 1) {
@@ -2095,17 +2106,29 @@
                 onError(`Is not a JsonFX object: '${id}'`);
                 return;
             }
+            const rawKey = match[1];
             const taskTable = this._taskTable;
             this._getSqlAdapter(adapter => {
                 const tasks = [];
                 tasks.parallel = false;
                 tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
+                let equalNameExists = false;
+                tasks.push((onSuc, onErr) => this._exists(adapter, taskTable, rawKey, response => {
+                    equalNameExists = response === true;
+                    onSuc();
+                }, onErr));
                 tasks.push((onSuc, onErr) => {
                     if (available === true) {
+                        if (equalNameExists) {
+                            const checksum = Server.createSHA256(id);
+                            const keyValue = `${checksum.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${checksum.substring(checksum.length - Math.ceil(AUTO_KEY_LENGTH / 2), checksum.length)}`;
+                            adapter.AddValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(keyValue));
+                        } else {
+                            adapter.AddValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(rawKey));
+                        }
                         adapter.AddValue(`${taskTable.name}.${taskTable.valueColumn}`, SqlHelper.escape(id));
-                        const checksum = Server.createSHA256(id);
-                        const keyValue = `${checksum.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${checksum.substring(checksum.length - Math.ceil(AUTO_KEY_LENGTH / 2), checksum.length)}`;
-                        adapter.AddValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(keyValue));
+                        adapter.AddValue(`${taskTable.name}.${taskTable.flagsColumn}`, SqlHelper.escape('0'));
+                        adapter.AddValue(`${taskTable.name}.${taskTable.cycleIntervalMillisColumn}`, SqlHelper.escape('0'));
                         adapter.PerformInsert(taskTable.name, onSuc, onErr);
                     } else {
                         adapter.AddWhere(`${taskTable.name}.${taskTable.valueColumn} = ${SqlHelper.escape(id)}`);
@@ -2134,8 +2157,10 @@
         GetTaskObjects(onResponse, onError) {
             const taskTable = this._taskTable;
             this._getSqlAdapter(adapter => {
+                adapter.AddColumn(`${taskTable.name}.${taskTable.keyColumn} AS key`);
                 adapter.AddColumn(`${taskTable.name}.${taskTable.valueColumn} AS path`);
-                adapter.AddColumn(`${taskTable.name}.${taskTable.flagsColumn} AS autostart`);
+                adapter.AddColumn(`${taskTable.name}.${taskTable.flagsColumn} AS flags`);
+                adapter.AddColumn(`${taskTable.name}.${taskTable.cycleIntervalMillisColumn} AS cycleMillis`);
                 adapter.PerformSelect(taskTable.name, undefined, 'path ASC', undefined, result => {
                     adapter.Close();
                     onResponse(result);

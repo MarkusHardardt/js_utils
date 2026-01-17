@@ -25,6 +25,7 @@
             "keyColumn": "key",
             "valueColumn": "jsonFxObjectKey",
             "flagsColumn": "flags",
+            "cycleIntervalMillisColumn": "cycleIntervalMillis",
             "icon": "task.gif",
             "exes": true
         },
