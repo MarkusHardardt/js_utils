@@ -17,11 +17,7 @@
         return Core.validateAs('ContentManager', instance, [
             'GetExchangeHandler()',
             'GetLanguages(array)',
-            'IsValidFile(string)',
-            'IsValidFolder(string)',
             'AnalyzeId(id)',
-            'GetPath(id)',
-            'GetExtension(id)',
             'GetExtensionForType(type)',
             'GetIcon(id)',
             'CompareIds(id1, id2)',
@@ -204,12 +200,6 @@
         GetLanguages(array) {
             return Utilities.copyArray(this._config.languages, array);
         }
-        IsValidFile(string) { // TODO: remove if not used
-            return this._contentTablesKeyRegex.test(string);
-        }
-        IsValidFolder(string) { // TODO: remove if not used
-            return FOLDER_REGEX.test(string);
-        }
         AnalyzeId(id) {
             let match = this._contentTablesKeyRegex.exec(id);
             if (match) {
@@ -232,14 +222,6 @@
             } else {
                 return false;
             }
-        }
-        GetPath(id) {
-            const match = this._contentTablesKeyRegex.exec(id);
-            return match ? match[1] : false;
-        }
-        GetExtension(id) {
-            const match = this._contentTablesKeyRegex.exec(id);
-            return match ? match[2] : false;
         }
         GetExtensionForType(type) {
             return this._extensionsForType[type];
@@ -909,7 +891,7 @@
             this._getSqlAdapter(adapter => {
                 that._getModificationParams(adapter, id, language, value, params => {
                     if (!params.error && params.action === ContentManager.DELETE) {
-                        that._getReferencesFrom(adapter, id, referencesFrom => {
+                        that._getReferencesFromObjectWithId(adapter, id, referencesFrom => {
                             if (referencesFrom.length > 0) {
                                 params.externalUsers = referencesFrom;
                             }
@@ -1274,7 +1256,7 @@
                         (function () {
                             const source = srcKeysArr[i];
                             tasks.push((os, or) => {
-                                that._getReferencesFrom(adapter, source, referencesFrom => {
+                                that._getReferencesFromObjectWithId(adapter, source, referencesFrom => {
                                     const reflen = referencesFrom.length;
                                     for (let r = 0; r < reflen; r++) {
                                         const key = referencesFrom[r];
@@ -1493,7 +1475,7 @@
                 main.push((onSuc, onErr) => {
                     // In move mode we got to update all external users with the
                     // moved reference
-                    that._getReferencesFrom(adapter, source, referencesFrom => {
+                    that._getReferencesFromObjectWithId(adapter, source, referencesFrom => {
                         const tasks = [], jl = referencesFrom.length;
                         tasks.parallel = false;
                         for (let j = 0; j < jl; j++) {
@@ -1661,7 +1643,7 @@
                 onResponse(0);
             }
         }
-        _getReferencesFrom(adapter, id, onResponse, onError) {
+        _getReferencesFromObjectWithId(adapter, id, onResponse, onError) {
             const that = this, key = SqlHelper.escape(id), keys = {}, tasks = [];
             for (const extension in this._contentTablesByExtension) {
                 if (this._contentTablesByExtension.hasOwnProperty(extension)) {
@@ -1711,7 +1693,7 @@
             if (this._contentTablesKeyRegex.test(id)) {
                 const that = this;
                 this._getSqlAdapter(adapter => {
-                    that._getReferencesFrom(adapter, id, results => {
+                    that._getReferencesFromObjectWithId(adapter, id, results => {
                         adapter.Close();
                         onResponse(results);
                     }, err => {
