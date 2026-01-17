@@ -1787,6 +1787,7 @@
             x: 0,
             y: 0,
             text: 'JsonFx object:',
+            align: 'right',
             border: false,
             classes: 'hmi-dark'
         };
@@ -1810,6 +1811,7 @@
             x: 0,
             y: 1,
             text: 'enable:',
+            align: 'right',
             border: false,
             classes: 'hmi-dark'
         };
@@ -1846,14 +1848,90 @@
     // TASKS - EDITOR
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
+    const HMI_FLAG_AUTORUN = 0x01;
+
     function getTaskEditor(hmi, adapter) {
+        const cms = hmi.cms;
         function reload(data, language, onSuccess, onError) {
-            // TODO: Implement
-            onSuccess();
-        }
+            if (data && data.file) {
+                cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
+                    if (data !== undefined) {
+                        keyValue.hmi_value(data.valueColumn);
+                        checkbox.setValue((data.flagsColumn & HMI_FLAG_AUTORUN) !== 0);
+                    } else {
+                        keyValue.hmi_value('');
+                        checkbox.setValue(false);
+                    }
+                    onSuccess();
+                }, error => {
+                    keyValue.hmi_value('');
+                    checkbox.setValue(false);
+                    onError(error);
+                });
+            } else {
+                keyValue.hmi_value('');
+                checkbox.setValue(false);
+                onSuccess();
+            }
+        };
+        const keyLabel = {
+            x: 0,
+            y: 0,
+            text: 'JsonFx object:',
+            align: 'right',
+            border: false,
+            classes: 'hmi-dark'
+        };
+        const keyValue = {
+            x: 1,
+            y: 0,
+            type: 'textfield',
+            editable: true,
+            border: false,
+            classes: 'hmi-dark',
+            prepare: (that, onSuccess, onError) => {
+                that.hmi_addChangeListener(adapter.edited);
+                onSuccess();
+            },
+            destroy: (that, onSuccess, onError) => {
+                that.hmi_removeChangeListener(adapter.edited);
+                onSuccess();
+            }
+        };
+        const autorunLabel = {
+            x: 0,
+            y: 1,
+            text: 'autorun:',
+            align: 'right',
+            border: false,
+            classes: 'hmi-dark'
+        };
+        const checkbox = getCheckbox(adapter.edited);
+        const autorunValue = {
+            x: 1,
+            y: 1,
+            type:'grid',
+            columns:['40px', 1],
+            children:[{
+                object: checkbox
+            }]
+        };
         return {
-            text: 'task editor not implemented',
-            keyChanged: reload
+            type: 'grid',
+            columns: ['140px', 1],
+            rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
+            children: [keyLabel, keyValue, autorunLabel, autorunValue],
+            keyChanged: reload,
+            getValue: () => {
+                let flags = 0;
+                if (checkbox.getValue()) {
+                    flags |= HMI_FLAG_AUTORUN;
+                }
+                return {
+                    valueColumn: keyValue.hmi_value(),
+                    flagsColumn: flags
+                };
+            }
         };
     }
 
@@ -2312,7 +2390,7 @@
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.Label)] = labelEditor;
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.HTML)] = htmlEditor;
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.HMI)] = hmiEditor;
-        // TODO: use handlers[cms.GetExtensionForType(ContentManager.DataTableType.Task)] = taskEditor;
+        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Task)] = taskEditor;
         const editContainer = {
             type: 'container'
         };
