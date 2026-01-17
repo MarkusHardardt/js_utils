@@ -1245,8 +1245,7 @@
                             const source = srcKeysArr[i];
                             tasks.push((os, or) => {
                                 that._getReferencesFromObjectWithId(adapter, source, referencesFrom => {
-                                    const reflen = referencesFrom.length;
-                                    for (let r = 0; r < reflen; r++) {
+                                    for (let r = 0; r < referencesFrom.length; r++) {
                                         const key = referencesFrom[r];
                                         if (srcKeysObj[key] === undefined) {
                                             extRefObjs[key] = true;
@@ -1270,7 +1269,7 @@
                 }
                 if (extRefsArray.length > 0) {
                     extRefsArray.sort(compareKeys);
-                    params.referencesFromOthers = extRefsArray;
+                    params.externalUsers = extRefsArray;
                     const l = extRefsArray.length;
                     for (let i = 0; i < l; i++) {
                         checksum += extRefsArray[i];
