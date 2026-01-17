@@ -86,6 +86,10 @@
     ContentManager.COMMAND_GET_REFERENCES_TO_TREE_NODES = 'get_references_to_tree_nodes';
     ContentManager.COMMAND_GET_REFERENCES_FROM_TREE_NODES = 'get_references_from_tree_nodes';
 
+    ContentManager.HMI_FLAG_ENABLE = 0x01;
+    ContentManager.HMI_FLAG_AUTORUN = 0x01;
+
+
     // //////////////////////////////////////////////////////////////////////////////////////////
     // CROSS REFERENCES
     // //////////////////////////////////////////////////////////////////////////////////////////
@@ -2027,8 +2031,14 @@
             const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.valueColumn} AS path`);
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS flags`);
+                /* TODO: remove for (const attr in hmiTable.valcol) {
+                    if (hmiTable.valcol.hasOwnProperty(attr)) {
+                        adapter.AddColumn(`${hmiTable.name}.${hmiTable.valcol[attr]} AS ${attr}`);
+                    }
+                }*/
                 adapter.AddWhere(`${hmiTable.name}.${hmiTable.keyColumn} = ${SqlHelper.escape(queryParameterValue)}`);
-                adapter.PerformSelect(hmiTable.name, undefined, 'path ASC', undefined, result => {
+                adapter.PerformSelect(hmiTable.name, undefined, undefined, undefined, result => {
                     if (!result || !Array.isArray(result) || result.length !== 1) {
                         onError(`Invalid url: '${queryParameterValue}'`);
                         return;
@@ -2040,8 +2050,13 @@
                         return;
                     }
                     const table = this._contentTablesByExtension[match[2]];
-                    if (!table) {
+                    if (!table || !table.JsonFx) {
                         onError(`Invalid table name: '${id}'`);
+                        return;
+                    }
+                    const flags = result[0].flags;
+                    if ((flags & ContentManager.HMI_FLAG_ENABLE) === 0) {
+                        onError(`HMI: '${id}' is not enabled`);
                         return;
                     }
                     this._getObject(adapter, id, match[1], table, null, ContentManager.PARSE, response => {

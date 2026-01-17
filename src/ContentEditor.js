@@ -1757,8 +1757,6 @@
         return box;
     }
 
-    const HMI_FLAG_ENABLE = 0x01;
-
     function getHmiEditor(hmi, adapter) {
         const cms = hmi.cms;
         function reload(data, language, onSuccess, onError) {
@@ -1766,7 +1764,7 @@
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
                         keyValue.hmi_value(data.valueColumn);
-                        checkbox.setValue((data.flagsColumn & HMI_FLAG_ENABLE) !== 0);
+                        checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_ENABLE) !== 0);
                     } else {
                         keyValue.hmi_value('');
                         checkbox.setValue(false);
@@ -1834,7 +1832,7 @@
             getValue: () => {
                 let flags = 0;
                 if (checkbox.getValue()) {
-                    flags |= HMI_FLAG_ENABLE;
+                    flags |= ContentManager.HMI_FLAG_ENABLE;
                 }
                 return {
                     valueColumn: keyValue.hmi_value(),
@@ -1848,8 +1846,6 @@
     // TASKS - EDITOR
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    const HMI_FLAG_AUTORUN = 0x01;
-
     function getTaskEditor(hmi, adapter) {
         const cms = hmi.cms;
         function reload(data, language, onSuccess, onError) {
@@ -1857,7 +1853,7 @@
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
                         keyValue.hmi_value(data.valueColumn);
-                        checkbox.setValue((data.flagsColumn & HMI_FLAG_AUTORUN) !== 0);
+                        checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_AUTORUN) !== 0);
                     } else {
                         keyValue.hmi_value('');
                         checkbox.setValue(false);
@@ -1925,7 +1921,7 @@
             getValue: () => {
                 let flags = 0;
                 if (checkbox.getValue()) {
-                    flags |= HMI_FLAG_AUTORUN;
+                    flags |= ContentManager.HMI_FLAG_AUTORUN;
                 }
                 return {
                     valueColumn: keyValue.hmi_value(),
