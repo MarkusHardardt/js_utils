@@ -1060,7 +1060,7 @@
             rows: [1, DEFAULT_ROW_HEIGHT],
             children: [preview, info_lang, button_include, button_raw],
             keyChanged: (data, language, onSuccess, onError) => {
-                info_lang.hmi_text('language: "' + language + '"');
+                info_lang.hmi_text(`language: '${language}'`);
                 button_include.hmi_setEnabled(false);
                 button_raw.hmi_setEnabled(false);
                 reload(data, language, () => {
@@ -1079,7 +1079,7 @@
     function getHtmlEditor(hmi, adapter) {
         const cms = hmi.cms, scrolls = {};
         function reload(data, language, onSuccess, onError) {
-            info_lang.hmi_text('language: "' + language + '"');
+            info_lang.hmi_text(`language: '${language}'`);
             if (textarea.file) {
                 handleScrolls(scrolls, textarea.file, textarea, false);
                 delete textarea.file;
@@ -1225,7 +1225,7 @@
             rows: [1, DEFAULT_ROW_HEIGHT],
             children: [textarea, info_lang, button_include, button_raw],
             keyChanged: (data, language, onSuccess, onError) => {
-                info_lang.hmi_text('language: "' + language + '"');
+                info_lang.hmi_text(`language: '${language}'`);
                 button_include.hmi_setEnabled(false);
                 button_raw.hmi_setEnabled(false);
                 reload(data, language, () => {
@@ -1246,7 +1246,7 @@
     function getTextEditor(hmi, adapter) {
         const cms = hmi.cms, scrolls = {};
         function reload(data, language, onSuccess, onError) {
-            info_lang.hmi_text('language: "' + language + '"');
+            info_lang.hmi_text(`language: '${language}'`);
             if (textarea.file) {
                 handleScrolls(scrolls, textarea.file, textarea, false);
                 delete textarea.file;
@@ -1428,7 +1428,7 @@
             rows: [1, DEFAULT_ROW_HEIGHT],
             children: [container, info_lang, button_hmi, button_include, button_raw],
             keyChanged: (data, language, onSuccess, onError) => {
-                info_lang.hmi_text('language: "' + language + '"');
+                info_lang.hmi_text(`language: '${language}'`);
                 button_hmi.hmi_setEnabled(false);
                 button_include.hmi_setEnabled(false);
                 button_raw.hmi_setEnabled(false);
@@ -1690,7 +1690,7 @@
             }],
             keyChanged: (data, language, onSuccess, onError) => {
                 edited = false;
-                info_lang.hmi_text('language: "' + language + '"');
+                info_lang.hmi_text(`language: '${language}'`);
                 button_hmi.hmi_setEnabled(false);
                 button_raw.hmi_setEnabled(false);
                 reload(data, language, () => {
