@@ -1507,27 +1507,18 @@
                                         switch (table.type) {
                                             case DataTableType.JsonFX:
                                             case DataTableType.Text:
+                                                adapter.AddColumn(`${table.name}.${table.valcol} AS ${table.valcol}`);
                                                 break;
                                             case DataTableType.Label:
                                             case DataTableType.HTML:
-                                                break;
                                             case DataTableType.HMI:
-                                                break;
                                             case DataTableType.Task:
-                                                break;
-                                            default:
-                                                throw new Error(`Unsupported table type: ${table.type}`);
-                                        }
-
-
-                                        if (typeof table.valcol === 'string') {
-                                            adapter.AddColumn(`${table.name}.${table.valcol} AS ${table.valcol}`);
-                                        } else {
-                                            for (const attr in table.valcol) {
-                                                if (table.valcol.hasOwnProperty(attr)) {
-                                                    adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${table.valcol[attr]}`);
+                                                for (const attr in table.valcol) {
+                                                    if (table.valcol.hasOwnProperty(attr)) {
+                                                        adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${table.valcol[attr]}`);
+                                                    }
                                                 }
-                                            }
+                                                break;
                                         }
                                         adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(usrKey)}`);
                                         adapter.PerformSelect(table.name, undefined, undefined, 1, result => {
@@ -1536,22 +1527,29 @@
                                             // any source path with the resulting target path and
                                             // update object
                                             const values = result[0];
-                                            if (typeof table.valcol === 'string') {
-                                                let string = values[table.valcol];
-                                                if (typeof string === 'string' && string.length > 0) {
-                                                    string = getReplacement(string);
-                                                    adapter.AddValue(`${table.name}.${table.valcol}`, SqlHelper.escape(string));
-                                                }
-                                            } else {
-                                                for (const attr in table.valcol) {
-                                                    if (table.valcol.hasOwnProperty(attr)) {
-                                                        let string = values[table.valcol[attr]];
-                                                        if (typeof string === 'string' && string.length > 0) {
-                                                            string = getReplacement(string);
-                                                            adapter.AddValue(`${table.name}.${table.valcol[attr]}`, SqlHelper.escape(string));
+                                            switch (table.type) {
+                                                case DataTableType.JsonFX:
+                                                case DataTableType.Text:
+                                                    let string = values[table.valcol];
+                                                    if (typeof string === 'string' && string.length > 0) {
+                                                        string = getReplacement(string);
+                                                        adapter.AddValue(`${table.name}.${table.valcol}`, SqlHelper.escape(string));
+                                                    }
+                                                    break;
+                                                case DataTableType.Label:
+                                                case DataTableType.HTML:
+                                                case DataTableType.HMI:
+                                                case DataTableType.Task:
+                                                    for (const attr in table.valcol) {
+                                                        if (table.valcol.hasOwnProperty(attr)) {
+                                                            let string = values[table.valcol[attr]];
+                                                            if (typeof string === 'string' && string.length > 0) {
+                                                                string = getReplacement(string);
+                                                                adapter.AddValue(`${table.name}.${table.valcol[attr]}`, SqlHelper.escape(string));
+                                                            }
                                                         }
                                                     }
-                                                }
+                                                    break;
                                             }
                                             adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(usrKey)}`);
                                             adapter.PerformUpdate(table.name, undefined, 1, os, oe);
@@ -1672,14 +1670,21 @@
                         const table = that._contentTablesByExtension[extension];
                         tasks.push((onSuc, onErr) => {
                             adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
-                            if (typeof table.valcol === 'string') {
-                                adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol}`), false);
-                            } else {
-                                for (const col in table.valcol) {
-                                    if (table.valcol.hasOwnProperty(col)) {
-                                        adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol[col]}`), false);
+                            switch (table.type) {
+                                case DataTableType.JsonFX:
+                                case DataTableType.Text:
+                                    adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol}`), false);
+                                    break;
+                                case DataTableType.Label:
+                                case DataTableType.HTML:
+                                case DataTableType.HMI:
+                                case DataTableType.Task:
+                                    for (const col in table.valcol) {
+                                        if (table.valcol.hasOwnProperty(col)) {
+                                            adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol[col]}`), false);
+                                        }
                                     }
-                                }
+                                    break;
                             }
                             adapter.PerformSelect(table.name, undefined, undefined, undefined, response => {
                                 for (let i = 0, l = response.length; i < l; i++) {
@@ -1732,14 +1737,21 @@
                                 const table = that._contentTablesByExtension[attr];
                                 tasks.push((onSuc, onErr) => {
                                     adapter.AddColumn('COUNT(*) AS cnt');
-                                    if (typeof table.valcol === 'string') {
-                                        adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol}`), false);
-                                    } else {
-                                        for (const col in table.valcol) {
-                                            if (table.valcol.hasOwnProperty(col)) {
-                                                adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol[col]}`), false);
+                                    switch (table.type) {
+                                        case DataTableType.JsonFX:
+                                        case DataTableType.Text:
+                                            adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol}`), false);
+                                            break;
+                                        case DataTableType.Label:
+                                        case DataTableType.HTML:
+                                        case DataTableType.HMI:
+                                        case DataTableType.Task:
+                                            for (const col in table.valcol) {
+                                                if (table.valcol.hasOwnProperty(col)) {
+                                                    adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol[col]}`), false);
+                                                }
                                             }
-                                        }
+                                            break;
                                     }
                                     adapter.PerformSelect(table.name, undefined, undefined, undefined, response => {
                                         result += response[0].cnt;
@@ -1858,21 +1870,28 @@
                                         }
                                     }
                                     if (value.length > 0) {
-                                        if (typeof table.valcol === 'string') {
-                                            where += `LOCATE(${SqlHelper.escape(value)}, ${table.name}.${table.valcol}) > 0`;
-                                        } else {
-                                            where += '(';
-                                            let next = false;
-                                            for (const val in table.valcol) {
-                                                if (table.valcol.hasOwnProperty(val)) {
-                                                    if (next) {
-                                                        where += ' OR ';
+                                        switch (table.type) {
+                                            case DataTableType.JsonFX:
+                                            case DataTableType.Text:
+                                                where += `LOCATE(${SqlHelper.escape(value)}, ${table.name}.${table.valcol}) > 0`;
+                                                break;
+                                            case DataTableType.Label:
+                                            case DataTableType.HTML:
+                                            case DataTableType.HMI:
+                                            case DataTableType.Task:
+                                                where += '(';
+                                                let next = false;
+                                                for (const val in table.valcol) {
+                                                    if (table.valcol.hasOwnProperty(val)) {
+                                                        if (next) {
+                                                            where += ' OR ';
+                                                        }
+                                                        next = true;
+                                                        where += `LOCATE(${SqlHelper.escape(value)}, ${table.name}.${table.valcol[val]}) > 0`;
                                                     }
-                                                    next = true;
-                                                    where += `LOCATE(${SqlHelper.escape(value)}, ${table.name}.${table.valcol[val]}) > 0`;
                                                 }
-                                            }
-                                            where += ')';
+                                                where += ')';
+                                                break;
                                         }
                                     }
                                     adapter.AddWhere(where);
@@ -2441,7 +2460,7 @@
                         if (resp.result !== undefined) {
                             onResponse(resp.result);
                         } else {
-                            onError(resp.error);    
+                            onError(resp.error);
                         }
                     } catch (error) {
                         onError(error);
