@@ -15,7 +15,7 @@
             "extension": "hmi",
             "keyColumn": "queryParameterValue",
             "valueColumn": "jsonFxObjectKey",
-            "enableColumn": "enable",
+            "flagsColumn": "flags",
             "icon": "hmi.gif",
             "hmis": true
         },
@@ -24,7 +24,7 @@
             "extension": "task",
             "keyColumn": "key",
             "valueColumn": "jsonFxObjectKey",
-            "autostartColumn": "autostart",
+            "flagsColumn": "flags",
             "icon": "task.gif",
             "exes": true
         },

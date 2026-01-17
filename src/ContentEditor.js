@@ -1673,7 +1673,7 @@
                         throw new Error('Invalid hmi-edit-content');
                     }
                 default:
-                    throw new Error('Invalid mode: "' + mode + '"');
+                    throw new Error(`Invalid mode: ${mode}`);
             }
         };
         return {
@@ -1764,7 +1764,7 @@
                 cms.GetHMIData(data.file, data => {
                     if (data !== undefined) {
                         keyValue.hmi_value(data.jsonFxObjectKey);
-                        checkbox.setValue(data.enable);
+                        checkbox.setValue((data.flags & 1) !== 0);
                     } else {
                         keyValue.hmi_value('');
                         checkbox.setValue(false);
@@ -1829,10 +1829,14 @@
             children: [keyLabel, keyValue, enableLabel, enableValue],
             keyChanged: reload,
             getValue: () => {
-                const data = {
-                    jsonFxObjectKey: keyValue.hmi_value()
+                let flags = 0;
+                if (checkbox.getValue()) {
+                    flags |= 1;
+                }
+                return {
+                    jsonFxObjectKey: keyValue.hmi_value(),
+                    flags
                 };
-                return data;
             }
         };
     }

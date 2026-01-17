@@ -23,7 +23,7 @@ USE `js_hmi_config`;
 CREATE TABLE IF NOT EXISTS `hmi` (
   `queryParameterValue` tinytext DEFAULT NULL,
   `jsonFxObjectKey` varchar(384) NOT NULL,
-  `enable` bit(1) NOT NULL DEFAULT b'0',
+  `flags` tinyint(4) NOT NULL DEFAULT 0,
   `description` text DEFAULT NULL,
   UNIQUE KEY `jsonFxObjectKey` (`jsonFxObjectKey`) USING BTREE,
   UNIQUE KEY `queryParameterValue` (`queryParameterValue`) USING HASH
@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS `label` (
 CREATE TABLE IF NOT EXISTS `task` (
   `key` tinytext NOT NULL,
   `jsonFxObjectKey` varchar(384) NOT NULL,
-  `autostart` bit(1) NOT NULL DEFAULT b'0',
+  `flags` tinyint(4) NOT NULL DEFAULT 0,
   `description` text DEFAULT NULL,
   UNIQUE KEY `jsonFxObjectKey` (`jsonFxObjectKey`) USING BTREE,
   UNIQUE KEY `key` (`key`) USING HASH

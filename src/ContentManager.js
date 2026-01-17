@@ -282,6 +282,7 @@
                     }
                     this._extensionsForType[type] = extension;
                     const table = {
+                        type,
                         name: tableConfig.name,
                         keyColumn: tableConfig.keyColumn,
                         valueColumn: tableConfig.valueColumn,
@@ -308,11 +309,11 @@
                         case DataTableType.HTML:
                             break;
                         case DataTableType.HMI:
-                            table.enableColumn = tableConfig.enableColumn;
+                            table.flagsColumn = tableConfig.flagsColumn;
                             this._hmiTable = table; // TODO: Required? Maybe use _contentTablesByExtension instead
                             break;
                         case DataTableType.Task:
-                            table.autostartColumn = tableConfig.autostartColumn;
+                            table.flagsColumn = tableConfig.flagsColumn;
                             this._taskTable = table; // TODO: Required? Maybe use _contentTablesByExtension instead
                             break;
                         default:
@@ -700,15 +701,26 @@
             }
             // try to get all current database values for given id and copy the new
             // values
-            const that = this;
-            if (typeof table.valcol === 'string') {
-                adapter.AddColumn(`${table.name}.${table.valcol} AS ${table.valcol}`);
-            } else {
-                for (const attr in table.valcol) {
-                    if (table.valcol.hasOwnProperty(attr)) {
-                        adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${table.valcol[attr]}`);
+            switch (table.type) {
+                case DataTableType.JsonFX:
+                case DataTableType.Text:
+                    adapter.AddColumn(`${table.name}.${table.valcol} AS ${table.valcol}`);
+                    break;
+                case DataTableType.Label:
+                case DataTableType.HTML:
+                    for (const attr in table.valcol) {
+                        if (table.valcol.hasOwnProperty(attr)) {
+                            adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${table.valcol[attr]}`);
+                        }
                     }
-                }
+                    break;
+                case DataTableType.HMI:
+                    adapter.AddColumn(`${table.name}.${table.valcol} AS ${table.valcol}`);
+                    adapter.AddColumn(`${table.name}.${table.flagsColumn} AS ${table.flagsColumn}`);
+                    break;
+                default:
+                    onError(`Unsupported type for modification: '${table.type}'`);
+                    return;
             }
             adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(match[1])}`);
             adapter.PerformSelect(table.name, undefined, undefined, 1, (result, fields) => {
@@ -718,52 +730,64 @@
                 let changed = false;
                 const values = {};
                 let checksum = '';
-                if (typeof table.valcol === 'string') { // in case of a JSON or UTF8 table
-                    checksum += table.valcol;
-                    let currval = currentData !== undefined ? currentData[table.valcol] : undefined;
-                    let nextval = typeof value === 'string' ? value : undefined;
-                    let params = getModificationParams(currval, nextval);
-                    if (!params.empty) {
-                        stillNotEmpty = true;
-                    }
-                    if (params.changed) {
-                        changed = true;
-                    }
-                    values[table.valcol] = params;
-                    checksum += params.empty ? 'e' : 'd';
-                    checksum += params.changed ? 'e' : 'd';
-                    if (typeof params.string === 'string') {
-                        checksum += params.string;
-                    }
-                } else { // labels or html
-                    for (const attr in table.valcol) {
-                        if (table.valcol.hasOwnProperty(attr)) {
-                            // for all columns we try to get the current and new value
-                            const currval = currentData !== undefined ? currentData[table.valcol[attr]] : undefined;
-                            let nextval = undefined;
-                            if (typeof language === 'string') {
-                                nextval = language === attr ? (typeof value === 'string' ? value : undefined) : currval;
-                            } else if (typeof value === 'object' && value !== null) {
-                                nextval = value[attr];
-                            }
-                            // within the next condition checks we detect if the value is
-                            // available
-                            // after the update and if the data will be changed
-                            const params = getModificationParams(currval, nextval);
-                            if (!params.empty) {
-                                stillNotEmpty = true;
-                            }
-                            if (params.changed) {
-                                changed = true;
-                            }
-                            values[attr] = params;
-                            checksum += params.empty ? 'e' : 'd';
-                            checksum += params.changed ? 'e' : 'd';
-                            if (typeof params.string === 'string') {
-                                checksum += params.string;
+                switch (table.type) {
+                    case DataTableType.JsonFX:
+                    case DataTableType.Text:
+                        checksum += table.valcol;
+                        let currval = currentData !== undefined ? currentData[table.valcol] : undefined;
+                        let nextval = typeof value === 'string' ? value : undefined;
+                        let params = getModificationParams(currval, nextval);
+                        if (!params.empty) {
+                            stillNotEmpty = true;
+                        }
+                        if (params.changed) {
+                            changed = true;
+                        }
+                        values[table.valcol] = params;
+                        checksum += params.empty ? 'e' : 'd';
+                        checksum += params.changed ? 'e' : 'd';
+                        if (typeof params.string === 'string') {
+                            checksum += params.string;
+                        }
+                        break;
+                    case DataTableType.Label:
+                    case DataTableType.HTML:
+                        for (const attr in table.valcol) {
+                            if (table.valcol.hasOwnProperty(attr)) {
+                                // for all columns we try to get the current and new value
+                                const currval = currentData !== undefined ? currentData[table.valcol[attr]] : undefined;
+                                let nextval = undefined;
+                                if (typeof language === 'string') {
+                                    nextval = language === attr ? (typeof value === 'string' ? value : undefined) : currval;
+                                } else if (typeof value === 'object' && value !== null) {
+                                    nextval = value[attr];
+                                }
+                                // within the next condition checks we detect if the value is
+                                // available
+                                // after the update and if the data will be changed
+                                const params = getModificationParams(currval, nextval);
+                                if (!params.empty) {
+                                    stillNotEmpty = true;
+                                }
+                                if (params.changed) {
+                                    changed = true;
+                                }
+                                values[attr] = params;
+                                checksum += params.empty ? 'e' : 'd';
+                                checksum += params.changed ? 'e' : 'd';
+                                if (typeof params.string === 'string') {
+                                    checksum += params.string;
+                                }
                             }
                         }
-                    }
+                        break;
+                    case DataTableType.HMI:
+                        console.log(`currentData: ${JSON.stringify(currentData)}, value: ${JSON.stringify(value)}`);
+                        onError(`Unsupported type for modification: '${table.type}'`);
+                        return;
+                    default:
+                        onError(`Unsupported type for modification: '${table.type}'`);
+                        return;
                 }
                 // build the resulting data
                 params.source = id;
@@ -1864,7 +1888,7 @@
             const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.valueColumn} AS path`);
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.enableColumn} AS enable`);
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS enable`);
                 adapter.AddWhere(`${hmiTable.name}.${hmiTable.keyColumn} = ${SqlHelper.escape(match[1])}`);
                 adapter.PerformSelect(hmiTable.name, undefined, 'path ASC', undefined, result => {
                     if (!result || !Array.isArray(result) || result.length !== 1) {
@@ -1917,7 +1941,7 @@
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.keyColumn} AS queryParameterValue`);
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.valueColumn} AS path`);
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.enableColumn} AS enable`);
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS enable`);
                 adapter.PerformSelect(hmiTable.name, undefined, 'path ASC', undefined, result => {
                     adapter.Close();
                     onResponse(result);
@@ -2005,7 +2029,7 @@
             const taskTable = this._taskTable;
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn(`${taskTable.name}.${taskTable.valueColumn} AS path`);
-                adapter.AddColumn(`${taskTable.name}.${taskTable.autostartColumn} AS autostart`);
+                adapter.AddColumn(`${taskTable.name}.${taskTable.flagsColumn} AS autostart`);
                 adapter.PerformSelect(taskTable.name, undefined, 'path ASC', undefined, result => {
                     adapter.Close();
                     onResponse(result);
