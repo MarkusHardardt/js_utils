@@ -2124,7 +2124,8 @@
     }
 
     function getRefactoring(hmi, adapter) {
-        let cms = hmi.cms, sel_data = false, mode = false, source = false, enabled = true;
+        const cms = hmi.cms;
+        let sel_data = false, mode = false, source = false, enabled = true;
         function update() {
             button_move.hmi_setEnabled(enabled && sel_data !== false && (sel_data.file !== undefined || sel_data.folder !== undefined));
             button_move.hmi_setSelected(enabled && source !== false && mode === ContentManager.MOVE);
@@ -2159,7 +2160,7 @@
                 adapter.updateInfo(info);
             }
         };
-        let button_move = {
+        const button_move = {
             x: 1,
             y: 0,
             text: 'move',
@@ -2171,7 +2172,7 @@
                 update();
             }
         };
-        let button_copy = {
+        const button_copy = {
             x: 2,
             y: 0,
             text: 'copy',
@@ -2183,7 +2184,7 @@
                 update();
             }
         };
-        let button_paste = {
+        const button_paste = {
             x: 3,
             y: 0,
             text: 'paste',
@@ -2206,7 +2207,7 @@
                 });
             }
         };
-        let button_delete = {
+        const button_delete = {
             x: 4,
             y: 0,
             text: 'delete',
@@ -2228,7 +2229,7 @@
                 });
             }
         };
-        let button_export = {
+        const button_export = {
             x: 5,
             y: 0,
             text: 'export',
@@ -2236,20 +2237,20 @@
             border: true,
             timeout: 1000,
             longClicked: () => {
-                let handler = cms.GetExchangeHandler();
+                const handler = cms.GetExchangeHandler();
                 handler.HandleExport(sel_data.id, state => adapter.updateInfo(state !== undefined ? 'export ' + state : 'export ready'), adapter.notifyError);
             }
         };
-        let button_import = {
+        const button_import = {
             x: 6,
             y: 0,
             text: 'import',
             border: true,
             clicked: () => {
                 Utilities.loadClientTextFile(text => {
-                    var handler = cms.GetExchangeHandler();
+                    const handler = cms.GetExchangeHandler();
                     handler.HandleImport(hmi, text.replace(/\r?\n|\r/g, '\n'), state => {
-                        if (state === undefined) {
+                        if (state !== undefined) {
                             adapter.updateInfo('import ' + state);
                         } else {
                             adapter.updateInfo('import ready');
@@ -2259,7 +2260,7 @@
                 });
             }
         };
-        let container = {
+        const container = {
             type: 'grid',
             columns: [1, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH],
             rows: 1,

@@ -30,7 +30,6 @@
             'PerformRefactoring(source, target, action, checksum, onResponse, onError)',
             'GetSearchResults(key, value, onResponse, onError)',
             'GetIdKeyValues(id, onResponse, onError)',
-            'GetIdSelectedValues(id, language, onResponse, onError)',
             'IsHMIObject(id, onResponse, onError)',
             'SetAvailabilityAsHMIObject(id, available, onResponse, onError)',
             'GetHMIObject(queryParameterValue, onResponse, onError)',
@@ -162,7 +161,6 @@
     const COMMAND_PERFORM_REFACTORING = 'perform_refactoring';
     const COMMAND_GET_SEARCH_RESULTS = 'get_search_results';
     const COMMAND_GET_ID_KEY_VALUES = 'get_id_key_values';
-    const COMMAND_GET_ID_SELECTED_VALUES = 'get_id_selected_values';
     const COMMAND_IS_HMI_OBJECT = 'is_hmi_object';
     const COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT = 'set_availability_as_hmi_object';
     const COMMAND_GET_HMI_OBJECT = 'get_hmi_object';
@@ -1428,7 +1426,7 @@
                                         if (typeof value === 'string' && value.length > 0) {
                                             const string = getReplacement(value);
                                             adapter.AddValue(`${table.name}.${table.valcol[attr]}`, SqlHelper.escape(string));
-                                        } else if (value !== undefined) {
+                                        } else if (value !== undefined && value !== null) {
                                             const string = value.toString();
                                             adapter.AddValue(`${table.name}.${table.valcol[attr]}`, SqlHelper.escape(string));
                                         }
@@ -1926,34 +1924,6 @@
                 onError(`Invalid selection: '${data.string}'`);
             }
         }
-        GetIdSelectedValues(id, language, onResponse, onError) {
-            const match = this._contentTablesKeyRegex.exec(id);
-            if (!match) {
-                onError(`Invalid id: '${id}'`);
-                return;
-            }
-            const extension = match[2];
-            const table = this._contentTablesByExtension[extension];
-            if (!table) {
-                onError(`Invalid table: '${id}'`);
-                return;
-            }
-            this._getSqlAdapter(adapter => {
-                adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
-                adapter.AddColumn((typeof table.valcol === 'string' ? table.valcol : table.valcol[language]) + ' AS val');
-                adapter.PerformSelect(table.name, undefined, 'path ASC', undefined, result => {
-                    const array = [], l = result.length;
-                    for (let i = 0; i < l; i++) {
-                        array.push([`${result[i].path}.${extension}`, result[i].val]);
-                    }
-                    adapter.Close();
-                    onResponse(array);
-                }, err => {
-                    adapter.Close();
-                    onError(err);
-                });
-            }, onError);
-        }
         IsHMIObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
@@ -2219,9 +2189,6 @@
                 case COMMAND_GET_ID_KEY_VALUES:
                     this.GetIdKeyValues(request.id, onResponse, onError);
                     break;
-                case COMMAND_GET_ID_SELECTED_VALUES:
-                    this.GetIdSelectedValues(request.id, request.language, onResponse, onError);
-                    break;
                 case COMMAND_IS_HMI_OBJECT:
                     this.IsHMIObject(request.id, onResponse, onError);
                     break;
@@ -2414,10 +2381,10 @@
                 if (response.length > 0) {
                     try {
                         const resp = JsonFX.parse(response, false, false);
-                        if (resp.result !== undefined) {
-                            onResponse(resp.result);
-                        } else {
+                        if (resp.error !== undefined) {
                             onError(resp.error);
+                        } else {
+                            onResponse(resp.result);
                         }
                     } catch (error) {
                         onError(error);
@@ -2477,9 +2444,6 @@
         }
         GetIdKeyValues(id, onResponse, onError) {
             this._post({ command: COMMAND_GET_ID_KEY_VALUES, id }, onResponse, onError);
-        }
-        GetIdSelectedValues(id, language, onResponse, onError) {
-            this._post({ command: COMMAND_GET_ID_SELECTED_VALUES, id, language }, onResponse, onError);
         }
         IsHMIObject(id, onResponse, onError) {
             this._post({ command: COMMAND_IS_HMI_OBJECT, id }, onResponse, onError);
