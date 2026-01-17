@@ -785,10 +785,11 @@
                         break;
                     case DataTableType.HMI:
                         console.log(`currentData: ${JSON.stringify(currentData)}, value: ${JSON.stringify(value)}`);
-                        {
-                            checksum += table.valcol;
-                            const currval = currentData !== undefined ? JSON.stringify(currentData) : undefined;
-                            const nextval = value !== undefined ? JSON.stringify(value) : undefined;
+                        // currentData: {"jsonFxObjectKey":"$001_debug/maze_game.j","flags":1}, value: {"jsonFxObjectKey":"$001_debug/m aze_game.j","flags":1}
+                        { // handle valueColumn
+                            checksum += table.valueColumn;
+                            const currval = currentData !== undefined ? currentData[table.valueColumn] : undefined;
+                            const nextval = value !== undefined ? value[table.valueColumn] : undefined;
                             const params = getModificationParams(currval, nextval);
                             if (!params.empty) {
                                 stillNotEmpty = true;
@@ -796,7 +797,25 @@
                             if (params.changed) {
                                 changed = true;
                             }
-                            values[table.valcol] = params;
+                            values[table.valueColumn] = params;
+                            checksum += params.empty ? 'e' : 'd';
+                            checksum += params.changed ? 'e' : 'd';
+                            if (typeof params.string === 'string') {
+                                checksum += params.string;
+                            }
+                        }
+                        { // handle flagsColumn
+                            checksum += table.flagsColumn;
+                            const currval = currentData !== undefined ? currentData[table.flagsColumn].toString() : undefined;
+                            const nextval = value !== undefined ? value[table.flagsColumn].toString() : undefined;
+                            const params = getModificationParams(currval, nextval);
+                            if (!params.empty) {
+                                stillNotEmpty = true;
+                            }
+                            if (params.changed) {
+                                changed = true;
+                            }
+                            values[table.flagsColumn] = params;
                             checksum += params.empty ? 'e' : 'd';
                             checksum += params.changed ? 'e' : 'd';
                             if (typeof params.string === 'string') {
@@ -895,6 +914,8 @@
                                     }
                                     break;
                                 case DataTableType.HMI:
+                                    onErr(`Cannot insert unsupported type: ${table.type}`);
+                                    return;
                                     break;
                                 default:
                                     onErr(`Cannot insert unsupported type: ${table.type}`);
@@ -924,6 +945,14 @@
                                     }
                                     break;
                                 case DataTableType.HMI:
+                                    const value = params.values[table.valueColumn];
+                                    if (value.changed) {
+                                        adapter.AddValue(`${table.name}.${table.valueColumn}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                    }
+                                    const flags = params.values[table.flagsColumn];
+                                    if (flags.changed) {
+                                        adapter.AddValue(`${table.name}.${table.flagsColumn}`, typeof flags.string === 'string' ? SqlHelper.escape(flags.string) : null);
+                                    }
                                     break;
                                 default:
                                     onErr(`Cannot update unsupported type: ${table.type}`);
