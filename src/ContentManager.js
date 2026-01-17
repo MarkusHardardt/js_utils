@@ -280,27 +280,55 @@
                     } else if (this._contentTablesByExtension[extension] !== undefined) {
                         throw new Error(`Extension already exists: '${extension}'`);
                     }
-                    this._extensionsForType[type] = extension;
+                    let valcol;
+                    switch (type) {
+                        case DataTableType.JsonFX:
+                        case DataTableType.Text:
+                            if (typeof tableConfig.valueColumn !== 'string') {
+                                throw new Error(`Missing value column parameter for table type '${type}'`);
+                            }
+                            valcol = tableConfig.valueColumn;
+                            break;
+                        case DataTableType.Label:
+                        case DataTableType.HTML:
+                            if (typeof tableConfig.valueColumnPrefix !== 'string') {
+                                throw new Error(`Missing value column prefix parameter for table type '${type}'`);
+                            } else if (db_config.languages.length === 0) {
+                                throw new Error(`Language array has zero length for table type '${type}'`);
+                            }
+                            valcol = {};
+                            for (let language of db_config.languages) {
+                                valcol[language] = tableConfig.valueColumnPrefix + language;
+                            }
+                            break;
+                        case DataTableType.HMI:
+                        case DataTableType.Task:
+                            if (typeof tableConfig.valueColumn !== 'string') {
+                                throw new Error(`Missing value column parameter for table type '${type}'`);
+                            } else if (typeof tableConfig.flagsColumn !== 'string') {
+                                throw new Error(`Missing flags column parameter for table type '${type}'`);
+                            }
+                            valcol = {
+                                valueColumn: tableConfig.valueColumn,
+                                flagsColumn: tableConfig.flagsColumn
+                            };
+                            break;
+                        default:
+                            throw new Error(`Unsupported table type: '${type}'`);
+                    }
                     const table = {
                         type,
                         name: tableConfig.name,
                         keyColumn: tableConfig.keyColumn,
                         valueColumn: tableConfig.valueColumn,
+                        valcol,
                         multilingual: typeof tableConfig.valueColumnPrefix === 'string' && tableConfig.valueColumnPrefix.length > 0,
                         icon: tableConfig.icon,
                         JsonFX: type === DataTableType.JsonFX,
                         multiedit: type === DataTableType.Label
                     };
-                    if (tableConfig.valueColumnPrefix) {
-                        table.valcol = {};
-                        for (let j = 0; j < db_config.languages.length; j++) {
-                            const lang = db_config.languages[j];
-                            table.valcol[lang] = tableConfig.valueColumnPrefix + lang;
-                        }
-                    } else {
-                        table.valcol = tableConfig.valueColumn;
-                    }
                     this._contentTablesByExtension[extension] = table;
+                    this._extensionsForType[type] = extension;
                     tableExtensions.push(extension);
                     switch (type) {
                         case DataTableType.JsonFX:
@@ -309,11 +337,11 @@
                         case DataTableType.HTML:
                             break;
                         case DataTableType.HMI:
-                            table.flagsColumn = tableConfig.flagsColumn;
+                            table.flagsColumn = tableConfig.flagsColumn; // TODO: use valcol
                             this._hmiTable = table; // TODO: Required? Maybe use _contentTablesByExtension instead
                             break;
                         case DataTableType.Task:
-                            table.flagsColumn = tableConfig.flagsColumn;
+                            table.flagsColumn = tableConfig.flagsColumn; // TODO: use valcol
                             this._taskTable = table; // TODO: Required? Maybe use _contentTablesByExtension instead
                             break;
                         default:
@@ -398,33 +426,42 @@
                 };
                 // if JsonFX or plain text is available we decode the string and
                 // return with or without all includes included
-                if (typeof table.valcol === 'string') {
-                    // note: no language required here because we got only one anyway
-                    that._getRawString(adapter, table, rawKey, undefined, rawString => {
-                        if (rawString !== false) {
-                            raw += ':';
-                            raw += rawString;
-                        }
-                        success();
-                    }, error);
-                } else {
-                    for (const attr in table.valcol) {
-                        if (table.valcol.hasOwnProperty(attr)) {
-                            adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${attr}`);
-                        }
-                    }
-                    adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
-                    adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
-                        if (results.length === 1) {
-                            const object = results[0];
-                            for (const attr in table.valcol) {
-                                if (object.hasOwnProperty(attr)) {
-                                    raw += `:${attr}:${object[attr]}`;
-                                }
+                switch (table.type) {
+                    case DataTableType.JsonFX:
+                    case DataTableType.Text:
+                        // note: no language required here because we got only one anyway
+                        that._getRawString(adapter, table, rawKey, undefined, rawString => {
+                            if (rawString !== false) {
+                                raw += ':';
+                                raw += rawString;
+                            }
+                            success();
+                        }, error);
+                        break;
+                    case DataTableType.Label:
+                    case DataTableType.HTML:
+                    case DataTableType.HMI:
+                    case DataTableType.Task:
+                        for (const attr in table.valcol) {
+                            if (table.valcol.hasOwnProperty(attr)) {
+                                adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${attr}`);
                             }
                         }
-                        success();
-                    }, error);
+                        adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
+                        adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
+                            if (results.length === 1) {
+                                const object = results[0];
+                                for (const attr in table.valcol) {
+                                    if (object.hasOwnProperty(attr)) {
+                                        raw += `:${attr}:${object[attr]}`;
+                                    }
+                                }
+                            }
+                            success();
+                        }, error);
+                        break;
+                    default:
+                        throw new Error(`Cannot update unsupported type: ${table.type}`);
                 }
             }, onError);
         }
@@ -476,74 +513,99 @@
             }
             // if JsonFX or plain text is available we decode the string and
             // return with or without all includes included
-            if (typeof table.valcol === 'string') {
-                // note: no language required here because we got only one anyway
-                that._getRawString(adapter, table, rawKey, undefined, rawString => {
-                    if (rawString !== false) {
-                        const object = table.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
-                        if (include) {
-                            const ids = {};
-                            ids[id] = true;
-                            that._include(adapter, object, ids, language, success, onError);
-                        } else {
-                            success(object);
-                        }
-                    } else {
-                        success();
-                    }
-                }, onError);
-            } else if (typeof language === 'string') {
-                // if selection is available we return string with or without all
-                // includes included
-                that._getRawString(adapter, table, rawKey, language, rawString => {
-                    if (rawString !== false) {
-                        if (include) {
-                            const ids = {};
-                            ids[id] = true;
-                            that._include(adapter, rawString, ids, language, success, onError);
-                        } else {
-                            success(rawString);
-                        }
-                    } else {
-                        success();
-                    }
-                }, onError);
-            } else {
-                for (const attr in table.valcol) {
-                    if (table.valcol.hasOwnProperty(attr)) {
-                        adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${attr}`);
-                    }
-                }
-                adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
-                adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
-                    if (results.length === 1) {
-                        const object = results[0];
-                        if (include) {
-                            const tasks = [];
-                            for (const attr in object) {
-                                if (object.hasOwnProperty(attr)) {
-                                    (function () {
-                                        const language = attr;
-                                        const ids = {};
-                                        ids[id] = true;
-                                        tasks.push((onSuc, onErr) => {
-                                            that._include(adapter, object[language], ids, language, response => {
-                                                object[language] = response;
-                                                onSuc();
-                                            }, onErr);
-                                        });
-                                    }());
-                                }
+            switch (table.type) {
+                case DataTableType.JsonFX:
+                case DataTableType.Text:
+                    // note: no language required here because we got only one anyway
+                    that._getRawString(adapter, table, rawKey, undefined, rawString => {
+                        if (rawString !== false) {
+                            const object = table.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
+                            if (include) {
+                                const ids = {};
+                                ids[id] = true;
+                                that._include(adapter, object, ids, language, success, onError);
+                            } else {
+                                success(object);
                             }
-                            tasks.parallel = that._parallel;
-                            Executor.run(tasks, () => success(object), onError);
                         } else {
-                            success(object);
+                            success();
                         }
+                    }, onError);
+                    break;
+                case DataTableType.Label:
+                case DataTableType.HTML:
+                    if (typeof language === 'string') {
+                        // if selection is available we return string with or without all
+                        // includes included
+                        that._getRawString(adapter, table, rawKey, language, rawString => {
+                            if (rawString !== false) {
+                                if (include) {
+                                    const ids = {};
+                                    ids[id] = true;
+                                    that._include(adapter, rawString, ids, language, success, onError);
+                                } else {
+                                    success(rawString);
+                                }
+                            } else {
+                                success();
+                            }
+                        }, onError);
                     } else {
-                        success();
+                        for (const attr in table.valcol) {
+                            if (table.valcol.hasOwnProperty(attr)) {
+                                adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${attr}`);
+                            }
+                        }
+                        adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
+                        adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
+                            if (results.length === 1) {
+                                const object = results[0];
+                                if (include) {
+                                    const tasks = [];
+                                    for (const attr in object) {
+                                        if (object.hasOwnProperty(attr)) {
+                                            (function () {
+                                                const language = attr;
+                                                const ids = {};
+                                                ids[id] = true;
+                                                tasks.push((onSuc, onErr) => {
+                                                    that._include(adapter, object[language], ids, language, response => {
+                                                        object[language] = response;
+                                                        onSuc();
+                                                    }, onErr);
+                                                });
+                                            }());
+                                        }
+                                    }
+                                    tasks.parallel = that._parallel;
+                                    Executor.run(tasks, () => success(object), onError);
+                                } else {
+                                    success(object);
+                                }
+                            } else {
+                                success();
+                            }
+                        }, onError);
                     }
-                }, onError);
+                    break;
+                case DataTableType.HMI:
+                case DataTableType.Task:
+                        for (const attr in table.valcol) {
+                            if (table.valcol.hasOwnProperty(attr)) {
+                                adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${attr}`);
+                            }
+                        }
+                        adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
+                        adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
+                            if (results.length === 1) {
+                                success(results[0]);
+                            } else {
+                                success();
+                            }
+                        }, onError);
+                    break;
+                default:
+                    onError(`Cannot get object for unsupported type: ${table.type}`);
             }
         }
         _include(adapter, object, ids, language, onResponse, onError) {
