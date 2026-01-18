@@ -2371,11 +2371,30 @@
         }
     }
 
+    function fetch(request, onResponse, onError) {
+        Client.fetch(ContentManager.GET_CONTENT_DATA_URL, JsonFX.stringify(request, false), response => {
+            if (response.length > 0) {
+                try {
+                    const resp = JsonFX.parse(response, false, false);
+                    if (resp.error !== undefined) {
+                        onError(resp.error);
+                    } else {
+                        onResponse(resp.result);
+                    }
+                } catch (error) {
+                    onError(error);
+                }
+            } else {
+                onResponse();
+            }
+        }, onError);
+    }
+
     class ClientManager extends ContentManagerBase {
         constructor(onResponse, onError) {
             super();
             const that = this;
-            this._post({
+            fetch({
                 command: COMMAND_GET_CONFIG
             }, config => {
                 that._config = config;
@@ -2394,32 +2413,16 @@
             validateAsContentManager(this, true);
         }
         _post(request, onResponse, onError) {
-            Client.fetch(ContentManager.GET_CONTENT_DATA_URL, JsonFX.stringify(request, false), response => {
-                if (response.length > 0) {
-                    try {
-                        const resp = JsonFX.parse(response, false, false);
-                        if (resp.error !== undefined) {
-                            onError(resp.error);
-                        } else {
-                            onResponse(resp.result);
-                        }
-                    } catch (error) {
-                        onError(error);
-                    }
-                } else {
-                    onResponse();
-                }
-            }, onError);
         }
         Exists(id, onResponse, onError) {
-            this._post({ command: COMMAND_EXISTS, id }, onResponse, onError);
+            fetch({ command: COMMAND_EXISTS, id }, onResponse, onError);
         }
         GetChecksum(id, onResponse, onError) {
-            this._post({ command: COMMAND_GET_CHECKSUM, id }, onResponse, onError);
+            fetch({ command: COMMAND_GET_CHECKSUM, id }, onResponse, onError);
         }
         GetObject(id, language, mode, onResponse, onError) {
             const that = this, parse = mode === ContentManager.PARSE;
-            this._post({
+            fetch({
                 command: COMMAND_GET_OBJECT,
                 id,
                 language,
@@ -2445,32 +2448,32 @@
             } : onResponse, onError);
         }
         GetModificationParams(id, language, value, onResponse, onError) {
-            this._post({ command: COMMAND_GET_MODIFICATION_PARAMS, id, language, value }, onResponse, onError);
+            fetch({ command: COMMAND_GET_MODIFICATION_PARAMS, id, language, value }, onResponse, onError);
         }
         SetObject(id, language, value, checksum, onResponse, onError) {
-            this._post({ command: COMMAND_SET_OBJECT, id, language, value, checksum }, onResponse, onError);
+            fetch({ command: COMMAND_SET_OBJECT, id, language, value, checksum }, onResponse, onError);
         }
         GetRefactoringParams(source, target, action, onResponse, onError) {
-            this._post({ command: COMMAND_GET_REFACTORING_PARAMS, source, target, action }, onResponse, onError);
+            fetch({ command: COMMAND_GET_REFACTORING_PARAMS, source, target, action }, onResponse, onError);
         }
         PerformRefactoring(source, target, action, checksum, onResponse, onError) {
-            this._post({ command: COMMAND_PERFORM_REFACTORING, source, target, action, checksum }, onResponse, onError);
+            fetch({ command: COMMAND_PERFORM_REFACTORING, source, target, action, checksum }, onResponse, onError);
         }
         GetSearchResults(key, value, onResponse, onError) {
-            this._post({ command: COMMAND_GET_SEARCH_RESULTS, key, value }, onResponse, onError);
+            fetch({ command: COMMAND_GET_SEARCH_RESULTS, key, value }, onResponse, onError);
         }
         GetIdKeyValues(id, onResponse, onError) {
-            this._post({ command: COMMAND_GET_ID_KEY_VALUES, id }, onResponse, onError);
+            fetch({ command: COMMAND_GET_ID_KEY_VALUES, id }, onResponse, onError);
         }
         IsHMIObject(id, onResponse, onError) {
-            this._post({ command: COMMAND_IS_HMI_OBJECT, id }, onResponse, onError);
+            fetch({ command: COMMAND_IS_HMI_OBJECT, id }, onResponse, onError);
         }
         AddDefaultHMIObject(id, onResponse, onError) {
-            this._post({ command: COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT, id }, onResponse, onError);
+            fetch({ command: COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT, id }, onResponse, onError);
         }
         GetHMIObject(queryParameterValue, onResponse, onError) {
             const that = this;
-            this._post({ command: COMMAND_GET_HMI_OBJECT, queryParameterValue }, response => {
+            fetch({ command: COMMAND_GET_HMI_OBJECT, queryParameterValue }, response => {
                 if (response !== undefined) {
                     try {
                         let object = JsonFX.reconstruct(response);
@@ -2491,16 +2494,16 @@
             }, onError);
         }
         GetHMIObjects(onResponse, onError) {
-            this._post({ command: COMMAND_GET_HMI_OBJECTS }, onResponse, onError);
+            fetch({ command: COMMAND_GET_HMI_OBJECTS }, onResponse, onError);
         }
         IsTaskObject(id, onResponse, onError) {
-            this._post({ command: COMMAND_IS_TASK_OBJECT, id }, onResponse, onError);
+            fetch({ command: COMMAND_IS_TASK_OBJECT, id }, onResponse, onError);
         }
         AddDefaultTaskObject(id, onResponse, onError) {
-            this._post({ command: COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT, id }, onResponse, onError);
+            fetch({ command: COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT, id }, onResponse, onError);
         }
         GetTaskObjects(onResponse, onError) {
-            this._post({ command: COMMAND_GET_TASK_OBJECTS }, onResponse, onError);
+            fetch({ command: COMMAND_GET_TASK_OBJECTS }, onResponse, onError);
         }
     }
 
