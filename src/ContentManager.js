@@ -263,7 +263,6 @@
                     } else if (this._contentTablesByExtension[extension] !== undefined) {
                         throw new Error(`Extension already exists: '${extension}'`);
                     }
-                    const valueColumns = {}; // TODO: use or remove
                     const table = {
                         type,
                         name: tableConfig.name,
@@ -279,7 +278,7 @@
                             if (typeof tableConfig.valueColumn !== 'string') {
                                 throw new Error(`Missing value column parameter for table type '${type}'`);
                             }
-                            table.valcol = tableConfig.valueColumn;
+                            table.valueColumn = tableConfig.valueColumn;
                             break;
                         case DataTableType.Label:
                         case DataTableType.HTML:
@@ -288,9 +287,9 @@
                             } else if (db_config.languages.length === 0) {
                                 throw new Error(`Language array has zero length for table type '${type}'`);
                             }
-                            table.valcol = {};
+                            table.valueColumn = {};
                             for (let language of db_config.languages) {
-                                table.valcol[language] = tableConfig.valueColumnPrefix + language;
+                                table.valueColumn[language] = tableConfig.valueColumnPrefix + language;
                             }
                             break;
                         case DataTableType.HMI:
@@ -304,7 +303,7 @@
                             table.viewObjectColumn = tableConfig.viewObjectColumn;
                             table.queryParameterColumn = tableConfig.queryParameterColumn;
                             table.flagsColumn = tableConfig.flagsColumn;
-                            table.valcol = {
+                            table.valueColumn = {
                                 viewObjectColumn: tableConfig.viewObjectColumn,
                                 queryParameterColumn: tableConfig.queryParameterColumn,
                                 flagsColumn: tableConfig.flagsColumn
@@ -322,7 +321,7 @@
                             table.taskObjectColumn = tableConfig.taskObjectColumn;
                             table.flagsColumn = tableConfig.flagsColumn;
                             table.cycleIntervalMillisColumn = tableConfig.cycleIntervalMillisColumn;
-                            table.valcol = {
+                            table.valueColumn = {
                                 taskObjectColumn: tableConfig.taskObjectColumn,
                                 flagsColumn: tableConfig.flagsColumn,
                                 cycleIntervalMillisColumn: tableConfig.cycleIntervalMillisColumn
@@ -346,7 +345,7 @@
             validateAsContentManagerOnServer(this, true);
         }
         _getRawString(adapter, table, rawKey, language, onResponse, onError) {
-            const valcol = table.valcol, column = typeof valcol === 'string' ? valcol : valcol[language];
+            const valueColumn = table.valueColumn, column = typeof valueColumn === 'string' ? valueColumn : valueColumn[language];
             if (typeof column === 'string') {
                 adapter.AddColumn(`${table.name}.${column} AS ${column}`);
                 adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
@@ -431,16 +430,16 @@
                     case DataTableType.HTML:
                     case DataTableType.HMI:
                     case DataTableType.Task:
-                        for (const attr in table.valcol) {
-                            if (table.valcol.hasOwnProperty(attr)) {
-                                adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${attr}`);
+                        for (const attr in table.valueColumn) {
+                            if (table.valueColumn.hasOwnProperty(attr)) {
+                                adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${attr}`);
                             }
                         }
                         adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
                         adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
                             if (results.length === 1) {
                                 const object = results[0];
-                                for (const attr in table.valcol) {
+                                for (const attr in table.valueColumn) {
                                     if (object.hasOwnProperty(attr)) {
                                         raw += `:${attr}:${object[attr]}`;
                                     }
@@ -538,9 +537,9 @@
                             }
                         }, onError);
                     } else {
-                        for (const attr in table.valcol) {
-                            if (table.valcol.hasOwnProperty(attr)) {
-                                adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${attr}`);
+                        for (const attr in table.valueColumn) {
+                            if (table.valueColumn.hasOwnProperty(attr)) {
+                                adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${attr}`);
                             }
                         }
                         adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
@@ -577,9 +576,9 @@
                     break;
                 case DataTableType.HMI:
                 case DataTableType.Task:
-                    for (const attr in table.valcol) {
-                        if (table.valcol.hasOwnProperty(attr)) {
-                            adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${attr}`);
+                    for (const attr in table.valueColumn) {
+                        if (table.valueColumn.hasOwnProperty(attr)) {
+                            adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${attr}`);
                         }
                     }
                     adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
@@ -747,28 +746,28 @@
             switch (table.type) {
                 case DataTableType.JsonFX:
                 case DataTableType.Text:
-                    adapter.AddColumn(`${table.name}.${table.valcol} AS ${table.valcol}`);
+                    adapter.AddColumn(`${table.name}.${table.valueColumn} AS ${table.valueColumn}`);
                     break;
                 case DataTableType.Label:
                 case DataTableType.HTML:
                     // in case of a multiligual data type and a given language we got to make
                     // sure that language is supported
-                    if (typeof language === 'string' && table.valcol[language] === undefined) {
+                    if (typeof language === 'string' && table.valueColumn[language] === undefined) {
                         params.error = `Invalid language '${language}'`;
                         onResponse(params);
                         return;
                     }
-                    for (const attr in table.valcol) {
-                        if (table.valcol.hasOwnProperty(attr)) {
-                            adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${table.valcol[attr]}`);
+                    for (const attr in table.valueColumn) {
+                        if (table.valueColumn.hasOwnProperty(attr)) {
+                            adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${table.valueColumn[attr]}`);
                         }
                     }
                     break;
                 case DataTableType.HMI:
                 case DataTableType.Task:
-                    for (const attr in table.valcol) {
-                        if (table.valcol.hasOwnProperty(attr)) {
-                            adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${table.valcol[attr]}`);
+                    for (const attr in table.valueColumn) {
+                        if (table.valueColumn.hasOwnProperty(attr)) {
+                            adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${table.valueColumn[attr]}`);
                         }
                     }
                     break;
@@ -788,8 +787,8 @@
                     case DataTableType.JsonFX:
                     case DataTableType.Text:
                         {
-                            checksum += table.valcol;
-                            const currval = getValueForAttribute(currentData, table.valcol);
+                            checksum += table.valueColumn;
+                            const currval = getValueForAttribute(currentData, table.valueColumn);
                             const nextval = typeof value === 'string' ? value : undefined;
                             const params = getModificationParams(currval, nextval);
                             if (!params.empty) {
@@ -798,7 +797,7 @@
                             if (params.changed) {
                                 changed = true;
                             }
-                            values[table.valcol] = params;
+                            values[table.valueColumn] = params;
                             checksum += params.empty ? 'e' : 'd';
                             checksum += params.changed ? 'e' : 'd';
                             if (typeof params.string === 'string') {
@@ -808,10 +807,10 @@
                         break;
                     case DataTableType.Label:
                     case DataTableType.HTML:
-                        for (const attr in table.valcol) {
-                            if (table.valcol.hasOwnProperty(attr)) {
+                        for (const attr in table.valueColumn) {
+                            if (table.valueColumn.hasOwnProperty(attr)) {
                                 // for all columns we try to get the current and new value
-                                const currval = getValueForAttribute(currentData, table.valcol[attr]);
+                                const currval = getValueForAttribute(currentData, table.valueColumn[attr]);
                                 let nextval = undefined;
                                 if (typeof language === 'string') {
                                     nextval = language === attr ? (typeof value === 'string' ? value : undefined) : currval;
@@ -841,10 +840,10 @@
                     case DataTableType.Task:
                         // TODO: remove console.log(`currentData: ${JSON.stringify(currentData)}, value: ${JSON.stringify(value)}`);
                         // currentData: {"jsonFxObjectKey":"$001_debug/maze_game.j","flags":1}, value: {"jsonFxObjectKey":"$001_debug/m aze_game.j","flags":1}
-                        for (const attr in table.valcol) {
-                            if (table.valcol.hasOwnProperty(attr)) {
+                        for (const attr in table.valueColumn) {
+                            if (table.valueColumn.hasOwnProperty(attr)) {
                                 // for all columns we try to get the current and new value
-                                const currval = getValueForAttribute(currentData, table.valcol[attr]);
+                                const currval = getValueForAttribute(currentData, table.valueColumn[attr]);
                                 const nextval = getValueForAttribute(value, attr);
                                 const params = getModificationParams(currval, nextval);
                                 if (!params.empty) {
@@ -935,9 +934,9 @@
                                 case DataTableType.JsonFX:
                                 case DataTableType.Text:
                                     {
-                                        const value = params.values[table.valcol];
+                                        const value = params.values[table.valueColumn];
                                         if (value.changed) {
-                                            adapter.AddValue(`${table.name}.${table.valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                            adapter.AddValue(`${table.name}.${table.valueColumn}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                         }
                                     }
                                     break;
@@ -945,11 +944,11 @@
                                 case DataTableType.HTML:
                                 case DataTableType.HMI:
                                 case DataTableType.Task:
-                                    for (const attr in table.valcol) {
-                                        if (table.valcol.hasOwnProperty(attr)) {
+                                    for (const attr in table.valueColumn) {
+                                        if (table.valueColumn.hasOwnProperty(attr)) {
                                             const value = params.values[attr];
                                             if (value.changed) {
-                                                adapter.AddValue(`${table.name}.${table.valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                                adapter.AddValue(`${table.name}.${table.valueColumn[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                             }
                                         }
                                     }
@@ -964,9 +963,9 @@
                                 case DataTableType.JsonFX:
                                 case DataTableType.Text:
                                     {
-                                        const value = params.values[table.valcol];
+                                        const value = params.values[table.valueColumn];
                                         if (value.changed) {
-                                            adapter.AddValue(`${table.name}.${table.valcol}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                            adapter.AddValue(`${table.name}.${table.valueColumn}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                         }
                                     }
                                     break;
@@ -974,11 +973,11 @@
                                 case DataTableType.HTML:
                                 case DataTableType.HMI:
                                 case DataTableType.Task:
-                                    for (const attr in table.valcol) {
-                                        if (table.valcol.hasOwnProperty(attr)) {
+                                    for (const attr in table.valueColumn) {
+                                        if (table.valueColumn.hasOwnProperty(attr)) {
                                             const value = params.values[attr];
                                             if (value.changed) {
-                                                adapter.AddValue(`${table.name}.${table.valcol[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                                adapter.AddValue(`${table.name}.${table.valueColumn[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                             }
                                         }
                                     }
@@ -1394,15 +1393,15 @@
                     switch (table.type) {
                         case DataTableType.JsonFX:
                         case DataTableType.Text:
-                            adapter.AddColumn(`${table.name}.${table.valcol}`);
+                            adapter.AddColumn(`${table.name}.${table.valueColumn}`);
                             break;
                         case DataTableType.Label:
                         case DataTableType.HTML:
                         case DataTableType.HMI:
                         case DataTableType.Task:
-                            for (const attr in table.valcol) {
-                                if (table.valcol.hasOwnProperty(attr)) {
-                                    adapter.AddColumn(`${table.name}.${table.valcol[attr]}`);
+                            for (const attr in table.valueColumn) {
+                                if (table.valueColumn.hasOwnProperty(attr)) {
+                                    adapter.AddColumn(`${table.name}.${table.valueColumn[attr]}`);
                                 }
                             }
                             break;
@@ -1415,25 +1414,25 @@
                         switch (table.type) {
                             case DataTableType.JsonFX:
                             case DataTableType.Text:
-                                let string = values[table.valcol];
+                                let string = values[table.valueColumn];
                                 if (typeof string === 'string' && string.length > 0) {
                                     string = getReplacement(string);
-                                    adapter.AddValue(`${table.name}.${table.valcol}`, SqlHelper.escape(string));
+                                    adapter.AddValue(`${table.name}.${table.valueColumn}`, SqlHelper.escape(string));
                                 }
                                 break;
                             case DataTableType.Label:
                             case DataTableType.HTML:
                             case DataTableType.HMI:
                             case DataTableType.Task:
-                                for (const attr in table.valcol) {
-                                    if (table.valcol.hasOwnProperty(attr)) {
-                                        const value = values[table.valcol[attr]];
+                                for (const attr in table.valueColumn) {
+                                    if (table.valueColumn.hasOwnProperty(attr)) {
+                                        const value = values[table.valueColumn[attr]];
                                         if (typeof value === 'string' && value.length > 0) {
                                             const string = getReplacement(value);
-                                            adapter.AddValue(`${table.name}.${table.valcol[attr]}`, SqlHelper.escape(string));
+                                            adapter.AddValue(`${table.name}.${table.valueColumn[attr]}`, SqlHelper.escape(string));
                                         } else if (value !== undefined && value !== null) {
                                             const string = value.toString();
-                                            adapter.AddValue(`${table.name}.${table.valcol[attr]}`, SqlHelper.escape(string));
+                                            adapter.AddValue(`${table.name}.${table.valueColumn[attr]}`, SqlHelper.escape(string));
                                         }
                                     }
                                 }
@@ -1482,15 +1481,15 @@
                                         switch (table.type) {
                                             case DataTableType.JsonFX:
                                             case DataTableType.Text:
-                                                adapter.AddColumn(`${table.name}.${table.valcol} AS ${table.valcol}`);
+                                                adapter.AddColumn(`${table.name}.${table.valueColumn} AS ${table.valueColumn}`);
                                                 break;
                                             case DataTableType.Label:
                                             case DataTableType.HTML:
                                             case DataTableType.HMI:
                                             case DataTableType.Task:
-                                                for (const attr in table.valcol) {
-                                                    if (table.valcol.hasOwnProperty(attr)) {
-                                                        adapter.AddColumn(`${table.name}.${table.valcol[attr]} AS ${table.valcol[attr]}`);
+                                                for (const attr in table.valueColumn) {
+                                                    if (table.valueColumn.hasOwnProperty(attr)) {
+                                                        adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${table.valueColumn[attr]}`);
                                                     }
                                                 }
                                                 break;
@@ -1505,22 +1504,22 @@
                                             switch (table.type) {
                                                 case DataTableType.JsonFX:
                                                 case DataTableType.Text:
-                                                    let string = values[table.valcol];
+                                                    let string = values[table.valueColumn];
                                                     if (typeof string === 'string' && string.length > 0) {
                                                         string = getReplacement(string);
-                                                        adapter.AddValue(`${table.name}.${table.valcol}`, SqlHelper.escape(string));
+                                                        adapter.AddValue(`${table.name}.${table.valueColumn}`, SqlHelper.escape(string));
                                                     }
                                                     break;
                                                 case DataTableType.Label:
                                                 case DataTableType.HTML:
                                                 case DataTableType.HMI:
                                                 case DataTableType.Task:
-                                                    for (const attr in table.valcol) {
-                                                        if (table.valcol.hasOwnProperty(attr)) {
-                                                            let string = values[table.valcol[attr]];
+                                                    for (const attr in table.valueColumn) {
+                                                        if (table.valueColumn.hasOwnProperty(attr)) {
+                                                            let string = values[table.valueColumn[attr]];
                                                             if (typeof string === 'string' && string.length > 0) {
                                                                 string = getReplacement(string);
-                                                                adapter.AddValue(`${table.name}.${table.valcol[attr]}`, SqlHelper.escape(string));
+                                                                adapter.AddValue(`${table.name}.${table.valueColumn[attr]}`, SqlHelper.escape(string));
                                                             }
                                                         }
                                                     }
@@ -1560,7 +1559,7 @@
                                 tasks.push((onSuc, onErr) => {
                                     adapter.AddColumn(`tab.${used.keyColumn} AS path`);
                                     adapter.AddWhere(`${user.name}.${user.keyColumn} = ${rawKey}`);
-                                    adapter.AddJoin(formatReferencesToCondition(user.name, user.valcol, used.name, 'tab', ext, used.keyColumn));
+                                    adapter.AddJoin(formatReferencesToCondition(user.name, user.valueColumn, used.name, 'tab', ext, used.keyColumn));
                                     adapter.PerformSelect(user.name, undefined, undefined, undefined, result => {
                                         for (let i = 0, l = result.length; i < l; i++) {
                                             keys[`$${result[i].path}.${ext}`] = true;
@@ -1613,7 +1612,7 @@
                                 tasks.push((onSuc, onErr) => {
                                     adapter.AddColumn('COUNT(*) AS cnt');
                                     adapter.AddWhere(`${user.name}.${user.keyColumn} = ${rawKey}`);
-                                    adapter.AddJoin(formatReferencesToCondition(user.name, user.valcol, used.name, 'tab', ext, used.keyColumn));
+                                    adapter.AddJoin(formatReferencesToCondition(user.name, user.valueColumn, used.name, 'tab', ext, used.keyColumn));
                                     adapter.PerformSelect(user.name, undefined, undefined, undefined, response => {
                                         result += response[0].cnt;
                                         onSuc();
@@ -1648,15 +1647,15 @@
                             switch (table.type) {
                                 case DataTableType.JsonFX:
                                 case DataTableType.Text:
-                                    adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol}`), false);
+                                    adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn}`), false);
                                     break;
                                 case DataTableType.Label:
                                 case DataTableType.HTML:
                                 case DataTableType.HMI:
                                 case DataTableType.Task:
-                                    for (const col in table.valcol) {
-                                        if (table.valcol.hasOwnProperty(col)) {
-                                            adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol[col]}`), false);
+                                    for (const col in table.valueColumn) {
+                                        if (table.valueColumn.hasOwnProperty(col)) {
+                                            adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn[col]}`), false);
                                         }
                                     }
                                     break;
@@ -1715,15 +1714,15 @@
                                     switch (table.type) {
                                         case DataTableType.JsonFX:
                                         case DataTableType.Text:
-                                            adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol}`), false);
+                                            adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn}`), false);
                                             break;
                                         case DataTableType.Label:
                                         case DataTableType.HTML:
                                         case DataTableType.HMI:
                                         case DataTableType.Task:
-                                            for (const col in table.valcol) {
-                                                if (table.valcol.hasOwnProperty(col)) {
-                                                    adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valcol[col]}`), false);
+                                            for (const col in table.valueColumn) {
+                                                if (table.valueColumn.hasOwnProperty(col)) {
+                                                    adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn[col]}`), false);
                                                 }
                                             }
                                             break;
@@ -1848,7 +1847,7 @@
                                         switch (table.type) {
                                             case DataTableType.JsonFX:
                                             case DataTableType.Text:
-                                                where += `LOCATE(${SqlHelper.escape(value)}, ${table.name}.${table.valcol}) > 0`;
+                                                where += `LOCATE(${SqlHelper.escape(value)}, ${table.name}.${table.valueColumn}) > 0`;
                                                 break;
                                             case DataTableType.Label:
                                             case DataTableType.HTML:
@@ -1856,13 +1855,13 @@
                                             case DataTableType.Task:
                                                 where += '(';
                                                 let next = false;
-                                                for (const val in table.valcol) {
-                                                    if (table.valcol.hasOwnProperty(val)) {
+                                                for (const val in table.valueColumn) {
+                                                    if (table.valueColumn.hasOwnProperty(val)) {
                                                         if (next) {
                                                             where += ' OR ';
                                                         }
                                                         next = true;
-                                                        where += `LOCATE(${SqlHelper.escape(value)}, ${table.name}.${table.valcol[val]}) > 0`;
+                                                        where += `LOCATE(${SqlHelper.escape(value)}, ${table.name}.${table.valueColumn[val]}) > 0`;
                                                     }
                                                 }
                                                 where += ')';

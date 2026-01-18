@@ -1765,7 +1765,7 @@
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
-                        keyValue.hmi_text(data.valueColumn);
+                        keyValue.hmi_text(data.viewObjectColumn);
                         checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_ENABLE) !== 0);
                     } else {
                         keyValue.hmi_text('');
@@ -1832,7 +1832,7 @@
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
-                        keyValue.hmi_value(data.valueColumn);
+                        keyValue.hmi_value(data.viewObjectColumn);
                         checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_ENABLE) !== 0);
                     } else {
                         keyValue.hmi_value('');
@@ -1904,7 +1904,7 @@
                     flags |= ContentManager.HMI_FLAG_ENABLE;
                 }
                 return {
-                    valueColumn: keyValue.hmi_value(),
+                    viewObjectColumn: keyValue.hmi_value(),
                     flagsColumn: flags
                 };
             }
@@ -1921,7 +1921,7 @@
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
-                        keyValue.hmi_text(data.valueColumn);
+                        keyValue.hmi_text(data.taskObjectColumn);
                         checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_AUTORUN) !== 0);
                         cycleMillisValue.hmi_text(data.cycleIntervalMillisColumn);
                     } else {
@@ -1998,17 +1998,7 @@
             columns: ['140px', 1],
             rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
             children: [keyLabel, keyValue, autorunLabel, autorunValue, cycleMillisLabel, cycleMillisValue],
-            keyChanged: reload,
-            getValue: () => {
-                let flags = 0;
-                if (checkbox.getValue()) {
-                    flags |= ContentManager.HMI_FLAG_AUTORUN;
-                }
-                return {
-                    valueColumn: keyValue.hmi_value(),
-                    flagsColumn: flags
-                };
-            }
+            keyChanged: reload
         };
     }
 
@@ -2018,7 +2008,7 @@
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
-                        keyValue.hmi_value(data.valueColumn);
+                        keyValue.hmi_value(data.taskObjectColumn);
                         checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_AUTORUN) !== 0);
                         cycleMillisValue.hmi_value(data.cycleIntervalMillisColumn.toString());
                     } else {
@@ -2118,7 +2108,7 @@
                     flags |= ContentManager.HMI_FLAG_AUTORUN;
                 }
                 return {
-                    valueColumn: keyValue.hmi_value(),
+                    taskObjectColumn: keyValue.hmi_value(),
                     flagsColumn: flags,
                     cycleIntervalMillisColumn: cycleMillisValue.hmi_value()
                 };
