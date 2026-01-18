@@ -2512,7 +2512,7 @@
         };
         let edited = false, editListenerEnabled = true, pending_commit = false, pending_reset = false;
         function update() {
-            const isJsonFX = sel_data.JsonFX === true;
+            const isJsonFX = sel_data.type === ContentManager.DataTableType.JsonFX;
             tasksButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset);
             if (isJsonFX) {
                 cms.IsTaskObject(sel_data.id, response => {
@@ -2631,7 +2631,7 @@
             clicked: () => showHmisConfigurationDialog(hmi, adapter),
             longClicked: () => {
                 try {
-                    if (sel_data && sel_data.JsonFX === true) {
+                    if (sel_data && sel_data.type === ContentManager.DataTableType.JsonFX) {
                         cms.IsHMIObject(sel_data.id, response => {
                             if (response !== true) {
                                 cms.AddDefaultHMIObject(sel_data.id, resp => {
@@ -2659,7 +2659,7 @@
             clicked: () => showTasksConfigurationDialog(hmi, adapter),
             longClicked: () => {
                 try {
-                    if (sel_data && sel_data.JsonFX === true) {
+                    if (sel_data && sel_data.type === ContentManager.DataTableType.JsonFX) {
                         cms.IsTaskObject(sel_data.id, response => {
                             if (response !== true) {
                                 cms.AddDefaultTaskObject(sel_data.id, resp => {

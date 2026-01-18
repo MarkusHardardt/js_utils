@@ -203,9 +203,8 @@
             const table = this._contentTablesByExtension[extension];
             if (table) {
                 const desc = description || {};
-                desc.JsonFX = table.JsonFX;
-                desc.multilingual = table.multilingual;
-                desc.multiedit = table.multiedit;
+                desc.type = table.type;
+                desc.multiedit = table.multiedit; // TODO: Used?
                 return desc;
             } else {
                 return false;
@@ -267,7 +266,6 @@
                         type,
                         name: tableConfig.name,
                         keyColumn: tableConfig.keyColumn,
-                        multilingual: typeof tableConfig.valueColumnPrefix === 'string' && tableConfig.valueColumnPrefix.length > 0,
                         icon: tableConfig.icon,
                         JsonFX: type === DataTableType.JsonFX,
                         multiedit: type === DataTableType.Label
@@ -505,7 +503,7 @@
                     // note: no language required here because we got only one anyway
                     that._getRawString(adapter, table, rawKey, undefined, rawString => {
                         if (rawString !== false) {
-                            const object = table.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
+                            const object = table.type === DataTableType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
                             if (include) {
                                 const ids = {};
                                 ids[id] = true;
@@ -613,7 +611,7 @@
                 this._getRawString(adapter, table, match[1], language, rawString => {
                     if (rawString !== false) {
                         ids[includeKey] = true;
-                        const includedObject = table.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
+                        const includedObject = table.type === DataTableType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
                         that._include(adapter, includedObject, ids, language, inclObj => {
                             delete ids[includeKey];
                             if (typeof inclObj === 'object' && inclObj !== null) {
@@ -677,10 +675,10 @@
                                     that._getRawString(adapter, table, rawKey, language, rawString => {
                                         if (rawString !== false) {
                                             ids[includeKey] = true;
-                                            const object = table.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
+                                            const object = table.type === DataTableType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
                                             that._include(adapter, object, ids, language, build => {
                                                 delete ids[includeKey];
-                                                array[idx] = table.JsonFX && array.length > 1 ? JsonFX.stringify(build, false) : build;
+                                                array[idx] = table.type === DataTableType.JsonFX && array.length > 1 ? JsonFX.stringify(build, false) : build;
                                                 onSuc();
                                             }, onErr);
                                         } else {
@@ -1934,7 +1932,7 @@
                 return;
             }
             const table = this._contentTablesByExtension[match[2]];
-            if (!table || !table.JsonFX) {
+            if (!table || table.type !== DataTableType.JsonFX) {
                 onResponse(false);
                 return;
             }
@@ -1961,7 +1959,7 @@
             if (!table) {
                 onError(`Invalid table: '${id}'`);
                 return;
-            } else if (!table.JsonFX) {
+            } else if (table.type !== DataTableType.JsonFX) {
                 onError(`Is not a JsonFX object: '${id}'`);
                 return;
             }
@@ -2027,7 +2025,7 @@
                         return;
                     }
                     const table = this._contentTablesByExtension[match[2]];
-                    if (!table || !table.JsonFX) {
+                    if (!table || table.type !== DataTableType.JsonFX) {
                         onError(`Invalid table name: '${id}'`);
                         return;
                     }
@@ -2072,7 +2070,7 @@
                 return;
             }
             const table = this._contentTablesByExtension[match[2]];
-            if (!table || !table.JsonFX) {
+            if (!table || table.type !== DataTableType.JsonFX) {
                 onResponse(false);
                 return;
             }
@@ -2099,7 +2097,7 @@
             if (!table) {
                 onError(`Invalid table: '${id}'`);
                 return;
-            } else if (!table.JsonFX) {
+            } else if (table.type !== DataTableType.JsonFX) {
                 onError(`Is not a JsonFX object: '${id}'`);
                 return;
             }
@@ -2517,44 +2515,54 @@
                 // closure
                 (function () {
                     let idx = i, id = ids[idx], data = cms.AnalyzeId(id);
-                    if (data.JsonFX) {
-                        tasks.push((onSuc, onErr) => {
-                            cms.GetObject(id, undefined, ContentManager.RAW, object => {
-                                exports.push(createHeader(data.extension, id));
-                                exports.push(JsonFX.stringify(JsonFX.reconstruct(object), true));
-                                exports.push('\n\n');
-                                onProgressChanged(formatProgressInPercent(idx / len));
-                                onSuc();
-                            }, onErr);
-                        });
-                    } else if (!data.multilingual) {
-                        tasks.push((onSuc, onErr) => {
-                            cms.GetObject(id, undefined, ContentManager.RAW, object => {
-                                exports.push(createHeader(data.extension, id));
-                                exports.push(object);
-                                exports.push('\n\n');
-                                onProgressChanged(formatProgressInPercent(idx / len));
-                                onSuc();
-                            }, onErr);
-                        });
-                    } else {
-                        tasks.push((onSuc, onErr) => {
-                            cms.GetObject(id, undefined, ContentManager.RAW, results => {
-                                exports.push(createHeader(data.extension, id));
-                                for (let l = 0; l < languages.length; l++) {
-                                    const lang = languages[l];
-                                    exports.push(createHeader('language', `${id}:${lang}`));
-                                    const txt = results[lang];
-                                    if (txt != undefined && txt != null) {
-                                        exports.push(typeof txt === 'string' ? txt : txt.toString());
+                    switch (data.type) {
+                        case DataTableType.JsonFX:
+                        case DataTableType.HMI:
+                        case DataTableType.Task:
+                            tasks.push((onSuc, onErr) => {
+                                cms.GetObject(id, undefined, ContentManager.RAW, object => {
+                                    exports.push(createHeader(data.extension, id));
+                                    exports.push(JsonFX.stringify(JsonFX.reconstruct(object), true));
+                                    exports.push('\n\n');
+                                    onProgressChanged(formatProgressInPercent(idx / len));
+                                    onSuc();
+                                }, onErr);
+                            });
+                            break;
+                        case DataTableType.Text:
+                            tasks.push((onSuc, onErr) => {
+                                cms.GetObject(id, undefined, ContentManager.RAW, object => {
+                                    exports.push(createHeader(data.extension, id));
+                                    exports.push(object);
+                                    exports.push('\n\n');
+                                    onProgressChanged(formatProgressInPercent(idx / len));
+                                    onSuc();
+                                }, onErr);
+                            });
+                            break;
+                        case DataTableType.Label:
+                        case DataTableType.HTML:
+                            tasks.push((onSuc, onErr) => {
+                                cms.GetObject(id, undefined, ContentManager.RAW, results => {
+                                    exports.push(createHeader(data.extension, id));
+                                    for (let l = 0; l < languages.length; l++) {
+                                        const lang = languages[l];
+                                        exports.push(createHeader('language', `${id}:${lang}`));
+                                        const txt = results[lang];
+                                        if (txt != undefined && txt != null) {
+                                            exports.push(typeof txt === 'string' ? txt : txt.toString());
+                                        }
+                                        exports.push('\n');
                                     }
                                     exports.push('\n');
-                                }
-                                exports.push('\n');
-                                onProgressChanged(formatProgressInPercent(idx / len));
-                                onSuc();
-                            }, onErr);
-                        });
+                                    onProgressChanged(formatProgressInPercent(idx / len));
+                                    onSuc();
+                                }, onErr);
+                            });
+                            break;
+                        default:
+                            console.error(`Invalid type '${data.type}'`);
+                            break;
                     }
                 }());
             }
@@ -2583,35 +2591,45 @@
                     const path = header[3];
                     if (createChecksum(header[1], path) === header[2]) {
                         const data = cms.AnalyzeId(path);
-                        if (data.JsonFX) {
-                            try {
-                                data.value = JsonFX.parse(elements[idx++], true, true);
-                            } catch (exc) {
-                                onError(`EXCEPTION! Cannot evaluate object: ${exc}`);
-                                return false;
-                            }
-                            results.push(data);
-                        } else if (!data.multilingual) {
-                            data.value = elements[idx++].trim();
-                            results.push(data);
-                        } else {
-                            data.value = {};
-                            while (idx < elements.length) {
-                                header = elements[idx];
-                                if (!Array.isArray(header) || header[1] !== 'language') {
-                                    break;
-                                }
-                                if (createChecksum(header[1], header[3]) !== header[2]) {
-                                    onError('EXCEPTION! Invalid language header!');
+                        switch (data.type) {
+                            case DataTableType.JsonFX:
+                            case DataTableType.HMI:
+                            case DataTableType.Task:
+                                try {
+                                    data.value = JsonFX.parse(elements[idx++], true, true);
+                                } catch (exc) {
+                                    onError(`EXCEPTION! Cannot evaluate object: ${exc}`);
                                     return false;
                                 }
-                                idx++;
-                                const txt = elements[idx++].trim();
-                                if (txt.length > 0) {
-                                    data.value[header[3].substring(data.id.length + 1)] = txt;
+                                results.push(data);
+                                break;
+                            case DataTableType.Text:
+                                data.value = elements[idx++].trim();
+                                results.push(data);
+                                break;
+                            case DataTableType.Label:
+                            case DataTableType.HTML:
+                                data.value = {};
+                                while (idx < elements.length) {
+                                    header = elements[idx];
+                                    if (!Array.isArray(header) || header[1] !== 'language') {
+                                        break;
+                                    }
+                                    if (createChecksum(header[1], header[3]) !== header[2]) {
+                                        onError('EXCEPTION! Invalid language header!');
+                                        return false;
+                                    }
+                                    idx++;
+                                    const txt = elements[idx++].trim();
+                                    if (txt.length > 0) {
+                                        data.value[header[3].substring(data.id.length + 1)] = txt;
+                                    }
                                 }
-                            }
-                            results.push(data);
+                                results.push(data);
+                                break;
+                        default:
+                            console.error(`Invalid type '${data.type}'`);
+                            break;
                         }
                     } else {
                         onError(`EXCEPTION! Invalid: ${JSON.stringify(header)}`);
@@ -2628,21 +2646,31 @@
                 // closure
                 (function () {
                     const idx = i, d = data[idx];
-                    if (d.JsonFX) {
-                        tasks.push((onSuc, onErr) => {
-                            const val = d.value !== undefined && d.value !== null ? JsonFX.stringify(d.value, false) : undefined;
-                            cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr), onErr);
-                        });
-                    } else if (!d.multilingual) {
-                        tasks.push((onSuc, onErr) => {
-                            const val = d.value !== undefined && d.value !== null ? d.value : undefined;
-                            cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr));
-                        });
-                    } else {
-                        tasks.push((onSuc, onErr) => {
-                            const val = d.value !== undefined && d.value !== null ? d.value : undefined;
-                            cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr));
-                        });
+                    switch (d.type) {
+                        case DataTableType.JsonFX:
+                        case DataTableType.HMI:
+                        case DataTableType.Task:
+                            tasks.push((onSuc, onErr) => {
+                                const val = d.value !== undefined && d.value !== null ? JsonFX.stringify(d.value, false) : undefined;
+                                cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr), onErr);
+                            });
+                            break;
+                        case DataTableType.Text:
+                            tasks.push((onSuc, onErr) => {
+                                const val = d.value !== undefined && d.value !== null ? d.value : undefined;
+                                cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr));
+                            });
+                            break;
+                        case DataTableType.Label:
+                        case DataTableType.HTML:
+                            tasks.push((onSuc, onErr) => {
+                                const val = d.value !== undefined && d.value !== null ? d.value : undefined;
+                                cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr));
+                            });
+                            break;
+                        default:
+                            console.error(`Invalid type '${d.type}'`);
+                            break;
                     }
                     tasks.push((onSuc, onErr) => {
                         onProgressChanged(formatProgressInPercent(idx / len));
