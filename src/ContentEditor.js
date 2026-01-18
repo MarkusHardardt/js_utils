@@ -1846,6 +1846,11 @@
         };
     }
 
+    /*
+    adapter = {
+        edited: () => { }, must be called if data has been edited
+    }
+    */
     function getHmiEditor(hmi, adapter) {
         const cms = hmi.cms;
         function onKeyChanged(data, language, onSuccess, onError) {
@@ -2437,11 +2442,12 @@
                 },
                 handleTableRowClicked: rowIndex => detailsContainer.showRowData(hmiObjects[rowIndex])
             };
+            const detailsAapter = { edited: () => console.log('edited') }; // TODO: Go on here
             const detailsContainer = {
                 y: 1,
                 type: 'container',
                 showRowData: hmiObject => {
-                    const editor = getHmiEditor(hmi, adapter);
+                    const editor = getHmiEditor(hmi, detailsAapter);
                     detailsContainer.hmi_removeContent(() => detailsContainer.hmi_setContent(editor, () => {
                         hmiObject.file = `$${hmiObject.path}.${cms.GetExtensionForType(ContentManager.DataTableType.HMI)}`; // TODO: Fix this
                         editor.onKeyChanged(hmiObject, undefined, () => { }, error => {
