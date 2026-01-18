@@ -14,7 +14,8 @@
             "name": "hmi",
             "extension": "hmi",
             "keyColumn": "key",
-            "valueColumn": "jsonFxObjectKey",
+            "queryParameterColumn": "queryParameter",
+            "viewObjectColumn": "viewObject",
             "flagsColumn": "flags",
             "icon": "hmi.gif",
             "hmis": true
@@ -23,7 +24,7 @@
             "name": "task",
             "extension": "task",
             "keyColumn": "key",
-            "valueColumn": "jsonFxObjectKey",
+            "taskObjectColumn": "taskObject",
             "flagsColumn": "flags",
             "cycleIntervalMillisColumn": "cycleIntervalMillis",
             "icon": "task.gif",

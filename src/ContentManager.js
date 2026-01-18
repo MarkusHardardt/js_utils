@@ -286,26 +286,29 @@
                             }
                             break;
                         case DataTableType.HMI:
-                            if (typeof tableConfig.valueColumn !== 'string') {
-                                throw new Error(`Missing value column parameter for table type '${type}'`);
+                            if (typeof tableConfig.viewObjectColumn !== 'string') {
+                                throw new Error(`Missing view object column parameter for table type '${type}'`);
+                            } else if (typeof tableConfig.queryParameter !== 'string') {
+                                throw new Error(`Missing query parameter column parameter for table type '${type}'`);
                             } else if (typeof tableConfig.flagsColumn !== 'string') {
                                 throw new Error(`Missing flags column parameter for table type '${type}'`);
                             }
                             valcol = {
-                                valueColumn: tableConfig.valueColumn,
+                                viewObjectColumn: tableConfig.viewObjectColumn,
+                                queryParameter: tableConfig.queryParameter,
                                 flagsColumn: tableConfig.flagsColumn
                             };
                             break;
                         case DataTableType.Task:
-                            if (typeof tableConfig.valueColumn !== 'string') {
-                                throw new Error(`Missing value column parameter for table type '${type}'`);
+                            if (typeof tableConfig.taskObjectColumn !== 'string') {
+                                throw new Error(`Missing task object column parameter for table type '${type}'`);
                             } else if (typeof tableConfig.flagsColumn !== 'string') {
                                 throw new Error(`Missing flags column parameter for table type '${type}'`);
                             } else if (typeof tableConfig.cycleIntervalMillisColumn !== 'string') {
                                 throw new Error(`Missing cycle tnterval millis column column parameter for table type '${type}'`);
                             }
                             valcol = {
-                                valueColumn: tableConfig.valueColumn,
+                                taskObjectColumn: tableConfig.taskObjectColumn,
                                 flagsColumn: tableConfig.flagsColumn,
                                 cycleIntervalMillisColumn: tableConfig.cycleIntervalMillisColumn
                             };
@@ -317,7 +320,7 @@
                         type,
                         name: tableConfig.name,
                         keyColumn: tableConfig.keyColumn,
-                        valueColumn: tableConfig.valueColumn,
+                        valueColumn: tableConfig.valueColumn, // TODO: Used?
                         valcol,
                         multilingual: typeof tableConfig.valueColumnPrefix === 'string' && tableConfig.valueColumnPrefix.length > 0,
                         icon: tableConfig.icon,
@@ -1953,7 +1956,7 @@
             const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn('COUNT(*) AS cnt');
-                adapter.AddWhere(`${hmiTable.name}.${hmiTable.valueColumn} = ${SqlHelper.escape(id)}`);
+                adapter.AddWhere(`${hmiTable.name}.${hmiTable.viewObjectColumn} = ${SqlHelper.escape(id)}`);
                 adapter.PerformSelect(hmiTable.name, undefined, undefined, undefined, result => {
                     adapter.Close();
                     onResponse(result[0].cnt > 0);
@@ -1984,7 +1987,7 @@
                 tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
                 tasks.push((onSuc, onErr) => {
                     if (available === true) {
-                        adapter.AddValue(`${hmiTable.name}.${hmiTable.valueColumn}`, SqlHelper.escape(id));
+                        adapter.AddValue(`${hmiTable.name}.${hmiTable.viewObjectColumn}`, SqlHelper.escape(id));
                         const checksum = Server.createSHA256(id);
                         const key = `${checksum.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${checksum.substring(checksum.length - Math.ceil(AUTO_KEY_LENGTH / 2), checksum.length)}`;
                         adapter.AddValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(key));
@@ -2016,7 +2019,7 @@
         GetHMIObject(queryParameterValue, onResponse, onError) {
             const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.valueColumn} AS path`);
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.viewObjectColumn} AS path`);
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS flags`);
                 adapter.AddWhere(`${hmiTable.name}.${hmiTable.keyColumn} = ${SqlHelper.escape(queryParameterValue)}`);
                 adapter.PerformSelect(hmiTable.name, undefined, undefined, undefined, result => {
@@ -2057,7 +2060,7 @@
             const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.keyColumn} AS key`);
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.valueColumn} AS path`);
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.viewObjectColumn} AS path`);
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS enable`);
                 adapter.PerformSelect(hmiTable.name, undefined, 'path ASC', undefined, result => {
                     adapter.Close();
@@ -2082,7 +2085,7 @@
             const taskTable = this._taskTable;
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn('COUNT(*) AS cnt');
-                adapter.AddWhere(`${taskTable.name}.${taskTable.valueColumn} = ${SqlHelper.escape(id)}`);
+                adapter.AddWhere(`${taskTable.name}.${taskTable.taskObjectColumn} = ${SqlHelper.escape(id)}`);
                 adapter.PerformSelect(taskTable.name, undefined, undefined, undefined, result => {
                     adapter.Close();
                     onResponse(result[0].cnt > 0);
@@ -2126,12 +2129,12 @@
                         } else {
                             adapter.AddValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(rawKey));
                         }
-                        adapter.AddValue(`${taskTable.name}.${taskTable.valueColumn}`, SqlHelper.escape(id));
+                        adapter.AddValue(`${taskTable.name}.${taskTable.taskObjectColumn}`, SqlHelper.escape(id));
                         adapter.AddValue(`${taskTable.name}.${taskTable.flagsColumn}`, SqlHelper.escape('0'));
                         adapter.AddValue(`${taskTable.name}.${taskTable.cycleIntervalMillisColumn}`, SqlHelper.escape('0'));
                         adapter.PerformInsert(taskTable.name, onSuc, onErr);
                     } else {
-                        adapter.AddWhere(`${taskTable.name}.${taskTable.valueColumn} = ${SqlHelper.escape(id)}`);
+                        adapter.AddWhere(`${taskTable.name}.${taskTable.taskObjectColumn} = ${SqlHelper.escape(id)}`);
                         adapter.PerformDelete(taskTable.name, undefined, 1, onSuc, onErr);
                     }
                 });
@@ -2158,7 +2161,7 @@
             const taskTable = this._taskTable;
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn(`${taskTable.name}.${taskTable.keyColumn} AS key`);
-                adapter.AddColumn(`${taskTable.name}.${taskTable.valueColumn} AS path`);
+                adapter.AddColumn(`${taskTable.name}.${taskTable.taskObjectColumn} AS path`);
                 adapter.AddColumn(`${taskTable.name}.${taskTable.flagsColumn} AS flags`);
                 adapter.AddColumn(`${taskTable.name}.${taskTable.cycleIntervalMillisColumn} AS cycleMillis`);
                 adapter.PerformSelect(taskTable.name, undefined, 'path ASC', undefined, result => {
