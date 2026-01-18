@@ -341,7 +341,7 @@
             this._contentTablesKeyRegex = new RegExp(`^\\$((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?)\\.(${tabexts})$`);
             this._refactoring_match = `((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?\\.(?:${tabexts}))\\b`;
             this._include_regex_build = new RegExp(`(\'|")?include:\\$((?:${VALID_NAME_CHAR}+\\/)*${VALID_NAME_CHAR}+?)\\.(${tabexts})\\b\\1`, 'g');
-            this._exchange_header_regex = new RegExp(`\\[\\{\\((${tabexts}|language|${Regex.escape(EXCHANGE_HEADER)})<>([a-f0-9]{32})\\)\\}\\]\\n(.*)\\n`, 'g');
+            this.exchangeHeaderRegex = new RegExp(`\\[\\{\\((${tabexts}|language|${Regex.escape(EXCHANGE_HEADER)})<>([a-f0-9]{32})\\)\\}\\]\\n(.*)\\n`, 'g');
             validateAsContentManagerOnServer(this, true);
         }
         _getRawString(adapter, table, rawKey, language, onResponse, onError) {
@@ -1017,7 +1017,7 @@
         }
         _getRefactoringParams(adapter, source, target, action, onResponse, onError) {
             // here we store the result
-            const params = {}, key_regex = this._contentTablesKeyRegex;
+            const params = {};
             // check action
             if (action !== ContentManager.COPY && action !== ContentManager.MOVE && action !== ContentManager.DELETE) {
                 params.error = 'Invalid action';
@@ -1048,7 +1048,7 @@
             }
             // check source identifier
             let srcTab = false, srcTabKey, sourceIsFolder;
-            let match = key_regex.exec(source);
+            let match = this._contentTablesKeyRegex.exec(source);
             if (match) {
                 srcTab = this._contentTablesByExtension[match[2]];
                 if (!srcTab) {
@@ -1072,7 +1072,7 @@
             let tgtTab = false, targetIsFolder;
             // check target identifier
             if (typeof target === 'string') {
-                match = key_regex.exec(target);
+                match = this._contentTablesKeyRegex.exec(target);
                 if (match) {
                     tgtTab = this._contentTablesByExtension[match[2]];
                     if (!tgtTab) {
@@ -1172,7 +1172,6 @@
                         // in the next loop we build the resulting target paths
                         for (let i = 0; i < srcLen; i++) {
                             const src = srcKeysArr[i];
-                            const match = key_regex.exec(src);
                             const tgt = target + src.substring(source.length);
                             objects[src] = tgt;
                             checksum += tgt;
@@ -1195,7 +1194,7 @@
                     for (let i = 0; i < srcLen; i++) {
                         (function () {
                             const tgt = objects[srcKeysArr[i]];
-                            const match = key_regex.exec(tgt);
+                            const match = that._contentTablesKeyRegex.exec(tgt);
                             const table = that._contentTablesByExtension[match[2]];
                             const tabKeyEsc = SqlHelper.escape(match[1]);
                             tasks.push((os, or) => {
@@ -1347,7 +1346,7 @@
                                         }
                                     }
                                 } else {
-                                    const key_regex = that._contentTablesKeyRegex, match = key_regex.exec(source);
+                                    const match = that._contentTablesKeyRegex.exec(source);
                                     const table = that._contentTablesByExtension[match[2]], srcTabKey = SqlHelper.escape(match[1]);
                                     tasks.push((os, oe) => {
                                         adapter.AddWhere(`${table.name}.${table.keyColumn} = ${srcTabKey}`);
@@ -1379,8 +1378,8 @@
             }, onError);
         }
         _performRefactoring(adapter, source, params, getReplacement, onResponse, onError) {
-            const that = this, key_regex = this._contentTablesKeyRegex;
-            const match = key_regex.exec(source);
+            const that = this;
+            const match = this._contentTablesKeyRegex.exec(source);
             const table = this._contentTablesByExtension[match[2]];
             const srcTabKey = match[1];
             const main = [];
@@ -1438,7 +1437,7 @@
                                 }
                                 break;
                         }
-                        const match = key_regex.exec(target);
+                        const match = that._contentTablesKeyRegex.exec(target);
                         const tgtTabKey = match[1];
                         function success() {
                             if (targetAlreadyExists && params.action === ContentManager.MOVE) {
@@ -1474,7 +1473,7 @@
                             const refFrom = referencesFrom[j];
                             if (params.objects[refFrom] === undefined) {
                                 (function () {
-                                    const match = key_regex.exec(refFrom);
+                                    const match = that._contentTablesKeyRegex.exec(refFrom);
                                     const table = that._contentTablesByExtension[match[2]];
                                     const usrKey = match[1];
                                     tasks.push((os, oe) => {
@@ -2173,10 +2172,8 @@
                         jsonfxPretty: this._config.jsonfxPretty,
                         extensionsForType: this._extensionsForType,
                         contentTablesByExtension: this._contentTablesByExtension,
-                        hmiTable: this._hmiTable,
-                        taskTable: this._taskTable,
-                        key_regex: this._contentTablesKeyRegex.source,
-                        exchange_header_regex: this._exchange_header_regex.source
+                        contentTablesKeyRegex: this._contentTablesKeyRegex.source,
+                        exchangeHeaderRegex: this.exchangeHeaderRegex.source
                     });
                     break;
                 case COMMAND_EXISTS:
@@ -2393,26 +2390,18 @@
     class ClientManager extends ContentManagerBase {
         constructor(onResponse, onError) {
             super();
-            const that = this;
-            fetch({
-                command: COMMAND_GET_CONFIG
-            }, config => {
-                that._config = config;
-                that._iconDirectory = config.iconDirectory;
-                that._extensionsForType = config.extensionsForType;
-                that._contentTablesKeyRegex = new RegExp(config.key_regex);
-                that._exchange_header_regex = new RegExp(config.exchange_header_regex, 'g');
-                const langs = config.languages.length;
-                that._contentTablesByExtension = config.contentTablesByExtension;
-                that._hmiTable = config.hmiTable;
-                that._taskTable = config.taskTable;
+            validateAsContentManager(this, true);
+            fetch({ command: COMMAND_GET_CONFIG }, config => {
+                this._config = config;
+                this._iconDirectory = config.iconDirectory;
+                this._extensionsForType = config.extensionsForType;
+                this._contentTablesKeyRegex = new RegExp(config.contentTablesKeyRegex);
+                this.exchangeHeaderRegex = new RegExp(config.exchangeHeaderRegex, 'g');
+                this._contentTablesByExtension = config.contentTablesByExtension;
                 if (typeof onResponse === 'function') {
                     onResponse();
                 }
             }, onError);
-            validateAsContentManager(this, true);
-        }
-        _post(request, onResponse, onError) {
         }
         Exists(id, onResponse, onError) {
             fetch({ command: COMMAND_EXISTS, id }, onResponse, onError);
@@ -2421,7 +2410,7 @@
             fetch({ command: COMMAND_GET_CHECKSUM, id }, onResponse, onError);
         }
         GetObject(id, language, mode, onResponse, onError) {
-            const that = this, parse = mode === ContentManager.PARSE;
+            const parse = mode === ContentManager.PARSE;
             fetch({
                 command: COMMAND_GET_OBJECT,
                 id,
@@ -2431,10 +2420,9 @@
                 if (response !== undefined) {
                     try {
                         let object = JsonFX.reconstruct(response);
-                        if (that._config !== undefined && that._config.jsonfxPretty === true) {
+                        if (this._config !== undefined && this._config.jsonfxPretty === true) {
                             // the 'jsonfxPretty' flag may be used to format our dynamically
                             // parsed JavaScript sources for more easy debugging purpose
-                            // TODO: reuse or remove const match = that._contentTablesKeyRegex.exec(id);
                             // TOOD: response = eval('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
                             object = eval('(' + JsonFX.stringify(object, true) + ')');
                         }
@@ -2472,7 +2460,6 @@
             fetch({ command: COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT, id }, onResponse, onError);
         }
         GetHMIObject(queryParameterValue, onResponse, onError) {
-            const that = this;
             fetch({ command: COMMAND_GET_HMI_OBJECT, queryParameterValue }, response => {
                 if (response !== undefined) {
                     try {
@@ -2523,8 +2510,7 @@
         constructor(cms) {
             this._cms = cms;
         }
-        // prototype
-        _read_config_data(ids, path, languages, onProgressChanged, onError) {
+        _readConfigData(ids, path, languages, onProgressChanged, onError) {
             const exports = [createHeader(EXCHANGE_HEADER, path), '\n'];
             const cms = this._cms, tasks = [], len = ids.length;
             for (let i = 0; i < len; i++) {
@@ -2581,7 +2567,7 @@
         _parse(text, results, onProgressChanged, onError) {
             // separate ids and data
             const cms = this._cms, elements = [];
-            Regex.each(cms._exchange_header_regex, text, (start, end, match) => elements.push(match ? match : text.substring(start, end)));
+            Regex.each(cms.exchangeHeaderRegex, text, (start, end, match) => elements.push(match ? match : text.substring(start, end)));
             onProgressChanged(`loaded ${elements.length} elements`);
             let header = elements[0];
             if (!Array.isArray(header) || EXCHANGE_HEADER !== header[1] || createChecksum(header[1], header[3]) !== header[2]) {
@@ -2690,11 +2676,11 @@
             const languages = cms.GetLanguages();
             languages.sort(compareKeys);
             if (data.file) {
-                that._read_config_data([data.file], id, languages, onProgressChanged, onError);
+                that._readConfigData([data.file], id, languages, onProgressChanged, onError);
             } else if (data.folder) {
                 cms.GetIdKeyValues(data.folder, ids => {
                     ids.sort(compareKeys);
-                    that._read_config_data(ids, id, languages, onProgressChanged, onError);
+                    that._readConfigData(ids, id, languages, onProgressChanged, onError);
                 }, onError);
             } else {
                 onProgressChanged();
