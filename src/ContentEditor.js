@@ -2375,14 +2375,16 @@
     }
 
     const HmiObjectsTableColumn = Object.freeze({
-        Object: 0,
-        QueryParameter: 1,
-        Enable: 2
+        Key: 0,
+        ViewObject: 1,
+        QueryParameter: 2,
+        Enable: 3
     });
 
     function showHmisConfigurationDialog(hmi, adapter) {
         hmi.cms.GetHMIObjects(hmiObjects => {
             console.log(JSON.stringify(hmiObjects)); // TODO: remove
+            // [{"path":"001_debug/maze_game_copy","queryParameter":"df3c2621","viewObject":"$001_debug/maze_game_copy.j","flags":0},{"path":"aaa","queryParameter":"","viewObject":"$001_debug/dataPoints.j","flags":1},{"path":"debug/hmi/view","queryParameter":"42","viewObject":"$debug/hmi/view.j","flags":1},{"path":"debug/hmi/view_copy","queryParameter":"43","viewObject":"$debug/hmi/view.j","flags":1}]
             const table = {
                 y: 0,
                 type: 'table',
@@ -2392,6 +2394,10 @@
                 columns: [{
                     width: 100,
                     text: 'hmi object',
+                    textsAndNumbers: true
+                }, {
+                    width: 100,
+                    text: 'view object',
                     textsAndNumbers: true
                 }, {
                     width: 100,
@@ -2406,12 +2412,14 @@
                 getCellHtml: (rowIndex, columnIndex) => {
                     const row = hmiObjects[rowIndex];
                     switch (columnIndex) {
-                        case HmiObjectsTableColumn.Object:
+                        case HmiObjectsTableColumn.Key:
                             return row.path;
+                        case HmiObjectsTableColumn.ViewObject:
+                            return row.viewObject;
                         case HmiObjectsTableColumn.QueryParameter:
                             return row.key;
                         case HmiObjectsTableColumn.Enable:
-                            return row.enable ? 'enabled' : 'disabled';
+                            return (row.flags & ContentManager.HMI_FLAG_ENABLE) !== 0 ? 'enabled' : 'disabled';
                         default:
                             return '';
                     }
@@ -2432,29 +2440,8 @@
                 y: 1,
                 type: 'container',
                 showRowData: hmiObject => {
-                    const buttons = {
-                        x: 2, y: 0, width: 1, height: 2, separator: SEPARATOR,
-                        type: 'grid',
-                        children: []
-                    };
-                    const textIdCell = {
-                        x: 0, y: 0, type: 'textfield', editable: false, value: textId
-                    };
-                    const nodeIdCell = {
-                        x: 0, y: 1, width: 2, height: 1,
-                        type: 'textfield', editable: false,
-                        value: als21DetailsNodeId ? als21DetailsNodeId : ''
-                    };
-                    const detailsGrid = {
-                        id: 'details',
-                        type: 'grid',
-                        separator: SEPARATOR,
-                        columns: ['200px', '200px', 1],
-                        rows: 2,
-                        children: [textIdCell, valueCell, nodeIdCell, buttons]
-                    };
-                    const that = this;
-                    that.hmi_removeContent(() => that.hmi_setContent(detailsGrid, () => { }, error => adapter.notifyError(`Error setting content for ${hmiObject.textId}: ${error}`)), error => adapter.notifyError(`Error removing content: ${error}`));
+                    const editor = getHmiEditor(hmi, adapter);
+                    detailsContainer.hmi_removeContent(() => detailsContainer.hmi_setContent(editor, () => { }, error => adapter.notifyError(`Error setting content for ${hmiObject.path}: ${error}`)), error => adapter.notifyError(`Error removing content: ${error}`));
                 }
             };
             const dialogObject = {
