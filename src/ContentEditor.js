@@ -2412,14 +2412,7 @@
                         separator: SEPARATOR,
                         columns: ['200px', '200px', 1],
                         rows: 2,
-                        children: [textIdCell, valueCell, nodeIdCell, buttons],
-                        refresh: function (i_date) {
-                            let time = i_date.getTime();
-                            if (als21DetailsNodeId && adapter.opcuaReadCycleMillis && time >= previousTime + adapter.opcuaReadCycleMillis / 2) {
-                                previousTime = time;
-                                update(adapter.getNodeValue(als21DetailsNodeId));
-                            }
-                        }
+                        children: [textIdCell, valueCell, nodeIdCell, buttons]
                     };
                     const that = this;
                     that.hmi_removeContent(() => that.hmi_setContent(detailsGrid, () => { }, error => adapter.notifyError(`Error setting content for ${hmiObject.textId}: ${error}`)), error => adapter.notifyError(`Error removing content: ${error}`));
@@ -2874,7 +2867,7 @@
         const time = {
             x: 2,
             y: 0,
-            refresh: date => {
+            refresh: (that, date) => {
                 // clock (updates every second)
                 var last = footer._last, sec = Math.ceil(date.getTime() / 1000);
                 if (last !== sec) {

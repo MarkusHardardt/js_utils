@@ -7998,32 +7998,32 @@
     }
     ObjectLifecycleManager.create = create_hmi_object_branch;
 
-    function refresh_all(i_date) {
-        for (var i = 0, l = s_root_objects.length; i < l; i++) {
+    function refreshAllRecursive(date) {
+        for (let i = 0, l = s_root_objects.length; i < l; i++) {
             // first we call all found user refresh functions
-            process_object_branch(s_root_objects[i], true, undefined, function (i_processObject) {
-                if (i_processObject._hmi_alive === true) {
-                    if (typeof i_processObject.refresh === 'function') {
+            process_object_branch(s_root_objects[i], true, undefined, processObject => {
+                if (processObject._hmi_alive === true) {
+                    if (typeof processObject.refresh === 'function') {
                         try {
-                            i_processObject.refresh(i_date);
-                        } catch (exc) {
-                            console.error('EXCEPTION! Calling refresh: ' + exc + ' ' + i_processObject.refresh.toString());
+                            processObject.refresh(processObject, date);
+                        } catch (error) {
+                            console.error(`Failed calling refresh: '${error}' '${processObject.refresh.toString()}'`);
                         }
                     }
                 }
             });
             // next we call system _hmi_refreshs
-            process_object_branch(s_root_objects[i], true, undefined, function (i_processObject) {
-                if (i_processObject._hmi_alive === true) {
-                    var refreshs = i_processObject._hmi_refreshs;
+            process_object_branch(s_root_objects[i], true, undefined, processObject => {
+                if (processObject._hmi_alive === true) {
+                    const refreshs = processObject._hmi_refreshs;
                     if (refreshs !== undefined && Array.isArray(refreshs)) {
-                        for (var r = 0, rl = refreshs.length; r < rl; r++) {
-                            var func = refreshs[r];
+                        for (let r = 0, rl = refreshs.length; r < rl; r++) {
+                            const func = refreshs[r];
                             if (typeof func === 'function') {
                                 try {
-                                    func(i_date);
+                                    func(date);
                                 } catch (exc) {
-                                    console.error('EXCEPTION! Cannot _hmi_refresh: ' + exc + ' ' + func.toString());
+                                    console.error(`Failed calling _hmi_refresh: '${exc}' '${func.toString()}'`);
                                 }
                             }
                         }
@@ -8032,7 +8032,7 @@
             });
         }
     }
-    ObjectLifecycleManager.refresh = refresh_all;
+    ObjectLifecycleManager.refresh = refreshAllRecursive;
 
     function destroy_hmi_object_branch(i_object, i_success, i_error, onLifecycleStateChanged) {
         if (i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
