@@ -2631,16 +2631,18 @@
             longClicked: () => {
                 try {
                     cms.IsHMIObject(sel_data.id, response => {
-                        cms.SetAvailabilityAsHMIObject(sel_data.id, response !== true, resp => {
-                            update();
-                            adapter.reload();
-                        }, error => {
-                            update();
-                            adapter.notifyError(error);
-                        });
+                        if (response !== true) {
+                            cms.AddDefaultHMIObject(sel_data.id, resp => {
+                                update();
+                                adapter.reload();
+                            }, error => {
+                                update();
+                                adapter.notifyError(error);
+                            });
+                        }
                     }, error => adapter.notifyError(error));
-                } catch (exc) {
-                    adapter.notifyError(exc);
+                } catch (error) {
+                    adapter.notifyError(error);
                 }
             },
             timeout: 2000
@@ -2655,13 +2657,15 @@
             longClicked: () => {
                 try {
                     cms.IsTaskObject(sel_data.id, response => {
-                        cms.SetAvailabilityAsTaskObject(sel_data.id, response !== true, resp => {
-                            update();
-                            adapter.reload();
-                        }, error => {
-                            update();
-                            adapter.notifyError(error);
-                        });
+                        if (response !== true) {
+                            cms.AddDefaultTaskObject(sel_data.id, resp => {
+                                update();
+                                adapter.reload();
+                            }, error => {
+                                update();
+                                adapter.notifyError(error);
+                            });
+                        }
                     }, error => adapter.notifyError(error));
                 } catch (exc) {
                     adapter.notifyError(exc);

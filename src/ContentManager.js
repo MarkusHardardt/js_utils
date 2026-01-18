@@ -31,11 +31,11 @@
             'GetSearchResults(key, value, onResponse, onError)',
             'GetIdKeyValues(id, onResponse, onError)',
             'IsHMIObject(id, onResponse, onError)',
-            'SetAvailabilityAsHMIObject(id, available, onResponse, onError)',
+            'AddDefaultHMIObject(id, onResponse, onError)',
             'GetHMIObject(queryParameterValue, onResponse, onError)',
             'GetHMIObjects(onResponse, onError)',
             'IsTaskObject(id, onResponse, onError)',
-            'SetAvailabilityAsTaskObject(id, available, onResponse, onError)',
+            'AddDefaultTaskObject(id, onResponse, onError)',
             'GetTaskObjects(onResponse, onError)'
         ], validateMethodArguments);
     }
@@ -1952,7 +1952,7 @@
                 });
             }, onError);
         }
-        SetAvailabilityAsHMIObject(id, available, onResponse, onError) {
+        AddDefaultHMIObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
@@ -1978,23 +1978,18 @@
                     onSuc();
                 }, onErr));
                 tasks.push((onSuc, onErr) => {
-                    if (available === true) {
-                        if (equalNameExists) {
-                            const random = Server.createSHA256(`#${(Math.E * Math.random())}%${id}&${Date.now()}?${(Math.PI * Math.random())}$`);
-                            const keyValue = `${random.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${random.substring(random.length - Math.ceil(AUTO_KEY_LENGTH / 2), random.length)}`;
-                            adapter.AddValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(`${rawKey}_${keyValue}`));
-                        } else {
-                            adapter.AddValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(rawKey));
-                        }
-                        const idChecksum = Server.createSHA256(id);
-                        const queryParameter = `${idChecksum.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${idChecksum.substring(idChecksum.length - Math.ceil(AUTO_KEY_LENGTH / 2), idChecksum.length)}`;
-                        adapter.AddValue(`${hmiTable.name}.${hmiTable.queryParameterColumn}`, SqlHelper.escape(queryParameter));
-                        adapter.AddValue(`${hmiTable.name}.${hmiTable.viewObjectColumn}`, SqlHelper.escape(id));
-                        adapter.PerformInsert(hmiTable.name, onSuc, onErr);
+                    if (equalNameExists) {
+                        const random = Server.createSHA256(`#${(Math.E * Math.random())}%${id}&${Date.now()}?${(Math.PI * Math.random())}$`);
+                        const keyValue = `${random.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${random.substring(random.length - Math.ceil(AUTO_KEY_LENGTH / 2), random.length)}`;
+                        adapter.AddValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(`${rawKey}_${keyValue}`));
                     } else {
-                        adapter.AddWhere(`${hmiTable.name}.${hmiTable.keyColumn} = ${SqlHelper.escape(id)}`); // TODO: Does this work?
-                        adapter.PerformDelete(hmiTable.name, undefined, 1, onSuc, onErr);
+                        adapter.AddValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(rawKey));
                     }
+                    const idChecksum = Server.createSHA256(id);
+                    const queryParameter = `${idChecksum.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${idChecksum.substring(idChecksum.length - Math.ceil(AUTO_KEY_LENGTH / 2), idChecksum.length)}`;
+                    adapter.AddValue(`${hmiTable.name}.${hmiTable.queryParameterColumn}`, SqlHelper.escape(queryParameter));
+                    adapter.AddValue(`${hmiTable.name}.${hmiTable.viewObjectColumn}`, SqlHelper.escape(id));
+                    adapter.PerformInsert(hmiTable.name, onSuc, onErr);
                 });
                 Executor.run(tasks, () => {
                     adapter.CommitTransaction(() => {
@@ -2094,7 +2089,7 @@
                 });
             }, onError);
         }
-        SetAvailabilityAsTaskObject(id, available, onResponse, onError) {
+        AddDefaultTaskObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
@@ -2120,22 +2115,17 @@
                     onSuc();
                 }, onErr));
                 tasks.push((onSuc, onErr) => {
-                    if (available === true) {
-                        if (equalNameExists) {
-                            const random = Server.createSHA256(`#${(Math.E * Math.random())}%${id}&${Date.now()}?${(Math.PI * Math.random())}$`);
-                            const keyValue = `${random.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${random.substring(random.length - Math.ceil(AUTO_KEY_LENGTH / 2), random.length)}`;
-                            adapter.AddValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(`${rawKey}_${keyValue}`));
-                        } else {
-                            adapter.AddValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(rawKey));
-                        }
-                        adapter.AddValue(`${taskTable.name}.${taskTable.taskObjectColumn}`, SqlHelper.escape(id));
-                        adapter.AddValue(`${taskTable.name}.${taskTable.flagsColumn}`, SqlHelper.escape('0'));
-                        adapter.AddValue(`${taskTable.name}.${taskTable.cycleIntervalMillisColumn}`, SqlHelper.escape('0'));
-                        adapter.PerformInsert(taskTable.name, onSuc, onErr);
+                    if (equalNameExists) {
+                        const random = Server.createSHA256(`#${(Math.E * Math.random())}%${id}&${Date.now()}?${(Math.PI * Math.random())}$`);
+                        const keyValue = `${random.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${random.substring(random.length - Math.ceil(AUTO_KEY_LENGTH / 2), random.length)}`;
+                        adapter.AddValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(`${rawKey}_${keyValue}`));
                     } else {
-                        adapter.AddWhere(`${taskTable.name}.${taskTable.taskObjectColumn} = ${SqlHelper.escape(id)}`); // TODO: Does this work?
-                        adapter.PerformDelete(taskTable.name, undefined, 1, onSuc, onErr);
+                        adapter.AddValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(rawKey));
                     }
+                    adapter.AddValue(`${taskTable.name}.${taskTable.taskObjectColumn}`, SqlHelper.escape(id));
+                    adapter.AddValue(`${taskTable.name}.${taskTable.flagsColumn}`, SqlHelper.escape('0'));
+                    adapter.AddValue(`${taskTable.name}.${taskTable.cycleIntervalMillisColumn}`, SqlHelper.escape('0'));
+                    adapter.PerformInsert(taskTable.name, onSuc, onErr);
                 });
                 Executor.run(tasks, () => {
                     adapter.CommitTransaction(() => {
@@ -2219,7 +2209,7 @@
                     this.IsHMIObject(request.id, onResponse, onError);
                     break;
                 case COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT:
-                    this.SetAvailabilityAsHMIObject(request.id, request.available, onResponse, onError);
+                    this.AddDefaultHMIObject(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_HMI_OBJECT:
                     this.GetHMIObject(request.queryParameterValue, onResponse, onError);
@@ -2231,7 +2221,7 @@
                     this.IsTaskObject(request.id, onResponse, onError);
                     break;
                 case COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT:
-                    this.SetAvailabilityAsTaskObject(request.id, request.available, onResponse, onError);
+                    this.AddDefaultTaskObject(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_TASK_OBJECTS:
                     this.GetTaskObjects(onResponse, onError);
@@ -2474,8 +2464,8 @@
         IsHMIObject(id, onResponse, onError) {
             this._post({ command: COMMAND_IS_HMI_OBJECT, id }, onResponse, onError);
         }
-        SetAvailabilityAsHMIObject(id, available, onResponse, onError) {
-            this._post({ command: COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT, id, available }, onResponse, onError);
+        AddDefaultHMIObject(id, onResponse, onError) {
+            this._post({ command: COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT, id }, onResponse, onError);
         }
         GetHMIObject(queryParameterValue, onResponse, onError) {
             const that = this;
@@ -2505,8 +2495,8 @@
         IsTaskObject(id, onResponse, onError) {
             this._post({ command: COMMAND_IS_TASK_OBJECT, id }, onResponse, onError);
         }
-        SetAvailabilityAsTaskObject(id, available, onResponse, onError) {
-            this._post({ command: COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT, id, available }, onResponse, onError);
+        AddDefaultTaskObject(id, onResponse, onError) {
+            this._post({ command: COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT, id }, onResponse, onError);
         }
         GetTaskObjects(onResponse, onError) {
             this._post({ command: COMMAND_GET_TASK_OBJECTS }, onResponse, onError);
