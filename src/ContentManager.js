@@ -2020,7 +2020,7 @@
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.viewObjectColumn} AS path`);
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS flags`);
-                adapter.AddWhere(`${hmiTable.name}.${hmiTable.keyColumn} = ${SqlHelper.escape(queryParameterValue)}`);
+                adapter.AddWhere(`${hmiTable.name}.${hmiTable.queryParameterColumn} = ${SqlHelper.escape(queryParameterValue)}`);
                 adapter.PerformSelect(hmiTable.name, undefined, undefined, undefined, result => {
                     if (!result || !Array.isArray(result) || result.length !== 1) {
                         onError(`Invalid query parameter: '${queryParameterValue}'`);
@@ -2122,9 +2122,9 @@
                 tasks.push((onSuc, onErr) => {
                     if (available === true) {
                         if (equalNameExists) {
-                            const checksum = Server.createSHA256(id);
-                            const keyValue = `${checksum.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${checksum.substring(checksum.length - Math.ceil(AUTO_KEY_LENGTH / 2), checksum.length)}`;
-                            adapter.AddValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(keyValue));
+                            const random = Server.createSHA256(`#${(Math.E * Math.random())}%${id}&${Date.now()}?${(Math.PI * Math.random())}$`);
+                            const keyValue = `${random.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${random.substring(random.length - Math.ceil(AUTO_KEY_LENGTH / 2), random.length)}`;
+                            adapter.AddValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(`${rawKey}_${keyValue}`));
                         } else {
                             adapter.AddValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(rawKey));
                         }
@@ -2133,7 +2133,7 @@
                         adapter.AddValue(`${taskTable.name}.${taskTable.cycleIntervalMillisColumn}`, SqlHelper.escape('0'));
                         adapter.PerformInsert(taskTable.name, onSuc, onErr);
                     } else {
-                        adapter.AddWhere(`${taskTable.name}.${taskTable.taskObjectColumn} = ${SqlHelper.escape(id)}`);
+                        adapter.AddWhere(`${taskTable.name}.${taskTable.taskObjectColumn} = ${SqlHelper.escape(id)}`); // TODO: Does this work?
                         adapter.PerformDelete(taskTable.name, undefined, 1, onSuc, onErr);
                     }
                 });
