@@ -93,19 +93,19 @@
         if (previous) {
             if (next) {
                 if (previous !== next) {
-                    previous.keyChanged(false, language, () => {
+                    previous.onKeyChanged(false, language, () => {
                         container.hmi_removeContent(() => {
-                            container.hmi_setContent(next, () => next.keyChanged(data, language, onSuccess, onError), onError);
+                            container.hmi_setContent(next, () => next.onKeyChanged(data, language, onSuccess, onError), onError);
                         }, onError);
                     }, onError);
                 } else {
-                    next.keyChanged(data, language, onSuccess, onError);
+                    next.onKeyChanged(data, language, onSuccess, onError);
                 }
             } else {
-                previous.keyChanged(false, language, () => container.hmi_removeContent(onSuccess, onError), onError);
+                previous.onKeyChanged(false, language, () => container.hmi_removeContent(onSuccess, onError), onError);
             }
         } else if (next) {
-            container.hmi_setContent(next, () => next.keyChanged(data, language, onSuccess, onError), onError);
+            container.hmi_setContent(next, () => next.onKeyChanged(data, language, onSuccess, onError), onError);
         } else {
             onSuccess();
         }
@@ -851,7 +851,7 @@
 
     function getLabelPreview(hmi, adapter) {
         const cms = hmi.cms, langs = cms.GetLanguages(), children = [], rows = [], values = {};
-        function reload(data, language, onSuccess, onError) {
+        function onKeyChanged(data, language, onSuccess, onError) {
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.INCLUDE, result => {
                     if (result !== undefined) {
@@ -904,13 +904,13 @@
             columns: [DEFAULT_COLUMN_WIDTH, 1],
             rows,
             children,
-            keyChanged: reload
+            onKeyChanged
         };
     }
 
     function getLabelEditor(hmi, adapter) {
         const cms = hmi.cms, langs = cms.GetLanguages(), children = [], rows = [], values = {};
-        function reload(data, language, onSuccess, onError) {
+        function onKeyChanged(data, language, onSuccess, onError) {
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, result => {
                     if (result !== undefined) {
@@ -972,7 +972,7 @@
             columns: [DEFAULT_COLUMN_WIDTH, 1],
             rows,
             children,
-            keyChanged: reload,
+            onKeyChanged,
             getValue: () => {
                 let value = {};
                 for (let lang in values) {
@@ -1059,7 +1059,7 @@
             columns: [1, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH],
             rows: [1, DEFAULT_ROW_HEIGHT],
             children: [preview, info_lang, button_include, button_raw],
-            keyChanged: (data, language, onSuccess, onError) => {
+            onKeyChanged: (data, language, onSuccess, onError) => {
                 info_lang.hmi_text(`language: '${language}'`);
                 button_include.hmi_setEnabled(false);
                 button_raw.hmi_setEnabled(false);
@@ -1078,7 +1078,7 @@
 
     function getHtmlEditor(hmi, adapter) {
         const cms = hmi.cms, scrolls = {};
-        function reload(data, language, onSuccess, onError) {
+        function onKeyChanged(data, language, onSuccess, onError) {
             info_lang.hmi_text(`language: '${language}'`);
             if (textarea.file) {
                 handleScrolls(scrolls, textarea.file, textarea, false);
@@ -1127,7 +1127,7 @@
             columns: 1,
             rows: [1, DEFAULT_ROW_HEIGHT],
             children: [textarea, info_lang],
-            keyChanged: reload,
+            onKeyChanged,
             getValue: () => textarea.hmi_value().trim(),
             scrolls: scrolls
         };
@@ -1224,7 +1224,7 @@
             columns: [1, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH],
             rows: [1, DEFAULT_ROW_HEIGHT],
             children: [textarea, info_lang, button_include, button_raw],
-            keyChanged: (data, language, onSuccess, onError) => {
+            onKeyChanged: (data, language, onSuccess, onError) => {
                 info_lang.hmi_text(`language: '${language}'`);
                 button_include.hmi_setEnabled(false);
                 button_raw.hmi_setEnabled(false);
@@ -1245,7 +1245,7 @@
 
     function getTextEditor(hmi, adapter) {
         const cms = hmi.cms, scrolls = {};
-        function reload(data, language, onSuccess, onError) {
+        function onKeyChanged(data, language, onSuccess, onError) {
             info_lang.hmi_text(`language: '${language}'`);
             if (textarea.file) {
                 handleScrolls(scrolls, textarea.file, textarea, false);
@@ -1293,7 +1293,7 @@
             columns: 1,
             rows: [1, DEFAULT_ROW_HEIGHT],
             children: [textarea, info_lang],
-            keyChanged: reload,
+            onKeyChanged,
             getValue: () => textarea.hmi_value().trim(),
             scrolls
         };
@@ -1427,7 +1427,7 @@
             columns: [1, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH],
             rows: [1, DEFAULT_ROW_HEIGHT],
             children: [container, info_lang, button_hmi, button_include, button_raw],
-            keyChanged: (data, language, onSuccess, onError) => {
+            onKeyChanged: (data, language, onSuccess, onError) => {
                 info_lang.hmi_text(`language: '${language}'`);
                 button_hmi.hmi_setEnabled(false);
                 button_include.hmi_setEnabled(false);
@@ -1688,7 +1688,7 @@
                 rows: 1,
                 children: [info_lang, button_hmi, button_raw]
             }],
-            keyChanged: (data, language, onSuccess, onError) => {
+            onKeyChanged: (data, language, onSuccess, onError) => {
                 edited = false;
                 info_lang.hmi_text(`language: '${language}'`);
                 button_hmi.hmi_setEnabled(false);
@@ -1761,7 +1761,7 @@
 
     function getHmiPreview(hmi, adapter) {
         const cms = hmi.cms;
-        function reload(data, language, onSuccess, onError) {
+        function onKeyChanged(data, language, onSuccess, onError) {
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
@@ -1842,13 +1842,13 @@
             columns: ['140px', 1],
             rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
             children: [viewObjectLabel, viewObjectValue, queryParameterLabel, queryParameterValue, enableLabel, enableValue],
-            keyChanged: reload
+            onKeyChanged
         };
     }
 
     function getHmiEditor(hmi, adapter) {
         const cms = hmi.cms;
-        function reload(data, language, onSuccess, onError) {
+        function onKeyChanged(data, language, onSuccess, onError) {
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
@@ -1945,7 +1945,7 @@
             columns: ['140px', 1],
             rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
             children: [viewObjectLabel, viewObjectValue, queryParameterLabel, queryParameterValue, enableLabel, enableValue],
-            keyChanged: reload,
+            onKeyChanged,
             getValue: () => {
                 let flags = 0;
                 if (checkbox.getValue()) {
@@ -1966,7 +1966,7 @@
 
     function getTaskPreview(hmi, adapter) {
         const cms = hmi.cms;
-        function reload(data, language, onSuccess, onError) {
+        function onKeyChanged(data, language, onSuccess, onError) {
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
@@ -2047,13 +2047,13 @@
             columns: ['140px', 1],
             rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
             children: [taskObjectLabel, taskObjectValue, autorunLabel, autorunValue, cycleMillisLabel, cycleMillisValue],
-            keyChanged: reload
+            onKeyChanged
         };
     }
 
     function getTaskEditor(hmi, adapter) {
         const cms = hmi.cms;
-        function reload(data, language, onSuccess, onError) {
+        function onKeyChanged(data, language, onSuccess, onError) {
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
@@ -2150,7 +2150,7 @@
             columns: ['140px', 1],
             rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
             children: [taskObjectLabel, taskObjectValue, autorunLabel, autorunValue, cycleMillisLabel, cycleMillisValue],
-            keyChanged: reload,
+            onKeyChanged,
             getValue: () => {
                 let flags = 0;
                 if (checkbox.getValue()) {
@@ -2382,7 +2382,8 @@
     });
 
     function showHmisConfigurationDialog(hmi, adapter) {
-        hmi.cms.GetHMIObjects(hmiObjects => {
+        const cms = hmi.cms;
+        cms.GetHMIObjects(hmiObjects => {
             console.log(JSON.stringify(hmiObjects)); // TODO: remove
             // [{"path":"001_debug/maze_game_copy","queryParameter":"df3c2621","viewObject":"$001_debug/maze_game_copy.j","flags":0},{"path":"aaa","queryParameter":"","viewObject":"$001_debug/dataPoints.j","flags":1},{"path":"debug/hmi/view","queryParameter":"42","viewObject":"$debug/hmi/view.j","flags":1},{"path":"debug/hmi/view_copy","queryParameter":"43","viewObject":"$debug/hmi/view.j","flags":1}]
             const table = {
@@ -2417,7 +2418,7 @@
                         case HmiObjectsTableColumn.ViewObject:
                             return row.viewObject;
                         case HmiObjectsTableColumn.QueryParameter:
-                            return row.key;
+                            return row.queryParameter;
                         case HmiObjectsTableColumn.Enable:
                             return (row.flags & ContentManager.HMI_FLAG_ENABLE) !== 0 ? 'enabled' : 'disabled';
                         default:
@@ -2441,7 +2442,14 @@
                 type: 'container',
                 showRowData: hmiObject => {
                     const editor = getHmiEditor(hmi, adapter);
-                    detailsContainer.hmi_removeContent(() => detailsContainer.hmi_setContent(editor, () => { }, error => adapter.notifyError(`Error setting content for ${hmiObject.path}: ${error}`)), error => adapter.notifyError(`Error removing content: ${error}`));
+                    detailsContainer.hmi_removeContent(() => detailsContainer.hmi_setContent(editor, () => {
+                        hmiObject.file = `$${hmiObject.path}.${cms.GetExtensionForType(ContentManager.DataTableType.HMI)}`; // TODO: Fix this
+                        editor.onKeyChanged(hmiObject, undefined, () => { }, error => {
+                            adapter.notifyError(`Error setting content for ${hmiObject.path}: ${error}`);
+                        });
+                    }, error => {
+                        adapter.notifyError(`Error setting content for ${hmiObject.path}: ${error}`);
+                    }), error => adapter.notifyError(`Error removing content: ${error}`));
                 }
             };
             const dialogObject = {
