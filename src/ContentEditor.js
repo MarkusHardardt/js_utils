@@ -1765,25 +1765,29 @@
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
-                        keyValue.hmi_text(data.viewObjectColumn);
+                        viewObjectValue.hmi_text(data.viewObjectColumn);
+                        queryParameterValue.hmi_text(data.queryParameterColumn);
                         checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_ENABLE) !== 0);
                     } else {
-                        keyValue.hmi_text('');
+                        viewObjectValue.hmi_text('');
+                        queryParameterValue.hmi_text('');
                         checkbox.setValue(false);
                     }
                     onSuccess();
                 }, error => {
-                    keyValue.hmi_text('');
+                    viewObjectValue.hmi_text('');
+                    queryParameterValue.hmi_text('');
                     checkbox.setValue(false);
                     onError(error);
                 });
             } else {
-                keyValue.hmi_text('');
+                viewObjectValue.hmi_text('');
+                queryParameterValue.hmi_text('');
                 checkbox.setValue(false);
                 onSuccess();
             }
         };
-        const keyLabel = {
+        const viewObjectLabel = {
             x: 0,
             y: 0,
             text: 'JsonFX object:',
@@ -1791,7 +1795,7 @@
             border: false,
             classes: 'hmi-dark'
         };
-        const keyValue = {
+        const viewObjectValue = {
             x: 1,
             y: 0,
             text: '',
@@ -1799,9 +1803,25 @@
             border: false,
             classes: 'hmi-dark'
         };
-        const enableLabel = {
+        const queryParameterLabel = {
             x: 0,
             y: 1,
+            text: 'query parameter:',
+            align: 'right',
+            border: false,
+            classes: 'hmi-dark'
+        };
+        const queryParameterValue = {
+            x: 1,
+            y: 1,
+            text: '',
+            align: 'left',
+            border: false,
+            classes: 'hmi-dark'
+        };
+        const enableLabel = {
+            x: 0,
+            y: 2,
             text: 'enable:',
             align: 'right',
             border: false,
@@ -1810,18 +1830,18 @@
         const checkbox = getCheckbox();
         const enableValue = {
             x: 1,
-            y: 1,
-            type:'grid',
-            columns:['40px', 1],
-            children:[{
+            y: 2,
+            type: 'grid',
+            columns: ['40px', 1],
+            children: [{
                 object: checkbox
             }]
         };
         return {
             type: 'grid',
             columns: ['140px', 1],
-            rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
-            children: [keyLabel, keyValue, enableLabel, enableValue],
+            rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
+            children: [viewObjectLabel, viewObjectValue, queryParameterLabel, queryParameterValue, enableLabel, enableValue],
             keyChanged: reload
         };
     }
@@ -1832,25 +1852,29 @@
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
-                        keyValue.hmi_value(data.viewObjectColumn);
+                        viewObjectValue.hmi_value(data.viewObjectColumn);
+                        queryParameterValue.hmi_value(data.queryParameterColumn);
                         checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_ENABLE) !== 0);
                     } else {
-                        keyValue.hmi_value('');
+                        viewObjectValue.hmi_value('');
+                        queryParameterValue.hmi_value('');
                         checkbox.setValue(false);
                     }
                     onSuccess();
                 }, error => {
-                    keyValue.hmi_value('');
+                    viewObjectValue.hmi_value('');
+                    queryParameterValue.hmi_value('');
                     checkbox.setValue(false);
                     onError(error);
                 });
             } else {
-                keyValue.hmi_value('');
+                viewObjectValue.hmi_value('');
+                queryParameterValue.hmi_value('');
                 checkbox.setValue(false);
                 onSuccess();
             }
         };
-        const keyLabel = {
+        const viewObjectLabel = {
             x: 0,
             y: 0,
             text: 'JsonFX object:',
@@ -1858,7 +1882,7 @@
             border: false,
             classes: 'hmi-dark'
         };
-        const keyValue = {
+        const viewObjectValue = {
             x: 1,
             y: 0,
             type: 'textfield',
@@ -1874,9 +1898,33 @@
                 onSuccess();
             }
         };
-        const enableLabel = {
+        const queryParameterLabel = {
             x: 0,
             y: 1,
+            text: 'query parameter:',
+            align: 'right',
+            border: false,
+            classes: 'hmi-dark'
+        };
+        const queryParameterValue = {
+            x: 1,
+            y: 1,
+            type: 'textfield',
+            editable: true,
+            border: false,
+            classes: 'hmi-dark',
+            prepare: (that, onSuccess, onError) => {
+                that.hmi_addChangeListener(adapter.edited);
+                onSuccess();
+            },
+            destroy: (that, onSuccess, onError) => {
+                that.hmi_removeChangeListener(adapter.edited);
+                onSuccess();
+            }
+        };
+        const enableLabel = {
+            x: 0,
+            y: 2,
             text: 'enable:',
             align: 'right',
             border: false,
@@ -1885,18 +1933,18 @@
         const checkbox = getCheckbox(adapter.edited);
         const enableValue = {
             x: 1,
-            y: 1,
-            type:'grid',
-            columns:['40px', 1],
-            children:[{
+            y: 2,
+            type: 'grid',
+            columns: ['40px', 1],
+            children: [{
                 object: checkbox
             }]
         };
         return {
             type: 'grid',
             columns: ['140px', 1],
-            rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
-            children: [keyLabel, keyValue, enableLabel, enableValue],
+            rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
+            children: [viewObjectLabel, viewObjectValue, queryParameterLabel, queryParameterValue, enableLabel, enableValue],
             keyChanged: reload,
             getValue: () => {
                 let flags = 0;
@@ -1904,7 +1952,7 @@
                     flags |= ContentManager.HMI_FLAG_ENABLE;
                 }
                 return {
-                    viewObjectColumn: keyValue.hmi_value(),
+                    viewObjectColumn: viewObjectValue.hmi_value(),
                     flagsColumn: flags
                 };
             }
@@ -1921,29 +1969,29 @@
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
-                        keyValue.hmi_text(data.taskObjectColumn);
+                        taskObjectValue.hmi_text(data.taskObjectColumn);
                         checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_AUTORUN) !== 0);
                         cycleMillisValue.hmi_text(data.cycleIntervalMillisColumn);
                     } else {
-                        keyValue.hmi_text('');
+                        taskObjectValue.hmi_text('');
                         checkbox.setValue(false);
                         cycleMillisValue.hmi_text('');
                     }
                     onSuccess();
                 }, error => {
-                    keyValue.hmi_text('');
+                    taskObjectValue.hmi_text('');
                     checkbox.setValue(false);
                     cycleMillisValue.hmi_text('');
                     onError(error);
                 });
             } else {
-                keyValue.hmi_text('');
+                taskObjectValue.hmi_text('');
                 checkbox.setValue(false);
                 cycleMillisValue.hmi_text('');
                 onSuccess();
             }
         };
-        const keyLabel = {
+        const taskObjectLabel = {
             x: 0,
             y: 0,
             text: 'JsonFX object:',
@@ -1951,7 +1999,7 @@
             border: false,
             classes: 'hmi-dark'
         };
-        const keyValue = {
+        const taskObjectValue = {
             x: 1,
             y: 0,
             text: '',
@@ -1971,9 +2019,9 @@
         const autorunValue = {
             x: 1,
             y: 1,
-            type:'grid',
-            columns:['40px', 1],
-            children:[{
+            type: 'grid',
+            columns: ['40px', 1],
+            children: [{
                 object: checkbox
             }]
         };
@@ -1997,7 +2045,7 @@
             type: 'grid',
             columns: ['140px', 1],
             rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
-            children: [keyLabel, keyValue, autorunLabel, autorunValue, cycleMillisLabel, cycleMillisValue],
+            children: [taskObjectLabel, taskObjectValue, autorunLabel, autorunValue, cycleMillisLabel, cycleMillisValue],
             keyChanged: reload
         };
     }
@@ -2008,29 +2056,29 @@
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
-                        keyValue.hmi_value(data.taskObjectColumn);
+                        taskObjectValue.hmi_value(data.taskObjectColumn);
                         checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_AUTORUN) !== 0);
                         cycleMillisValue.hmi_value(data.cycleIntervalMillisColumn.toString());
                     } else {
-                        keyValue.hmi_value('');
+                        taskObjectValue.hmi_value('');
                         checkbox.setValue(false);
                         cycleMillisValue.hmi_value('');
                     }
                     onSuccess();
                 }, error => {
-                    keyValue.hmi_value('');
+                    taskObjectValue.hmi_value('');
                     checkbox.setValue(false);
                     cycleMillisValue.hmi_value('');
                     onError(error);
                 });
             } else {
-                keyValue.hmi_value('');
+                taskObjectValue.hmi_value('');
                 checkbox.setValue(false);
                 cycleMillisValue.hmi_value('');
                 onSuccess();
             }
         };
-        const keyLabel = {
+        const taskObjectLabel = {
             x: 0,
             y: 0,
             text: 'JsonFX object:',
@@ -2038,7 +2086,7 @@
             border: false,
             classes: 'hmi-dark'
         };
-        const keyValue = {
+        const taskObjectValue = {
             x: 1,
             y: 0,
             type: 'textfield',
@@ -2066,9 +2114,9 @@
         const autorunValue = {
             x: 1,
             y: 1,
-            type:'grid',
-            columns:['40px', 1],
-            children:[{
+            type: 'grid',
+            columns: ['40px', 1],
+            children: [{
                 object: checkbox
             }]
         };
@@ -2100,7 +2148,7 @@
             type: 'grid',
             columns: ['140px', 1],
             rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
-            children: [keyLabel, keyValue, autorunLabel, autorunValue, cycleMillisLabel, cycleMillisValue],
+            children: [taskObjectLabel, taskObjectValue, autorunLabel, autorunValue, cycleMillisLabel, cycleMillisValue],
             keyChanged: reload,
             getValue: () => {
                 let flags = 0;
@@ -2108,7 +2156,7 @@
                     flags |= ContentManager.HMI_FLAG_AUTORUN;
                 }
                 return {
-                    taskObjectColumn: keyValue.hmi_value(),
+                    taskObjectColumn: taskObjectValue.hmi_value(),
                     flagsColumn: flags,
                     cycleIntervalMillisColumn: cycleMillisValue.hmi_value()
                 };
@@ -2583,7 +2631,10 @@
             longClicked: () => {
                 try {
                     cms.IsHMIObject(sel_data.id, response => {
-                        cms.SetAvailabilityAsHMIObject(sel_data.id, response !== true, resp => update(), error => {
+                        cms.SetAvailabilityAsHMIObject(sel_data.id, response !== true, resp => {
+                            update();
+                            adapter.reload();
+                        }, error => {
                             update();
                             adapter.notifyError(error);
                         });

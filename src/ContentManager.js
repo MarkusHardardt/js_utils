@@ -1966,20 +1966,33 @@
                 onError(`Is not a JsonFX object: '${id}'`);
                 return;
             }
+            const rawKey = match[1];
             const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
                 const tasks = [];
                 tasks.parallel = false;
                 tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
+                let equalNameExists = false;
+                tasks.push((onSuc, onErr) => this._exists(adapter, hmiTable, rawKey, response => {
+                    equalNameExists = response === true;
+                    onSuc();
+                }, onErr));
                 tasks.push((onSuc, onErr) => {
                     if (available === true) {
+                        if (equalNameExists) {
+                            const random = Server.createSHA256(`#${(Math.E * Math.random())}%${id}&${Date.now()}?${(Math.PI * Math.random())}$`);
+                            const keyValue = `${random.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${random.substring(random.length - Math.ceil(AUTO_KEY_LENGTH / 2), random.length)}`;
+                            adapter.AddValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(`${rawKey}_${keyValue}`));
+                        } else {
+                            adapter.AddValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(rawKey));
+                        }
+                        const idChecksum = Server.createSHA256(id);
+                        const queryParameter = `${idChecksum.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${idChecksum.substring(idChecksum.length - Math.ceil(AUTO_KEY_LENGTH / 2), idChecksum.length)}`;
+                        adapter.AddValue(`${hmiTable.name}.${hmiTable.queryParameterColumn}`, SqlHelper.escape(queryParameter));
                         adapter.AddValue(`${hmiTable.name}.${hmiTable.viewObjectColumn}`, SqlHelper.escape(id));
-                        const checksum = Server.createSHA256(id);
-                        const key = `${checksum.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${checksum.substring(checksum.length - Math.ceil(AUTO_KEY_LENGTH / 2), checksum.length)}`;
-                        adapter.AddValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(key));
                         adapter.PerformInsert(hmiTable.name, onSuc, onErr);
                     } else {
-                        adapter.AddWhere(`${hmiTable.name}.${hmiTable.keyColumn} = ${SqlHelper.escape(id)}`);
+                        adapter.AddWhere(`${hmiTable.name}.${hmiTable.keyColumn} = ${SqlHelper.escape(id)}`); // TODO: Does this work?
                         adapter.PerformDelete(hmiTable.name, undefined, 1, onSuc, onErr);
                     }
                 });
