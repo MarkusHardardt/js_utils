@@ -264,14 +264,22 @@
                         throw new Error(`Extension already exists: '${extension}'`);
                     }
                     const valueColumns = {}; // TODO: use or remove
-                    let valcol;
+                    const table = {
+                        type,
+                        name: tableConfig.name,
+                        keyColumn: tableConfig.keyColumn,
+                        multilingual: typeof tableConfig.valueColumnPrefix === 'string' && tableConfig.valueColumnPrefix.length > 0,
+                        icon: tableConfig.icon,
+                        JsonFX: type === DataTableType.JsonFX,
+                        multiedit: type === DataTableType.Label
+                    };
                     switch (type) {
                         case DataTableType.JsonFX:
                         case DataTableType.Text:
                             if (typeof tableConfig.valueColumn !== 'string') {
                                 throw new Error(`Missing value column parameter for table type '${type}'`);
                             }
-                            valcol = tableConfig.valueColumn;
+                            table.valcol = tableConfig.valueColumn;
                             break;
                         case DataTableType.Label:
                         case DataTableType.HTML:
@@ -280,24 +288,28 @@
                             } else if (db_config.languages.length === 0) {
                                 throw new Error(`Language array has zero length for table type '${type}'`);
                             }
-                            valcol = {};
+                            table.valcol = {};
                             for (let language of db_config.languages) {
-                                valcol[language] = tableConfig.valueColumnPrefix + language;
+                                table.valcol[language] = tableConfig.valueColumnPrefix + language;
                             }
                             break;
                         case DataTableType.HMI:
                             if (typeof tableConfig.viewObjectColumn !== 'string') {
                                 throw new Error(`Missing view object column parameter for table type '${type}'`);
-                            } else if (typeof tableConfig.queryParameter !== 'string') {
+                            } else if (typeof tableConfig.queryParameterColumn !== 'string') {
                                 throw new Error(`Missing query parameter column parameter for table type '${type}'`);
                             } else if (typeof tableConfig.flagsColumn !== 'string') {
                                 throw new Error(`Missing flags column parameter for table type '${type}'`);
                             }
-                            valcol = {
+                            table.viewObjectColumn = tableConfig.viewObjectColumn;
+                            table.queryParameterColumn = tableConfig.queryParameterColumn;
+                            table.flagsColumn = tableConfig.flagsColumn;
+                            table.valcol = {
                                 viewObjectColumn: tableConfig.viewObjectColumn,
-                                queryParameter: tableConfig.queryParameter,
+                                queryParameterColumn: tableConfig.queryParameterColumn,
                                 flagsColumn: tableConfig.flagsColumn
                             };
+                            this._hmiTable = table;
                             break;
                         case DataTableType.Task:
                             if (typeof tableConfig.taskObjectColumn !== 'string') {
@@ -307,47 +319,22 @@
                             } else if (typeof tableConfig.cycleIntervalMillisColumn !== 'string') {
                                 throw new Error(`Missing cycle tnterval millis column column parameter for table type '${type}'`);
                             }
-                            valcol = {
+                            table.taskObjectColumn = tableConfig.taskObjectColumn;
+                            table.flagsColumn = tableConfig.flagsColumn;
+                            table.cycleIntervalMillisColumn = tableConfig.cycleIntervalMillisColumn;
+                            table.valcol = {
                                 taskObjectColumn: tableConfig.taskObjectColumn,
                                 flagsColumn: tableConfig.flagsColumn,
                                 cycleIntervalMillisColumn: tableConfig.cycleIntervalMillisColumn
                             };
+                            this._taskTable = table;
                             break;
                         default:
                             throw new Error(`Unsupported table type: '${type}'`);
                     }
-                    const table = {
-                        type,
-                        name: tableConfig.name,
-                        keyColumn: tableConfig.keyColumn,
-                        valueColumn: tableConfig.valueColumn, // TODO: Used?
-                        valcol,
-                        multilingual: typeof tableConfig.valueColumnPrefix === 'string' && tableConfig.valueColumnPrefix.length > 0,
-                        icon: tableConfig.icon,
-                        JsonFX: type === DataTableType.JsonFX,
-                        multiedit: type === DataTableType.Label
-                    };
                     this._contentTablesByExtension[extension] = table;
                     this._extensionsForType[type] = extension;
                     tableExtensions.push(extension);
-                    switch (type) {
-                        case DataTableType.JsonFX:
-                        case DataTableType.Text:
-                        case DataTableType.Label:
-                        case DataTableType.HTML:
-                            break;
-                        case DataTableType.HMI:
-                            table.flagsColumn = tableConfig.flagsColumn; // TODO: use valcol
-                            this._hmiTable = table; // TODO: Required? Maybe use _contentTablesByExtension instead
-                            break;
-                        case DataTableType.Task:
-                            table.flagsColumn = tableConfig.flagsColumn; // TODO: use valcol
-                            table.cycleIntervalMillisColumn = tableConfig.cycleIntervalMillisColumn;
-                            this._taskTable = table; // TODO: Required? Maybe use _contentTablesByExtension instead
-                            break;
-                        default:
-                            throw new Error(`Unsupported table type: '${type}'`);
-                    }
                 }
             }
             // we need all available extensions for building regular expressions
