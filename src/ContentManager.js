@@ -2053,9 +2053,10 @@
         GetHMIObjects(onResponse, onError) {
             const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.keyColumn} AS key`);
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.viewObjectColumn} AS path`);
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS enable`);
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.keyColumn} AS path`);
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.queryParameterColumn} AS queryParameter`);
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.viewObjectColumn} AS viewObject`);
+                adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS flags`);
                 adapter.PerformSelect(hmiTable.name, undefined, 'path ASC', undefined, result => {
                     adapter.Close();
                     onResponse(result);

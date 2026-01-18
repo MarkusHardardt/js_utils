@@ -1953,6 +1953,7 @@
                 }
                 return {
                     viewObjectColumn: viewObjectValue.hmi_value(),
+                    queryParameterColumn: queryParameterValue.hmi_value(),
                     flagsColumn: flags
                 };
             }
@@ -2510,9 +2511,8 @@
         };
         let edited = false, editListenerEnabled = true, pending_commit = false, pending_reset = false;
         function update() {
-            // TODO: console.log(`Selected: ${JSON.stringify(sel_data)}`);
             const isJsonFX = sel_data.JsonFX === true;
-            tasksButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset && isJsonFX);
+            tasksButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset);
             if (isJsonFX) {
                 cms.IsTaskObject(sel_data.id, response => {
                     tasksButton.hmi_setSelected(response === true);
@@ -2526,7 +2526,7 @@
             } else {
                 tasksButton.hmi_setSelected(false);
             }
-            hmisButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset && isJsonFX);
+            hmisButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset);
             if (isJsonFX) {
                 cms.IsHMIObject(sel_data.id, response => {
                     hmisButton.hmi_setSelected(response === true);
@@ -2622,7 +2622,7 @@
             type: 'container'
         };
         const hmisButton = {
-            enabled: false,
+            enabled: true,
             x: 1,
             y: 0,
             border: true,
@@ -2630,17 +2630,19 @@
             clicked: () => showHmisConfigurationDialog(hmi, adapter),
             longClicked: () => {
                 try {
-                    cms.IsHMIObject(sel_data.id, response => {
-                        if (response !== true) {
-                            cms.AddDefaultHMIObject(sel_data.id, resp => {
-                                update();
-                                adapter.reload();
-                            }, error => {
-                                update();
-                                adapter.notifyError(error);
-                            });
-                        }
-                    }, error => adapter.notifyError(error));
+                    if (sel_data && sel_data.JsonFX === true) {
+                        cms.IsHMIObject(sel_data.id, response => {
+                            if (response !== true) {
+                                cms.AddDefaultHMIObject(sel_data.id, resp => {
+                                    update();
+                                    adapter.reload();
+                                }, error => {
+                                    update();
+                                    adapter.notifyError(error);
+                                });
+                            }
+                        }, error => adapter.notifyError(error));
+                    }
                 } catch (error) {
                     adapter.notifyError(error);
                 }
@@ -2648,7 +2650,7 @@
             timeout: 2000
         };
         const tasksButton = {
-            enabled: false,
+            enabled: true,
             x: 2,
             y: 0,
             border: true,
@@ -2656,17 +2658,19 @@
             clicked: () => showTasksConfigurationDialog(hmi, adapter),
             longClicked: () => {
                 try {
-                    cms.IsTaskObject(sel_data.id, response => {
-                        if (response !== true) {
-                            cms.AddDefaultTaskObject(sel_data.id, resp => {
-                                update();
-                                adapter.reload();
-                            }, error => {
-                                update();
-                                adapter.notifyError(error);
-                            });
-                        }
-                    }, error => adapter.notifyError(error));
+                    if (sel_data && sel_data.JsonFX === true) {
+                        cms.IsTaskObject(sel_data.id, response => {
+                            if (response !== true) {
+                                cms.AddDefaultTaskObject(sel_data.id, resp => {
+                                    update();
+                                    adapter.reload();
+                                }, error => {
+                                    update();
+                                    adapter.notifyError(error);
+                                });
+                            }
+                        }, error => adapter.notifyError(error));
+                    }
                 } catch (exc) {
                     adapter.notifyError(exc);
                 }
