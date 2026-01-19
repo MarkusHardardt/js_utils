@@ -172,7 +172,7 @@
     const VALID_EXT_REGEX = /^\w+$/;
     const VALID_NAME_CHAR = '[a-zA-Z0-9_+\\-*]';
     const FOLDER_REGEX = new RegExp('^\\$((?:' + VALID_NAME_CHAR + '+\\/)*)$');
-    const EXCHANGE_HEADER = 'hmijs-config-exchange-data';
+    const EXCHANGE_HEADER = 'js-hmi-config-exchange-data';
 
     const AUTO_KEY_LENGTH = 8;
 
