@@ -32,7 +32,7 @@
             'GetIdKeyValues(id, onResponse, onError)',
             'IsHMIObject(id, onResponse, onError)',
             'AddDefaultHMIObject(id, onResponse, onError)',
-            'GetHMIObject(queryParameterValue, onResponse, onError)',
+            'GetHMIObject(queryParameterValue, language, onResponse, onError)',
             'GetHMIObjects(onResponse, onError)',
             'IsTaskObject(id, onResponse, onError)',
             'AddDefaultTaskObject(id, onResponse, onError)',
@@ -2007,34 +2007,40 @@
                 });
             }, onError);
         }
-        GetHMIObject(queryParameterValue, onResponse, onError) {
+        GetHMIObject(queryParameterValue, language, onResponse, onError) {
             const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.viewObjectColumn} AS path`);
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS flags`);
                 adapter.AddWhere(`${hmiTable.name}.${hmiTable.queryParameterColumn} = ${SqlHelper.escape(queryParameterValue)}`);
                 adapter.PerformSelect(hmiTable.name, undefined, undefined, undefined, result => {
-                    if (!result || !Array.isArray(result) || result.length !== 1) {
-                        onError(`Invalid query parameter: '${queryParameterValue}'`);
+                    if (!result || !Array.isArray(result)) {
+                        onError(`HMI could not be loaded: Invalid query parameter: '${queryParameterValue}'`);
+                        return;
+                    } else if (result.length === 0) {
+                        onError(`HMI could not be loaded: HMI for query parameter '${queryParameterValue}' is not available.`);
+                        return;
+                    } else if (result.length > 1) {
+                        onError(`HMI could not be loaded: Query parameter '${queryParameterValue}' is ambiguous.`);
                         return;
                     }
                     const id = result[0].path;
                     const match = this._contentTablesKeyRegex.exec(id);
                     if (!match) {
-                        onError(`Invalid id: '${id}'`);
+                        onError(`HMI could not be loaded: Invalid id: '${id}' for query parameter '${queryParameterValue}'`);
                         return;
                     }
                     const table = this._contentTablesByExtension[match[2]];
                     if (!table || table.type !== DataTableType.JsonFX) {
-                        onError(`Invalid table name: '${id}'`);
+                        onError(`HMI could not be loaded: Invalid table name: '${id}' for query parameter '${queryParameterValue}'`);
                         return;
                     }
                     const flags = result[0].flags;
                     if ((flags & ContentManager.HMI_FLAG_ENABLE) === 0) {
-                        onError(`HMI: '${id}' is not enabled`);
+                        onError(`HMI could not be loaded: HMI for query parameter '${queryParameterValue}' is not enabled`);
                         return;
                     }
-                    this._getObject(adapter, id, match[1], table, null, ContentManager.PARSE, response => {
+                    this._getObject(adapter, id, match[1], table, language, ContentManager.PARSE, response => {
                         adapter.Close();
                         onResponse(response);
                     }, error => {
@@ -2208,7 +2214,7 @@
                     this.AddDefaultHMIObject(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_HMI_OBJECT:
-                    this.GetHMIObject(request.queryParameterValue, onResponse, onError);
+                    this.GetHMIObject(request.queryParameterValue, request.language, onResponse, onError);
                     break;
                 case COMMAND_GET_HMI_OBJECTS:
                     this.GetHMIObjects(onResponse, onError);
@@ -2457,8 +2463,8 @@
         AddDefaultHMIObject(id, onResponse, onError) {
             fetch({ command: COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT, id }, onResponse, onError);
         }
-        GetHMIObject(queryParameterValue, onResponse, onError) {
-            fetch({ command: COMMAND_GET_HMI_OBJECT, queryParameterValue }, response => {
+        GetHMIObject(queryParameterValue, language, onResponse, onError) {
+            fetch({ command: COMMAND_GET_HMI_OBJECT, queryParameterValue, language }, response => {
                 if (response !== undefined) {
                     try {
                         let object = JsonFX.reconstruct(response);
@@ -2627,9 +2633,9 @@
                                 }
                                 results.push(data);
                                 break;
-                        default:
-                            console.error(`Invalid type '${data.type}'`);
-                            break;
+                            default:
+                                console.error(`Invalid type '${data.type}'`);
+                                break;
                         }
                     } else {
                         onError(`EXCEPTION! Invalid: ${JSON.stringify(header)}`);
@@ -2648,24 +2654,19 @@
                     const idx = i, d = data[idx];
                     switch (d.type) {
                         case DataTableType.JsonFX:
-                        case DataTableType.HMI:
-                        case DataTableType.Task:
                             tasks.push((onSuc, onErr) => {
                                 const val = d.value !== undefined && d.value !== null ? JsonFX.stringify(d.value, false) : undefined;
                                 cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr), onErr);
                             });
                             break;
                         case DataTableType.Text:
-                            tasks.push((onSuc, onErr) => {
-                                const val = d.value !== undefined && d.value !== null ? d.value : undefined;
-                                cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr));
-                            });
-                            break;
                         case DataTableType.Label:
                         case DataTableType.HTML:
+                        case DataTableType.HMI:
+                        case DataTableType.Task:
                             tasks.push((onSuc, onErr) => {
                                 const val = d.value !== undefined && d.value !== null ? d.value : undefined;
-                                cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr));
+                                cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr), onErr);
                             });
                             break;
                         default:

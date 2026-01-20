@@ -18,6 +18,46 @@
     // DIVERSE
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
+    function getCheckbox(onChanged) {
+        let checked = false;
+        function setValue(value) {
+            checked = value === true;
+            check.hmi_setVisible(checked);
+            if (typeof onChanged === 'function') {
+                onChanged(checked);
+            }
+        }
+        const check = {
+            type: "graph",
+            strokeStyle: "black",
+            lineWidth: 0.1,
+            visible: false,
+            points: [{ x: 0.2, y: 0.6 }, { x: 0.5, y: 0.2 }, { x: 0.8, y: 0.8 }]
+        };
+        const box = {
+            type: "graph",
+            strokeStyle: "black",
+            lineWidth: 0.1,
+            x: 0.5,
+            y: 0.5,
+            width: 1,
+            height: 1,
+            bounds: {
+                x: -0.2,
+                y: -0.2,
+                width: 1.4,
+                height: 1.4
+            },
+            children: [check],
+            setValue,
+            getValue: () => checked
+        };
+        if (typeof onChanged === 'function') {
+            box.pressed = () => setValue(!checked);
+        }
+        return box;
+    }
+
     function handleScrolls(scrolls, id, textarea, restore) {
         const scrs = textarea.hmi_handleScrollParams(scrolls[id], restore);
         if (scrs.viewport_left > 0 || scrs.viewport_top) {
@@ -849,70 +889,11 @@
     // LABELS - PREVIEW & EDITOR
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    function getLabelPreview(hmi, adapter) {
+    function getLabelView(hmi, adapter, editable) {
         const cms = hmi.cms, langs = cms.GetLanguages(), children = [], rows = [], values = {};
         function onKeyChanged(data, language, onSuccess, onError) {
             if (data && data.file) {
-                cms.GetObject(data.file, undefined, ContentManager.INCLUDE, result => {
-                    if (result !== undefined) {
-                        for (let i = 0, l = langs.length; i < l; i++) {
-                            const lang = langs[i], lab = result[lang];
-                            values[lang].hmi_html(lab || '');
-                        }
-                    } else {
-                        for (let i = 0, l = langs.length; i < l; i++) {
-                            values[langs[i]].hmi_html('');
-                        }
-                    }
-                    onSuccess();
-                }, error => {
-                    for (let i = 0, l = langs.length; i < l; i++) {
-                        values[langs[i]].hmi_html('');
-                    }
-                    onError(error);
-                });
-            } else {
-                for (let i = 0, l = langs.length; i < l; i++) {
-                    values[langs[i]].hmi_html('');
-                }
-                onSuccess();
-            }
-        };
-        for (let i = 0, l = langs.length; i < l; i++) {
-            const lang = langs[i];
-            children.push({
-                x: 0,
-                y: i,
-                text: lang,
-                border: false,
-                classes: 'hmi-dark'
-            });
-            const obj = {
-                x: 1,
-                y: i,
-                align: 'left',
-                border: false,
-                classes: 'hmi-dark'
-            };
-            children.push(obj);
-            values[lang] = obj;
-            rows.push(DEFAULT_ROW_HEIGHT);
-        }
-        rows.push(1);
-        return {
-            type: 'grid',
-            columns: [DEFAULT_COLUMN_WIDTH, 1],
-            rows,
-            children,
-            onKeyChanged
-        };
-    }
-
-    function getLabelEditor(hmi, adapter) {
-        const cms = hmi.cms, langs = cms.GetLanguages(), children = [], rows = [], values = {};
-        function onKeyChanged(data, language, onSuccess, onError) {
-            if (data && data.file) {
-                cms.GetObject(data.file, undefined, ContentManager.RAW, result => {
+                cms.GetObject(data.file, undefined, editable === true ? ContentManager.RAW : ContentManager.INCLUDE, result => {
                     if (result !== undefined) {
                         for (let i = 0, l = langs.length; i < l; i++) {
                             const lang = langs[i], lab = result[lang];
@@ -950,15 +931,19 @@
                 x: 1,
                 y: i,
                 type: 'textfield',
-                editable: true,
+                editable: editable === true,
                 border: false,
                 classes: 'hmi-dark',
                 prepare: (that, onSuccess, onError) => {
-                    that.hmi_addChangeListener(adapter.edited);
+                    if (editable === true) {
+                        that.hmi_addChangeListener(adapter.edited);
+                    }
                     onSuccess();
                 },
                 destroy: (that, onSuccess, onError) => {
-                    that.hmi_removeChangeListener(adapter.edited);
+                    if (editable === true) {
+                        that.hmi_removeChangeListener(adapter.edited);
+                    }
                     onSuccess();
                 }
             };
@@ -1138,7 +1123,8 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getTextPreview(hmi, adapter) {
-        const cms = hmi.cms, mode = ContentManager.RAW, scrolls_raw = {}, scrolls_build = {};
+        const cms = hmi.cms, scrolls_raw = {}, scrolls_build = {};
+        let mode = ContentManager.RAW;
         function update_mode(md) {
             mode = md;
             button_include.selected = md === ContentManager.INCLUDE;
@@ -1716,142 +1702,15 @@
     }
 
     // ///////////////////////////////////////////////////////////////////////////////////////////////
-    // HMIS - EDITOR
+    // HMIS - PREVIEW & EDITOR
     // ///////////////////////////////////////////////////////////////////////////////////////////////
-
-    function getCheckbox(onChanged) {
-        let checked = false;
-        function setValue(value) {
-            checked = value === true;
-            check.hmi_setVisible(checked);
-            if (typeof onChanged === 'function') {
-                onChanged(checked);
-            }
-        }
-        const check = {
-            type: "graph",
-            strokeStyle: "black",
-            lineWidth: 0.1,
-            visible: false,
-            points: [{ x: 0.2, y: 0.6 }, { x: 0.5, y: 0.2 }, { x: 0.8, y: 0.8 }]
-        };
-        const box = {
-            type: "graph",
-            strokeStyle: "black",
-            lineWidth: 0.1,
-            x: 0.5,
-            y: 0.5,
-            width: 1,
-            height: 1,
-            bounds: {
-                x: -0.2,
-                y: -0.2,
-                width: 1.4,
-                height: 1.4
-            },
-            children: [check],
-            setValue,
-            getValue: () => checked
-        };
-        if (typeof onChanged === 'function') {
-            box.pressed = () => setValue(!checked);
-        }
-        return box;
-    }
-
-    function getHmiPreview(hmi, adapter) {
-        const cms = hmi.cms;
-        function onKeyChanged(data, language, onSuccess, onError) {
-            if (data && data.file) {
-                cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
-                    if (data !== undefined) {
-                        viewObjectValue.hmi_text(data.viewObjectColumn);
-                        queryParameterValue.hmi_text(data.queryParameterColumn);
-                        checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_ENABLE) !== 0);
-                    } else {
-                        viewObjectValue.hmi_text('');
-                        queryParameterValue.hmi_text('');
-                        checkbox.setValue(false);
-                    }
-                    onSuccess();
-                }, error => {
-                    viewObjectValue.hmi_text('');
-                    queryParameterValue.hmi_text('');
-                    checkbox.setValue(false);
-                    onError(error);
-                });
-            } else {
-                viewObjectValue.hmi_text('');
-                queryParameterValue.hmi_text('');
-                checkbox.setValue(false);
-                onSuccess();
-            }
-        };
-        const viewObjectLabel = {
-            x: 0,
-            y: 0,
-            text: 'JsonFX object:',
-            align: 'right',
-            border: false,
-            classes: 'hmi-dark'
-        };
-        const viewObjectValue = {
-            x: 1,
-            y: 0,
-            text: '',
-            align: 'left',
-            border: false,
-            classes: 'hmi-dark'
-        };
-        const queryParameterLabel = {
-            x: 0,
-            y: 1,
-            text: 'query parameter:',
-            align: 'right',
-            border: false,
-            classes: 'hmi-dark'
-        };
-        const queryParameterValue = {
-            x: 1,
-            y: 1,
-            text: '',
-            align: 'left',
-            border: false,
-            classes: 'hmi-dark'
-        };
-        const enableLabel = {
-            x: 0,
-            y: 2,
-            text: 'enable:',
-            align: 'right',
-            border: false,
-            classes: 'hmi-dark'
-        };
-        const checkbox = getCheckbox();
-        const enableValue = {
-            x: 1,
-            y: 2,
-            type: 'grid',
-            columns: ['40px', 1],
-            children: [{
-                object: checkbox
-            }]
-        };
-        return {
-            type: 'grid',
-            columns: ['140px', 1],
-            rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
-            children: [viewObjectLabel, viewObjectValue, queryParameterLabel, queryParameterValue, enableLabel, enableValue],
-            onKeyChanged
-        };
-    }
 
     /*
     adapter = {
         edited: () => { }, must be called if data has been edited
     }
     */
-    function getHmiEditor(hmi, adapter) {
+    function getHmiView(hmi, adapter, editable) {
         const cms = hmi.cms;
         function onKeyChanged(data, language, onSuccess, onError) {
             if (data && data.file) {
@@ -1891,15 +1750,19 @@
             x: 1,
             y: 0,
             type: 'textfield',
-            editable: true,
+            editable: editable === true,
             border: false,
             classes: 'hmi-dark',
             prepare: (that, onSuccess, onError) => {
-                that.hmi_addChangeListener(adapter.edited);
+                if (editable === true) {
+                    that.hmi_addChangeListener(adapter.edited);
+                }
                 onSuccess();
             },
             destroy: (that, onSuccess, onError) => {
-                that.hmi_removeChangeListener(adapter.edited);
+                if (editable === true) {
+                    that.hmi_removeChangeListener(adapter.edited);
+                }
                 onSuccess();
             }
         };
@@ -1915,15 +1778,19 @@
             x: 1,
             y: 1,
             type: 'textfield',
-            editable: true,
+            editable: editable === true,
             border: false,
             classes: 'hmi-dark',
             prepare: (that, onSuccess, onError) => {
-                that.hmi_addChangeListener(adapter.edited);
+                if (editable === true) {
+                    that.hmi_addChangeListener(adapter.edited);
+                }
                 onSuccess();
             },
             destroy: (that, onSuccess, onError) => {
-                that.hmi_removeChangeListener(adapter.edited);
+                if (editable === true) {
+                    that.hmi_removeChangeListener(adapter.edited);
+                }
                 onSuccess();
             }
         };
@@ -1935,7 +1802,7 @@
             border: false,
             classes: 'hmi-dark'
         };
-        const checkbox = getCheckbox(adapter.edited);
+        const checkbox = getCheckbox(editable === true ? adapter.edited : undefined);
         const enableValue = {
             x: 1,
             y: 2,
@@ -1966,97 +1833,10 @@
     }
 
     // ///////////////////////////////////////////////////////////////////////////////////////////////
-    // TASKS - EDITOR
+    // TASKS - PREVIEW & EDITOR
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    function getTaskPreview(hmi, adapter) {
-        const cms = hmi.cms;
-        function onKeyChanged(data, language, onSuccess, onError) {
-            if (data && data.file) {
-                cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
-                    if (data !== undefined) {
-                        taskObjectValue.hmi_text(data.taskObjectColumn);
-                        checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_AUTORUN) !== 0);
-                        cycleMillisValue.hmi_text(data.cycleIntervalMillisColumn);
-                    } else {
-                        taskObjectValue.hmi_text('');
-                        checkbox.setValue(false);
-                        cycleMillisValue.hmi_text('');
-                    }
-                    onSuccess();
-                }, error => {
-                    taskObjectValue.hmi_text('');
-                    checkbox.setValue(false);
-                    cycleMillisValue.hmi_text('');
-                    onError(error);
-                });
-            } else {
-                taskObjectValue.hmi_text('');
-                checkbox.setValue(false);
-                cycleMillisValue.hmi_text('');
-                onSuccess();
-            }
-        };
-        const taskObjectLabel = {
-            x: 0,
-            y: 0,
-            text: 'JsonFX object:',
-            align: 'right',
-            border: false,
-            classes: 'hmi-dark'
-        };
-        const taskObjectValue = {
-            x: 1,
-            y: 0,
-            text: '',
-            align: 'left',
-            border: false,
-            classes: 'hmi-dark',
-        };
-        const autorunLabel = {
-            x: 0,
-            y: 1,
-            text: 'autorun:',
-            align: 'right',
-            border: false,
-            classes: 'hmi-dark'
-        };
-        const checkbox = getCheckbox();
-        const autorunValue = {
-            x: 1,
-            y: 1,
-            type: 'grid',
-            columns: ['40px', 1],
-            children: [{
-                object: checkbox
-            }]
-        };
-        const cycleMillisLabel = {
-            x: 0,
-            y: 2,
-            text: 'cycle millis:',
-            align: 'right',
-            border: false,
-            classes: 'hmi-dark'
-        };
-        const cycleMillisValue = {
-            x: 1,
-            y: 2,
-            text: '',
-            align: 'left',
-            border: false,
-            classes: 'hmi-dark',
-        };
-        return {
-            type: 'grid',
-            columns: ['140px', 1],
-            rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
-            children: [taskObjectLabel, taskObjectValue, autorunLabel, autorunValue, cycleMillisLabel, cycleMillisValue],
-            onKeyChanged
-        };
-    }
-
-    function getTaskEditor(hmi, adapter) {
+    function getTaskView(hmi, adapter, editable) {
         const cms = hmi.cms;
         function onKeyChanged(data, language, onSuccess, onError) {
             if (data && data.file) {
@@ -2096,15 +1876,19 @@
             x: 1,
             y: 0,
             type: 'textfield',
-            editable: true,
+            editable: editable === true,
             border: false,
             classes: 'hmi-dark',
             prepare: (that, onSuccess, onError) => {
-                that.hmi_addChangeListener(adapter.edited);
+                if (editable === true) {
+                    that.hmi_addChangeListener(adapter.edited);
+                }
                 onSuccess();
             },
             destroy: (that, onSuccess, onError) => {
-                that.hmi_removeChangeListener(adapter.edited);
+                if (editable === true) {
+                    that.hmi_removeChangeListener(adapter.edited);
+                }
                 onSuccess();
             }
         };
@@ -2116,7 +1900,7 @@
             border: false,
             classes: 'hmi-dark'
         };
-        const checkbox = getCheckbox(adapter.edited);
+        const checkbox = getCheckbox(editable === true ? adapter.edited : undefined);
         const autorunValue = {
             x: 1,
             y: 1,
@@ -2138,15 +1922,19 @@
             x: 1,
             y: 2,
             type: 'textfield',
-            editable: true,
+            editable: editable === true,
             border: false,
             classes: 'hmi-dark',
             prepare: (that, onSuccess, onError) => {
-                that.hmi_addChangeListener(adapter.edited);
+                if (editable === true) {
+                    that.hmi_addChangeListener(adapter.edited);
+                }
                 onSuccess();
             },
             destroy: (that, onSuccess, onError) => {
-                that.hmi_removeChangeListener(adapter.edited);
+                if (editable === true) {
+                    that.hmi_removeChangeListener(adapter.edited);
+                }
                 onSuccess();
             }
         };
@@ -2190,10 +1978,10 @@
         adapter.triggerReload = reload;
         const jsonFxPreview = getJsonFxPreview(hmi, adapter);
         const textPreview = getTextPreview(hmi, adapter);
-        const labelPreview = getLabelPreview(hmi, adapter);
+        const labelPreview = getLabelView(hmi, adapter, false);
         const htmlPreview = getHtmlPreview(hmi, adapter);
-        const hmiPreviw = getHmiPreview(hmi, adapter);
-        const taskPreviw = getTaskPreview(hmi, adapter);
+        const hmiPreviw = getHmiView(hmi, adapter, false);
+        const taskPreviw = getTaskView(hmi, adapter, false);
         const handlers = {};
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.JsonFX)] = jsonFxPreview;
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.Text)] = textPreview;
@@ -2447,7 +2235,7 @@
                 y: 1,
                 type: 'container',
                 showRowData: hmiObject => {
-                    const editor = getHmiEditor(hmi, detailsAapter);
+                    const editor = getHmiView(hmi, detailsAapter, true);
                     detailsContainer.hmi_removeContent(() => detailsContainer.hmi_setContent(editor, () => {
                         hmiObject.file = `$${hmiObject.path}.${cms.GetExtensionForType(ContentManager.DataTableType.HMI)}`; // TODO: Fix this
                         editor.onKeyChanged(hmiObject, undefined, () => { }, error => {
@@ -2608,10 +2396,10 @@
         };
         const jsonFxEditor = getJsonFxEditor(hmi, adapter);
         const textEditor = getTextEditor(hmi, adapter);
-        const labelEditor = getLabelEditor(hmi, adapter);
+        const labelEditor = getLabelView(hmi, adapter, true);
         const htmlEditor = getHtmlEditor(hmi, adapter);
-        const hmiEditor = getHmiEditor(hmi, adapter);
-        const taskEditor = getTaskEditor(hmi, adapter);
+        const hmiEditor = getHmiView(hmi, adapter, true);
+        const taskEditor = getTaskView(hmi, adapter, true);
         const handlers = {};
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.JsonFX)] = jsonFxEditor;
         handlers[cms.GetExtensionForType(ContentManager.DataTableType.Text)] = textEditor;
