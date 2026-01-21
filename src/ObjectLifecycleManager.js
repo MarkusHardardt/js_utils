@@ -7345,99 +7345,96 @@
         };
     };
 
-    function showDialog(hmi, i_config, i_success, i_error) {
+    function showDialog(hmi, config, onSuccess, onError) {
         // dialog opacity: search for "ui-widget-overlay" in CSS and modify:
         // opacity: .0;
-        var _popup = $('<div class="hmi-light" />');
-        var _buttons = undefined;
+        const dialogElement = $('<div class="hmi-light" />');
+        let _buttons = undefined;
         function fnClose() {
-            _popup.dialog('close');
+            dialogElement.dialog('close');
         };
-        var options = {
+        const options = {
             // configure
             autoOpen: true,
             modal: true,
-            close: function (i_event, i_ui) {
-                if (i_config.object !== null && typeof i_config.object === 'object') {
-                    delete i_config.object.hmi_close;
+            close: (event, ui) => {
+                if (config.object !== null && typeof config.object === 'object') {
+                    delete config.object.hmi_close;
                 }
                 if (Array.isArray(_buttons)) {
-                    for (var i = _buttons.length - 1; i >= 0; i--) {
-                        var button = _buttons[i];
-                        if (i_config.object && i_config.object._hmi_object) {
+                    for (let i = _buttons.length - 1; i >= 0; i--) {
+                        const button = _buttons[i];
+                        if (config.object && config.object._hmi_object) {
                             destroy_id_node_branch(button);
                         }
                         delete button.hmi_setVisible;
                         delete button._hmi_element;
                     }
                 }
-                destroy_hmi_object_branch(i_config.object, () => {}, error => console.error(`Error closing dialog: ${error}`));
-                _popup.dialog('destroy');
-                _popup.remove();
-                if (typeof i_config.closed === 'function') {
-                    i_config.closed(i_event, i_ui);
+                destroy_hmi_object_branch(config.object, () => { }, error => console.error(`Error closing dialog: ${error}`));
+                dialogElement.dialog('destroy');
+                dialogElement.remove();
+                if (typeof config.closed === 'function') {
+                    config.closed(event, ui);
                 }
             }
         };
-        if (i_config.object !== null && typeof i_config.object === 'object') {
-            i_config.object.hmi_close = fnClose;
+        if (config.object !== null && typeof config.object === 'object') {
+            config.object.hmi_close = fnClose;
         }
-        if (typeof i_config.title === 'string') {
+        if (typeof config.title === 'string') {
             // set title
-            options.title = i_config.title;
+            options.title = config.title;
         }
-        if (typeof i_config.width === 'number') {
-            options.width = i_config.width;
+        if (typeof config.width === 'number') {
+            options.width = config.width;
         }
-        if (typeof i_config.height === 'number') {
-            options.height = i_config.height;
+        if (typeof config.height === 'number') {
+            options.height = config.height;
         }
-        var win = $(window);
+        const win = $(window);
         if (typeof options.width === 'number' && options.width > win.width()) {
             options.width = win.width();
         }
         if (typeof options.height === 'number' && options.height > win.height()) {
             options.height = win.height();
         }
-        if (i_config.noClose === true) {
+        if (config.noClose === true) {
             options.dialogClass = 'no-close';
             options.closeOnEscape = false;
-        }
-        else {
+        } else {
             options.closeOnEscape = true;
         }
-        _popup.dialog(options);
-        create_hmi_object_branch(i_config.object, _popup, function () {
-            var hmiobj = i_config.object._hmi_object;
+        dialogElement.dialog(options);
+        create_hmi_object_branch(config.object, dialogElement, function () {
+            const hmiobj = config.object._hmi_object;
             if (hmiobj) {
-                _buttons = Array.isArray(hmiobj.buttons) ? hmiobj.buttons : (Array.isArray(i_config.buttons) ? i_config.buttons : undefined);
+                _buttons = Array.isArray(hmiobj.buttons) ? hmiobj.buttons : (Array.isArray(config.buttons) ? config.buttons : undefined);
                 if (Array.isArray(_buttons) && _buttons.length > 0) {
-                    var buttons = [];
-                    for (var i = 0; i < _buttons.length; i++) {
+                    const buttons = [];
+                    for (let i = 0; i < _buttons.length; i++) {
                         // closure
                         (function () {
-                            var button = _buttons[i];
+                            const button = _buttons[i];
                             if (typeof button.click === 'function') {
                                 create_id_node_branch(button, hmiobj, button.id, hmiobj);
                                 button._hmi_buttonId = Utilities.getUniqueId();
                                 buttons.push({
                                     text: typeof button.text === 'string' ? button.text : '?',
                                     id: button._hmi_buttonId,
-                                    click: function () {
+                                    click: () => {
                                         if (typeof button.click === 'function') {
                                             button.click(fnClose, button);
                                         }
                                     }
                                 });
-                                button.hmi_setVisible = function (i_visible) {
-                                    button._hmi_element[i_visible === true ? 'show' : 'hide']();
-                                };
+                                button.hmi_setVisible = visible => button._hmi_element[visible === true ? 'show' : 'hide']();
                             }
                         }());
                     }
-                    _popup.dialog('option', 'buttons', buttons);
-                    for (var i = 0; i < _buttons.length; i++) {
-                        var button = _buttons[i];
+                    dialogElement.dialog('option', 'buttons', buttons);
+                    for (let i = 0; i < _buttons.length; i++) {
+                        const button = _buttons[i];
                         if (typeof button.click === 'function') {
                             button._hmi_element = $('#' + button._hmi_buttonId);
                             button._hmi_element.attr('id', null);
@@ -7452,88 +7449,86 @@
                     }
                 }
             }
-            if (typeof i_success === 'function') {
+            if (typeof onSuccess === 'function') {
                 try {
-                    i_success();
-                }
-                catch (exc) {
-                    console.error('EXCEPTION! Calling ready callback: ' + exc + ' ' + i_success.toString());
+                    onSuccess();
+                } catch (exc) {
+                    console.error('EXCEPTION! Calling ready callback: ' + exc + ' ' + onSuccess.toString());
                 }
             }
-        }, i_error, hmi, i_config.init);
+        }, onError, hmi, config.init);
         return fnClose;
     }
     ObjectLifecycleManager.showDialog = showDialog;
 
-    function showDefaultConfirmationDialog(hmi, i_config, i_success, i_error) {
-        function perform(i_callback, i_close) {
+    function showDefaultConfirmationDialog(hmi, config, onSuccess, onError) {
+        function perform(callback, close) {
             try {
-                i_callback();
+                callback();
+            } catch (exc) {
+                console.error(`EXCEPTION! Calling callback: '${exc}' '${callback.toString()}'`);
             }
-            catch (exc) {
-                console.error('EXCEPTION! Calling callback: ' + exc + ' ' + i_callback.toString());
-            }
-            i_close();
+            close();
         };
         var buttons = [];
-        if (typeof i_config.ok === 'function') {
+        if (typeof config.ok === 'function') {
             buttons.push({
-                text: typeof i_config.okLabelId === 'string' ? that.hmi.env.data.Get(i_config.okLabelId) : 'OK',
+                text: typeof config.okLabelId === 'string' ? that.hmi.env.data.Get(config.okLabelId) : 'OK',
                 click: function (i_close) {
-                    perform(i_config.ok, i_close);
+                    perform(config.ok, i_close);
                 }
             });
         }
-        if (typeof i_config.yes === 'function') {
+        if (typeof config.yes === 'function') {
             buttons.push({
-                text: typeof i_config.yesLabelId === 'string' ? that.hmi.env.data.Get(i_config.yesLabelId) : 'Yes',
+                text: typeof config.yesLabelId === 'string' ? that.hmi.env.data.Get(config.yesLabelId) : 'Yes',
                 click: function (i_close) {
-                    perform(i_config.yes, i_close);
+                    perform(config.yes, i_close);
                 }
             });
         }
-        if (typeof i_config.no === 'function') {
+        if (typeof config.no === 'function') {
             buttons.push({
-                text: typeof i_config.noLabelId === 'string' ? that.hmi.env.data.Get(i_config.noLabelId) : 'No',
+                text: typeof config.noLabelId === 'string' ? that.hmi.env.data.Get(config.noLabelId) : 'No',
                 click: function (i_close) {
-                    perform(i_config.no, i_close);
+                    perform(config.no, i_close);
                 }
             });
         }
-        if (typeof i_config.cancel === 'function') {
+        if (typeof config.cancel === 'function') {
             buttons.push({
-                text: typeof i_config.cancelLabelId === 'string' ? that.hmi.env.data.Get(i_config.cancelLabelId) : 'Cancel',
+                text: typeof config.cancelLabelId === 'string' ? that.hmi.env.data.Get(config.cancelLabelId) : 'Cancel',
                 click: function (i_close) {
-                    perform(i_config.cancel, i_close);
+                    perform(config.cancel, i_close);
                 }
             });
         }
         var object = undefined;
-        if (i_config.object !== null && typeof i_config.object === 'object') {
-            object = i_config.object;
+        if (config.object !== null && typeof config.object === 'object') {
+            object = config.object;
         }
-        else if (i_config.text !== undefined) {
+        else if (config.text !== undefined) {
             object = {
-                text: i_config.text
+                text: config.text
             };
         }
-        else if (i_config.html !== undefined) {
+        else if (config.html !== undefined) {
             object = {
-                html: i_config.html
+                html: config.html
             };
         }
         var dialog = {
-            title: i_config.title,
-            width: i_config.width,
-            height: i_config.height,
+            title: config.title,
+            width: config.width,
+            height: config.height,
             object,
             noClose: true,
             buttons
         };
-        if (typeof i_config.closed === 'function') {
-            dialog.closed = i_config.closed;
+        if (typeof config.closed === 'function') {
+            dialog.closed = config.closed;
         }
-        return showDialog(hmi, dialog, i_success, i_error);
+        return showDialog(hmi, dialog, onSuccess, onError);
     }
     ObjectLifecycleManager.showDefaultConfirmationDialog = showDefaultConfirmationDialog;
 
