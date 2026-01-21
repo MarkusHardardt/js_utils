@@ -7401,7 +7401,7 @@
             options.closeOnEscape = true;
         }
         dialogElement.dialog(options);
-        create_hmi_object_branch(config.object, dialogElement, function () {
+        create_hmi_object_branch(config.object, dialogElement, () => {
             const hmiobj = config.object._hmi_object;
             if (hmiobj) {
                 _buttons = Array.isArray(hmiobj.buttons) ? hmiobj.buttons : (Array.isArray(config.buttons) ? config.buttons : undefined);
