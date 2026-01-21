@@ -169,7 +169,7 @@
                 txt += id;
                 txt += '</code><br><br>';
                 txt += 'Select new id';
-                hmi.showDefaultConfirmationPopup({
+                hmi.showDefaultConfirmationDialog({
                     width: $(window).width() * 0.4,
                     height: $(window).height() * 0.3,
                     title: 'Warning',
@@ -199,7 +199,7 @@
                                 txt += params.externalUsers[i];
                             }
                             txt += '</code>';
-                            hmi.showDefaultConfirmationPopup({
+                            hmi.showDefaultConfirmationDialog({
                                 width: $(window).width() * 0.8,
                                 height: $(window).height() * 0.8,
                                 title: 'Warning',
@@ -221,7 +221,7 @@
                                 txt += id;
                                 txt += '</code><br><br>';
                                 txt += 'Sure to proceed?';
-                                hmi.showDefaultConfirmationPopup({
+                                hmi.showDefaultConfirmationDialog({
                                     width: $(window).width() * 0.8,
                                     height: $(window).height() * 0.8,
                                     title: 'Warning',
@@ -248,7 +248,7 @@
         cms.GetRefactoringParams(source, target, action, params => {
             // console.log(JSONX.stringify(i_params));
             if (typeof params.error === 'string') {
-                hmi.showDefaultConfirmationPopup({
+                hmi.showDefaultConfirmationDialog({
                     width: $(window).width() * 0.8,
                     height: $(window).height() * 0.8,
                     title: 'Warning',
@@ -281,7 +281,7 @@
                 txt += '<br><br><b>';
                 txt += 'Sure to proceed?';
                 txt += '</b>';
-                hmi.showDefaultConfirmationPopup({
+                hmi.showDefaultConfirmationDialog({
                     width: $(window).width() * 0.8,
                     height: $(window).height() * 0.8,
                     title: 'Warning',
@@ -307,7 +307,7 @@
                     txt += '<br><br><b>';
                     txt += 'Sure to proceed?';
                     txt += '</b>';
-                    hmi.showDefaultConfirmationPopup({
+                    hmi.showDefaultConfirmationDialog({
                         width: $(window).width() * 0.8,
                         height: $(window).height() * 0.8,
                         title: 'Warning',
@@ -490,7 +490,7 @@
                         }
                     });
                 }
-                hmi.showPopup({
+                hmi.showDialog({
                     title: 'errors',
                     width: Math.floor($(window).width() * 0.9),
                     height: Math.floor($(window).height() * 0.95),
@@ -1581,7 +1581,7 @@
                             rows: [1, '30px'],
                             children: [src_obj, info_obj]
                         };
-                        hmi.showPopup({
+                        hmi.showDialog({
                             title: 'Edit',
                             width: Math.floor($(window).width() * 0.9),
                             height: Math.floor($(window).height() * 0.95),
@@ -2286,7 +2286,7 @@
                     click: onClose => onClose()
                 }]
             };
-            hmi.showPopup(dialogObject);
+            hmi.showDialog(dialogObject);
         }, error => console.error(`Error loading hmi objects: ${error}`));
     }
 
@@ -2407,7 +2407,7 @@
                     click: onClose => onClose()
                 }]
             };
-            hmi.showPopup(dialogObject);
+            hmi.showDialog(dialogObject);
         }, error => console.error(`Error loading task objects: ${error}`));
     }
 

@@ -2696,7 +2696,7 @@
                 return;
             }
             const html = `<b>Import (replace):</b><br><code>${(prefix.length > 0 ? prefix : 'all (!)')}</code><br><br><b>Sure to proceed?</b>`;
-            hmi.showDefaultConfirmationPopup({
+            hmi.showDefaultConfirmationDialog({
                 width: $(window).width() * 0.6,
                 height: $(window).height() * 0.4,
                 title: 'warning',

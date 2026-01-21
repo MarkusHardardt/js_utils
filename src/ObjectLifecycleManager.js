@@ -7345,7 +7345,7 @@
         };
     };
 
-    function show_popup(i_hmi, i_config, i_success, i_error) {
+    function showDialog(hmi, i_config, i_success, i_error) {
         // dialog opacity: search for "ui-widget-overlay" in CSS and modify:
         // opacity: .0;
         var _popup = $('<div class="hmi-light" />');
@@ -7460,12 +7460,12 @@
                     console.error('EXCEPTION! Calling ready callback: ' + exc + ' ' + i_success.toString());
                 }
             }
-        }, i_error, i_hmi, i_config.init);
+        }, i_error, hmi, i_config.init);
         return fnClose;
     }
-    ObjectLifecycleManager.showPopup = show_popup;
+    ObjectLifecycleManager.showDialog = showDialog;
 
-    function show_confirmation_popup(i_hmi, i_config, i_success, i_error) {
+    function showDefaultConfirmationDialog(hmi, i_config, i_success, i_error) {
         function perform(i_callback, i_close) {
             try {
                 i_callback();
@@ -7522,21 +7522,20 @@
                 html: i_config.html
             };
         }
-        var config = {
+        var dialog = {
             title: i_config.title,
             width: i_config.width,
             height: i_config.height,
-            object: object,
+            object,
             noClose: true,
-            // the buttons
-            buttons: buttons
+            buttons
         };
         if (typeof i_config.closed === 'function') {
-            config.closed = i_config.closed;
+            dialog.closed = i_config.closed;
         }
-        return show_popup(i_hmi, config, i_success, i_error);
+        return showDialog(hmi, dialog, i_success, i_error);
     }
-    ObjectLifecycleManager.showDefaultConfirmationPopup = show_confirmation_popup;
+    ObjectLifecycleManager.showDefaultConfirmationDialog = showDefaultConfirmationDialog;
 
     /**
      * This method transfers the specified attribute from the source to the
