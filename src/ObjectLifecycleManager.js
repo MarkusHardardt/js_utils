@@ -3383,31 +3383,26 @@
     TimeRangeSelectorImpl.isRequired = function (i_object) {
         return typeof i_object.handleRangeUpdate === 'function';
     };
-    function is_visible(i_visible) {
-        if (i_visible === false) {
+    function isVisible(visible) {
+        if (visible === false) {
             return false;
-        }
-        else if (typeof i_visible === 'string') {
-            return that.hmi.env.isInstance(i_visible);
-        }
-        else if (Array.isArray(i_visible) && i_visible.length > 0) {
-            for (var i = 0; i < i_visible.length; i++) {
-                if (that.hmi.env.isInstance(i_visible[i]) === true) {
+        } else if (typeof visible === 'string') {
+            return that.hmi.env.isInstance(visible);
+        } else if (Array.isArray(visible) && visible.length > 0) {
+            for (let i = 0; i < visible.length; i++) {
+                if (that.hmi.env.isInstance(visible[i]) === true) {
                     return true;
                 }
             }
             return false;
-        }
-        else if (typeof i_visible === 'function') {
+        } else if (typeof visible === 'function') {
             try {
-                return i_visible() !== false;
-            }
-            catch (exc) {
-                console.error('EXCEPTION! Calling visible: ' + exc + ' ' + i_visible.toString());
+                return visible() !== false;
+            } catch (error) {
+                console.error(`EXCEPTION! Calling visible: '${error}' '${visible.toString()}'`);
                 return true;
             }
-        }
-        else {
+        } else {
             return true;
         }
     };
@@ -7158,7 +7153,7 @@
                 tasks.push(function (i_suc, i_err) {
                     try {
                         // VISIBILITY (default is true)
-                        if (is_visible(that.visible) === false) {
+                        if (isVisible(that.visible) === false) {
                             if (i_disableVisuEvents === true) {
                                 that.hmi_setVisible(true);
                                 if (_cont && (that._hmi_graphicsRoot === true || that._hmi_graphics !== true)) {
@@ -7439,7 +7434,7 @@
                             button._hmi_element = $('#' + button._hmi_buttonId);
                             button._hmi_element.attr('id', null);
                             delete button._hmi_buttonId;
-                            if (is_visible(button.visible) === false) {
+                            if (isVisible(button.visible) === false) {
                                 button.hmi_setVisible(false);
                             }
                         }
@@ -7470,54 +7465,40 @@
             }
             close();
         };
-        var buttons = [];
+        const buttons = [];
         if (typeof config.ok === 'function') {
             buttons.push({
                 text: typeof config.okLabelId === 'string' ? that.hmi.env.data.Get(config.okLabelId) : 'OK',
-                click: function (i_close) {
-                    perform(config.ok, i_close);
-                }
+                click: close => perform(config.ok, close)
             });
         }
         if (typeof config.yes === 'function') {
             buttons.push({
                 text: typeof config.yesLabelId === 'string' ? that.hmi.env.data.Get(config.yesLabelId) : 'Yes',
-                click: function (i_close) {
-                    perform(config.yes, i_close);
-                }
+                click: close => perform(config.yes, close)
             });
         }
         if (typeof config.no === 'function') {
             buttons.push({
                 text: typeof config.noLabelId === 'string' ? that.hmi.env.data.Get(config.noLabelId) : 'No',
-                click: function (i_close) {
-                    perform(config.no, i_close);
-                }
+                click: close => perform(config.no, close)
             });
         }
         if (typeof config.cancel === 'function') {
             buttons.push({
                 text: typeof config.cancelLabelId === 'string' ? that.hmi.env.data.Get(config.cancelLabelId) : 'Cancel',
-                click: function (i_close) {
-                    perform(config.cancel, i_close);
-                }
+                click: close => perform(config.cancel, close)
             });
         }
-        var object = undefined;
+        let object = undefined;
         if (config.object !== null && typeof config.object === 'object') {
             object = config.object;
+        } else if (config.text !== undefined) {
+            object = { text: config.text };
+        } else if (config.html !== undefined) {
+            object = { html: config.html };
         }
-        else if (config.text !== undefined) {
-            object = {
-                text: config.text
-            };
-        }
-        else if (config.html !== undefined) {
-            object = {
-                html: config.html
-            };
-        }
-        var dialog = {
+        const dialog = {
             title: config.title,
             width: config.width,
             height: config.height,
