@@ -77,7 +77,7 @@
     ContentManager.COMMAND_GET_REFERENCES_FROM_TREE_NODES = 'get_references_from_tree_nodes';
 
     ContentManager.HMI_FLAG_ENABLE = 0x01;
-    ContentManager.HMI_FLAG_AUTORUN = 0x01;
+    ContentManager.TASK_FLAG_AUTORUN = 0x01;
 
 
     // //////////////////////////////////////////////////////////////////////////////////////////
@@ -2062,6 +2062,9 @@
                 adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS flags`);
                 adapter.PerformSelect(hmiTable.name, undefined, 'path ASC', undefined, result => {
                     adapter.Close();
+                    for (let entry of result) {
+                        entry.file = entry.id = `$${entry.path}.${this._extensionsForType[hmiTable.type]}`; // TODO: what about 'file' vs. 'id'?
+                    }
                     onResponse(result);
                 }, error => {
                     adapter.Close();
@@ -2153,12 +2156,15 @@
         GetTaskObjects(onResponse, onError) {
             const taskTable = this._taskTable;
             this._getSqlAdapter(adapter => {
-                adapter.AddColumn(`${taskTable.name}.${taskTable.keyColumn} AS key`);
-                adapter.AddColumn(`${taskTable.name}.${taskTable.taskObjectColumn} AS path`);
+                adapter.AddColumn(`${taskTable.name}.${taskTable.keyColumn} AS path`);
+                adapter.AddColumn(`${taskTable.name}.${taskTable.taskObjectColumn} AS taskObject`);
                 adapter.AddColumn(`${taskTable.name}.${taskTable.flagsColumn} AS flags`);
                 adapter.AddColumn(`${taskTable.name}.${taskTable.cycleIntervalMillisColumn} AS cycleMillis`);
                 adapter.PerformSelect(taskTable.name, undefined, 'path ASC', undefined, result => {
                     adapter.Close();
+                    for (let entry of result) {
+                        entry.file = entry.id = `$${entry.path}.${this._extensionsForType[taskTable.type]}`; // TODO: what about 'file' vs. 'id'?
+                    }
                     onResponse(result);
                 }, error => {
                     adapter.Close();

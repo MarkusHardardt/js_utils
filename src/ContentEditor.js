@@ -374,13 +374,14 @@
     }
 
     function getLogHandler(hmi) {
-        let errors = [], last_read_offset = 0, push = entry => {
-            let idx = Sorting.getInsertionIndex(entry, errors, false, compareErrors);
+        let last_read_offset = 0;
+        const errors = [], push = entry => {
+            const idx = Sorting.getInsertionIndex(entry, errors, false, compareErrors);
             errors.splice(idx, 0, entry);
             last_read_offset++;
             update();
         }, update = () => {
-            let active = last_read_offset > 0;
+            const active = last_read_offset > 0;
             // button[active ? 'hmi_removeClass' :
             // 'hmi_addClass']('highlighted-green');
             button[active ? 'hmi_addClass' : 'hmi_removeClass']('highlighted-red');
@@ -401,7 +402,7 @@
             text: 'info',
             border: true,
             clicked: () => {
-                let table = {
+                const table = {
                     location: 'top',
                     type: 'table',
                     highlightSelectedRow: true,
@@ -418,7 +419,7 @@
                     }],
                     getRowCount: () => errors.length,
                     getCellHtml: (row, column) => {
-                        let error = errors[row];
+                        const error = errors[row];
                         switch (column) {
                             case 0:
                                 return Utilities.formatTimestamp(error.date);
@@ -433,23 +434,23 @@
                         onSuccess();
                     },
                     handleTableRowClicked: (row) => {
-                        let error = errors[row];
+                        const error = errors[row];
                         textarea.hmi_value(Utilities.formatTimestamp(error.date) + '\n' + error.text);
                     }
                 };
-                let textarea = {
+                const textarea = {
                     location: 'bottom',
                     type: 'textarea',
                     editable: false
                 };
-                let popup_object = {
+                const popup_object = {
                     type: 'split',
                     topSize: Mathematics.GOLDEN_CUT_INVERTED,
                     columns: 1,
                     rows: [3, 1],
                     children: [table, textarea]
                 };
-                let buttons = [];
+                const buttons = [];
                 if (errors.length > 0) {
                     buttons.push({
                         text: 'clear all',
@@ -746,7 +747,7 @@
                 adapter.showSearchTable();
             }
         };
-        let button_select_browse = {
+        const button_select_browse = {
             x: 1,
             y: 0,
             text: 'browse',
@@ -754,14 +755,14 @@
             selected: true,
             clicked: () => update_mode(button_select_browse)
         };
-        let button_select_search = {
+        const button_select_search = {
             x: 2,
             y: 0,
             text: 'search',
             border: true,
             clicked: () => update_mode(button_select_search)
         };
-        let button_reload = {
+        const button_reload = {
             x: 3,
             y: 0,
             text: 'reload',
@@ -794,8 +795,9 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getReferences(hmi, adapter) {
-        let cms = hmi.cms, sel_data, selected = false, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
-        let text = {
+        const cms = hmi.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
+        let sel_data, selected = false;
+        const text = {
             x: 0,
             y: 1,
             width: 4,
@@ -804,7 +806,7 @@
             type: 'textfield',
             readonly: true
         };
-        let tree = {
+        const tree = {
             x: 0,
             y: 2,
             width: 4,
@@ -814,7 +816,7 @@
             rootRequest: ContentManager.COMMAND_GET_REFERENCES_TO_TREE_NODES,
             compareNodes: (node1, node2) => cms.CompareIds(node1.data.path, node2.data.path),
             nodeActivated: node => {
-                let path = node.data.path;
+                const path = node.data.path;
                 text.hmi_value(path);
                 if (selected !== path) {
                     selected = path;
@@ -838,7 +840,7 @@
                 tree.hmi_setRootPath(id, onSuccess, onError);
             });
         };
-        let buttonRefTo = {
+        const buttonRefTo = {
             x: 1,
             y: 0,
             border: true,
@@ -849,7 +851,7 @@
                 updateReferences(buttonRefTo);
             }
         };
-        let buttonRefFrom = {
+        const buttonRefFrom = {
             x: 2,
             y: 0,
             border: true,
@@ -859,7 +861,7 @@
                 updateReferences(buttonRefFrom);
             }
         };
-        let buttonEdit = {
+        const buttonEdit = {
             x: 3,
             y: 0,
             border: true,
@@ -2168,7 +2170,7 @@
     }
 
     const HmiObjectsTableColumn = Object.freeze({
-        Key: 0,
+        Id: 0,
         ViewObject: 1,
         QueryParameter: 2,
         Enable: 3
@@ -2177,8 +2179,8 @@
     function showHmisConfigurationDialog(hmi, adapter) {
         const cms = hmi.cms;
         cms.GetHMIObjects(hmiObjects => {
-            console.log(JSON.stringify(hmiObjects)); // TODO: remove
-            // [{"path":"001_debug/maze_game_copy","queryParameter":"df3c2621","viewObject":"$001_debug/maze_game_copy.j","flags":0},{"path":"aaa","queryParameter":"","viewObject":"$001_debug/dataPoints.j","flags":1},{"path":"debug/hmi/view","queryParameter":"42","viewObject":"$debug/hmi/view.j","flags":1},{"path":"debug/hmi/view_copy","queryParameter":"43","viewObject":"$debug/hmi/view.j","flags":1}]
+            // console.log(JSON.stringify(hmiObjects)); // TODO: remove
+            let selectedRow = null;
             const table = {
                 y: 0,
                 type: 'table',
@@ -2187,27 +2189,26 @@
                 highlightSelectedRow: true,
                 columns: [{
                     width: 100,
-                    text: 'hmi object',
+                    text: 'HMI object',
                     textsAndNumbers: true
                 }, {
                     width: 100,
-                    text: 'view object',
+                    text: 'JsonFX object',
                     textsAndNumbers: true
                 }, {
                     width: 100,
-                    text: 'query parameter',
+                    text: 'Query parameter',
                     textsAndNumbers: true
                 }, {
                     width: 10,
-                    text: 'enabled',
-                    textsAndNumbers: true
+                    text: 'Enabled'
                 }],
                 getRowCount: () => hmiObjects.length,
                 getCellHtml: (rowIndex, columnIndex) => {
                     const row = hmiObjects[rowIndex];
                     switch (columnIndex) {
-                        case HmiObjectsTableColumn.Key:
-                            return row.path;
+                        case HmiObjectsTableColumn.Id:
+                            return row.id;
                         case HmiObjectsTableColumn.ViewObject:
                             return row.viewObject;
                         case HmiObjectsTableColumn.QueryParameter:
@@ -2228,7 +2229,12 @@
                         onError(error);
                     }
                 },
-                handleTableRowClicked: rowIndex => detailsContainer.showRowData(hmiObjects[rowIndex])
+                handleTableRowClicked: rowIndex => {
+                    selectedRow = hmiObjects[rowIndex];
+                    detailsContainer.showRowData(selectedRow);
+                    browseHmiObjectButton.hmi_setVisible(selectedRow !== null);
+                    browseJsonFXObjectButton.hmi_setVisible(selectedRow !== null);
+                }
             };
             const detailsAapter = { edited: () => console.log('edited') }; // TODO: Go on here
             const detailsContainer = {
@@ -2237,13 +2243,33 @@
                 showRowData: hmiObject => {
                     const editor = getHmiView(hmi, detailsAapter, true);
                     detailsContainer.hmi_removeContent(() => detailsContainer.hmi_setContent(editor, () => {
-                        hmiObject.file = `$${hmiObject.path}.${cms.GetExtensionForType(ContentManager.DataTableType.HMI)}`; // TODO: Fix this
+                        // TODO: remove or reuse hmiObject.file = `$${hmiObject.path}.${cms.GetExtensionForType(ContentManager.DataTableType.HMI)}`; // TODO: Fix this
                         editor.onKeyChanged(hmiObject, undefined, () => { }, error => {
                             adapter.notifyError(`Error setting content for ${hmiObject.path}: ${error}`);
                         });
                     }, error => {
                         adapter.notifyError(`Error setting content for ${hmiObject.path}: ${error}`);
                     }), error => adapter.notifyError(`Error removing content: ${error}`));
+                }
+            };
+            const browseHmiObjectButton = {
+                text: 'Browse HMI object',
+                visible: false,
+                click: onClose => {
+                    if (selectedRow) {
+                        adapter.selectInNavigator(cms.AnalyzeId(selectedRow.id));
+                    }
+                    onClose();
+                }
+            };
+            const browseJsonFXObjectButton = {
+                text: 'Browse JsonFX object',
+                visible: false,
+                click: onClose => {
+                    if (selectedRow) {
+                        adapter.selectInNavigator(cms.AnalyzeId(selectedRow.viewObject));
+                    }
+                    onClose();
                 }
             };
             const dialogObject = {
@@ -2255,24 +2281,134 @@
                     rows: [1, '200px'],
                     children: [table, detailsContainer]
                 },
-                buttons: []
+                buttons: [browseHmiObjectButton, browseJsonFXObjectButton, {
+                    text: 'OK',
+                    click: onClose => onClose()
+                }]
             };
             hmi.showPopup(dialogObject);
-        }, error => console.error(`Error loading hmi objetcs: ${error}`));
+        }, error => console.error(`Error loading hmi objects: ${error}`));
     }
 
+    const TaskObjectsTableColumn = Object.freeze({
+        Id: 0,
+        TaskObject: 1,
+        CycleMillis: 2,
+        Autorun: 3
+    });
+
     function showTasksConfigurationDialog(hmi, adapter) {
-        hmi.cms.GetTaskObjects(result => {
-            console.log(JSON.stringify(result)); // TODO: remove
-            const dialogObject = { // TODO: implement dialog
+        const cms = hmi.cms;
+        hmi.cms.GetTaskObjects(taskObjects => {
+            console.log(JSON.stringify(taskObjects)); // TODO: remove
+            let selectedRow = null;
+            const table = {
+                y: 0,
+                type: 'table',
+                searching: true,
+                paging: false,
+                highlightSelectedRow: true,
+                columns: [{
+                    width: 100,
+                    text: 'Task object',
+                    textsAndNumbers: true
+                }, {
+                    width: 100,
+                    text: 'JsonFX object',
+                    textsAndNumbers: true
+                }, {
+                    width: 50,
+                    text: 'Cycle millis',
+                    textsAndNumbers: true
+                }, {
+                    width: 10,
+                    text: 'Autorun'
+                }],
+                getRowCount: () => taskObjects.length,
+                getCellHtml: (rowIndex, columnIndex) => {
+                    const row = taskObjects[rowIndex];
+                    switch (columnIndex) {
+                        case TaskObjectsTableColumn.Id:
+                            return row.id;
+                        case TaskObjectsTableColumn.TaskObject:
+                            return row.taskObject;
+                        case TaskObjectsTableColumn.CycleMillis:
+                            return row.cycleMillis;
+                        case TaskObjectsTableColumn.Autorun:
+                            return (row.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? 'enabled' : 'disabled';
+                        default:
+                            return '';
+                    }
+                },
+                prepare: (that, onSuccess, onError) => {
+                    try {
+                        that.hmi_reload();
+                        onSuccess();
+                    } catch (error) {
+                        adapter.notifyError(`Error preparing task objects table: ${error}`);
+                        console.error(`Error preparing task objects table: ${error}`);
+                        onError(error);
+                    }
+                },
+                handleTableRowClicked: rowIndex => {
+                    selectedRow = taskObjects[rowIndex];
+                    detailsContainer.showRowData(selectedRow);
+                    browseTaskObjectButton.hmi_setVisible(selectedRow !== null);
+                    browseJsonFXObjectButton.hmi_setVisible(selectedRow !== null);
+                }
+            };
+            const detailsAapter = { edited: () => console.log('edited') }; // TODO: Go on here
+            const detailsContainer = {
+                y: 1,
+                type: 'container',
+                showRowData: taskObject => {
+                    const editor = getTaskView(hmi, detailsAapter, true);
+                    detailsContainer.hmi_removeContent(() => detailsContainer.hmi_setContent(editor, () => {
+                        // TODO: remove or reuse taskObject.file = `$${taskObject.path}.${cms.GetExtensionForType(ContentManager.DataTableType.HMI)}`; // TODO: Fix this
+                        editor.onKeyChanged(taskObject, undefined, () => { }, error => {
+                            adapter.notifyError(`Error setting content for ${taskObject.path}: ${error}`);
+                        });
+                    }, error => {
+                        adapter.notifyError(`Error setting content for ${taskObject.path}: ${error}`);
+                    }), error => adapter.notifyError(`Error removing content: ${error}`));
+                }
+            };
+            const browseTaskObjectButton = {
+                text: 'Browse task object',
+                visible: false,
+                click: onClose => {
+                    if (selectedRow) {
+                        adapter.selectInNavigator(cms.AnalyzeId(selectedRow.id));
+                    }
+                    onClose();
+                }
+            };
+            const browseJsonFXObjectButton = {
+                text: 'Browse JsonFX object',
+                visible: false,
+                click: onClose => {
+                    if (selectedRow) {
+                        adapter.selectInNavigator(cms.AnalyzeId(selectedRow.taskObject));
+                    }
+                    onClose();
+                }
+            };
+            const dialogObject = {
                 title: 'Task object configuration',
                 width: Math.floor($(window).width() * 0.9),
                 height: Math.floor($(window).height() * 0.95),
-                object: { text: JSON.stringify(result, undefined, 2) },
-                buttons: []
+                object: {
+                    type: 'grid',
+                    rows: [1, '200px'],
+                    children: [table, detailsContainer]
+                },
+                buttons: [browseTaskObjectButton, browseJsonFXObjectButton, {
+                    text: 'OK',
+                    click: onClose => onClose()
+                }]
             };
             hmi.showPopup(dialogObject);
-        }, error => console.error(`Error loading hmi objetcs: ${error}`));
+        }, error => console.error(`Error loading task objects: ${error}`));
     }
 
     function getEditController(hmi, adapter) {
@@ -2416,7 +2552,10 @@
             y: 0,
             border: true,
             text: 'hmis',
-            clicked: () => showHmisConfigurationDialog(hmi, adapter),
+            clicked: () => showHmisConfigurationDialog(hmi, { // TODO: Use adapter directly?
+                notifyError: adapter.notifyError,
+                selectInNavigator: adapter.selectInNavigator
+            }),
             longClicked: () => {
                 try {
                     if (sel_data && sel_data.type === ContentManager.DataTableType.JsonFX) {
@@ -2444,7 +2583,10 @@
             y: 0,
             border: true,
             text: 'tasks',
-            clicked: () => showTasksConfigurationDialog(hmi, adapter),
+            clicked: () => showTasksConfigurationDialog(hmi, { // TODO: Use adapter directly?
+                notifyError: adapter.notifyError,
+                selectInNavigator: adapter.selectInNavigator
+            }),
             longClicked: () => {
                 try {
                     if (sel_data && sel_data.type === ContentManager.DataTableType.JsonFX) {
@@ -2573,19 +2715,20 @@
                 preview.update(data, language_selector.getLanguage());
             }
         };
+        function selectInNavigator(data) {
+            key_textfield.update(data);
+            navigator.showBrowser();
+            browser_tree.expand(data);
+            references.setRootIdData(data);
+            refactoring.update(data);
+            edit_ctrl.update(data, language_selector.getLanguage());
+            preview.update(data, language_selector.getLanguage());
+        }
         const references_adapter = {
             notifyError: log_handler.pushError,
             notifyTimeout: data => log_handler.pushTimeout('timeout loading references: "' + data.id + '"'),
             keySelected: data => preview.update(data, language_selector.getLanguage()),
-            selectInNavigator: data => {
-                key_textfield.update(data);
-                navigator.showBrowser();
-                browser_tree.expand(data);
-                references.setRootIdData(data);
-                refactoring.update(data);
-                edit_ctrl.update(data, language_selector.getLanguage());
-                preview.update(data, language_selector.getLanguage());
-            }
+            selectInNavigator: data => selectInNavigator(data)
         };
         const refactoring_adapter = {
             updateInfo: log_handler.updateInfo,
@@ -2658,7 +2801,8 @@
                 refactoring.update(data);
                 edit_ctrl.update(data, language_selector.getLanguage());
                 preview.update(data, language_selector.getLanguage());
-            }
+            },
+            selectInNavigator: data => selectInNavigator(data)
         };
         const preview_adapter = {
             notifyError: log_handler.pushError,
