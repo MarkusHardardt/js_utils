@@ -1714,13 +1714,21 @@
     */
     function getHmiView(hmi, adapter, editable) {
         const cms = hmi.cms;
+        let watchEditActions = false;
+        function onEdited() {
+            if (watchEditActions) {
+                adapter.edited();
+            }
+        }
         function onKeyChanged(data, language, onSuccess, onError) {
+            watchEditActions = false;
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
                         viewObjectValue.hmi_value(data.viewObjectColumn);
                         queryParameterValue.hmi_value(data.queryParameterColumn);
                         checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_ENABLE) !== 0);
+                        watchEditActions = true;
                     } else {
                         viewObjectValue.hmi_value('');
                         queryParameterValue.hmi_value('');
@@ -1757,13 +1765,13 @@
             classes: 'hmi-dark',
             prepare: (that, onSuccess, onError) => {
                 if (editable === true) {
-                    that.hmi_addChangeListener(adapter.edited);
+                    that.hmi_addChangeListener(onEdited);
                 }
                 onSuccess();
             },
             destroy: (that, onSuccess, onError) => {
                 if (editable === true) {
-                    that.hmi_removeChangeListener(adapter.edited);
+                    that.hmi_removeChangeListener(onEdited);
                 }
                 onSuccess();
             }
@@ -1785,13 +1793,13 @@
             classes: 'hmi-dark',
             prepare: (that, onSuccess, onError) => {
                 if (editable === true) {
-                    that.hmi_addChangeListener(adapter.edited);
+                    that.hmi_addChangeListener(onEdited);
                 }
                 onSuccess();
             },
             destroy: (that, onSuccess, onError) => {
                 if (editable === true) {
-                    that.hmi_removeChangeListener(adapter.edited);
+                    that.hmi_removeChangeListener(onEdited);
                 }
                 onSuccess();
             }
@@ -1804,7 +1812,7 @@
             border: false,
             classes: 'hmi-dark'
         };
-        const checkbox = getCheckbox(editable === true ? adapter.edited : undefined);
+        const checkbox = getCheckbox(editable === true ? onEdited : undefined);
         const enableValue = {
             x: 1,
             y: 2,
@@ -1840,13 +1848,21 @@
 
     function getTaskView(hmi, adapter, editable) {
         const cms = hmi.cms;
+        let watchEditActions = false;
+        function onEdited() {
+            if (watchEditActions) {
+                adapter.edited();
+            }
+        }
         function onKeyChanged(data, language, onSuccess, onError) {
+            watchEditActions = false;
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
                         taskObjectValue.hmi_value(data.taskObjectColumn);
                         checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_AUTORUN) !== 0);
                         cycleMillisValue.hmi_value(data.cycleIntervalMillisColumn.toString());
+                        watchEditActions = true;
                     } else {
                         taskObjectValue.hmi_value('');
                         checkbox.setValue(false);
@@ -1883,13 +1899,13 @@
             classes: 'hmi-dark',
             prepare: (that, onSuccess, onError) => {
                 if (editable === true) {
-                    that.hmi_addChangeListener(adapter.edited);
+                    that.hmi_addChangeListener(onEdited);
                 }
                 onSuccess();
             },
             destroy: (that, onSuccess, onError) => {
                 if (editable === true) {
-                    that.hmi_removeChangeListener(adapter.edited);
+                    that.hmi_removeChangeListener(onEdited);
                 }
                 onSuccess();
             }
@@ -1902,7 +1918,7 @@
             border: false,
             classes: 'hmi-dark'
         };
-        const checkbox = getCheckbox(editable === true ? adapter.edited : undefined);
+        const checkbox = getCheckbox(editable === true ? onEdited : undefined);
         const autorunValue = {
             x: 1,
             y: 1,
@@ -1929,13 +1945,13 @@
             classes: 'hmi-dark',
             prepare: (that, onSuccess, onError) => {
                 if (editable === true) {
-                    that.hmi_addChangeListener(adapter.edited);
+                    that.hmi_addChangeListener(onEdited);
                 }
                 onSuccess();
             },
             destroy: (that, onSuccess, onError) => {
                 if (editable === true) {
-                    that.hmi_removeChangeListener(adapter.edited);
+                    that.hmi_removeChangeListener(onEdited);
                 }
                 onSuccess();
             }
@@ -2180,7 +2196,7 @@
         const cms = hmi.cms;
         cms.GetHMIObjects(hmiObjects => {
             // console.log(JSON.stringify(hmiObjects)); // TODO: remove
-            let selectedRow = null;
+            let selectedHmi = null;
             const table = {
                 y: 0,
                 type: 'table',
@@ -2230,34 +2246,21 @@
                     }
                 },
                 handleTableRowClicked: rowIndex => {
-                    selectedRow = hmiObjects[rowIndex];
-                    detailsContainer.showRowData(selectedRow);
-                    browseHmiObjectButton.hmi_setVisible(selectedRow !== null);
-                    browseJsonFXObjectButton.hmi_setVisible(selectedRow !== null);
+                    selectedHmi = hmiObjects[rowIndex];
+                    detailsEditor.onKeyChanged(selectedHmi, undefined, () => { }, error => adapter.notifyError(`Error setting content for ${selectedHmi.path}: ${error}`));
+                    browseHmiObjectButton.hmi_setVisible(selectedHmi !== null);
+                    browseJsonFXObjectButton.hmi_setVisible(selectedHmi !== null);
                 }
             };
             const detailsAapter = { edited: () => console.log('edited') }; // TODO: Go on here
-            const detailsContainer = {
-                y: 1,
-                type: 'container',
-                showRowData: hmiObject => {
-                    const editor = getHmiView(hmi, detailsAapter, true);
-                    detailsContainer.hmi_removeContent(() => detailsContainer.hmi_setContent(editor, () => {
-                        // TODO: remove or reuse hmiObject.file = `$${hmiObject.path}.${cms.GetExtensionForType(ContentManager.DataTableType.HMI)}`; // TODO: Fix this
-                        editor.onKeyChanged(hmiObject, undefined, () => { }, error => {
-                            adapter.notifyError(`Error setting content for ${hmiObject.path}: ${error}`);
-                        });
-                    }, error => {
-                        adapter.notifyError(`Error setting content for ${hmiObject.path}: ${error}`);
-                    }), error => adapter.notifyError(`Error removing content: ${error}`));
-                }
-            };
+            const detailsEditor = getHmiView(hmi, detailsAapter, true);
+            detailsEditor.y = 1;
             const browseHmiObjectButton = {
                 text: 'Browse HMI object',
                 visible: false,
                 click: onClose => {
-                    if (selectedRow) {
-                        adapter.selectInNavigator(cms.AnalyzeId(selectedRow.id));
+                    if (selectedHmi) {
+                        adapter.selectInNavigator(cms.AnalyzeId(selectedHmi.id));
                     }
                     onClose();
                 }
@@ -2266,8 +2269,8 @@
                 text: 'Browse JsonFX object',
                 visible: false,
                 click: onClose => {
-                    if (selectedRow) {
-                        adapter.selectInNavigator(cms.AnalyzeId(selectedRow.viewObject));
+                    if (selectedHmi) {
+                        adapter.selectInNavigator(cms.AnalyzeId(selectedHmi.viewObject));
                     }
                     onClose();
                 }
@@ -2279,7 +2282,7 @@
                 object: {
                     type: 'grid',
                     rows: [1, '200px'],
-                    children: [table, detailsContainer]
+                    children: [table, detailsEditor]
                 },
                 buttons: [browseHmiObjectButton, browseJsonFXObjectButton, {
                     text: 'OK',
@@ -2301,7 +2304,7 @@
         const cms = hmi.cms;
         hmi.cms.GetTaskObjects(taskObjects => {
             console.log(JSON.stringify(taskObjects)); // TODO: remove
-            let selectedRow = null;
+            let selectedTask = null;
             const table = {
                 y: 0,
                 type: 'table',
@@ -2351,34 +2354,21 @@
                     }
                 },
                 handleTableRowClicked: rowIndex => {
-                    selectedRow = taskObjects[rowIndex];
-                    detailsContainer.showRowData(selectedRow);
-                    browseTaskObjectButton.hmi_setVisible(selectedRow !== null);
-                    browseJsonFXObjectButton.hmi_setVisible(selectedRow !== null);
+                    selectedTask = taskObjects[rowIndex];
+                    detailsEditor.onKeyChanged(selectedTask, undefined, () => { }, error => adapter.notifyError(`Error setting content for ${selectedTask.path}: ${error}`));
+                    browseTaskObjectButton.hmi_setVisible(selectedTask !== null);
+                    browseJsonFXObjectButton.hmi_setVisible(selectedTask !== null);
                 }
             };
             const detailsAapter = { edited: () => console.log('edited') }; // TODO: Go on here
-            const detailsContainer = {
-                y: 1,
-                type: 'container',
-                showRowData: taskObject => {
-                    const editor = getTaskView(hmi, detailsAapter, true);
-                    detailsContainer.hmi_removeContent(() => detailsContainer.hmi_setContent(editor, () => {
-                        // TODO: remove or reuse taskObject.file = `$${taskObject.path}.${cms.GetExtensionForType(ContentManager.DataTableType.HMI)}`; // TODO: Fix this
-                        editor.onKeyChanged(taskObject, undefined, () => { }, error => {
-                            adapter.notifyError(`Error setting content for ${taskObject.path}: ${error}`);
-                        });
-                    }, error => {
-                        adapter.notifyError(`Error setting content for ${taskObject.path}: ${error}`);
-                    }), error => adapter.notifyError(`Error removing content: ${error}`));
-                }
-            };
+            const detailsEditor = getTaskView(hmi, detailsAapter, true);
+            detailsEditor.y = 1;
             const browseTaskObjectButton = {
                 text: 'Browse task object',
                 visible: false,
                 click: onClose => {
-                    if (selectedRow) {
-                        adapter.selectInNavigator(cms.AnalyzeId(selectedRow.id));
+                    if (selectedTask) {
+                        adapter.selectInNavigator(cms.AnalyzeId(selectedTask.id));
                     }
                     onClose();
                 }
@@ -2387,8 +2377,8 @@
                 text: 'Browse JsonFX object',
                 visible: false,
                 click: onClose => {
-                    if (selectedRow) {
-                        adapter.selectInNavigator(cms.AnalyzeId(selectedRow.taskObject));
+                    if (selectedTask) {
+                        adapter.selectInNavigator(cms.AnalyzeId(selectedTask.taskObject));
                     }
                     onClose();
                 }
@@ -2400,7 +2390,7 @@
                 object: {
                     type: 'grid',
                     rows: [1, '200px'],
-                    children: [table, detailsContainer]
+                    children: [table, detailsEditor]
                 },
                 buttons: [browseTaskObjectButton, browseJsonFXObjectButton, {
                     text: 'OK',

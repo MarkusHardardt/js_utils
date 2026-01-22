@@ -2017,14 +2017,21 @@
                     if (!result || !Array.isArray(result)) {
                         onError(`HMI could not be loaded: Invalid query parameter: '${queryParameterValue}'`);
                         return;
-                    } else if (result.length === 0) {
+                    } 
+                    const enabledHmiObjectIds = [];
+                    for (let obj of result) {
+                        if ((obj.flags & ContentManager.HMI_FLAG_ENABLE) !== 0) {
+                            enabledHmiObjectIds.push(obj.path);
+                        }
+                    }
+                    if (enabledHmiObjectIds.length === 0) {
                         onError(`HMI could not be loaded: HMI for query parameter '${queryParameterValue}' is not available.`);
                         return;
-                    } else if (result.length > 1) {
+                    } else if (enabledHmiObjectIds.length > 1) {
                         onError(`HMI could not be loaded: Query parameter '${queryParameterValue}' is ambiguous.`);
                         return;
                     }
-                    const id = result[0].path;
+                    const id = enabledHmiObjectIds[0];
                     const match = this._contentTablesKeyRegex.exec(id);
                     if (!match) {
                         onError(`HMI could not be loaded: Invalid id: '${id}' for query parameter '${queryParameterValue}'`);
@@ -2033,11 +2040,6 @@
                     const table = this._contentTablesByExtension[match[2]];
                     if (!table || table.type !== DataTableType.JsonFX) {
                         onError(`HMI could not be loaded: Invalid table name: '${id}' for query parameter '${queryParameterValue}'`);
-                        return;
-                    }
-                    const flags = result[0].flags;
-                    if ((flags & ContentManager.HMI_FLAG_ENABLE) === 0) {
-                        onError(`HMI could not be loaded: HMI for query parameter '${queryParameterValue}' is not enabled`);
                         return;
                     }
                     this._getObject(adapter, id, match[1], table, language, ContentManager.PARSE, response => {
