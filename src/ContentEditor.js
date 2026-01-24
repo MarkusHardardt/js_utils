@@ -2221,7 +2221,7 @@
         Enable: 3
     });
 
-    function showHmisConfigurationDialog(hmi, adapter) {
+    function showHmisConfigurationDialog(hmi, adapter, currentlySelectedData) {
         const cms = hmi.cms;
         let hmiObjects = null;
         let selectedDataIndex = -1;
@@ -2351,9 +2351,17 @@
                         }());
                     }
                 }
-                Executor.run(tasks, () => reload(), error => {
+                Executor.run(tasks, () => {
+                    reload();
+                    if (currentlySelectedData) {
+                        adapter.stateChanged(false, currentlySelectedData);
+                    }
+                }, error => {
                     adapter.notifyError(`Error loading hmi objects: ${error}`);
                     reload();
+                    if (currentlySelectedData) {
+                        adapter.stateChanged(false, currentlySelectedData);
+                    }
                 });
             }
         }
@@ -2403,7 +2411,7 @@
         Autorun: 3
     });
 
-    function showTasksConfigurationDialog(hmi, adapter) {
+    function showTasksConfigurationDialog(hmi, adapter, currentlySelectedData) {
         const cms = hmi.cms;
         let taskObjects = null;
         let selectedDataIndex = -1;
@@ -2533,9 +2541,17 @@
                         }());
                     }
                 }
-                Executor.run(tasks, () => reload(), error => {
+                Executor.run(tasks, () => {
+                    reload();
+                    if (currentlySelectedData) {
+                        adapter.stateChanged(false, currentlySelectedData);
+                    }
+                }, error => {
                     adapter.notifyError(`Error loading hmi objects: ${error}`);
                     reload();
+                    if (currentlySelectedData) {
+                        adapter.stateChanged(false, currentlySelectedData);
+                    }
                 });
             }
         }
@@ -2715,11 +2731,7 @@
             y: 0,
             border: true,
             text: 'hmis',
-            clicked: () => showHmisConfigurationDialog(hmi, { // TODO: Use adapter directly?
-                notifyError: adapter.notifyError,
-                selectInNavigator: adapter.selectInNavigator,
-                performCommit: adapter.performCommit
-            }),
+            clicked: () => showHmisConfigurationDialog(hmi, adapter, sel_data),
             longClicked: () => {
                 try {
                     if (sel_data && sel_data.type === ContentManager.DataTableType.JsonFX) {
@@ -2747,10 +2759,7 @@
             y: 0,
             border: true,
             text: 'tasks',
-            clicked: () => showTasksConfigurationDialog(hmi, { // TODO: Use adapter directly?
-                notifyError: adapter.notifyError,
-                selectInNavigator: adapter.selectInNavigator
-            }),
+            clicked: () => showTasksConfigurationDialog(hmi, adapter, sel_data),
             longClicked: () => {
                 try {
                     if (sel_data && sel_data.type === ContentManager.DataTableType.JsonFX) {
