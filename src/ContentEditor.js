@@ -124,9 +124,8 @@
                 }
                 break;
             case ContentManager.INSERT:
-                // nothing to do
-                break;
             case ContentManager.UPDATE:
+            case ContentManager.NONE:
                 // nothing to do
                 break;
         }
@@ -166,17 +165,17 @@
         }
         Executor.run(tasks, () => {
             if (equal_id && startEditChecksum !== checksum) {
-                let txt = '<b>';
-                txt += 'Object has been modified!';
-                txt += '</b><br><code>';
-                txt += id;
-                txt += '</code><br><br>';
-                txt += 'Select new id';
+                let html = '<b>';
+                html += 'Object has been modified!';
+                html += '</b><br><code>';
+                html += id;
+                html += '</code><br><br>';
+                html += 'Select new id';
                 hmi.showDefaultConfirmationDialog({
                     width: $(window).width() * 0.4,
                     height: $(window).height() * 0.3,
                     title: 'Warning',
-                    html: txt,
+                    html,
                     ok: () => onSuccess(false),
                     closed: () => onSuccess(false)
                 });
@@ -188,25 +187,25 @@
                         }
                     } else if (params.action === ContentManager.DELETE) {
                         if (Array.isArray(params.externalUsers) && params.externalUsers.length > 0) {
-                            let txt = '<b>';
-                            txt += 'Object is referenced!';
-                            txt += '</b><br><b>';
-                            txt += 'Sure to proceed?';
-                            txt += '</b><br><code>';
+                            let html = '<b>';
+                            html += 'Object is referenced!';
+                            html += '</b><br><b>';
+                            html += 'Sure to proceed?';
+                            html += '</b><br><code>';
                             for (let i = 0; i < params.externalUsers.length; i++) {
                                 if (i > 10) {
-                                    txt += '<br>...';
+                                    html += '<br>...';
                                     break;
                                 }
-                                txt += '<br>';
-                                txt += params.externalUsers[i];
+                                html += '<br>';
+                                html += params.externalUsers[i];
                             }
-                            txt += '</code>';
+                            html += '</code>';
                             hmi.showDefaultConfirmationDialog({
                                 width: $(window).width() * 0.8,
                                 height: $(window).height() * 0.8,
                                 title: 'Warning',
-                                html: txt,
+                                html,
                                 yes: () => cms.SetObject(id, language, value, params.checksum, () => onSuccess(params), onError),
                                 cancel: () => onSuccess(false),
                                 closed: () => onSuccess(false)
@@ -214,6 +213,15 @@
                         } else {
                             cms.SetObject(id, language, value, params.checksum, () => onSuccess(params), onError);
                         }
+                    } else if (params.action === ContentManager.NONE) {
+                        hmi.showDefaultConfirmationDialog({
+                            width: $(window).width() * 0.8,
+                            height: $(window).height() * 0.8,
+                            title: 'Info',
+                            html: '<b>Object has not changed!</b>',
+                            ok: () => onSuccess(params),
+                            closed: () => onSuccess(params)
+                        });
                     } else if (!equal_id) {
                         // if the id has changed
                         cms.Exists(id, exists => {
@@ -2511,7 +2519,7 @@
             });
         };
         let edited = false, editListenerEnabled = true, pending_commit = false, pending_reset = false;
-        function update() {
+        function updateEditorButtons() {
             const isJsonFX = sel_data.type === ContentManager.DataTableType.JsonFX;
             tasksButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset);
             if (isJsonFX) {
@@ -2544,16 +2552,12 @@
             commitButton.hmi_setEnabled(edited && !pending_commit && !pending_reset && edit_data.extension === sel_data.extension);
             resetButton.hmi_setEnabled(edited && !pending_commit && !pending_reset);
             if (edited && !pending_commit && !pending_reset) {
-                let info = 'edited: "';
-                info += edit_data.id;
-                info += '"';
+                let info = `edited: '${edit_data.id}'`;
                 if (edit_data.extension === sel_data.extension) {
                     if (edit_data.id === sel_data.id) {
                         info += ' commit enabled';
                     } else {
-                        info += ' commit as: "';
-                        info += sel_data.id;
-                        info += '"';
+                        info += ` commit as: '${sel_data.id}'`;
                     }
                 } else {
                     info += ' commit disabled - invalid object id';
@@ -2563,7 +2567,7 @@
         };
         function performCommit(value) {
             pending_commit = true;
-            update();
+            updateEditorButtons();
             const data = adapter.getIdData();
             const lang = sel_data.type === ContentManager.DataTableType.Label ? undefined : edit_lang;
             performModification(hmi, edit_cs, edit_data.file, data.file, lang, value, params => {
@@ -2573,19 +2577,19 @@
                     edit_data = false;
                     edit_cs = false;
                     edit_lang = false;
-                    update();
+                    updateEditorButtons();
                     adapter.updateInfo('performed commit');
                     adapter.updateScrollParams(params);
                     adapter.stateChanged(false, data);
                 } else {
-                    update();
+                    updateEditorButtons();
                 }
             }, error => {
                 pending_commit = false;
                 edit_data = false;
                 edit_cs = false;
                 edit_lang = false;
-                update();
+                updateEditorButtons();
                 adapter.notifyError(error);
             });
         };
@@ -2596,7 +2600,7 @@
                 edit_data = sel_data;
                 edit_cs = sel_cs;
                 edit_lang = sel_lang;
-                update();
+                updateEditorButtons();
                 adapter.stateChanged(true);
             }
         };
@@ -2639,10 +2643,10 @@
                         cms.IsHMIObject(sel_data.id, response => {
                             if (response !== true) {
                                 cms.AddDefaultHMIObject(sel_data.id, resp => {
-                                    update();
+                                    updateEditorButtons();
                                     adapter.reload();
                                 }, error => {
-                                    update();
+                                    updateEditorButtons();
                                     adapter.notifyError(error);
                                 });
                             }
@@ -2670,10 +2674,10 @@
                         cms.IsTaskObject(sel_data.id, response => {
                             if (response !== true) {
                                 cms.AddDefaultTaskObject(sel_data.id, resp => {
-                                    update();
+                                    updateEditorButtons();
                                     adapter.reload();
                                 }, error => {
-                                    update();
+                                    updateEditorButtons();
                                     adapter.notifyError(error);
                                 });
                             }
@@ -2707,7 +2711,7 @@
             border: true,
             clicked: () => {
                 edited = false;
-                update();
+                updateEditorButtons();
                 adapter.stateChanged(false, sel_data);
                 adapter.updateInfo('performed reset');
             }
@@ -2729,7 +2733,7 @@
                 if (!edited) {
                     reload();
                 }
-                update();
+                updateEditorButtons();
             },
             editor: editContainer,
             scrolls_htm: htmlEditor.scrolls,
