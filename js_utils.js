@@ -10,7 +10,6 @@
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectPositionSystem.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Regex.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Sorting.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/TaskManager.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Utilities.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Core.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Common.js');
@@ -20,6 +19,7 @@
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/TargetSystem.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
+        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/TaskManager.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/ext/md5.js'); // external
     }
@@ -34,7 +34,6 @@
         Server: require('./src/Server.js'),
         Sorting: require('./src/Sorting.js'),
         SqlHelper: require('./src/SqlHelper.js'),
-        TaskManager: require('./src/TaskManager.js'),
         Utilities: require('./src/Utilities.js'),
         Core: require('./src/Core.js'),
         WebServer: require('./src/WebServer.js'),
@@ -45,6 +44,7 @@
         TargetSystem: require('./src/TargetSystem.js'),
         WebSocketConnection: require('./src/WebSocketConnection.js'),
         ContentEditor: require('./src/ContentEditor.js'),
+        TaskManager: require('./src/TaskManager.js'),
         DataConnector: require('./src/DataConnector.js'),
         md5: require('./ext/md5.js'), // external
         addStaticWebServerJsUtilsFiles

@@ -2561,7 +2561,7 @@
             visible: false,
             click: onClose => {
                 if (selectedDataIndex !== -1) {
-                    adapter.selectInNavigator(cms.AnalyzeId(hmiObjects[selectedDataIndex].id));
+                    adapter.selectInNavigator(cms.AnalyzeId(taskObjects[selectedDataIndex].id));
                 }
                 onClose();
             }
@@ -2571,7 +2571,7 @@
             visible: false,
             click: onClose => {
                 if (selectedDataIndex !== -1) {
-                    adapter.selectInNavigator(cms.AnalyzeId(hmiObjects[selectedDataIndex].taskObject));
+                    adapter.selectInNavigator(cms.AnalyzeId(taskObjects[selectedDataIndex].taskObject));
                 }
                 onClose();
             }
