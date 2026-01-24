@@ -18,8 +18,9 @@
     // DIVERSE
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    function getCheckbox(onChanged) {
+    function getCheckbox() {
         let checked = false;
+        let onChanged = null;
         function setValue(value) {
             checked = value === true;
             check.hmi_setVisible(checked);
@@ -34,7 +35,7 @@
             visible: false,
             points: [{ x: 0.2, y: 0.6 }, { x: 0.5, y: 0.2 }, { x: 0.8, y: 0.8 }]
         };
-        const box = {
+        return {
             type: "graph",
             strokeStyle: "black",
             lineWidth: 0.1,
@@ -50,12 +51,14 @@
             },
             children: [check],
             setValue,
-            getValue: () => checked
+            getValue: () => checked,
+            pressed: () => {
+                if (onChanged) {
+                    setValue(!checked);
+                }
+            },
+            setOnChanged: callback => onChanged = typeof callback === 'function' ? callback : null
         };
-        if (typeof onChanged === 'function') {
-            box.pressed = () => setValue(!checked);
-        }
-        return box;
     }
 
     function handleScrolls(scrolls, id, textarea, restore) {
@@ -1728,23 +1731,27 @@
                         viewObjectValue.hmi_value(data.viewObjectColumn);
                         queryParameterValue.hmi_value(data.queryParameterColumn);
                         checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_ENABLE) !== 0);
+                        checkbox.setOnChanged(editable === true ? onEdited : null);
                         watchEditActions = true;
                     } else {
                         viewObjectValue.hmi_value('');
                         queryParameterValue.hmi_value('');
                         checkbox.setValue(false);
+                        checkbox.setOnChanged(null);
                     }
                     onSuccess();
                 }, error => {
                     viewObjectValue.hmi_value('');
                     queryParameterValue.hmi_value('');
                     checkbox.setValue(false);
+                    checkbox.setOnChanged(null);
                     onError(error);
                 });
             } else {
                 viewObjectValue.hmi_value('');
                 queryParameterValue.hmi_value('');
                 checkbox.setValue(false);
+                checkbox.setOnChanged(null);
                 onSuccess();
             }
         };
@@ -1812,7 +1819,7 @@
             border: false,
             classes: 'hmi-dark'
         };
-        const checkbox = getCheckbox(editable === true ? onEdited : undefined);
+        const checkbox = getCheckbox();
         const enableValue = {
             x: 1,
             y: 2,
@@ -1861,23 +1868,27 @@
                     if (data !== undefined) {
                         taskObjectValue.hmi_value(data.taskObjectColumn);
                         checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_AUTORUN) !== 0);
+                        checkbox.setOnChanged(editable === true ? onEdited : null);
                         cycleMillisValue.hmi_value(data.cycleIntervalMillisColumn.toString());
                         watchEditActions = true;
                     } else {
                         taskObjectValue.hmi_value('');
                         checkbox.setValue(false);
+                        checkbox.setOnChanged(null);
                         cycleMillisValue.hmi_value('');
                     }
                     onSuccess();
                 }, error => {
                     taskObjectValue.hmi_value('');
                     checkbox.setValue(false);
+                    checkbox.setOnChanged(null);
                     cycleMillisValue.hmi_value('');
                     onError(error);
                 });
             } else {
                 taskObjectValue.hmi_value('');
                 checkbox.setValue(false);
+                checkbox.setOnChanged(null);
                 cycleMillisValue.hmi_value('');
                 onSuccess();
             }
@@ -1918,7 +1929,10 @@
             border: false,
             classes: 'hmi-dark'
         };
-        const checkbox = getCheckbox(editable === true ? onEdited : undefined);
+        const checkbox = getCheckbox();
+        if (editable === true) {
+            checkbox.setOnChanged(onEdited);
+        }
         const autorunValue = {
             x: 1,
             y: 1,
@@ -2194,103 +2208,175 @@
 
     function showHmisConfigurationDialog(hmi, adapter) {
         const cms = hmi.cms;
-        cms.GetHMIObjects(hmiObjects => {
-            // console.log(JSON.stringify(hmiObjects)); // TODO: remove
-            let selectedHmi = null;
-            const table = {
-                y: 0,
-                type: 'table',
-                searching: true,
-                paging: false,
-                highlightSelectedRow: true,
-                columns: [{
-                    width: 100,
-                    text: 'HMI object',
-                    textsAndNumbers: true
-                }, {
-                    width: 100,
-                    text: 'JsonFX object',
-                    textsAndNumbers: true
-                }, {
-                    width: 100,
-                    text: 'Query parameter',
-                    textsAndNumbers: true
-                }, {
-                    width: 10,
-                    text: 'Enabled'
-                }],
-                getRowCount: () => hmiObjects.length,
-                getCellHtml: (rowIndex, columnIndex) => {
-                    const row = hmiObjects[rowIndex];
-                    switch (columnIndex) {
-                        case HmiObjectsTableColumn.Id:
-                            return row.id;
-                        case HmiObjectsTableColumn.ViewObject:
-                            return row.viewObject;
-                        case HmiObjectsTableColumn.QueryParameter:
-                            return row.queryParameter;
-                        case HmiObjectsTableColumn.Enable:
-                            return (row.flags & ContentManager.HMI_FLAG_ENABLE) !== 0 ? 'enabled' : 'disabled';
-                        default:
-                            return '';
-                    }
-                },
-                prepare: (that, onSuccess, onError) => {
+        let hmiObjects = null;
+        let selectedData = null;
+        function reload() {
+            cms.GetHMIObjects(result => {
+                // console.log(JSON.stringify(result)); // TODO: remove
+                hmiObjects = result;
+                const tasks = [];
+                for (let hmiObj of hmiObjects) {
+                    (function () {
+                        const obj = hmiObj;
+                        tasks.push((onSuccess, onError) => {
+                            cms.GetChecksum(obj.file, checksum => {
+                                obj.checksum = checksum;
+                                onSuccess();
+                            }, onError)
+                        });
+                    }());
+                }
+                Executor.run(tasks, () => {
                     try {
-                        that.hmi_reload();
-                        onSuccess();
+                        table.hmi_reload();
                     } catch (error) {
                         adapter.notifyError(`Error preparing hmi objects table: ${error}`);
-                        console.error(`Error preparing hmi objects table: ${error}`);
-                        onError(error);
                     }
-                },
-                handleTableRowClicked: rowIndex => {
-                    selectedHmi = hmiObjects[rowIndex];
-                    detailsEditor.onKeyChanged(selectedHmi, undefined, () => { }, error => adapter.notifyError(`Error setting content for ${selectedHmi.path}: ${error}`));
-                    browseHmiObjectButton.hmi_setVisible(selectedHmi !== null);
-                    browseJsonFXObjectButton.hmi_setVisible(selectedHmi !== null);
+                }, error => adapter.notifyError(`Error loading hmi objects: ${error}`));
+            }, error => adapter.notifyError(`Error loading hmi objects: ${error}`));
+        }
+        const table = {
+            y: 0,
+            type: 'table',
+            searching: true,
+            paging: false,
+            highlightSelectedRow: true,
+            columns: [{
+                width: 100,
+                text: 'HMI object',
+                textsAndNumbers: true
+            }, {
+                width: 100,
+                text: 'JsonFX object',
+                textsAndNumbers: true
+            }, {
+                width: 100,
+                text: 'query parameter',
+                textsAndNumbers: true
+            }, {
+                width: 10,
+                text: 'enabled'
+            }],
+            getRowCount: () => hmiObjects ? hmiObjects.length : 0,
+            getCellHtml: (rowIndex, columnIndex) => {
+                const row = hmiObjects[rowIndex];
+                switch (columnIndex) {
+                    case HmiObjectsTableColumn.Id:
+                        return row.id;
+                    case HmiObjectsTableColumn.ViewObject:
+                        return row.viewObject;
+                    case HmiObjectsTableColumn.QueryParameter:
+                        return row.queryParameter;
+                    case HmiObjectsTableColumn.Enable:
+                        return (row.flags & ContentManager.HMI_FLAG_ENABLE) !== 0 ? 'enabled' : 'disabled';
+                    default:
+                        return '';
                 }
-            };
-            const detailsAapter = { edited: () => console.log('edited') }; // TODO: Go on here
-            const detailsEditor = getHmiView(hmi, detailsAapter, true);
-            detailsEditor.y = 1;
-            const browseHmiObjectButton = {
-                text: 'Browse HMI object',
-                visible: false,
-                click: onClose => {
-                    if (selectedHmi) {
-                        adapter.selectInNavigator(cms.AnalyzeId(selectedHmi.id));
-                    }
-                    onClose();
+            },
+            handleTableRowClicked: rowIndex => {
+                if (!selectedDataEdited) {
+                    selectedData = hmiObjects[rowIndex];
+                    detailsEditor.onKeyChanged(selectedData, undefined, () => { }, error => adapter.notifyError(`Error setting content for ${selectedData.path}: ${error}`));
+                    browseHmiObjectButton.hmi_setVisible(selectedData !== null);
+                    browseJsonFXObjectButton.hmi_setVisible(selectedData !== null);
                 }
-            };
-            const browseJsonFXObjectButton = {
-                text: 'Browse JsonFX object',
-                visible: false,
-                click: onClose => {
-                    if (selectedHmi) {
-                        adapter.selectInNavigator(cms.AnalyzeId(selectedHmi.viewObject));
-                    }
-                    onClose();
+            }
+        };
+        let selectedDataEdited = false;
+        const detailsAdapter = {
+            edited: () => {
+                if (!selectedDataEdited) {
+                    selectedDataEdited = true;
+                    commitButton.hmi_setVisible(true);
+                    resetButton.hmi_setVisible(true);
+                    browseHmiObjectButton.hmi_setVisible(false);
+                    browseJsonFXObjectButton.hmi_setVisible(false);
                 }
-            };
-            const dialogObject = {
-                title: 'HMI object configuration',
-                width: Math.floor($(window).width() * 0.9),
-                height: Math.floor($(window).height() * 0.95),
-                object: {
-                    type: 'grid',
-                    rows: [1, '200px'],
-                    children: [table, detailsEditor]
-                },
-                buttons: [browseHmiObjectButton, browseJsonFXObjectButton, {
-                    text: 'OK',
-                    click: onClose => onClose()
-                }]
-            };
-            hmi.showDialog(dialogObject);
-        }, error => console.error(`Error loading hmi objects: ${error}`));
+            }
+        };
+        const detailsEditor = getHmiView(hmi, detailsAdapter, true);
+        detailsEditor.y = 1;
+        const commitButton = {
+            text: 'commit',
+            visible: false,
+            click: onClose => {
+                // TODO: Go on here ...
+                performModification(hmi, selectedData.checksum, selectedData.file, selectedData.file, undefined, detailsEditor.getValue(), params => {
+                    /* pending_commit = false;
+                    if (params) {
+                        edited = false;
+                        edit_data = false;
+                        edit_cs = false;
+                        edit_lang = false;
+                        update();
+                        adapter.updateInfo('performed commit');
+                        adapter.updateScrollParams(params);
+                        adapter.stateChanged(false, data);
+                    } else {
+                        update();
+                    }*/
+                    console.log(`performModification -> params: ${JSON.stringify(params)}`);
+                    reload();
+                }, error => {
+                    /* pending_commit = false;
+                    edit_data = false;
+                    edit_cs = false;
+                    edit_lang = false;
+                    update();*/
+                    adapter.notifyError(error);
+                    reload();
+                });
+            }
+        }
+        const resetButton = {
+            text: 'reset',
+            visible: false,
+            click: onClose => {
+                // TODO: Make this running
+                selectedDataEdited = false;
+                commitButton.hmi_setVisible(false);
+                resetButton.hmi_setVisible(false);
+                browseHmiObjectButton.hmi_setVisible(selectedData !== null);
+                browseJsonFXObjectButton.hmi_setVisible(selectedData !== null);
+                reload();
+            }
+        }
+        const browseHmiObjectButton = {
+            text: 'browse HMI object',
+            visible: false,
+            click: onClose => {
+                if (selectedData) {
+                    adapter.selectInNavigator(cms.AnalyzeId(selectedData.id));
+                }
+                onClose();
+            }
+        };
+        const browseJsonFXObjectButton = {
+            text: 'browse JsonFX object',
+            visible: false,
+            click: onClose => {
+                if (selectedData) {
+                    adapter.selectInNavigator(cms.AnalyzeId(selectedData.viewObject));
+                }
+                onClose();
+            }
+        };
+        const dialogObject = {
+            title: 'HMI object configuration',
+            width: Math.floor($(window).width() * 0.9),
+            height: Math.floor($(window).height() * 0.95),
+            object: {
+                type: 'grid',
+                rows: [1, '200px'],
+                children: [table, detailsEditor]
+            },
+            buttons: [commitButton, resetButton, browseHmiObjectButton, browseJsonFXObjectButton, {
+                text: 'close',
+                click: onClose => onClose()
+            }]
+        };
+        hmi.showDialog(dialogObject);
+        reload();
     }
 
     const TaskObjectsTableColumn = Object.freeze({
@@ -2302,103 +2388,103 @@
 
     function showTasksConfigurationDialog(hmi, adapter) {
         const cms = hmi.cms;
-        hmi.cms.GetTaskObjects(taskObjects => {
-            console.log(JSON.stringify(taskObjects)); // TODO: remove
-            let selectedTask = null;
-            const table = {
-                y: 0,
-                type: 'table',
-                searching: true,
-                paging: false,
-                highlightSelectedRow: true,
-                columns: [{
-                    width: 100,
-                    text: 'Task object',
-                    textsAndNumbers: true
-                }, {
-                    width: 100,
-                    text: 'JsonFX object',
-                    textsAndNumbers: true
-                }, {
-                    width: 50,
-                    text: 'Cycle millis',
-                    textsAndNumbers: true
-                }, {
-                    width: 10,
-                    text: 'Autorun'
-                }],
-                getRowCount: () => taskObjects.length,
-                getCellHtml: (rowIndex, columnIndex) => {
-                    const row = taskObjects[rowIndex];
-                    switch (columnIndex) {
-                        case TaskObjectsTableColumn.Id:
-                            return row.id;
-                        case TaskObjectsTableColumn.TaskObject:
-                            return row.taskObject;
-                        case TaskObjectsTableColumn.CycleMillis:
-                            return row.cycleMillis;
-                        case TaskObjectsTableColumn.Autorun:
-                            return (row.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? 'enabled' : 'disabled';
-                        default:
-                            return '';
-                    }
-                },
-                prepare: (that, onSuccess, onError) => {
-                    try {
-                        that.hmi_reload();
-                        onSuccess();
-                    } catch (error) {
-                        adapter.notifyError(`Error preparing task objects table: ${error}`);
-                        console.error(`Error preparing task objects table: ${error}`);
-                        onError(error);
-                    }
-                },
-                handleTableRowClicked: rowIndex => {
-                    selectedTask = taskObjects[rowIndex];
-                    detailsEditor.onKeyChanged(selectedTask, undefined, () => { }, error => adapter.notifyError(`Error setting content for ${selectedTask.path}: ${error}`));
-                    browseTaskObjectButton.hmi_setVisible(selectedTask !== null);
-                    browseJsonFXObjectButton.hmi_setVisible(selectedTask !== null);
+        let taskObjects = null;
+        let selectedData = null;
+        function reload() {
+            hmi.cms.GetTaskObjects(result => {
+                console.log(JSON.stringify(result)); // TODO: remove
+                taskObjects = result;
+                try {
+                    table.hmi_reload();
+                } catch (error) {
+                    adapter.notifyError(`Error preparing task objects table: ${error}`);
                 }
-            };
-            const detailsAapter = { edited: () => console.log('edited') }; // TODO: Go on here
-            const detailsEditor = getTaskView(hmi, detailsAapter, true);
-            detailsEditor.y = 1;
-            const browseTaskObjectButton = {
-                text: 'Browse task object',
-                visible: false,
-                click: onClose => {
-                    if (selectedTask) {
-                        adapter.selectInNavigator(cms.AnalyzeId(selectedTask.id));
-                    }
-                    onClose();
+            }, error => adapter.notifyError(`Error loading task objects: ${error}`));
+        }
+        const table = {
+            y: 0,
+            type: 'table',
+            searching: true,
+            paging: false,
+            highlightSelectedRow: true,
+            columns: [{
+                width: 100,
+                text: 'task object',
+                textsAndNumbers: true
+            }, {
+                width: 100,
+                text: 'JsonFX object',
+                textsAndNumbers: true
+            }, {
+                width: 50,
+                text: 'cycle millis',
+                textsAndNumbers: true
+            }, {
+                width: 10,
+                text: 'autorun'
+            }],
+            getRowCount: () => taskObjects.length,
+            getCellHtml: (rowIndex, columnIndex) => {
+                const row = taskObjects[rowIndex];
+                switch (columnIndex) {
+                    case TaskObjectsTableColumn.Id:
+                        return row.id;
+                    case TaskObjectsTableColumn.TaskObject:
+                        return row.taskObject;
+                    case TaskObjectsTableColumn.CycleMillis:
+                        return row.cycleMillis;
+                    case TaskObjectsTableColumn.Autorun:
+                        return (row.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? 'enabled' : 'disabled';
+                    default:
+                        return '';
                 }
-            };
-            const browseJsonFXObjectButton = {
-                text: 'Browse JsonFX object',
-                visible: false,
-                click: onClose => {
-                    if (selectedTask) {
-                        adapter.selectInNavigator(cms.AnalyzeId(selectedTask.taskObject));
-                    }
-                    onClose();
+            },
+            handleTableRowClicked: rowIndex => {
+                selectedData = taskObjects[rowIndex];
+                detailsEditor.onKeyChanged(selectedData, undefined, () => { }, error => adapter.notifyError(`Error setting content for ${selectedData.path}: ${error}`));
+                browseTaskObjectButton.hmi_setVisible(selectedData !== null);
+                browseJsonFXObjectButton.hmi_setVisible(selectedData !== null);
+            }
+        };
+        const detailsAdapter = { edited: () => console.log('edited') }; // TODO: Go on here
+        const detailsEditor = getTaskView(hmi, detailsAdapter, true);
+        detailsEditor.y = 1;
+        const browseTaskObjectButton = {
+            text: 'browse task object',
+            visible: false,
+            click: onClose => {
+                if (selectedData) {
+                    adapter.selectInNavigator(cms.AnalyzeId(selectedData.id));
                 }
-            };
-            const dialogObject = {
-                title: 'Task object configuration',
-                width: Math.floor($(window).width() * 0.9),
-                height: Math.floor($(window).height() * 0.95),
-                object: {
-                    type: 'grid',
-                    rows: [1, '200px'],
-                    children: [table, detailsEditor]
-                },
-                buttons: [browseTaskObjectButton, browseJsonFXObjectButton, {
-                    text: 'OK',
-                    click: onClose => onClose()
-                }]
-            };
-            hmi.showDialog(dialogObject);
-        }, error => console.error(`Error loading task objects: ${error}`));
+                onClose();
+            }
+        };
+        const browseJsonFXObjectButton = {
+            text: 'browse JsonFX object',
+            visible: false,
+            click: onClose => {
+                if (selectedData) {
+                    adapter.selectInNavigator(cms.AnalyzeId(selectedData.taskObject));
+                }
+                onClose();
+            }
+        };
+        const dialogObject = {
+            title: 'Task object configuration',
+            width: Math.floor($(window).width() * 0.9),
+            height: Math.floor($(window).height() * 0.95),
+            object: {
+                type: 'grid',
+                rows: [1, '200px'],
+                children: [table, detailsEditor]
+            },
+            buttons: [browseTaskObjectButton, browseJsonFXObjectButton, {
+                text: 'close',
+                click: onClose => onClose()
+            }]
+        };
+        hmi.showDialog(dialogObject);
+        reload();
     }
 
     function getEditController(hmi, adapter) {
@@ -2475,11 +2561,11 @@
                 adapter.updateInfo(info);
             }
         };
-        function perform_commit(value) {
+        function performCommit(value) {
             pending_commit = true;
             update();
             const data = adapter.getIdData();
-            const lang = sel_data.multiedit ? undefined : edit_lang;
+            const lang = sel_data.type === ContentManager.DataTableType.Label ? undefined : edit_lang;
             performModification(hmi, edit_cs, edit_data.file, data.file, lang, value, params => {
                 pending_commit = false;
                 if (params) {
@@ -2518,7 +2604,7 @@
             edit_data = sel_data;
             edit_cs = sel_cs;
             edit_lang = sel_lang;
-            perform_commit(value);
+            performCommit(value);
         };
         const jsonFxEditor = getJsonFxEditor(hmi, adapter);
         const textEditor = getTextEditor(hmi, adapter);
@@ -2544,7 +2630,8 @@
             text: 'hmis',
             clicked: () => showHmisConfigurationDialog(hmi, { // TODO: Use adapter directly?
                 notifyError: adapter.notifyError,
-                selectInNavigator: adapter.selectInNavigator
+                selectInNavigator: adapter.selectInNavigator,
+                performCommit: adapter.performCommit
             }),
             longClicked: () => {
                 try {
@@ -2606,7 +2693,7 @@
             text: 'commit',
             clicked: () => {
                 try {
-                    perform_commit(editor.getValue());
+                    performCommit(editor.getValue());
                 } catch (exc) {
                     adapter.notifyError(exc);
                 }

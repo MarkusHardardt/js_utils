@@ -204,7 +204,6 @@
             if (table) {
                 const desc = description || {};
                 desc.type = table.type;
-                desc.multiedit = table.multiedit; // TODO: Used?
                 return desc;
             } else {
                 return false;
@@ -267,8 +266,7 @@
                         name: tableConfig.name,
                         keyColumn: tableConfig.keyColumn,
                         icon: tableConfig.icon,
-                        JsonFX: type === DataTableType.JsonFX,
-                        multiedit: type === DataTableType.Label
+                        JsonFX: type === DataTableType.JsonFX
                     };
                     switch (type) {
                         case DataTableType.JsonFX:
