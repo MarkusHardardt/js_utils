@@ -10,6 +10,7 @@
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectPositionSystem.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Regex.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Sorting.js');
+        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/TaskManager.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Utilities.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Core.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Common.js');
@@ -33,6 +34,7 @@
         Server: require('./src/Server.js'),
         Sorting: require('./src/Sorting.js'),
         SqlHelper: require('./src/SqlHelper.js'),
+        TaskManager: require('./src/TaskManager.js'),
         Utilities: require('./src/Utilities.js'),
         Core: require('./src/Core.js'),
         WebServer: require('./src/WebServer.js'),
