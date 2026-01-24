@@ -2456,25 +2456,24 @@
         this.hmi_dataTable = function () {
             return _dataTable;
         };
-        this.hmi_value = function (i_row, i_column, i_value) {
-            var cell = _dataTable.cell(i_row, i_column);
-            if (typeof i_value === 'string') {
-                cell.data(i_value).draw(false);
-            }
-            else {
+        this.hmi_value = function (row, column, value) {
+            const cell = _dataTable.cell(row, column);
+            if (typeof value === 'string') {
+                cell.data(value).draw(false);
+            } else {
                 return cell.data();
             }
         };
-        this.hmi_isRowVisible = function (i_row) {
-            let scrollBody = _scrollBody[0].getBoundingClientRect();
-            let row = _dataTable.row(i_row).node().getBoundingClientRect();
-            return row.bottom > scrollBody.top && row.top < scrollBody.bottom;
+        this.hmi_isRowVisible = function (row) {
+            const scrollBody = _scrollBody[0].getBoundingClientRect();
+            const rowRect = _dataTable.row(row).node().getBoundingClientRect();
+            return rowRect.bottom > scrollBody.top && rowRect.top < scrollBody.bottom;
         };
-        this.hmi_isCellVisible = function (i_row, i_column) {
-            let scrollBody = _scrollBody[0].getBoundingClientRect();
-            let cell = _dataTable.cell(i_row, i_column).node().getBoundingClientRect();
-            return cell.bottom > scrollBody.top && cell.top < scrollBody.bottom &&
-                cell.right > scrollBody.left && cell.left < scrollBody.right;
+        this.hmi_isCellVisible = function (row, column) {
+            const scrollBody = _scrollBody[0].getBoundingClientRect();
+            const cellRect = _dataTable.cell(row, column).node().getBoundingClientRect();
+            return cellRect.bottom > scrollBody.top && cellRect.top < scrollBody.bottom &&
+                cellRect.right > scrollBody.left && cellRect.left < scrollBody.right;
         };
         this.hmi_reload = function () {
             if (_dataTable) {
