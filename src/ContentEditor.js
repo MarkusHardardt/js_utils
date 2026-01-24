@@ -1738,28 +1738,28 @@
                     if (data !== undefined) {
                         viewObjectValue.hmi_value(data.viewObjectColumn);
                         queryParameterValue.hmi_value(data.queryParameterColumn);
-                        checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_ENABLE) !== 0);
-                        checkbox.setOnChanged(editable === true ? onEdited : null);
+                        enableCheckbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_ENABLE) !== 0);
+                        enableCheckbox.setOnChanged(editable === true ? onEdited : null);
                         watchEditActions = true;
                     } else {
                         viewObjectValue.hmi_value('');
                         queryParameterValue.hmi_value('');
-                        checkbox.setValue(false);
-                        checkbox.setOnChanged(null);
+                        enableCheckbox.setValue(false);
+                        enableCheckbox.setOnChanged(null);
                     }
                     onSuccess();
                 }, error => {
                     viewObjectValue.hmi_value('');
                     queryParameterValue.hmi_value('');
-                    checkbox.setValue(false);
-                    checkbox.setOnChanged(null);
+                    enableCheckbox.setValue(false);
+                    enableCheckbox.setOnChanged(null);
                     onError(error);
                 });
             } else {
                 viewObjectValue.hmi_value('');
                 queryParameterValue.hmi_value('');
-                checkbox.setValue(false);
-                checkbox.setOnChanged(null);
+                enableCheckbox.setValue(false);
+                enableCheckbox.setOnChanged(null);
                 onSuccess();
             }
         };
@@ -1827,14 +1827,14 @@
             border: false,
             classes: 'hmi-dark'
         };
-        const checkbox = getCheckbox();
+        const enableCheckbox = getCheckbox();
         const enableValue = {
             x: 1,
             y: 2,
             type: 'grid',
             columns: ['40px', 1],
             children: [{
-                object: checkbox
+                object: enableCheckbox
             }]
         };
         return {
@@ -1845,7 +1845,7 @@
             onKeyChanged,
             getValue: () => {
                 let flags = 0;
-                if (checkbox.getValue()) {
+                if (enableCheckbox.getValue()) {
                     flags |= ContentManager.HMI_FLAG_ENABLE;
                 }
                 return {
@@ -1875,29 +1875,29 @@
                 cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
                         taskObjectValue.hmi_value(data.taskObjectColumn);
-                        checkbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_AUTORUN) !== 0);
-                        checkbox.setOnChanged(editable === true ? onEdited : null);
-                        cycleMillisValue.hmi_value(data.cycleIntervalMillisColumn.toString());
+                        autorunCheckbox.setValue((data.flagsColumn & ContentManager.TASK_FLAG_AUTORUN) !== 0);
+                        autorunCheckbox.setOnChanged(editable === true ? onEdited : null);
+                        cycleIntervalMillisValue.hmi_value(data.cycleIntervalMillisColumn.toString());
                         watchEditActions = true;
                     } else {
                         taskObjectValue.hmi_value('');
-                        checkbox.setValue(false);
-                        checkbox.setOnChanged(null);
-                        cycleMillisValue.hmi_value('');
+                        autorunCheckbox.setValue(false);
+                        autorunCheckbox.setOnChanged(null);
+                        cycleIntervalMillisValue.hmi_value('');
                     }
                     onSuccess();
                 }, error => {
                     taskObjectValue.hmi_value('');
-                    checkbox.setValue(false);
-                    checkbox.setOnChanged(null);
-                    cycleMillisValue.hmi_value('');
+                    autorunCheckbox.setValue(false);
+                    autorunCheckbox.setOnChanged(null);
+                    cycleIntervalMillisValue.hmi_value('');
                     onError(error);
                 });
             } else {
                 taskObjectValue.hmi_value('');
-                checkbox.setValue(false);
-                checkbox.setOnChanged(null);
-                cycleMillisValue.hmi_value('');
+                autorunCheckbox.setValue(false);
+                autorunCheckbox.setOnChanged(null);
+                cycleIntervalMillisValue.hmi_value('');
                 onSuccess();
             }
         };
@@ -1937,9 +1937,9 @@
             border: false,
             classes: 'hmi-dark'
         };
-        const checkbox = getCheckbox();
+        const autorunCheckbox = getCheckbox();
         if (editable === true) {
-            checkbox.setOnChanged(onEdited);
+            autorunCheckbox.setOnChanged(onEdited);
         }
         const autorunValue = {
             x: 1,
@@ -1947,7 +1947,7 @@
             type: 'grid',
             columns: ['40px', 1],
             children: [{
-                object: checkbox
+                object: autorunCheckbox
             }]
         };
         const cycleMillisLabel = {
@@ -1958,7 +1958,7 @@
             border: false,
             classes: 'hmi-dark'
         };
-        const cycleMillisValue = {
+        const cycleIntervalMillisValue = {
             x: 1,
             y: 2,
             type: 'textfield',
@@ -1982,17 +1982,24 @@
             type: 'grid',
             columns: ['140px', 1],
             rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
-            children: [taskObjectLabel, taskObjectValue, autorunLabel, autorunValue, cycleMillisLabel, cycleMillisValue],
+            children: [taskObjectLabel, taskObjectValue, autorunLabel, autorunValue, cycleMillisLabel, cycleIntervalMillisValue],
             onKeyChanged,
             getValue: () => {
                 let flags = 0;
-                if (checkbox.getValue()) {
-                    flags |= ContentManager.HMI_FLAG_AUTORUN;
+                if (autorunCheckbox.getValue()) {
+                    flags |= ContentManager.TASK_FLAG_AUTORUN;
+                }
+                const cycleIntervalMillisString = cycleIntervalMillisValue.hmi_value();
+                let cycleIntervalMillis = 0;
+                if (isNaN(cycleIntervalMillisString)) {
+                    adapter.notifyError(`Invalid cycle interval millis '${cycleIntervalMillisString}`)
+                } else {
+                    cycleIntervalMillis = parseInt(cycleIntervalMillisString);
                 }
                 return {
                     taskObjectColumn: taskObjectValue.hmi_value(),
                     flagsColumn: flags,
-                    cycleIntervalMillisColumn: cycleMillisValue.hmi_value()
+                    cycleIntervalMillisColumn: cycleIntervalMillis
                 };
             }
         };
@@ -2218,6 +2225,7 @@
         const cms = hmi.cms;
         let hmiObjects = null;
         let selectedDataIndex = -1;
+        let selectedDataEdited = false;
         function reload() {
             selectedDataIndex = -1;
             selectedDataEdited = false;
@@ -2298,7 +2306,6 @@
                 }
             }
         };
-        let selectedDataEdited = false;
         const detailsAdapter = {
             edited: () => {
                 if (!selectedDataEdited) {
@@ -2320,7 +2327,8 @@
                 if (values.flagsColumn !== selectedData.flags) {
                     table.hmi_value(selectedDataIndex, HmiObjectsTableColumn.Enable, ((selectedData.flags = values.flagsColumn) & ContentManager.HMI_FLAG_ENABLE) !== 0 ? 'enabled' : 'disabled');
                 }
-            }
+            },
+            notifyError: adapter.notifyError
         };
         const detailsEditor = getHmiView(hmi, detailsAdapter, true);
         detailsEditor.y = 1;
@@ -2338,10 +2346,7 @@
                                     viewObjectColumn: obj.viewObject,
                                     queryParameterColumn: obj.queryParameter,
                                     flagsColumn: obj.flags
-                                }, params => {
-                                    console.log(`performModification -> params: ${JSON.stringify(params)}`);
-                                    onSuccess();
-                                }, onError);
+                                }, params => onSuccess(), onError);
                             });
                         }());
                     }
@@ -2402,15 +2407,37 @@
         const cms = hmi.cms;
         let taskObjects = null;
         let selectedDataIndex = -1;
+        let selectedDataEdited = false;
         function reload() {
+            selectedDataIndex = -1;
+            selectedDataEdited = false;
+            detailsEditor.onKeyChanged(null, undefined, () => { }, error => adapter.notifyError(`Error resetting content: ${error}`));
+            commitButton.hmi_setVisible(false);
+            resetButton.hmi_setVisible(false);
+            browseTaskObjectButton.hmi_setVisible(false);
+            browseJsonFXObjectButton.hmi_setVisible(false);
             hmi.cms.GetTaskObjects(result => {
-                console.log(JSON.stringify(result)); // TODO: remove
                 taskObjects = result;
-                try {
-                    table.hmi_reload();
-                } catch (error) {
-                    adapter.notifyError(`Error preparing task objects table: ${error}`);
+                const tasks = [];
+                for (let taskObj of taskObjects) {
+                    (function () {
+                        const obj = taskObj;
+                        obj.edited = false;
+                        tasks.push((onSuccess, onError) => {
+                            cms.GetChecksum(obj.file, checksum => {
+                                obj.checksum = checksum;
+                                onSuccess();
+                            }, onError)
+                        });
+                    }());
                 }
+                Executor.run(tasks, () => {
+                    try {
+                        table.hmi_reload();
+                    } catch (error) {
+                        adapter.notifyError(`Error preparing task objects table: ${error}`);
+                    }
+                }, error => adapter.notifyError(`Error loading task objects: ${error}`));
             }, error => adapter.notifyError(`Error loading task objects: ${error}`));
         }
         const table = {
@@ -2435,7 +2462,7 @@
                 width: 10,
                 text: 'autorun'
             }],
-            getRowCount: () => taskObjects.length,
+            getRowCount: () => taskObjects ? taskObjects.length : 0,
             getCellHtml: (rowIndex, columnIndex) => {
                 const row = taskObjects[rowIndex];
                 switch (columnIndex) {
@@ -2461,9 +2488,58 @@
                 }
             }
         };
-        const detailsAdapter = { edited: () => console.log('edited') }; // TODO: Go on here
+        const detailsAdapter = {
+            edited: () => {
+                if (!selectedDataEdited) {
+                    selectedDataEdited = true;
+                    commitButton.hmi_setVisible(true);
+                    resetButton.hmi_setVisible(true);
+                    browseTaskObjectButton.hmi_setVisible(false);
+                    browseJsonFXObjectButton.hmi_setVisible(false);
+                }
+                const values = detailsEditor.getValue();
+                const selectedData = taskObjects[selectedDataIndex];
+                selectedData.edited = true;
+                if (values.taskObjectColumn !== selectedData.taskObject) {
+                    table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.TaskObject, selectedData.taskObject = values.taskObjectColumn);
+                }
+                if (values.cycleIntervalMillisColumn !== selectedData.cycleMillis) {
+                    table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.CycleMillis, selectedData.cycleMillis = values.cycleIntervalMillisColumn);
+                }
+                if (values.flagsColumn !== selectedData.flags) {
+                    table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.Autorun, ((selectedData.flags = values.flagsColumn) & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? 'enabled' : 'disabled');
+                }
+            },
+            notifyError: adapter.notifyError
+        };
         const detailsEditor = getTaskView(hmi, detailsAdapter, true);
         detailsEditor.y = 1;
+        const commitButton = {
+            text: 'commit',
+            visible: false,
+            click: onClose => {
+                const tasks = [];
+                for (let taskObj of taskObjects) {
+                    if (taskObj.edited) {
+                        (function () {
+                            const obj = taskObj;
+                            tasks.push((onSuccess, onError) => {
+                                performModification(hmi, obj.checksum, obj.file, obj.file, undefined, {
+                                    taskObjectColumn: obj.taskObject,
+                                    cycleIntervalMillisColumn: obj.cycleMillis,
+                                    flagsColumn: obj.flags
+                                }, params => onSuccess(), onError);
+                            });
+                        }());
+                    }
+                }
+                Executor.run(tasks, () => reload(), error => {
+                    adapter.notifyError(`Error loading hmi objects: ${error}`);
+                    reload();
+                });
+            }
+        }
+        const resetButton = { text: 'reset', visible: false, click: onClose => reload() }
         const browseTaskObjectButton = {
             text: 'browse task object',
             visible: false,
@@ -2493,7 +2569,7 @@
                 rows: [1, '200px'],
                 children: [table, detailsEditor]
             },
-            buttons: [browseTaskObjectButton, browseJsonFXObjectButton, {
+            buttons: [commitButton, resetButton, browseTaskObjectButton, browseJsonFXObjectButton, {
                 text: 'close',
                 click: onClose => onClose()
             }]
