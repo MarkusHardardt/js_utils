@@ -145,6 +145,35 @@
     }
 
     if (!isNodeJS) {
+        class ClientManager {
+            constructor(hmi) {
+                this._hmi = hmi;
+                this._taskObjects = {};
+            }
+            Initialize(onSuccess, onError) {
+                const hmi = this._hmi;
+                hmi.cms.GetTaskObjects(response => {
+                    const tasks = [];
+                    const languages = hmi.cms.GetLanguages();
+                    for (let entry of response) {
+                        this._taskObjects[entry.path] = entry;
+                        (function () {
+                            const taskObject = entry;
+                            tasks.push((onSuc, onErr) => {
+                                hmi.cms.GetObject(taskObject.taskObject, languages[0], ContentManager.PARSE, task => {
+                                    taskObject._task = task;
+                                    onSuc();
+                                }, onErr);
+                            });
+                        }());
+                    }
+                    Executor.run(tasks, onSuccess, onError);
+                }, onError);
+            }
+        }
+
+        TaskManager.getInstance = hmi => new ClientManager(hmi);
+
         function startTask(path, onSuccess, onError) {
             Client.fetchJsonFX(HANDLE_TASK_MANAGER_REQUEST, { action: Actions.Start, path }, response => onSuccess(response), error => onError(error));
         }
