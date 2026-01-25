@@ -73,6 +73,26 @@
         Client.fetchAsync = fetchAsync;
         Client.fetch = (url, request, onResponse, onError) => { (async () => await fetchAsync(url, request, onResponse, onError))(); }
 
+        function fetchJsonFX(url, request, onResponse, onError) {
+            Client.fetch(url, JsonFX.stringify(request, false), response => {
+                if (response.length > 0) {
+                    try {
+                        const resp = JsonFX.parse(response, false, false);
+                        if (resp.error !== undefined) {
+                            onError(resp.error);
+                        } else {
+                            onResponse(resp.result);
+                        }
+                    } catch (error) {
+                        onError(error);
+                    }
+                } else {
+                    onResponse();
+                }
+            }, onError);
+        }
+        Client.fetchJsonFX = fetchJsonFX;
+        
         /*  fetch text by 'POST'  */
         async function fetchGetAsync(url, requestData, onResponse, onError, useMethodGet) {
             let getUrl;

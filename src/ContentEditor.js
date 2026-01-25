@@ -3,7 +3,6 @@
     const ContentEditor = {};
     const isNodeJS = typeof require === 'function';
     const JsonFX = isNodeJS ? require('./JsonFX.js') : root.JsonFX;
-    const Client = isNodeJS ? require('./Client.js') : root.Client;
     const ContentManager = isNodeJS ? require('./ContentManager.js') : root.ContentManager;
     const TaskManager = isNodeJS ? require('./TaskManager.js') : root.TaskManager;
 
@@ -2571,7 +2570,7 @@
             click: onClose => {
                 if (selectedDataIndex !== -1) {
                     const taskObject = taskObjects[selectedDataIndex];
-                    TaskManager.startTask(taskObject.path, response => console.log(response), error => adapter.notifyError(error));
+                    TaskManager.startTask(taskObject.path, response => adapter.updateInfo(response), error => adapter.notifyError(error));
                 }
             }
         };
@@ -2581,7 +2580,7 @@
             click: onClose => {
                 if (selectedDataIndex !== -1) {
                     const taskObject = taskObjects[selectedDataIndex];
-                    TaskManager.stopTask(taskObject.path, response => console.log(response), error => adapter.notifyError(error));
+                    TaskManager.stopTask(taskObject.path, response => adapter.updateInfo(response), error => adapter.notifyError(error));
                 }
             }
         };

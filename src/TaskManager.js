@@ -145,32 +145,12 @@
     }
 
     if (!isNodeJS) {
-        function fetch(request, onResponse, onError) {
-            Client.fetch(HANDLE_TASK_MANAGER_REQUEST, JsonFX.stringify(request, false), response => {
-                if (response.length > 0) {
-                    try {
-                        const resp = JsonFX.parse(response, false, false);
-                        if (resp.error !== undefined) {
-                            onError(resp.error);
-                        } else {
-                            onResponse(resp.result);
-                        }
-                    } catch (error) {
-                        onError(error);
-                    }
-                } else {
-                    onResponse();
-                }
-            }, onError);
-        }
-
-
         function startTask(path, onSuccess, onError) {
-            fetch({ action: Actions.Start, path }, response => onSuccess(response), error => onError(error));
+            Client.fetchJsonFX(HANDLE_TASK_MANAGER_REQUEST, { action: Actions.Start, path }, response => onSuccess(response), error => onError(error));
         }
         TaskManager.startTask = startTask;
         function stopTask(path, onSuccess, onError) {
-            fetch({ action: Actions.Stop, path }, response => onSuccess(response), error => onError(error));
+            Client.fetchJsonFX(HANDLE_TASK_MANAGER_REQUEST, { action: Actions.Stop, path }, response => onSuccess(response), error => onError(error));
         }
         TaskManager.stopTask = stopTask;
     }

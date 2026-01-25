@@ -2415,7 +2415,7 @@
         constructor(onResponse, onError) {
             super();
             validateAsContentManager(this, true);
-            fetch({ command: COMMAND_GET_CONFIG }, config => {
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_CONFIG }, config => {
                 this._config = config;
                 this._iconDirectory = config.iconDirectory;
                 this._extensionsForType = config.extensionsForType;
@@ -2428,14 +2428,14 @@
             }, onError);
         }
         Exists(id, onResponse, onError) {
-            fetch({ command: COMMAND_EXISTS, id }, onResponse, onError);
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_EXISTS, id }, onResponse, onError);
         }
         GetChecksum(id, onResponse, onError) {
-            fetch({ command: COMMAND_GET_CHECKSUM, id }, onResponse, onError);
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_CHECKSUM, id }, onResponse, onError);
         }
         GetObject(id, language, mode, onResponse, onError) {
             const parse = mode === ContentManager.PARSE;
-            fetch({
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, {
                 command: COMMAND_GET_OBJECT,
                 id,
                 language,
@@ -2460,31 +2460,31 @@
             } : onResponse, onError);
         }
         GetModificationParams(id, language, value, onResponse, onError) {
-            fetch({ command: COMMAND_GET_MODIFICATION_PARAMS, id, language, value }, onResponse, onError);
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_MODIFICATION_PARAMS, id, language, value }, onResponse, onError);
         }
         SetObject(id, language, value, checksum, onResponse, onError) {
-            fetch({ command: COMMAND_SET_OBJECT, id, language, value, checksum }, onResponse, onError);
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_SET_OBJECT, id, language, value, checksum }, onResponse, onError);
         }
         GetRefactoringParams(source, target, action, onResponse, onError) {
-            fetch({ command: COMMAND_GET_REFACTORING_PARAMS, source, target, action }, onResponse, onError);
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_REFACTORING_PARAMS, source, target, action }, onResponse, onError);
         }
         PerformRefactoring(source, target, action, checksum, onResponse, onError) {
-            fetch({ command: COMMAND_PERFORM_REFACTORING, source, target, action, checksum }, onResponse, onError);
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_PERFORM_REFACTORING, source, target, action, checksum }, onResponse, onError);
         }
         GetSearchResults(key, value, onResponse, onError) {
-            fetch({ command: COMMAND_GET_SEARCH_RESULTS, key, value }, onResponse, onError);
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_SEARCH_RESULTS, key, value }, onResponse, onError);
         }
         GetIdKeyValues(id, onResponse, onError) {
-            fetch({ command: COMMAND_GET_ID_KEY_VALUES, id }, onResponse, onError);
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_ID_KEY_VALUES, id }, onResponse, onError);
         }
         IsHMIObject(id, onResponse, onError) {
-            fetch({ command: COMMAND_IS_HMI_OBJECT, id }, onResponse, onError);
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_IS_HMI_OBJECT, id }, onResponse, onError);
         }
         AddDefaultHMIObject(id, onResponse, onError) {
-            fetch({ command: COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT, id }, onResponse, onError);
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT, id }, onResponse, onError);
         }
         GetHMIObject(queryParameterValue, language, onResponse, onError) {
-            fetch({ command: COMMAND_GET_HMI_OBJECT, queryParameterValue, language }, response => {
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_HMI_OBJECT, queryParameterValue, language }, response => {
                 if (response !== undefined) {
                     try {
                         let object = JsonFX.reconstruct(response);
@@ -2505,16 +2505,16 @@
             }, onError);
         }
         GetHMIObjects(onResponse, onError) {
-            fetch({ command: COMMAND_GET_HMI_OBJECTS }, onResponse, onError);
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_HMI_OBJECTS }, onResponse, onError);
         }
         IsTaskObject(id, onResponse, onError) {
-            fetch({ command: COMMAND_IS_TASK_OBJECT, id }, onResponse, onError);
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_IS_TASK_OBJECT, id }, onResponse, onError);
         }
         AddDefaultTaskObject(id, onResponse, onError) {
-            fetch({ command: COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT, id }, onResponse, onError);
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT, id }, onResponse, onError);
         }
         GetTaskObjects(onResponse, onError) {
-            fetch({ command: COMMAND_GET_TASK_OBJECTS }, onResponse, onError);
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_TASK_OBJECTS }, onResponse, onError);
         }
     }
 
