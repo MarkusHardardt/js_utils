@@ -6,9 +6,9 @@
     const ContentManager = isNodeJS ? require('./ContentManager.js') : root.ContentManager;
     const ObjectLifecycleManager = isNodeJS ? require('./ObjectLifecycleManager.js') : root.ObjectLifecycleManager;
 
-    const HANDLE_TASK_MANAGER_REQUEST = '/handle_task_manager_request';
+    TaskManager.HANDLE_TASK_MANAGER_REQUEST = '/handle_task_manager_request';
 
-    const Actions = Object.freeze({
+    TaskManager.Actions = Object.freeze({
         Start: 'start',
         Stop: 'stop'
     });
@@ -21,7 +21,7 @@
 
         RegisterOnWebServer(webServer) {
             // we need access via ajax from clients
-            webServer.Post(HANDLE_TASK_MANAGER_REQUEST, (request, response) => this._handleRequest(
+            webServer.Post(TaskManager.HANDLE_TASK_MANAGER_REQUEST, (request, response) => this._handleRequest(
                 request.body,
                 result => response.send(JsonFX.stringify({ result }, false)),
                 error => response.send(JsonFX.stringify({ error: error.toString() }, false))
@@ -30,7 +30,7 @@
 
         _handleRequest(request, onResponse, onError) {
             switch (request.action) {
-                case Actions.Start:
+                case TaskManager.Actions.Start:
                     {
                         const taskObject = this._taskObjects[request.path];
                         if (!taskObject) {
@@ -42,7 +42,7 @@
                         }
                     }
                     break;
-                case Actions.Stop:
+                case TaskManager.Actions.Stop:
                     {
                         const taskObject = this._taskObjects[request.path];
                         if (!taskObject) {

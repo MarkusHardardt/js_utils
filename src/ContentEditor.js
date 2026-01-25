@@ -2,7 +2,10 @@
     "use strict";
     const ContentEditor = {};
     const isNodeJS = typeof require === 'function';
+    const JsonFX = isNodeJS ? require('./JsonFX.js') : root.JsonFX;
+    const Client = isNodeJS ? require('./Client.js') : root.Client;
     const ContentManager = isNodeJS ? require('./ContentManager.js') : root.ContentManager;
+    const TaskManager = isNodeJS ? require('./TaskManager.js') : root.TaskManager;
 
     const DEFAULT_ROW_HEIGHT = '24px';
     const DEFAULT_COLUMN_WIDTH = '64px';
@@ -2422,6 +2425,8 @@
             detailsEditor.onKeyChanged(null, undefined, () => { }, error => adapter.notifyError(`Error resetting content: ${error}`));
             commitButton.hmi_setVisible(false);
             resetButton.hmi_setVisible(false);
+            startTaskButton.hmi_setVisible(false);
+            stopTaskButton.hmi_setVisible(false);
             browseTaskObjectButton.hmi_setVisible(false);
             browseJsonFXObjectButton.hmi_setVisible(false);
             hmi.cms.GetTaskObjects(result => {
@@ -2491,6 +2496,8 @@
                     const selectedData = taskObjects[selectedDataIndex = rowIndex];
                     detailsEditor.onKeyChanged(selectedData, undefined, () => { }, error => adapter.notifyError(`Error setting content for ${selectedData.path}: ${error}`));
                     const browsingEnabled = !selectedDataEdited && selectedData !== null;
+                    startTaskButton.hmi_setVisible(browsingEnabled);
+                    stopTaskButton.hmi_setVisible(browsingEnabled);
                     browseTaskObjectButton.hmi_setVisible(browsingEnabled);
                     browseJsonFXObjectButton.hmi_setVisible(browsingEnabled);
                 }
@@ -2502,6 +2509,8 @@
                     selectedDataEdited = true;
                     commitButton.hmi_setVisible(true);
                     resetButton.hmi_setVisible(true);
+                    startTaskButton.hmi_setVisible(false);
+                    stopTaskButton.hmi_setVisible(false);
                     browseTaskObjectButton.hmi_setVisible(false);
                     browseJsonFXObjectButton.hmi_setVisible(false);
                 }
@@ -2556,6 +2565,32 @@
             }
         }
         const resetButton = { text: 'reset', visible: false, click: onClose => reload() }
+        const startTaskButton = {
+            text: 'start task',
+            visible: false,
+            click: onClose => {
+                if (selectedDataIndex !== -1) {
+                    const taskObject = taskObjects[selectedDataIndex];
+                    Client.fetch(TaskManager.HANDLE_TASK_MANAGER_REQUEST, JsonFX.stringify({
+                        action: TaskManager.Actions.Start,
+                        path: taskObject.path
+                    }), response => console.log(response), error => adapter.notifyError(error))
+                }
+            }
+        };
+        const stopTaskButton = {
+            text: 'stop task',
+            visible: false,
+            click: onClose => {
+                if (selectedDataIndex !== -1) {
+                    const taskObject = taskObjects[selectedDataIndex];
+                    Client.fetch(TaskManager.HANDLE_TASK_MANAGER_REQUEST, JsonFX.stringify({
+                        action: TaskManager.Actions.Stop,
+                        path: taskObject.path
+                    }), response => console.log(response), error => adapter.notifyError(error))
+                }
+            }
+        };
         const browseTaskObjectButton = {
             text: 'browse task object',
             visible: false,
@@ -2585,7 +2620,7 @@
                 rows: [1, '200px'],
                 children: [table, detailsEditor]
             },
-            buttons: [commitButton, resetButton, browseTaskObjectButton, browseJsonFXObjectButton, {
+            buttons: [commitButton, resetButton, startTaskButton, stopTaskButton, browseTaskObjectButton, browseJsonFXObjectButton, {
                 text: 'close',
                 click: onClose => onClose()
             }]

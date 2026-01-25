@@ -3,10 +3,10 @@
     const ContentManager = {};
     const isNodeJS = typeof require === 'function';
     const Client = isNodeJS ? require('./Client.js') : root.Client;
-    const Server = isNodeJS ? require('./Server.js') : root.Server;
     const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
     const JsonFX = isNodeJS ? require('./JsonFX.js') : root.JsonFX;
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
+    const Server = isNodeJS ? require('./Server.js') : root.Server;
     const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
     const SqlHelper = isNodeJS ? require('./SqlHelper.js') : root.SqlHelper;
     const Utilities = isNodeJS ? require('./Utilities.js') : root.Utilities;
