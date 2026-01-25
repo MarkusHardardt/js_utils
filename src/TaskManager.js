@@ -107,7 +107,13 @@
                     for (const path in this._taskObjects) {
                         if (this._taskObjects.hasOwnProperty(path)) {
                             const obj = this._taskObjects[path];
-                            response[path] = { taskObject: obj.taskObject, flags: obj.flags, cycleMillis: obj.cycleMillis };
+                            response[path] = {
+                                id: obj.id,
+                                file: obj.file,
+                                taskObject: obj.taskObject,
+                                flags: obj.flags,
+                                cycleMillis: obj.cycleMillis
+                            };
                         }
                     }
                     onResponse(response);
@@ -252,6 +258,24 @@
             }, error => {
                 this.onError(error);
             });
+        }
+
+        GetTaskObjects() {
+            const taskObjects = [];
+            for (const path in this._taskObjects) {
+                if (this._taskObjects.hasOwnProperty(path)) {
+                    const obj = this._taskObjects[path];
+                    taskObjects.push({
+                        path,
+                        id: obj.id,
+                        file: obj.file,
+                        taskObject: obj.taskObject,
+                        flags: obj.flags,
+                        cycleMillis: obj.cycleMillis
+                    });
+                }
+            }
+            return taskObjects;
         }
 
         StartTask(path, onResponse, onError) {

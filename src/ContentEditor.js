@@ -2427,28 +2427,26 @@
             stopTaskButton.hmi_setVisible(false);
             browseTaskObjectButton.hmi_setVisible(false);
             browseJsonFXObjectButton.hmi_setVisible(false);
-            cms.GetTaskObjects(result => {
-                taskObjects = result;
-                const tasks = [];
-                for (let taskObj of taskObjects) {
-                    (function () {
-                        const obj = taskObj;
-                        obj.edited = false;
-                        tasks.push((onSuccess, onError) => {
-                            cms.GetChecksum(obj.file, checksum => {
-                                obj.checksum = checksum;
-                                onSuccess();
-                            }, onError)
-                        });
-                    }());
+            taskObjects = hmi.env.tasks.GetTaskObjects(); // TODO: Debug this in browser
+            const tasks = [];
+            for (let taskObj of taskObjects) {
+                (function () {
+                    const obj = taskObj;
+                    obj.edited = false;
+                    tasks.push((onSuccess, onError) => {
+                        cms.GetChecksum(obj.file, checksum => {
+                            obj.checksum = checksum;
+                            onSuccess();
+                        }, onError)
+                    });
+                }());
+            }
+            Executor.run(tasks, () => {
+                try {
+                    table.hmi_reload();
+                } catch (error) {
+                    adapter.notifyError(`Error preparing task objects table: ${error}`);
                 }
-                Executor.run(tasks, () => {
-                    try {
-                        table.hmi_reload();
-                    } catch (error) {
-                        adapter.notifyError(`Error preparing task objects table: ${error}`);
-                    }
-                }, error => adapter.notifyError(`Error loading task objects: ${error}`));
             }, error => adapter.notifyError(`Error loading task objects: ${error}`));
         }
         const table = {

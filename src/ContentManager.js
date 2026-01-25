@@ -2162,7 +2162,7 @@
                 adapter.PerformSelect(taskTable.name, undefined, 'path ASC', undefined, result => {
                     adapter.Close();
                     for (let entry of result) {
-                        entry.file = entry.id = `$${entry.path}.${this._extensionsForType[taskTable.type]}`; // TODO: what about 'file' vs. 'id'?
+                        entry.file = entry.id = `$${entry.path}.${this._extensionsForType[taskTable.type]}`; // TODO: what about 'file' vs. 'id' vs. 'path'?
                     }
                     onResponse(result);
                 }, error => {
