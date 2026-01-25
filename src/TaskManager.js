@@ -28,25 +28,9 @@
                 throw new Error('The abstract base class BaseManager cannot be instantiated.')
             }
             this.hmi = hmi;
-            this.connection = null;
             this.onError = Core.defaultOnError;
             this.receiver = DEFAULT_TASK_MANAGER_RECEIVER;
             this._handler = (data, onResponse, onError) => this.handleReceived(data, onResponse, onError);
-        }
-
-        set Connection(value) {
-            if (value) {
-                if (this.connection) {
-                    this.connection.Unregister(this.receiver);
-                    this.connection = null;
-                }
-                Common.validateAsConnection(value, true);
-                this.connection = value;
-                this.connection.Register(this.receiver, this._handler);
-            } else if (this.connection) {
-                this.connection.Unregister(this.receiver);
-                this.connection = null;
-            }
         }
 
         set OnError(value) {
@@ -71,6 +55,7 @@
     class ServerManager extends BaseManager {
         constructor(hmi) {
             super(hmi);
+            this._connections = {};
             this._taskObjects = {};
         }
 
@@ -81,6 +66,22 @@
                 result => response.send(JsonFX.stringify({ result }, false)),
                 error => response.send(JsonFX.stringify({ error: error.toString() }, false))
             ));
+        }
+
+        OnOpen(connection) {
+            this._connections[connection.SessionId] = connection;
+        }
+
+        OnReopen(connection) {
+            this._connections[connection.SessionId] = connection;
+        }
+
+        OnClose(connection) {
+            delete this._connections[connection.SessionId];
+        }
+
+        OnDispose(connection) {
+            delete this._connections[connection.SessionId];
         }
 
         _handleRequest(request, onResponse, onError) {
@@ -197,7 +198,23 @@
     class ClientManager extends BaseManager {
         constructor(hmi) {
             super(hmi);
+            this._connection = null;
             this._taskObjects = {};
+        }
+
+        set Connection(value) {
+            if (value) {
+                if (this._connection) {
+                    this._connection.Unregister(this.receiver);
+                    this._connection = null;
+                }
+                Common.validateAsConnection(value, true);
+                this._connection = value;
+                this._connection.Register(this.receiver, this._handler);
+            } else if (this._connection) {
+                this._connection.Unregister(this.receiver);
+                this._connection = null;
+            }
         }
 
         OnOpen() {
@@ -205,9 +222,9 @@
         }
 
         OnClose() {
-             /*this._operational.Value = false;
-            clearTimeout(this._subscribeDelayTimer);
-            this._subscribeDelayTimer = null;*/
+            /*this._operational.Value = false;
+           clearTimeout(this._subscribeDelayTimer);
+           this._subscribeDelayTimer = null;*/
         }
 
         handleReceived(data, onResponse, onError) {
@@ -237,8 +254,8 @@
         }
 
         _loadConfiguration() {
-            Common.validateAsConnection(this.connection);
-            this.connection.Send(this.receiver, { type: TransmissionType.ConfigurationRequest }, config => {
+            Common.validateAsConnection(this._connection);
+            this._connection.Send(this.receiver, { type: TransmissionType.ConfigurationRequest }, config => {
                 this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
                 this._unsubscribeDelay = typeof config.unsubscribeDelay === 'number' && config.unsubscribeDelay > 0 ? config.unsubscribeDelay : false;
                 this._operational.UnsubscribeDelay = this._unsubscribeDelay;
