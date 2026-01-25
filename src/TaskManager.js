@@ -44,8 +44,12 @@
                 }, onError);
             }, onError);
         }
+
+        Shutdown(onSuccess, onError) {
+            
+        }
     }
-    TaskManager.Instance = Manager;
+    TaskManager.getInstance = hmi => new Manager(hmi);
 
     Object.freeze(TaskManager);
     if (isNodeJS) {
