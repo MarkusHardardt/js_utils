@@ -20,6 +20,9 @@
 
     class Connector {
         constructor() {
+            if (this.constructor === Connector) {
+                throw new Error('The abstract base class Connector cannot be instantiated.')
+            }
             this.connection = null;
             this.onError = Core.defaultOnError;
             this.receiver = DEFAULT_DATA_CONNECTION_RECEIVER;
