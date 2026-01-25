@@ -83,7 +83,7 @@
         }
         Ping(onResponse, onError) {
             if (this.IsConnected) {
-                let telegram = { type: TelegramType.PingRequest };
+                const telegram = { type: TelegramType.PingRequest };
                 this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC: Date.now(), onResponse, onError };
                 this._webSocket.send(JSON.stringify(telegram));
             } else {
@@ -99,7 +99,7 @@
         }
         _handlePingResponse(callback, remoteMediumUTC) {
             this._remoteMediumUTC = remoteMediumUTC;
-            let cb = this._callbacks[callback];
+            const cb = this._callbacks[callback];
             if (cb) {
                 delete this._callbacks[callback];
                 /*  Note:
@@ -109,8 +109,8 @@
                     remoteMediumUTC: This is the time of the other participant at the moment when answered the request.
                     remoteToLocalOffsetMillis: This is the offset between both times.
                 */
-                let localResponseUTC = Date.now();
-                let localMediumUTC = (localResponseUTC + cb.localRequestUTC) / 2;
+                const localResponseUTC = Date.now();
+                const localMediumUTC = (localResponseUTC + cb.localRequestUTC) / 2;
                 this._remoteToLocalOffsetMillis = remoteMediumUTC - localMediumUTC;
                 try {
                     if (cb.onResponse) {
@@ -124,7 +124,7 @@
             }
         }
         get RemoteUTC() {
-            let now = Date.now();
+            const now = Date.now();
             return this._remoteToLocalOffsetMillis !== 0 ? Math.ceil(now + this._remoteToLocalOffsetMillis) : now;
         }
         Register(receiver, handler) {
@@ -149,7 +149,7 @@
         }
         Send(receiver, data, onResponse, onError) {
             if (this.IsConnected) {
-                let telegram = { type: TelegramType.DataRequest, receiver, data };
+                const telegram = { type: TelegramType.DataRequest, receiver, data };
                 if (typeof onResponse === 'function' || typeof onError === 'function') {
                     this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC: Date.now(), onResponse, onError };
                 }
@@ -160,7 +160,7 @@
             }
         }
         _handleDataRequest(callback, requestData, receiver) {
-            let handler = this._handlers[receiver];
+            const handler = this._handlers[receiver];
             if (handler) {
                 if (callback !== undefined) {
                     try {
@@ -205,7 +205,7 @@
             }
         }
         _handleDataResponse(callback, data) {
-            let cb = this._callbacks[callback];
+            const cb = this._callbacks[callback];
             if (cb) {
                 delete this._callbacks[callback];
                 try {
@@ -220,7 +220,7 @@
             }
         }
         _handleError(callback, error) {
-            let cb = callback !== undefined ? this._callbacks[callback] : false;
+            const cb = callback !== undefined ? this._callbacks[callback] : false;
             if (cb) {
                 delete this._callbacks[callback];
                 if (cb.onError) {
@@ -552,7 +552,7 @@
                 });
             }
             CreateSessionConfig() {
-                let sessionId = this._createUniqueSessionId();
+                const sessionId = this._createUniqueSessionId();
                 this._instances[sessionId] = Date.now(); // By storing the current UTC we know on connect that the id came from here (see above)
                 return {
                     sessionId,
