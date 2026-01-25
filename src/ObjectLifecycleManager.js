@@ -7068,7 +7068,7 @@
         // INITIALIZE THE DOCUMENT
         // TODO use: i_success, i_error
         this._hmi_init_dom = function (i_context, i_success, i_error) {
-            var tasks = [];
+            const tasks = [];
             that._hmi_context = i_context;
             _cont = i_context.container;
             if (isTaskType(that)) {
@@ -7312,14 +7312,16 @@
                 }
             }
             that._hmi_destroys.splice(0, that._hmi_destroys.length);
-            if (_fClickedDraggable !== undefined) {
-                _cont.off('click', _fClickedDraggable);
-                _fClickedDraggable = undefined;
+            if (_cont) {
+                if (_fClickedDraggable !== undefined) {
+                    _cont.off('click', _fClickedDraggable);
+                    _fClickedDraggable = undefined;
+                }
+                if (typeof that.draggable === 'string' && i_enableEditorEvents !== true) {
+                    _cont.draggable('destroy');
+                }
+                _cont.empty();
             }
-            if (typeof that.draggable === 'string' && i_enableEditorEvents !== true) {
-                _cont.draggable('destroy');
-            }
-            _cont.empty();
             _cont = undefined;
             // prevent other calls
             delete that._hmi_destroy_dom;
