@@ -18,10 +18,10 @@
         WriteRequest: 6
     });
 
-    class Connector {
+    class BaseConnector {
         constructor() {
-            if (this.constructor === Connector) {
-                throw new Error('The abstract base class Connector cannot be instantiated.')
+            if (this.constructor === BaseConnector) {
+                throw new Error('The abstract base class BaseConnector cannot be instantiated.')
             }
             this.connection = null;
             this.onError = Core.defaultOnError;
@@ -72,7 +72,7 @@
 
     // Client
     if (!isNodeJS) {
-        class ClientDataConnector extends Connector {
+        class ClientDataConnector extends BaseConnector {
             constructor() {
                 super();
                 this._operational = new DataPoint.Node();
@@ -339,7 +339,7 @@
         const SHORT_ID_PREFIX = '#';
         const subscribeRequestShortIdRegex = /#[a-z0-9]+\b/g;
 
-        class ServerDataConnector extends Connector {
+        class ServerDataConnector extends BaseConnector {
             constructor() {
                 super();
                 this._isOpen = false;

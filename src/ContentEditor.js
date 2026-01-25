@@ -156,7 +156,7 @@
     }
 
     function performModification(hmi, startEditChecksum, startEditId, id, language, value, onSuccess, onError) {
-        let cms = hmi.cms, tasks = [], checksum = false, equal_id = startEditId === id;
+        let cms = hmi.env.cms, tasks = [], checksum = false, equal_id = startEditId === id;
         if (equal_id) {
             tasks.push((onSuc, onErr) => {
                 cms.GetChecksum(id, cs => {
@@ -257,7 +257,7 @@
     }
 
     function PerformRefactoring(hmi, source, target, action, onSuccess, onEerror) {
-        var cms = hmi.cms;
+        var cms = hmi.env.cms;
         cms.GetRefactoringParams(source, target, action, params => {
             // console.log(JSONX.stringify(i_params));
             if (typeof params.error === 'string') {
@@ -343,7 +343,7 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getLanguageSelector(hmi, adapter) {
-        let langs = hmi.cms.GetLanguages(), language = langs[0], children = [{
+        let langs = hmi.env.cms.GetLanguages(), language = langs[0], children = [{
             x: 0,
             y: 0,
             align: 'right',
@@ -553,7 +553,7 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getKeyTextfield(hmi, adapter) {
-        const cms = hmi.cms;
+        const cms = hmi.env.cms;
         const keyTextField = {
             x: 0,
             y: 0,
@@ -597,7 +597,8 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getBrowserTree(hmi, adapter) {
-        let cms = hmi.cms, sel_data, selected = false, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
+        const cms = hmi.env.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
+        let sel_data, selected = false;
         const tree = {
             x: 0,
             y: 2,
@@ -630,7 +631,8 @@
     // SEARCH CONTAINER
     // ///////////////////////////////////////////////////////////////////////////////////////////////
     function getSearchContainer(hmi, adapter) {
-        let cms = hmi.cms, search_running = false, perform_search = () => {
+        let search_running = false;
+        const cms = hmi.env.cms, perform_search = () => {
             let key = search_key_textfield.hmi_value().trim();
             let value = search_value_textfield.hmi_value().trim();
             if (key.length > 0 || value.length > 0) {
@@ -808,7 +810,7 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getReferences(hmi, adapter) {
-        const cms = hmi.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
+        const cms = hmi.env.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
         let sel_data, selected = false;
         const text = {
             x: 0,
@@ -905,7 +907,7 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getLabelView(hmi, adapter, editable) {
-        const cms = hmi.cms, langs = cms.GetLanguages(), children = [], rows = [], values = {};
+        const cms = hmi.env.cms, langs = cms.GetLanguages(), children = [], rows = [], values = {};
         function onKeyChanged(data, language, onSuccess, onError) {
             if (data && data.file) {
                 cms.GetObject(data.file, undefined, editable === true ? ContentManager.RAW : ContentManager.INCLUDE, result => {
@@ -1003,7 +1005,7 @@
             if (data && data.file) {
                 switch (mode) {
                     case ContentManager.RAW:
-                        hmi.cms.GetObject(data.file, language, ContentManager.RAW, raw => {
+                        hmi.env.cms.GetObject(data.file, language, ContentManager.RAW, raw => {
                             preview.hmi_html(raw !== undefined ? raw : '');
                             onSuccess();
                         }, error => {
@@ -1012,7 +1014,7 @@
                         });
                         break;
                     case ContentManager.INCLUDE:
-                        hmi.cms.GetObject(data.file, language, ContentManager.INCLUDE, build => {
+                        hmi.env.cms.GetObject(data.file, language, ContentManager.INCLUDE, build => {
                             preview.hmi_html(build !== undefined ? build : '');
                             onSuccess();
                         }, error => {
@@ -1077,7 +1079,7 @@
     }
 
     function getHtmlEditor(hmi, adapter) {
-        const cms = hmi.cms, scrolls = {};
+        const cms = hmi.env.cms, scrolls = {};
         function onKeyChanged(data, language, onSuccess, onError) {
             info_lang.hmi_text(`language: '${language}'`);
             if (textarea.file) {
@@ -1138,7 +1140,7 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getTextPreview(hmi, adapter) {
-        const cms = hmi.cms, scrolls_raw = {}, scrolls_build = {};
+        const cms = hmi.env.cms, scrolls_raw = {}, scrolls_build = {};
         let mode = ContentManager.RAW;
         function update_mode(md) {
             mode = md;
@@ -1245,7 +1247,7 @@
     }
 
     function getTextEditor(hmi, adapter) {
-        const cms = hmi.cms, scrolls = {};
+        const cms = hmi.env.cms, scrolls = {};
         function onKeyChanged(data, language, onSuccess, onError) {
             info_lang.hmi_text(`language: '${language}'`);
             if (textarea.file) {
@@ -1305,7 +1307,7 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getJsonFxPreview(hmi, adapter) {
-        const cms = hmi.cms, scrolls_raw = {}, scrolls_build = {};
+        const cms = hmi.env.cms, scrolls_raw = {}, scrolls_build = {};
         let mode = ContentManager.RAW;
         function update_mode(md) {
             mode = md;
@@ -1451,7 +1453,7 @@
     }
 
     function getJsonFxEditor(hmi, adapter) {
-        const cms = hmi.cms, scrolls = {};
+        const cms = hmi.env.cms, scrolls = {};
         let mode = ContentManager.RAW;
         function update_mode(md) {
             mode = md;
@@ -1726,7 +1728,7 @@
     }
     */
     function getHmiView(hmi, adapter, editable) {
-        const cms = hmi.cms;
+        const cms = hmi.env.cms;
         let watchEditActions = false;
         function onEdited() {
             if (watchEditActions) {
@@ -1864,7 +1866,7 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getTaskView(hmi, adapter, editable) {
-        const cms = hmi.cms;
+        const cms = hmi.env.cms;
         let watchEditActions = false;
         function onEdited() {
             if (watchEditActions) {
@@ -2012,7 +2014,7 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getPreview(hmi, adapter) {
-        const cms = hmi.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
+        const cms = hmi.env.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
         let preview = false, sel_data, language;
         function reload() {
             unstress((onSuccess, onError) => {
@@ -2054,7 +2056,7 @@
     }
 
     function getRefactoring(hmi, adapter) {
-        const cms = hmi.cms;
+        const cms = hmi.env.cms;
         let sel_data = false, mode = false, source = false, enabled = true;
         function update() {
             button_move.hmi_setEnabled(enabled && sel_data !== false && (sel_data.file !== undefined || sel_data.folder !== undefined));
@@ -2224,7 +2226,7 @@
     });
 
     function showHmisConfigurationDialog(hmi, adapter, currentlySelectedData) {
-        const cms = hmi.cms;
+        const cms = hmi.env.cms;
         let hmiObjects = null;
         let selectedDataIndex = -1;
         let selectedDataEdited = false;
@@ -2414,7 +2416,7 @@
     });
 
     function showTasksConfigurationDialog(hmi, adapter, currentlySelectedData) {
-        const cms = hmi.cms;
+        const cms = hmi.env.cms;
         let taskObjects = null;
         let selectedDataIndex = -1;
         let selectedDataEdited = false;
@@ -2428,7 +2430,7 @@
             stopTaskButton.hmi_setVisible(false);
             browseTaskObjectButton.hmi_setVisible(false);
             browseJsonFXObjectButton.hmi_setVisible(false);
-            hmi.cms.GetTaskObjects(result => {
+            cms.GetTaskObjects(result => {
                 taskObjects = result;
                 const tasks = [];
                 for (let taskObj of taskObjects) {
@@ -2623,7 +2625,7 @@
     }
 
     function getEditController(hmi, adapter) {
-        const cms = hmi.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
+        const cms = hmi.env.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
         let editor = false, sel_data = false, sel_cs = false, edit_data = false, edit_cs = false, sel_lang, edit_lang;
         function reload() {
             unstress((onSuccess, onError) => {
