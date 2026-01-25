@@ -8,7 +8,7 @@
     const ContentManager = isNodeJS ? require('./ContentManager.js') : root.ContentManager;
     const ObjectLifecycleManager = isNodeJS ? require('./ObjectLifecycleManager.js') : root.ObjectLifecycleManager;
 
-    const DEFAULT_TASK_MANAGER_RECEIVER = 'tmr';
+    const TASK_MANAGER_RECEIVER = 'TaskManager';
     const TransmissionType = Object.freeze({
         ConfigurationRequest: 1,
         StartTask: 2,
@@ -23,7 +23,6 @@
             }
             this.hmi = hmi;
             this.onError = Core.defaultOnError;
-            this.receiver = DEFAULT_TASK_MANAGER_RECEIVER;
         }
 
         set OnError(value) {
@@ -31,13 +30,6 @@
                 throw new Error('Set value for OnError() is not a function');
             }
             this.onError = value;
-        }
-
-        set Receiver(value) {
-            if (typeof value !== 'string') {
-                throw new Error(`Invalid receiver: ${value}`);
-            }
-            this.receiver = value;
         }
     }
 
@@ -54,7 +46,7 @@
                 for (let entry of response) {
                     (function () {
                         const path = entry.path;
-                        that._taskObjects[entry.path] = entry;
+                        that._taskObjects[path] = entry;
                         entry._onLifecycleStateChanged = state => that._onLifecycleStateChanged(path, state);
                     }());
                 }
@@ -68,7 +60,7 @@
             for (const sessionId in this._connections) {
                 if (this._connections.hasOwnProperty(sessionId)) {
                     const con = this._connections[sessionId];
-                    con.connection.Send(this.receiver, data);
+                    con.connection.Send(TASK_MANAGER_RECEIVER, data);
                 }
             }
         }
@@ -96,14 +88,14 @@
                     connection,
                     handler: (data, onResponse, onError) => this._handleReceived(data, onResponse, onError)
                 };
-                connection.Register(this.receiver, con.handler);
+                connection.Register(TASK_MANAGER_RECEIVER, con.handler);
             }
         }
 
         _onClose(connection) {
             const sessionId = connection.SessionId;
             if (this._connections[sessionId] !== undefined) {
-                connection.Unregister(this.receiver);
+                connection.Unregister(TASK_MANAGER_RECEIVER);
                 delete this._connections[sessionId];
             }
         }
@@ -111,7 +103,14 @@
         _handleReceived(data, onResponse, onError) {
             switch (data.type) {
                 case TransmissionType.ConfigurationRequest:
-                    onResponse(this._taskObjects);
+                    const response = {};
+                    for (const path in this._taskObjects) {
+                        if (this._taskObjects.hasOwnProperty(path)) {
+                            const obj = this._taskObjects[path];
+                            response[path] = { taskObject: obj.taskObject, flags: obj.flags, cycleMillis: obj.cycleMillis };
+                        }
+                    }
+                    onResponse(response);
                     break;
                 case TransmissionType.StartTask:
                     this._startTask(data.path, onResponse, onError);
@@ -147,7 +146,7 @@
             }
         }
 
-        _stopTask(path, onSuccess, onErrors) {
+        _stopTask(path, onSuccess, onError) {
             const taskObject = this._taskObjects[path];
             if (!taskObject) {
                 onError(`Unknown task: '${path}'`);
@@ -162,7 +161,7 @@
                 }, error => {
                     const err = `Failed stopping task '${taskObject.taskObject}: ${error}`;
                     console.error(err);
-                    onErrors(err);
+                    onError(err);
                 }, taskObject._onLifecycleStateChanged);
             }
         }
@@ -212,14 +211,14 @@
         set Connection(value) {
             if (value) {
                 if (this._connection) {
-                    this._connection.Unregister(this.receiver);
+                    this._connection.Unregister(TASK_MANAGER_RECEIVER);
                     this._connection = null;
                 }
                 Common.validateAsConnection(value, true);
                 this._connection = value;
-                this._connection.Register(this.receiver, this._handler);
+                this._connection.Register(TASK_MANAGER_RECEIVER, this._handler);
             } else if (this._connection) {
-                this._connection.Unregister(this.receiver);
+                this._connection.Unregister(TASK_MANAGER_RECEIVER);
                 this._connection = null;
             }
         }
@@ -237,20 +236,18 @@
         }
 
         _handleReceived(data, onResponse, onError) {
-            if (this._operational.Value) {
-                switch (data.type) {
-                    case TransmissionType.StateRefresh:
-                        console.log(`task: ${path}, state: ${state}`);
-                        break;
-                    default:
-                        this.onError(`Invalid transmission type: ${data.type}`);
-                }
+            switch (data.type) {
+                case TransmissionType.StateRefresh:
+                    console.log(`task: ${data.path}, state: ${data.state}`);
+                    break;
+                default:
+                    this.onError(`Invalid transmission type: ${data.type}`);
             }
         }
 
         _loadConfiguration() {
             Common.validateAsConnection(this._connection);
-            this._connection.Send(this.receiver, { type: TransmissionType.ConfigurationRequest }, taskObjects => {
+            this._connection.Send(TASK_MANAGER_RECEIVER, { type: TransmissionType.ConfigurationRequest }, taskObjects => {
                 this._taskObjects = taskObjects;
             }, error => {
                 this.onError(error);
@@ -263,7 +260,7 @@
             } else if (!this._open) {
                 onError('Web socket connection is closed');
             } else {
-                this._connection.Send(this.receiver, { type: TransmissionType.StartTask, path }, onResponse, onError);
+                this._connection.Send(TASK_MANAGER_RECEIVER, { type: TransmissionType.StartTask, path }, onResponse, onError);
             }
         }
 
@@ -273,7 +270,7 @@
             } else if (!this._open) {
                 onError('Web socket connection is closed');
             } else {
-                this._connection.Send(this.receiver, { type: TransmissionType.StopTask, path }, onResponse, onError);
+                this._connection.Send(TASK_MANAGER_RECEIVER, { type: TransmissionType.StopTask, path }, onResponse, onError);
             }
         }
     }

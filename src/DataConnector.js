@@ -7,7 +7,7 @@
     const Common = isNodeJS ? require('./Common.js') : root.Common;
     const DataPoint = isNodeJS ? require('./DataPoint.js') : root.DataPoint;
 
-    const DEFAULT_DATA_CONNECTION_RECEIVER = 'dcr';
+    const RECEIVER = 'DataConnector';
 
     const TransmissionType = Object.freeze({
         ConfigurationRequest: 1,
@@ -25,21 +25,20 @@
             }
             this.connection = null;
             this.onError = Core.defaultOnError;
-            this.receiver = DEFAULT_DATA_CONNECTION_RECEIVER;
             this._handler = (data, onResponse, onError) => this.handleReceived(data, onResponse, onError);
         }
 
         set Connection(value) {
             if (value) {
                 if (this.connection) {
-                    this.connection.Unregister(this.receiver);
+                    this.connection.Unregister(RECEIVER);
                     this.connection = null;
                 }
                 Common.validateAsConnection(value, true);
                 this.connection = value;
-                this.connection.Register(this.receiver, this._handler);
+                this.connection.Register(RECEIVER, this._handler);
             } else if (this.connection) {
-                this.connection.Unregister(this.receiver);
+                this.connection.Unregister(RECEIVER);
                 this.connection = null;
             }
         }
@@ -49,13 +48,6 @@
                 throw new Error('Set value for OnError() is not a function');
             }
             this.onError = value;
-        }
-
-        set Receiver(value) {
-            if (typeof value !== 'string') {
-                throw new Error(`Invalid receiver: ${value}`);
-            }
-            this.receiver = value;
         }
 
         handleReceived(data, onResponse, onError) {
@@ -168,7 +160,7 @@
                     throw new Error(`Unknown data point for id ${dataId} to Read()`);
                 }
                 Common.validateAsConnection(this.connection);
-                this.connection.Send(this.receiver,
+                this.connection.Send(RECEIVER,
                     { type: TransmissionType.ReadRequest, shortId: dataPoint.shortId },
                     value => {
                         try {
@@ -194,7 +186,7 @@
                     throw new Error(`Unknown data point for id ${dataId} to Write()`);
                 }
                 Common.validateAsConnection(this.connection);
-                this.connection.Send(this.receiver,
+                this.connection.Send(RECEIVER,
                     { type: TransmissionType.WriteRequest, shortId: dataPoint.shortId, value }
                 );
             }
@@ -241,7 +233,7 @@
 
             _loadConfiguration() {
                 Common.validateAsConnection(this.connection);
-                this.connection.Send(this.receiver, { type: TransmissionType.ConfigurationRequest }, config => {
+                this.connection.Send(RECEIVER, { type: TransmissionType.ConfigurationRequest }, config => {
                     this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
                     this._unsubscribeDelay = typeof config.unsubscribeDelay === 'number' && config.unsubscribeDelay > 0 ? config.unsubscribeDelay : false;
                     this._operational.UnsubscribeDelay = this._unsubscribeDelay;
@@ -326,7 +318,7 @@
                             }
                         }
                     }
-                    this.connection.Send(this.receiver, { type: TransmissionType.SubscriptionRequest, subs });
+                    this.connection.Send(RECEIVER, { type: TransmissionType.SubscriptionRequest, subs });
                 }
             }
         }
@@ -394,7 +386,7 @@
                 this._dataPointConfigsByShortId = dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
                 if (this._isOpen && send === true) {
                     Common.validateAsConnection(this.connection);
-                    this.connection.Send(this.receiver, { type: TransmissionType.DataPointConfigurationsRefresh, dataPointConfigsByShortId });
+                    this.connection.Send(RECEIVER, { type: TransmissionType.DataPointConfigurationsRefresh, dataPointConfigsByShortId });
                 }
             }
 
@@ -505,7 +497,7 @@
             _sendValues() {
                 if (this._isOpen && this._values) {
                     Common.validateAsConnection(this.connection);
-                    this.connection.Send(this.receiver, { type: TransmissionType.DataRefresh, values: this._values });
+                    this.connection.Send(RECEIVER, { type: TransmissionType.DataRefresh, values: this._values });
                     this._values = null;
                 }
             }
