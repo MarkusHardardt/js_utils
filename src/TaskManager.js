@@ -13,40 +13,77 @@
         }
 
         Initialize(onSuccess, onError) {
-            const cms = this._hmi.cms;
-            cms.GetTaskObjects(response => {
+            const hmi = this._hmi;
+            hmi.cms.GetTaskObjects(response => {
                 const tasks = [];
-                const languages = cms.GetLanguages();
+                const languages = hmi.cms.GetLanguages();
                 for (let entry of response) {
                     this._taskObjects[entry.path] = entry;
                     (function () {
                         const taskObject = entry;
                         tasks.push((onSuc, onErr) => {
-                            cms.GetObject(taskObject.taskObject, languages[0], ContentManager.PARSE, task => {
-                                taskObject.task = task;
+                            hmi.cms.GetObject(taskObject.taskObject, languages[0], ContentManager.PARSE, task => {
+                                taskObject._task = task;
                                 onSuc();
                             }, onErr);
                         });
                     }());
                 }
-                Executor.run(tasks, () => {
-                    for (const path in this._taskObjects) {
-                        if (this._taskObjects.hasOwnProperty(path)) {
-                            const taskObject = this._taskObjects[path];
-                            if ((taskObject.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0) {
-                                ObjectLifecycleManager.create(taskObject.task, null, () => {
-                                    console.log(`task '${taskObject.taskObject} started`);
-                                }, error => console.error(`Failed starting task '${taskObject.taskObject}: ${error}`), this._hmi);
-                            }
-                        }
-                    }
-                    onSuccess();
-                }, onError);
+                Executor.run(tasks, onSuccess, onError);
             }, onError);
         }
 
+        StartAutorunTasks(onSuccess, onError) {
+            const hmi = this._hmi, taskObjects = this._taskObjects, tasks = [];
+            for (const path in taskObjects) {
+                if (taskObjects.hasOwnProperty(path)) {
+                    (function () {
+                        const taskObject = taskObjects[path];
+                        if ((taskObject.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0) {
+                            tasks.push((onSuc, onErr) => {
+                                taskObject._active = true;
+                                ObjectLifecycleManager.create(taskObject._task, null, () => {
+                                    console.log(`task '${taskObject.taskObject} started`);
+                                    onSuc();
+                                }, error => {
+                                    const err = `Failed starting task '${taskObject.taskObject}: ${error}`;
+                                    console.error(err);
+                                    onErr(err);
+                                }, hmi);
+                            });
+                        }
+                    }());
+                }
+            }
+            tasks.parallel = true;
+            Executor.run(tasks, onSuccess, onError);
+        }
+
         Shutdown(onSuccess, onError) {
-            
+            const hmi = this._hmi, taskObjects = this._taskObjects, tasks = [];
+            for (const path in taskObjects) {
+                if (taskObjects.hasOwnProperty(path)) {
+                    (function () {
+                        const taskObject = taskObjects[path];
+                        if (taskObject._active) {
+                            tasks.push((onSuc, onErr) => {
+                                taskObject._active = false;
+                                // (i_object, i_success, i_error, onLifecycleStateChanged)
+                                ObjectLifecycleManager.destroy(taskObject._task, () => {
+                                    console.log(`task '${taskObject.taskObject} stopped`);
+                                    onSuc();
+                                }, error => {
+                                    const err = `Failed stopping task '${taskObject.taskObject}: ${error}`;
+                                    console.error(err);
+                                    onErr(err);
+                                });
+                            });
+                        }
+                    }());
+                }
+            }
+            tasks.parallel = true;
+            Executor.run(tasks, onSuccess, onError);
         }
     }
     TaskManager.getInstance = hmi => new Manager(hmi);
