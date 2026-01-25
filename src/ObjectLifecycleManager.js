@@ -88,6 +88,24 @@
     // zoom factor: double by three clicks: Math.exp(Math.log(2)/3)
     const ZOOM_FACTOR = Math.exp(Math.log(2) / 3);
 
+    /**
+     * Analyzes the passed object and returns true if it is an object with the attribute 'type' with the value 'task'.
+     * On node js we only can handle 'task' objects so we just check if it is not another type.
+     * @param {*} object 
+     * @returns true for task objects
+     */
+    function isTaskType(object) {
+        if (object === undefined) {
+            return false;
+        } else if (object === null) {
+            return false;
+        } else if (typeof object !== 'object') {
+            return false;
+        } else {
+            return (isNodeJS && object.type === undefined) || object.type === 'task';
+        }
+    }
+
     const s_types = {};
 
     const s_extensions = [];
@@ -1337,7 +1355,7 @@
         for (var i = 0; i < _children.length; i++) {
             var child = _children[i];
             var hmiobj = child._hmi_object;
-            if (hmiobj && hmiobj.type !== 'task') {
+            if (hmiobj && !isTaskType(hmiobj)) {
                 var x = typeof child.x === 'number' ? child.x : 0;
                 var y = typeof child.y === 'number' ? child.y : 0;
                 var width = typeof child.width === 'number' ? child.width : 1;
@@ -1409,7 +1427,7 @@
                         for (var i = 0; intersects === false && i < _children.length; i++) {
                             var child = _children[i];
                             var hmiobj = child._hmi_object;
-                            if (hmiobj && hmiobj.type !== 'task') {
+                            if (hmiobj && !isTaskType(hmiobj)) {
                                 var x = typeof child.x === 'number' ? child.x : 0;
                                 var y = typeof child.y === 'number' ? child.y : 0;
                                 var width = typeof child.width === 'number' ? child.width : 1;
@@ -1676,7 +1694,7 @@
                     var child = _children[idx];
                     var hmiobj = child._hmi_object;
                     if (hmiobj) {
-                        if (hmiobj.type === 'task') {
+                        if (isTaskType(hmiobj)) {
                             if (hmiobj._hmi_init_dom) {
                                 tasks.push(function (i_suc, i_err) {
                                     // #grid: 1
@@ -1882,7 +1900,7 @@
                 var child = _children[i];
                 var hmiobj = child._hmi_object;
                 if (hmiobj) {
-                    if (hmiobj.type === 'task') {
+                    if (isTaskType(hmiobj)) {
                         if (hmiobj._hmi_init_dom) {
                             tasks.push(function (i_suc, i_err) {
                                 // #float: 1
@@ -2130,7 +2148,7 @@
                 var child = that.children[i];
                 var hmiobj = child._hmi_object;
                 if (hmiobj) {
-                    if (hmiobj.type === 'task') {
+                    if (isTaskType(hmiobj)) {
                         if (hmiobj._hmi_init_dom) {
                             tasks.push(function (i_suc, i_err) {
                                 // #split: 2
@@ -3948,7 +3966,7 @@
                 (function () {
                     var child = _children[i];
                     var hmiobj = child._hmi_object;
-                    if (hmiobj && hmiobj.type === 'task' && hmiobj._hmi_init_dom) {
+                    if (hmiobj && isTaskType(hmiobj) && hmiobj._hmi_init_dom) {
                         tasks.push(function (i_suc, i_err) {
                             // #task: 1
                             hmiobj._hmi_init_dom({
@@ -3965,7 +3983,7 @@
                 for (var i = _children.length - 1; i >= 0; i--) {
                     var child = _children[i];
                     var hmiobj = child._hmi_object;
-                    if (hmiobj && hmiobj.type === 'task' && hmiobj._hmi_destroy_dom) {
+                    if (hmiobj && isTaskType(hmiobj) && hmiobj._hmi_destroy_dom) {
                         (function () {
                             tasks.push(function (i_s, i_e) {
                                 // #task: 1
@@ -6728,7 +6746,7 @@
                                 hmiobj._hmi_context.transform.setToCoordinateTransform(child, _tf);
                             }
                         }
-                        else if (hmiobj.type !== 'task') {
+                        else if (!isTaskType(hmiobj)) {
                             var width = get_pixel_size(child.width, _tf.scale);
                             var height = get_pixel_size(child.height, _tf.scale);
                             if (typeof width === 'number' && typeof height === 'number') {
@@ -6844,7 +6862,7 @@
                                     }, i_suc, i_err);
                                 });
                             }
-                            else if (hmiobj.type === 'task') {
+                            else if (isTaskType(hmiobj)) {
                                 tasks.push(function (i_suc, i_err) {
                                     // #graph: 2
                                     hmiobj._hmi_init_dom({
@@ -7053,7 +7071,7 @@
             var tasks = [];
             that._hmi_context = i_context;
             _cont = i_context.container;
-            if (that.type === 'task') {
+            if (isTaskType(that)) {
                 tasks.push(function (i_suc, i_err) {
                     TaskObjectImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
                 });
