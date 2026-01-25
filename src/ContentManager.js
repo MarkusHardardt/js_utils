@@ -45,7 +45,8 @@
         validateAsContentManager(instance, validateMethodArguments);
         return Core.validateAs('ContentManager', instance, [
             'HandleRequest(request, onResponse, onError)', // Called in web server 'POST' handling
-            'HandleFancyTreeRequest(request, identifier, onResponse, onError)' // Called in web server 'GET' handling (for fancy tree)
+            'HandleFancyTreeRequest(request, identifier, onResponse, onError)', // Called in web server 'GET' handling (for fancy tree)
+            'RegisterOnWebServer(webServer)'
         ], validateMethodArguments);
     }
     ContentManager.validateAsContentManagerOnServer = validateAsContentManagerOnServer;
@@ -2015,7 +2016,7 @@
                     if (!result || !Array.isArray(result)) {
                         onError(`HMI could not be loaded: Invalid query parameter: '${queryParameterValue}'`);
                         return;
-                    } 
+                    }
                     const enabledHmiObjectIds = [];
                     for (let obj of result) {
                         if ((obj.flags & ContentManager.HMI_FLAG_ENABLE) !== 0) {
@@ -2346,6 +2347,21 @@
                     onResponse([]);
                     break;
             }
+        }
+        RegisterOnWebServer(webServer) {
+            // we need access via ajax from clients
+            webServer.Post(ContentManager.GET_CONTENT_DATA_URL, (request, response) => this.HandleRequest(
+                request.body,
+                result => response.send(JsonFX.stringify({ result }, false)),
+                error => response.send(JsonFX.stringify({ error: error.toString() }, false))
+            ));
+            // the tree control requests da via 'GET' so we handle those request separately
+            webServer.Get(ContentManager.GET_CONTENT_TREE_NODES_URL, (request, response) => this.HandleFancyTreeRequest(
+                request.query.request,
+                request.query.path,
+                result => response.send(JsonFX.stringify(result, false)),
+                error => response.send(JsonFX.stringify(error.toString(), false))
+            ));
         }
         // Note: this next is a template method - copy when new request has to be implemented
         _$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$(onResponse, onError) {
