@@ -44,9 +44,7 @@
     function validateAsContentManagerOnServer(instance, validateMethodArguments) {
         validateAsContentManager(instance, validateMethodArguments);
         return Core.validateAs('ContentManager', instance, [
-            'HandleRequest(request, onResponse, onError)', // Called in web server 'POST' handling
-            'HandleFancyTreeRequest(request, identifier, onResponse, onError)', // Called in web server 'GET' handling (for fancy tree)
-            'RegisterOnWebServer(webServer)'
+            'RegisterOnWebServer(webServer)' // Registers web server 'POST' and 'GET' (for fancy tree) handling
         ], validateMethodArguments);
     }
     ContentManager.validateAsContentManagerOnServer = validateAsContentManagerOnServer;
@@ -2173,7 +2171,7 @@
                 });
             }, onError);
         }
-        HandleRequest(request, onResponse, onError) {
+        _handleRequest(request, onResponse, onError) {
             switch (request.command) {
                 case COMMAND_GET_CONFIG:
                     onResponse({
@@ -2240,7 +2238,7 @@
                     break;
             }
         }
-        HandleFancyTreeRequest(request, identifier, onResponse, onError) {
+        _handleFancyTreeRequest(request, identifier, onResponse, onError) {
             const that = this, id = typeof identifier === 'string' && identifier.length > 0 ? identifier : '$';
             switch (request) {
                 case ContentManager.COMMAND_GET_CHILD_TREE_NODES:
@@ -2350,13 +2348,13 @@
         }
         RegisterOnWebServer(webServer) {
             // we need access via ajax from clients
-            webServer.Post(ContentManager.GET_CONTENT_DATA_URL, (request, response) => this.HandleRequest(
+            webServer.Post(ContentManager.GET_CONTENT_DATA_URL, (request, response) => this._handleRequest(
                 request.body,
                 result => response.send(JsonFX.stringify({ result }, false)),
                 error => response.send(JsonFX.stringify({ error: error.toString() }, false))
             ));
             // the tree control requests da via 'GET' so we handle those request separately
-            webServer.Get(ContentManager.GET_CONTENT_TREE_NODES_URL, (request, response) => this.HandleFancyTreeRequest(
+            webServer.Get(ContentManager.GET_CONTENT_TREE_NODES_URL, (request, response) => this._handleFancyTreeRequest(
                 request.query.request,
                 request.query.path,
                 result => response.send(JsonFX.stringify(result, false)),
