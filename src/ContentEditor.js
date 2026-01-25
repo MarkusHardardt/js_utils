@@ -4,13 +4,10 @@
     const isNodeJS = typeof require === 'function';
     const JsonFX = isNodeJS ? require('./JsonFX.js') : root.JsonFX;
     const ContentManager = isNodeJS ? require('./ContentManager.js') : root.ContentManager;
-    const TaskManager = isNodeJS ? require('./TaskManager.js') : root.TaskManager;
 
     const DEFAULT_ROW_HEIGHT = '24px';
     const DEFAULT_COLUMN_WIDTH = '64px';
     const SMALL_COLUMN_WIDTH = '42px';
-    const BIG_COLUMN_WIDTH = '80px';
-    const HEADER_HEIGHT = '54px';
     const DEFAULT_TIMEOUT = 2000;
     const ALARM_COLOR = '#ff0000';
     const VALID_COLOR = '#000000';
@@ -2572,7 +2569,7 @@
             click: onClose => {
                 if (selectedDataIndex !== -1) {
                     const taskObject = taskObjects[selectedDataIndex];
-                    TaskManager.startTask(taskObject.path, response => adapter.updateInfo(response), error => adapter.notifyError(error));
+                    hmi.env.tasks.StartTask(taskObject.path, response => adapter.updateInfo(response), error => adapter.notifyError(error));
                 }
             }
         };
@@ -2582,7 +2579,7 @@
             click: onClose => {
                 if (selectedDataIndex !== -1) {
                     const taskObject = taskObjects[selectedDataIndex];
-                    TaskManager.stopTask(taskObject.path, response => adapter.updateInfo(response), error => adapter.notifyError(error));
+                    hmi.env.tasks.StopTask(taskObject.path, response => adapter.updateInfo(response), error => adapter.notifyError(error));
                 }
             }
         };

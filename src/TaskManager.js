@@ -2,24 +2,18 @@
     "use strict";
     const TaskManager = {};
     const isNodeJS = typeof require === 'function';
-    const Client = isNodeJS ? require('./Client.js') : root.Client;
     const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
-    const JsonFX = isNodeJS ? require('./JsonFX.js') : root.JsonFX;
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Common = isNodeJS ? require('./Common.js') : root.Common;
     const ContentManager = isNodeJS ? require('./ContentManager.js') : root.ContentManager;
     const ObjectLifecycleManager = isNodeJS ? require('./ObjectLifecycleManager.js') : root.ObjectLifecycleManager;
 
-    const HANDLE_TASK_MANAGER_REQUEST = '/handle_task_manager_request';
     const DEFAULT_TASK_MANAGER_RECEIVER = 'tmr';
     const TransmissionType = Object.freeze({
         ConfigurationRequest: 1,
-        StateRefresh: 999
-    });
-
-    const Actions = Object.freeze({
-        Start: 'start',
-        Stop: 'stop'
+        StartTask: 2,
+        StopTask: 3,
+        StateRefresh: 4
     });
 
     class BaseManager {
@@ -30,7 +24,6 @@
             this.hmi = hmi;
             this.onError = Core.defaultOnError;
             this.receiver = DEFAULT_TASK_MANAGER_RECEIVER;
-            this._handler = (data, onResponse, onError) => this.handleReceived(data, onResponse, onError);
         }
 
         set OnError(value) {
@@ -46,10 +39,6 @@
             }
             this.receiver = value;
         }
-
-        handleReceived(data, onResponse, onError) {
-            throw new Error('Not implemented in base class: handleReceived(data, onResponse, onError)')
-        }
     }
 
     class ServerManager extends BaseManager {
@@ -59,82 +48,123 @@
             this._taskObjects = {};
         }
 
-        RegisterOnWebServer(webServer) {
-            // we need access via ajax from clients
-            webServer.Post(HANDLE_TASK_MANAGER_REQUEST, (request, response) => this._handleRequest(
-                request.body,
-                result => response.send(JsonFX.stringify({ result }, false)),
-                error => response.send(JsonFX.stringify({ error: error.toString() }, false))
-            ));
+        Initialize(onSuccess, onError) {
+            const that = this;
+            this.hmi.env.cms.GetTaskObjects(response => {
+                for (let entry of response) {
+                    (function () {
+                        const path = entry.path;
+                        that._taskObjects[entry.path] = entry;
+                        entry._onLifecycleStateChanged = state => that._onLifecycleStateChanged(path, state);
+                    }());
+                }
+                onSuccess();
+            }, onError);
         }
 
-        OnOpen(connection) {
-            this._connections[connection.SessionId] = connection;
-        }
-
-        OnReopen(connection) {
-            this._connections[connection.SessionId] = connection;
-        }
-
-        OnClose(connection) {
-            delete this._connections[connection.SessionId];
-        }
-
-        OnDispose(connection) {
-            delete this._connections[connection.SessionId];
-        }
-
-        _handleRequest(request, onResponse, onError) {
-            switch (request.action) {
-                case Actions.Start:
-                    {
-                        const taskObject = this._taskObjects[request.path];
-                        if (!taskObject) {
-                            onError(`Failed to start unknown task object '${request.path}'`);
-                        } else if (taskObject._active) {
-                            onError(`Task object '${request.path}' is already running`);
-                        } else {
-                            this._startTask(taskObject, () => onResponse(`Started task object '${request.path}'`), onError);
-                        }
-                    }
-                    break;
-                case Actions.Stop:
-                    {
-                        const taskObject = this._taskObjects[request.path];
-                        if (!taskObject) {
-                            onError(`Failed to stop unknown task object '${request.path}'`);
-                        } else if (!taskObject._active) {
-                            onError(`Task object '${request.path}' is not running`);
-                        } else {
-                            this._stopTask(taskObject, () => onResponse(`Stopped task object '${request.path}'`), onError);
-                        }
-                    }
-                    break;
-                default:
-                    onError(`Unuported action: '${request.action}'`);
-                    break;
+        _onLifecycleStateChanged(path, state) {
+            console.log(`task: ${path}, state: ${state}`);
+            const data = { type: TransmissionType.StateRefresh, path, state };
+            for (const sessionId in this._connections) {
+                if (this._connections.hasOwnProperty(sessionId)) {
+                    const con = this._connections[sessionId];
+                    con.connection.Send(this.receiver, data);
+                }
             }
         }
 
-        Initialize(onSuccess, onError) { // TODO Use websocket
+        OnOpen(connection) {
+            this._onOpen(connection);
+        }
+
+        OnReopen(connection) {
+            this._onOpen(connection);
+        }
+
+        OnClose(connection) {
+            this._onClose(connection);
+        }
+
+        OnDispose(connection) {
+            this._onClose(connection);
+        }
+
+        _onOpen(connection) {
+            const sessionId = connection.SessionId;
+            if (this._connections[sessionId] === undefined) {
+                const con = this._connections[sessionId] = {
+                    connection,
+                    handler: (data, onResponse, onError) => this._handleReceived(data, onResponse, onError)
+                };
+                connection.Register(this.receiver, con.handler);
+            }
+        }
+
+        _onClose(connection) {
+            const sessionId = connection.SessionId;
+            if (this._connections[sessionId] !== undefined) {
+                connection.Unregister(this.receiver);
+                delete this._connections[sessionId];
+            }
+        }
+
+        _handleReceived(data, onResponse, onError) {
+            switch (data.type) {
+                case TransmissionType.ConfigurationRequest:
+                    onResponse(this._taskObjects);
+                    break;
+                case TransmissionType.StartTask:
+                    this._startTask(data.path, onResponse, onError);
+                    break;
+                case TransmissionType.StopTask:
+                    this._stopTask(data.path, onResponse, onError);
+                    break;
+                default:
+                    this.onError(`Invalid transmission type: ${data.type}`);
+            }
+        }
+
+        _startTask(path, onSuccess, onError) {
             const hmi = this.hmi;
-            hmi.env.cms.GetTaskObjects(response => {
-                const tasks = [];
-                const languages = hmi.env.cms.GetLanguages();
-                for (let entry of response) {
-                    this._taskObjects[entry.path] = entry;
-                    (function () {
-                        const taskObject = entry;
-                        tasks.push((onSuc, onErr) => {
-                            hmi.env.cms.GetObject(taskObject.taskObject, languages[0], ContentManager.PARSE, task => {
-                                taskObject._task = task;
-                                onSuc();
-                            }, onErr);
-                        });
-                    }());
-                }
-                Executor.run(tasks, onSuccess, onError);
-            }, onError);
+            const taskObject = this._taskObjects[path];
+            if (!taskObject) {
+                onError(`Unknown task: '${path}'`);
+            } else if (taskObject._task) {
+                onError(`Task '${path}' has already been started`);
+            } else {
+                hmi.env.cms.GetObject(taskObject.taskObject, hmi.language, ContentManager.PARSE, task => {
+                    taskObject._task = task;
+                    // (i_object, i_jqueryElement, i_success, i_error, i_hmi, i_initData, i_parentObject, i_nodeId, i_parentNode, i_disableVisuEvents, i_enableEditorEvents, onLifecycleStateChanged)
+                    ObjectLifecycleManager.create(taskObject._task, null, () => {
+                        console.log(`task '${taskObject.taskObject} started`);
+                        onSuccess();
+                    }, error => {
+                        const err = `Failed starting task '${taskObject.taskObject} for task '${path}': ${error}`;
+                        console.error(err);
+                        onError(err);
+                    }, this.hmi, undefined, undefined, undefined, undefined, undefined, undefined, taskObject._onLifecycleStateChanged);
+                }, error => onError(`Failed to load object '${taskObject.taskObject}' for task '${path}': ${error}`));
+            }
+        }
+
+        _stopTask(path, onSuccess, onErrors) {
+            const taskObject = this._taskObjects[path];
+            if (!taskObject) {
+                onError(`Unknown task: '${path}'`);
+            } else if (!taskObject._task) {
+                onError(`Task '${path}' has not been started`);
+            } else {
+                const task = taskObject._task;
+                delete taskObject._task;
+                ObjectLifecycleManager.destroy(task, () => {
+                    console.log(`task '${taskObject.taskObject} stopped`);
+                    onSuccess();
+                }, error => {
+                    const err = `Failed stopping task '${taskObject.taskObject}: ${error}`;
+                    console.error(err);
+                    onErrors(err);
+                }, taskObject._onLifecycleStateChanged);
+            }
         }
 
         StartAutorunTasks(onSuccess, onError) {
@@ -144,7 +174,7 @@
                     (function () {
                         const taskObject = taskObjects[path];
                         if ((taskObject.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0) {
-                            tasks.push((onSuc, onErr) => that._startTask(taskObject, onSuc, onErr));
+                            tasks.push((onSuc, onErr) => that._startTask(taskObject.path, onSuc, onErr));
                         }
                     }());
                 }
@@ -159,8 +189,8 @@
                 if (taskObjects.hasOwnProperty(path)) {
                     (function () {
                         const taskObject = taskObjects[path];
-                        if (taskObject._active) {
-                            tasks.push((onSuc, onErr) => that._stopTask(taskObject, onSuc, onErr));
+                        if (taskObject._task) {
+                            tasks.push((onSuc, onErr) => that._stopTask(taskObject.path, onSuc, onErr));
                         }
                     }());
                 }
@@ -168,38 +198,15 @@
             tasks.parallel = true;
             Executor.run(tasks, onSuccess, onError);
         }
-
-        _startTask(taskObject, onSuccess, onError) {
-            taskObject._active = true;
-            ObjectLifecycleManager.create(taskObject._task, null, () => {
-                console.log(`task '${taskObject.taskObject} started`);
-                onSuccess();
-            }, error => {
-                const err = `Failed starting task '${taskObject.taskObject}: ${error}`;
-                console.error(err);
-                onError(err);
-            }, this.hmi);
-        }
-
-        _stopTask(taskObject, onSuccess, onErrors) {
-            taskObject._active = false;
-            // (i_object, i_success, i_error, onLifecycleStateChanged)
-            ObjectLifecycleManager.destroy(taskObject._task, () => {
-                console.log(`task '${taskObject.taskObject} stopped`);
-                onSuccess();
-            }, error => {
-                const err = `Failed stopping task '${taskObject.taskObject}: ${error}`;
-                console.error(err);
-                onErrors(err);
-            });
-        }
     }
 
     class ClientManager extends BaseManager {
         constructor(hmi) {
             super(hmi);
+            this._open = false;
             this._connection = null;
             this._taskObjects = {};
+            this._handler = (data, onResponse, onError) => this._handleReceived(data, onResponse, onError);
         }
 
         set Connection(value) {
@@ -218,34 +225,22 @@
         }
 
         OnOpen() {
+            this._open = true;
             this._loadConfiguration();
         }
 
         OnClose() {
+            this._open = false;
             /*this._operational.Value = false;
            clearTimeout(this._subscribeDelayTimer);
            this._subscribeDelayTimer = null;*/
         }
 
-        handleReceived(data, onResponse, onError) {
+        _handleReceived(data, onResponse, onError) {
             if (this._operational.Value) {
                 switch (data.type) {
                     case TransmissionType.StateRefresh:
-                        for (const shortId in data.values) {
-                            if (data.values.hasOwnProperty(shortId)) {
-                                const dpConfByShortId = this._dataPointConfigsByShortId[shortId];
-                                if (!dpConfByShortId) {
-                                    this.onError(`Unexpected short id: ${shortId}`);
-                                    continue;
-                                }
-                                const dataPoint = this._dataPointsByDataId[dpConfByShortId.dataId];
-                                if (!dataPoint) {
-                                    this.onError(`Unknown data id: ${dpConfByShortId.dataId}`);
-                                    continue;
-                                }
-                                dataPoint.node.Value = data.values[shortId];
-                            }
-                        }
+                        console.log(`task: ${path}, state: ${state}`);
                         break;
                     default:
                         this.onError(`Invalid transmission type: ${data.type}`);
@@ -255,53 +250,35 @@
 
         _loadConfiguration() {
             Common.validateAsConnection(this._connection);
-            this._connection.Send(this.receiver, { type: TransmissionType.ConfigurationRequest }, config => {
-                this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
-                this._unsubscribeDelay = typeof config.unsubscribeDelay === 'number' && config.unsubscribeDelay > 0 ? config.unsubscribeDelay : false;
-                this._operational.UnsubscribeDelay = this._unsubscribeDelay;
-                this._setDataPointConfigsByShortId(config.dataPointConfigsByShortId);
-                this._operational.Value = true;
-                this._sendSubscriptionRequest();
+            this._connection.Send(this.receiver, { type: TransmissionType.ConfigurationRequest }, taskObjects => {
+                this._taskObjects = taskObjects;
             }, error => {
-                this._operational.Value = false;
                 this.onError(error);
             });
         }
 
-        Initialize(onSuccess, onError) {
-            const hmi = this.hmi;
-            hmi.env.cms.GetTaskObjects(response => {
-                const tasks = [];
-                for (let entry of response) {
-                    this._taskObjects[entry.path] = entry;
-                    (function () {
-                        const taskObject = entry;
-                        tasks.push((onSuc, onErr) => {
-                            hmi.env.cms.GetObject(taskObject.taskObject, hmi.language, ContentManager.PARSE, task => {
-                                taskObject._task = task;
-                                onSuc();
-                            }, onErr);
-                        });
-                    }());
-                }
-                Executor.run(tasks, onSuccess, onError);
-            }, onError);
+        StartTask(path, onResponse, onError) {
+            if (!this._connection) {
+                onError('Web socket connection is not available');
+            } else if (!this._open) {
+                onError('Web socket connection is closed');
+            } else {
+                this._connection.Send(this.receiver, { type: TransmissionType.StartTask, path }, onResponse, onError);
+            }
+        }
+
+        StopTask(path, onResponse, onError) {
+            if (!this._connection) {
+                onError('Web socket connection is not available');
+            } else if (!this._open) {
+                onError('Web socket connection is closed');
+            } else {
+                this._connection.Send(this.receiver, { type: TransmissionType.StopTask, path }, onResponse, onError);
+            }
         }
     }
 
     TaskManager.getInstance = hmi => isNodeJS ? new ServerManager(hmi) : new ClientManager(hmi);
-
-    if (!isNodeJS) {
-        // TODO: Move to ClientManager
-        function startTask(path, onSuccess, onError) {
-            Client.fetchJsonFX(HANDLE_TASK_MANAGER_REQUEST, { action: Actions.Start, path }, response => onSuccess(response), error => onError(error));
-        }
-        TaskManager.startTask = startTask;
-        function stopTask(path, onSuccess, onError) {
-            Client.fetchJsonFX(HANDLE_TASK_MANAGER_REQUEST, { action: Actions.Stop, path }, response => onSuccess(response), error => onError(error));
-        }
-        TaskManager.stopTask = stopTask;
-    }
 
     Object.freeze(TaskManager);
     if (isNodeJS) {
