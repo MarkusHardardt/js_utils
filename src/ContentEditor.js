@@ -2571,10 +2571,7 @@
             click: onClose => {
                 if (selectedDataIndex !== -1) {
                     const taskObject = taskObjects[selectedDataIndex];
-                    Client.fetch(TaskManager.HANDLE_TASK_MANAGER_REQUEST, JsonFX.stringify({
-                        action: TaskManager.Actions.Start,
-                        path: taskObject.path
-                    }), response => console.log(response), error => adapter.notifyError(error))
+                    TaskManager.startTask(taskObject.path, response => console.log(response), error => adapter.notifyError(error));
                 }
             }
         };
@@ -2584,10 +2581,7 @@
             click: onClose => {
                 if (selectedDataIndex !== -1) {
                     const taskObject = taskObjects[selectedDataIndex];
-                    Client.fetch(TaskManager.HANDLE_TASK_MANAGER_REQUEST, JsonFX.stringify({
-                        action: TaskManager.Actions.Stop,
-                        path: taskObject.path
-                    }), response => console.log(response), error => adapter.notifyError(error))
+                    TaskManager.stopTask(taskObject.path, response => console.log(response), error => adapter.notifyError(error));
                 }
             }
         };
