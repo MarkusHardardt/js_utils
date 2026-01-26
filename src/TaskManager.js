@@ -125,10 +125,11 @@
                     }
                     tasks.push((onSuc, onErr) => {
                         try {
-                            const data = { type: TransmissionType.ConfigurationRefresh, config: that._getTaskConfig() };
+                            // TODO: Send state data as part of this?
+                            const configData = { type: TransmissionType.ConfigurationRefresh, config: that._getTaskConfig() };
                             for (const sessionId in this._connections) {
                                 if (this._connections.hasOwnProperty(sessionId)) {
-                                    this._connections[sessionId].connection.Send(TASK_MANAGER_RECEIVER, data);
+                                    this._connections[sessionId].connection.Send(TASK_MANAGER_RECEIVER, configData);
                                 }
                             }
                             onSuc();
@@ -356,15 +357,7 @@
                     this._updateConfiguration(data.config);
                     break;
                 case TransmissionType.StateRefresh:
-                    if (this._onStateChanged) {
-                        try {
-                            this._onStateChanged(data.path, data.state);
-                        } catch (error) {
-                            this.onError(`Failed calling onStateChanged(path, state): ${error}`);
-                        }
-                    } else {
-                        console.log(`task: ${data.path}, state: ${data.state}`); // TODO: Implement
-                    }
+                    this._updateTaskState(data.path, data.state);
                     break;
                 default:
                     this.onError(`Invalid transmission type: ${data.type}`);
@@ -414,14 +407,33 @@
             }
         }
 
+        _updateTaskState(path, state) {
+            const taskObject = this._taskObjects[path];
+            if (taskObject) {
+                taskObject.state = state;
+            }
+            if (this._onStateChanged) {
+                try {
+                    this._onStateChanged(path, state);
+                } catch (error) {
+                    this.onError(`Failed calling onStateChanged(path, state): ${error}`);
+                }
+            } else {
+                console.log(`task: ${data.path}, state: ${data.state}`); // TODO: Implement
+            }
+        }
+
         GetTaskObjects() {
-            const taskObjects = [];
+            const result = [];
             for (const path in this._taskObjects) {
                 if (this._taskObjects.hasOwnProperty(path)) {
-                    taskObjects.push(JSON.parse(JSON.stringify(this._taskObjects[path].config)));
+                    const taskObject = this._taskObjects[path];
+                    const data = JSON.parse(JSON.stringify(taskObject.config));
+                    data.state = taskObject.state;
+                    result.push(data);
                 }
             }
-            return taskObjects;
+            return result;
         }
 
         StartTask(path, onResponse, onError) {

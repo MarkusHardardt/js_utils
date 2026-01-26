@@ -2409,8 +2409,18 @@
         Id: 0,
         TaskObject: 1,
         CycleMillis: 2,
-        Autorun: 3
+        Autorun: 3,
+        State: 4
     });
+
+    function formatObjectLifecycleState(state) {
+        for (const name in ObjectLifecycleManager.LifecycleState) {
+            if (ObjectLifecycleManager.LifecycleState.hasOwnProperty(name) && ObjectLifecycleManager.LifecycleState[name] === state) {
+                return name;
+            }
+        }
+        return `Unknown state: ${state}`;
+    }
 
     function showTasksConfigurationDialog(hmi, adapter, currentlySelectedData) {
         const cms = hmi.env.cms;
@@ -2429,13 +2439,13 @@
             browseJsonFXObjectButton.hmi_setVisible(false);
             taskObjects = hmi.env.tasks.GetTaskObjects(); // TODO: Debug this in browser
             const tasks = [];
-            for (let taskObj of taskObjects) {
+            for (let i = 0; i < taskObjects.length; i++) {
                 (function () {
-                    const obj = taskObj;
-                    obj.edited = false;
+                    const taskObject = taskObjects[i];
+                    taskObject.edited = false;
                     tasks.push((onSuccess, onError) => {
-                        cms.GetChecksum(obj.file, checksum => {
-                            obj.checksum = checksum;
+                        cms.GetChecksum(taskObject.file, checksum => {
+                            taskObject.checksum = checksum;
                             onSuccess();
                         }, onError)
                     });
@@ -2448,6 +2458,21 @@
                     adapter.notifyError(`Error preparing task objects table: ${error}`);
                 }
             }, error => adapter.notifyError(`Error loading task objects: ${error}`));
+        }
+        function onStateChanged(path, state) {
+            console.log(`task '${path}', state: '${formatObjectLifecycleState(state)}'`);
+            if (taskObjects) {
+                for (let i = 0; i < taskObjects.length; i++) {
+                    const taskObject = taskObjects[i];
+                    if (taskObject.path === path) {
+                        if (state !== taskObject.state) {
+                            taskObject.state = state;
+                            table.hmi_value(i, TaskObjectsTableColumn.State, formatObjectLifecycleState(state));
+                        }
+                        break;
+                    }
+                }
+            }
         }
         const table = {
             y: 0,
@@ -2470,19 +2495,24 @@
             }, {
                 width: 10,
                 text: 'autorun'
+            }, {
+                width: 20,
+                text: 'state'
             }],
             getRowCount: () => taskObjects ? taskObjects.length : 0,
             getCellHtml: (rowIndex, columnIndex) => {
-                const row = taskObjects[rowIndex];
+                const taskObject = taskObjects[rowIndex];
                 switch (columnIndex) {
                     case TaskObjectsTableColumn.Id:
-                        return row.id;
+                        return taskObject.id;
                     case TaskObjectsTableColumn.TaskObject:
-                        return row.taskObject;
+                        return taskObject.taskObject;
                     case TaskObjectsTableColumn.CycleMillis:
-                        return row.cycleMillis;
+                        return taskObject.cycleMillis;
                     case TaskObjectsTableColumn.Autorun:
-                        return (row.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? 'enabled' : 'disabled';
+                        return (taskObject.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? 'enabled' : 'disabled';
+                    case TaskObjectsTableColumn.State:
+                        return formatObjectLifecycleState(taskObject.state);
                     default:
                         return '';
                 }
@@ -2589,6 +2619,7 @@
                     adapter.selectInNavigator(cms.AnalyzeId(taskObjects[selectedDataIndex].id));
                 }
                 hmi.env.tasks.OnConfigChanged = null;
+                hmi.env.tasks.OnStateChanged = null;
                 onClose();
             }
         };
@@ -2600,6 +2631,7 @@
                     adapter.selectInNavigator(cms.AnalyzeId(taskObjects[selectedDataIndex].taskObject));
                 }
                 hmi.env.tasks.OnConfigChanged = null;
+                hmi.env.tasks.OnStateChanged = null;
                 onClose();
             }
         };
@@ -2616,6 +2648,7 @@
                 text: 'close',
                 click: onClose => {
                     hmi.env.tasks.OnConfigChanged = null;
+                    hmi.env.tasks.OnStateChanged = null;
                     onClose();
                 }
             }]
@@ -2623,6 +2656,7 @@
         hmi.showDialog(dialogObject);
         reload();
         hmi.env.tasks.OnConfigChanged = reload;
+        hmi.env.tasks.OnStateChanged = onStateChanged;
     }
 
     function getEditController(hmi, adapter) {
