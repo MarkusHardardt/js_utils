@@ -70,7 +70,7 @@
             } else {
                 this._reloadingTasks = true;
                 const that = this;
-                this.hmi.env.cms.GetTaskObjects(response => { // TODO: Handle removed (stop), modified and added tasks and also trigger notification of clients via web socket
+                this.hmi.env.cms.GetTaskObjects(response => {
                     const tasks = [];
                     for (let config of response) {
                         (function () {

@@ -2547,13 +2547,13 @@
                     }
                 }
                 Executor.run(tasks, () => {
-                    reload();
+                    // reload();
                     if (currentlySelectedData) {
                         adapter.stateChanged(false, currentlySelectedData);
                     }
                 }, error => {
                     adapter.notifyError(`Error loading hmi objects: ${error}`);
-                    reload();
+                    // reload();
                     if (currentlySelectedData) {
                         adapter.stateChanged(false, currentlySelectedData);
                     }
@@ -2588,6 +2588,7 @@
                 if (selectedDataIndex !== -1) {
                     adapter.selectInNavigator(cms.AnalyzeId(taskObjects[selectedDataIndex].id));
                 }
+                hmi.env.tasks.OnConfigChanged = null;
                 onClose();
             }
         };
@@ -2598,6 +2599,7 @@
                 if (selectedDataIndex !== -1) {
                     adapter.selectInNavigator(cms.AnalyzeId(taskObjects[selectedDataIndex].taskObject));
                 }
+                hmi.env.tasks.OnConfigChanged = null;
                 onClose();
             }
         };
@@ -2612,11 +2614,15 @@
             },
             buttons: [commitButton, resetButton, startTaskButton, stopTaskButton, browseTaskObjectButton, browseJsonFXObjectButton, {
                 text: 'close',
-                click: onClose => onClose()
+                click: onClose => {
+                    hmi.env.tasks.OnConfigChanged = null;
+                    onClose();
+                }
             }]
         };
         hmi.showDialog(dialogObject);
         reload();
+        hmi.env.tasks.OnConfigChanged = reload;
     }
 
     function getEditController(hmi, adapter) {

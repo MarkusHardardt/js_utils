@@ -35,8 +35,7 @@
             'GetHMIObject(queryParameterValue, language, onResponse, onError)',
             'GetHMIObjects(onResponse, onError)',
             'IsTaskObject(id, onResponse, onError)',
-            'AddDefaultTaskObject(id, onResponse, onError)',
-            'GetTaskObjects(onResponse, onError)' // TODO: move to server
+            'AddDefaultTaskObject(id, onResponse, onError)'
         ], validateMethodArguments);
     }
     ContentManager.validateAsContentManager = validateAsContentManager;
@@ -44,6 +43,7 @@
     function validateAsContentManagerOnServer(instance, validateMethodArguments) {
         validateAsContentManager(instance, validateMethodArguments);
         return Core.validateAs('ContentManager', instance, [
+            'GetTaskObjects(onResponse, onError)',
             'RegisterAffectedTypesListener(type, onChanged)',
             'RegisterOnWebServer(webServer)' // Registers web server 'POST' and 'GET' (for fancy tree) handling
         ], validateMethodArguments);
@@ -167,7 +167,6 @@
     const COMMAND_GET_HMI_OBJECTS = 'get_hmi_objects';
     const COMMAND_IS_TASK_OBJECT = 'is_task_object';
     const COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT = 'set_availability_as_task_object';
-    const COMMAND_GET_TASK_OBJECTS = 'get_task_objects'; // TODO: Remove from client
 
     const VALID_EXT_REGEX = /^\w+$/;
     const VALID_NAME_CHAR = '[a-zA-Z0-9_+\\-*]';
@@ -2299,10 +2298,6 @@
                 case COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT:
                     this.AddDefaultTaskObject(request.id, onResponse, onError);
                     break;
-                case COMMAND_GET_TASK_OBJECTS: // TODO: Remove from client
-                    console.error('Called deprecated client method GetTaskObjects()');
-                    this.GetTaskObjects(onResponse, onError);
-                    break;
                 default:
                     onError(`EXCEPTION! Unexpected command: '${request.command}'`);
                     break;
@@ -2582,10 +2577,6 @@
         }
         AddDefaultTaskObject(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT, id }, onResponse, onError);
-        }
-        GetTaskObjects(onResponse, onError) { // TODO: Remove from client
-            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_TASK_OBJECTS }, onResponse, onError);
-            throw new Error('Called deprecated client method GetTaskObjects()');
         }
     }
 
