@@ -75,7 +75,7 @@
                     for (let config of response) {
                         (function () {
                             const path = config.path;
-                            const taskObject = that._taskObjects[path];
+                            let taskObject = that._taskObjects[path];
                             if (taskObject) {
                                 if (taskObject.task && taskObject.config.taskObject !== config.taskObject) {
                                     // If the actual task object has changed we must stop the running instance
@@ -90,7 +90,7 @@
                                 }
                                 taskObject.config = config;
                             } else {
-                                that._taskObjects[path] = {
+                                that._taskObjects[path] = taskObject = {
                                     config,
                                     state: ObjectLifecycleManager.LifecycleState.Idle,
                                     onLifecycleStateChanged: state => {

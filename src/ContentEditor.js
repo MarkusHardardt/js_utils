@@ -2320,13 +2320,16 @@
                 const selectedData = hmiObjects[selectedDataIndex];
                 selectedData.edited = true;
                 if (values.viewObjectColumn !== selectedData.viewObject) {
-                    table.hmi_value(selectedDataIndex, HmiObjectsTableColumn.ViewObject, selectedData.viewObject = values.viewObjectColumn);
+                    const value = selectedData.viewObject = values.viewObjectColumn;
+                    table.hmi_value(selectedDataIndex, HmiObjectsTableColumn.ViewObject, value);
                 }
                 if (values.queryParameterColumn !== selectedData.queryParameter) {
-                    table.hmi_value(selectedDataIndex, HmiObjectsTableColumn.QueryParameter, selectedData.queryParameter = values.queryParameterColumn);
+                    const value = selectedData.queryParameter = values.queryParameterColumn;
+                    table.hmi_value(selectedDataIndex, HmiObjectsTableColumn.QueryParameter, value);
                 }
                 if (values.flagsColumn !== selectedData.flags) {
-                    table.hmi_value(selectedDataIndex, HmiObjectsTableColumn.Enable, ((selectedData.flags = values.flagsColumn) & ContentManager.HMI_FLAG_ENABLE) !== 0 ? 'enabled' : 'disabled');
+                    const value = selectedData.flags = values.flagsColumn;
+                    table.hmi_value(selectedDataIndex, HmiObjectsTableColumn.Enable, (value & ContentManager.HMI_FLAG_ENABLE) !== 0 ? 'enabled' : 'disabled');
                 }
             },
             notifyError: adapter.notifyError
@@ -2534,14 +2537,17 @@
                 const values = detailsEditor.getValue();
                 const selectedData = taskObjects[selectedDataIndex];
                 selectedData.edited = true;
-                if (values.taskObjectColumn !== selectedData.taskObject) {
-                    table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.TaskObject, selectedData.taskObject = values.taskObjectColumn);
+                if (values.taskObjectColumn !== selectedData.config.taskObject) {
+                    const value = selectedData.config.taskObject = values.taskObjectColumn;
+                    table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.TaskObject, value);
                 }
-                if (values.cycleIntervalMillisColumn !== selectedData.cycleMillis) {
-                    table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.CycleMillis, selectedData.cycleMillis = values.cycleIntervalMillisColumn);
+                if (values.cycleIntervalMillisColumn !== selectedData.config.cycleMillis) {
+                    const value = selectedData.config.cycleMillis = values.cycleIntervalMillisColumn;
+                    table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.CycleMillis, value.toString());
                 }
-                if (values.flagsColumn !== selectedData.flags) {
-                    table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.Autorun, ((selectedData.flags = values.flagsColumn) & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? 'enabled' : 'disabled');
+                if (values.flagsColumn !== selectedData.config.flags) {
+                    const value = selectedData.config.flags = values.flagsColumn;
+                    table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.Autorun, (value & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? 'enabled' : 'disabled');
                 }
             },
             notifyError: adapter.notifyError
@@ -2558,7 +2564,7 @@
                         (function () {
                             const obj = taskObj;
                             tasks.push((onSuccess, onError) => {
-                                performModification(hmi, obj.checksum, obj.file, obj.file, undefined, {
+                                performModification(hmi, obj.checksum, obj.config.file, obj.config.file, undefined, {
                                     taskObjectColumn: obj.config.taskObject,
                                     cycleIntervalMillisColumn: obj.config.cycleMillis,
                                     flagsColumn: obj.config.flags
