@@ -43,11 +43,13 @@
         Initialize(onSuccess, onError) {
             const that = this;
             this.hmi.env.cms.GetTaskObjects(response => {
-                for (let entry of response) {
+                for (let config of response) {
                     (function () {
-                        const path = entry.path;
-                        that._taskObjects[path] = entry;
-                        entry._onLifecycleStateChanged = state => that._onLifecycleStateChanged(path, state);
+                        const path = config.path;
+                        that._taskObjects[path] = {
+                            config,
+                            onLifecycleStateChanged: state => that._onLifecycleStateChanged(path, state)
+                        };
                     }());
                 }
                 onSuccess();
@@ -59,8 +61,7 @@
             const data = { type: TransmissionType.StateRefresh, path, state };
             for (const sessionId in this._connections) {
                 if (this._connections.hasOwnProperty(sessionId)) {
-                    const con = this._connections[sessionId];
-                    con.connection.Send(TASK_MANAGER_RECEIVER, data);
+                    this._connections[sessionId].connection.Send(TASK_MANAGER_RECEIVER, data);
                 }
             }
         }
@@ -103,17 +104,10 @@
         _handleReceived(data, onResponse, onError) {
             switch (data.type) {
                 case TransmissionType.ConfigurationRequest:
-                    const response = {};
+                    const response = [];
                     for (const path in this._taskObjects) {
                         if (this._taskObjects.hasOwnProperty(path)) {
-                            const obj = this._taskObjects[path];
-                            response[path] = {
-                                id: obj.id,
-                                file: obj.file,
-                                taskObject: obj.taskObject,
-                                flags: obj.flags,
-                                cycleMillis: obj.cycleMillis
-                            };
+                            response.push(this._taskObjects[path].config);
                         }
                     }
                     onResponse(response);
@@ -134,21 +128,20 @@
             const taskObject = this._taskObjects[path];
             if (!taskObject) {
                 onError(`Unknown task: '${path}'`);
-            } else if (taskObject._task) {
+            } else if (taskObject.task) {
                 onError(`Task '${path}' has already been started`);
             } else {
-                hmi.env.cms.GetObject(taskObject.taskObject, hmi.language, ContentManager.PARSE, task => {
-                    taskObject._task = task;
-                    // (i_object, i_jqueryElement, i_success, i_error, i_hmi, i_initData, i_parentObject, i_nodeId, i_parentNode, i_disableVisuEvents, i_enableEditorEvents, onLifecycleStateChanged)
-                    ObjectLifecycleManager.create(taskObject._task, null, () => {
-                        console.log(`task '${taskObject.taskObject} started`);
+                hmi.env.cms.GetObject(taskObject.config.taskObject, hmi.language, ContentManager.PARSE, task => {
+                    taskObject.task = task;
+                    ObjectLifecycleManager.create(taskObject.task, null, () => {
+                        console.log(`Successfully started '${taskObject.config.taskObject}' for task '${path}'`);
                         onSuccess();
                     }, error => {
-                        const err = `Failed starting task '${taskObject.taskObject} for task '${path}': ${error}`;
+                        const err = `Failed starting '${taskObject.config.taskObject}' for task '${path}': ${error}`;
                         console.error(err);
                         onError(err);
-                    }, this.hmi, undefined, undefined, undefined, undefined, undefined, undefined, taskObject._onLifecycleStateChanged);
-                }, error => onError(`Failed to load object '${taskObject.taskObject}' for task '${path}': ${error}`));
+                    }, this.hmi, undefined, undefined, undefined, undefined, undefined, undefined, taskObject.onLifecycleStateChanged);
+                }, error => onError(`Failed to load object '${taskObject.config.taskObject}' for task '${path}': ${error}`));
             }
         }
 
@@ -156,19 +149,19 @@
             const taskObject = this._taskObjects[path];
             if (!taskObject) {
                 onError(`Unknown task: '${path}'`);
-            } else if (!taskObject._task) {
+            } else if (!taskObject.task) {
                 onError(`Task '${path}' has not been started`);
             } else {
-                const task = taskObject._task;
-                delete taskObject._task;
+                const task = taskObject.task;
+                delete taskObject.task;
                 ObjectLifecycleManager.destroy(task, () => {
-                    console.log(`task '${taskObject.taskObject} stopped`);
+                    console.log(`Successfully stopped '${taskObject.config.taskObject}' for task '${path}'`);
                     onSuccess();
                 }, error => {
-                    const err = `Failed stopping task '${taskObject.taskObject}: ${error}`;
+                    const err = `Failed stopping '${taskObject.config.taskObject}' for task '${path}': ${error}`;
                     console.error(err);
                     onError(err);
-                }, taskObject._onLifecycleStateChanged);
+                }, taskObject.onLifecycleStateChanged);
             }
         }
 
@@ -178,8 +171,8 @@
                 if (taskObjects.hasOwnProperty(path)) {
                     (function () {
                         const taskObject = taskObjects[path];
-                        if ((taskObject.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0) {
-                            tasks.push((onSuc, onErr) => that._startTask(taskObject.path, onSuc, onErr));
+                        if ((taskObject.config.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0) {
+                            tasks.push((onSuc, onErr) => that._startTask(path, onSuc, onErr));
                         }
                     }());
                 }
@@ -194,8 +187,8 @@
                 if (taskObjects.hasOwnProperty(path)) {
                     (function () {
                         const taskObject = taskObjects[path];
-                        if (taskObject._task) {
-                            tasks.push((onSuc, onErr) => that._stopTask(taskObject.path, onSuc, onErr));
+                        if (taskObject.task) {
+                            tasks.push((onSuc, onErr) => that._stopTask(path, onSuc, onErr));
                         }
                     }());
                 }
@@ -253,8 +246,11 @@
 
         _loadConfiguration() {
             Common.validateAsConnection(this._connection);
-            this._connection.Send(TASK_MANAGER_RECEIVER, { type: TransmissionType.ConfigurationRequest }, taskObjects => {
-                this._taskObjects = taskObjects;
+            this._connection.Send(TASK_MANAGER_RECEIVER, { type: TransmissionType.ConfigurationRequest }, response => {
+                for (let config of response) {
+                    const path = config.path;
+                    this._taskObjects[path] = { config };
+                }
             }, error => {
                 this.onError(error);
             });
@@ -264,15 +260,7 @@
             const taskObjects = [];
             for (const path in this._taskObjects) {
                 if (this._taskObjects.hasOwnProperty(path)) {
-                    const obj = this._taskObjects[path];
-                    taskObjects.push({
-                        path,
-                        id: obj.id,
-                        file: obj.file,
-                        taskObject: obj.taskObject,
-                        flags: obj.flags,
-                        cycleMillis: obj.cycleMillis
-                    });
+                    taskObjects.push(JSON.parse(JSON.stringify(this._taskObjects[path].config)));
                 }
             }
             return taskObjects;
