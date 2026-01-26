@@ -38,20 +38,25 @@
             super(hmi);
             this._connections = {};
             this._taskObjects = {};
-            this._onTypesChanged = () => console.log('Tasks changed');
+            this._onTasksChanged = () => this._handleTasksChanged();
         }
 
         get OnTasksChanged() {
-            return this._onTypesChanged;
+            return this._onTasksChanged;
         }
 
-        _handleTaskTypesChanged() {
-
+        _handleTasksChanged() {
+            this._reloadTasks(() => console.log('Loaded tasks'), error => this.onError(error));
         }
 
         Initialize(onSuccess, onError) {
+            this._reloadTasks(onSuccess, onError);
+        }
+
+        _reloadTasks(onSuccess, onError) {
             const that = this;
             this.hmi.env.cms.GetTaskObjects(response => {
+                // TODO: Handle removed (stop), modified and added tasks and also trigger notification of clients via web socket
                 for (let config of response) {
                     (function () {
                         const path = config.path;
