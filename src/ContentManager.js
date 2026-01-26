@@ -166,7 +166,7 @@
     const COMMAND_GET_HMI_OBJECTS = 'get_hmi_objects';
     const COMMAND_IS_TASK_OBJECT = 'is_task_object';
     const COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT = 'set_availability_as_task_object';
-    const COMMAND_GET_TASK_OBJECTS = 'get_task_objects';
+    const COMMAND_GET_TASK_OBJECTS = 'get_task_objects'; // TODO: Remove from client
 
     const VALID_EXT_REGEX = /^\w+$/;
     const VALID_NAME_CHAR = '[a-zA-Z0-9_+\\-*]';
@@ -912,7 +912,7 @@
             }
             const rawKey = match[1];
             this._getSqlAdapter(adapter => {
-                const tasks = [];
+                const tasks = [], affectedTypes = {};
                 tasks.parallel = false;
                 tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
                 tasks.push((onSuc, onErr) => {
@@ -952,7 +952,10 @@
                                     onErr(`Cannot insert unsupported type: ${table.type}`);
                                     return;
                             }
-                            adapter.PerformInsert(table.name, onSuc, onErr);
+                            adapter.PerformInsert(table.name, () => {
+                                affectedTypes[table.type] = true;
+                                onSuc();
+                            }, onErr);
                         } else if (params.action === ContentManager.UPDATE) {
                             switch (table.type) {
                                 case DataTableType.JsonFX:
@@ -982,10 +985,16 @@
                                     return;
                             }
                             adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
-                            adapter.PerformUpdate(table.name, undefined, 1, onSuc, onErr);
+                            adapter.PerformUpdate(table.name, undefined, 1, () => {
+                                affectedTypes[table.type] = true;
+                                onSuc();
+                            }, onErr);
                         } else if (params.action === ContentManager.DELETE) {
                             adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
-                            adapter.PerformDelete(table.name, undefined, 1, onSuc, onErr);
+                            adapter.PerformDelete(table.name, undefined, 1, () => {
+                                affectedTypes[table.type] = true;
+                                onSuc();
+                            }, onErr);
                         } else {
                             onErr(`Unexpected action: '${params.action}'`);
                         }
@@ -995,6 +1004,7 @@
                     adapter.CommitTransaction(() => {
                         adapter.Close();
                         onResponse();
+                        this._nofifyAffectedTypes(affectedTypes);
                     }, err => {
                         adapter.Close();
                         onError(err);
@@ -1293,7 +1303,7 @@
         PerformRefactoring(source, target, action, checksum, onResponse, onError) {
             const that = this;
             this._getSqlAdapter(adapter => {
-                const main = [];
+                const main = [], affectedTypes = {};
                 // the main action has to be processed in a sequence wo we do not run
                 // in
                 // parallel
@@ -1322,7 +1332,7 @@
                                     if (objects.hasOwnProperty(attr)) {
                                         (function () {
                                             const src = attr;
-                                            tasks.push((os, oe) => that._performRefactoring(adapter, src, params, replace, os, oe));
+                                            tasks.push((os, oe) => that._performRefactoring(adapter, src, params, replace, affectedTypes, os, oe));
                                         }());
                                     }
                                 }
@@ -1335,7 +1345,10 @@
                                                 const table = that._contentTablesByExtension[attr];
                                                 tasks.push((os, oe) => {
                                                     adapter.AddWhere(`LOCATE(${srcTabKey},${table.name}.${table.keyColumn}) = 1`);
-                                                    adapter.PerformDelete(table.name, undefined, undefined, os, oe);
+                                                    adapter.PerformDelete(table.name, undefined, undefined, () => {
+                                                        affectedTypes[table.type] = true;
+                                                        os();
+                                                    }, oe);
                                                 });
                                             }());
                                         }
@@ -1345,7 +1358,10 @@
                                     const table = that._contentTablesByExtension[match[2]], srcTabKey = SqlHelper.escape(match[1]);
                                     tasks.push((os, oe) => {
                                         adapter.AddWhere(`${table.name}.${table.keyColumn} = ${srcTabKey}`);
-                                        adapter.PerformDelete(table.name, undefined, 1, os, oe);
+                                        adapter.PerformDelete(table.name, undefined, 1, () => {
+                                            affectedTypes[table.type] = true;
+                                            os();
+                                        }, oe);
                                     });
                                 }
                             }
@@ -1357,6 +1373,7 @@
                     adapter.CommitTransaction(() => {
                         adapter.Close();
                         onResponse();
+                        this._nofifyAffectedTypes(affectedTypes);
                     }, err => {
                         adapter.Close();
                         onError(err);
@@ -1372,7 +1389,7 @@
                 });
             }, onError);
         }
-        _performRefactoring(adapter, source, params, getReplacement, onResponse, onError) {
+        _performRefactoring(adapter, source, params, getReplacement, affectedTypes, onResponse, onError) {
             const that = this;
             const match = this._contentTablesKeyRegex.exec(source);
             const table = this._contentTablesByExtension[match[2]];
@@ -1437,8 +1454,12 @@
                         function success() {
                             if (targetAlreadyExists && params.action === ContentManager.MOVE) {
                                 adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(srcTabKey)}`);
-                                adapter.PerformDelete(table.name, undefined, 1, onSuc, onErr);
+                                adapter.PerformDelete(table.name, undefined, 1, () => {
+                                    affectedTypes[table.type] = true;
+                                    onSuc();
+                                }, onErr);
                             } else {
+                                affectedTypes[table.type] = true;
                                 onSuc();
                             }
                         };
@@ -1520,7 +1541,10 @@
                                                     break;
                                             }
                                             adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(usrKey)}`);
-                                            adapter.PerformUpdate(table.name, undefined, 1, os, oe);
+                                            adapter.PerformUpdate(table.name, undefined, 1, () => {
+                                                affectedTypes[table.type] = true;
+                                                os();
+                                            }, oe);
                                         }, oe);
                                     });
                                 }());
@@ -1531,6 +1555,9 @@
                 });
             }
             Executor.run(main, onResponse, onError);
+        }
+        _nofifyAffectedTypes(affectedTypes) {
+            console.log(`affectedTypes: ${JSON.stringify(affectedTypes)}`);
         }
         _getReferencesTo(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
@@ -1963,7 +1990,7 @@
             const rawKey = match[1];
             const hmiTable = this._hmiTable;
             this._getSqlAdapter(adapter => {
-                const tasks = [];
+                const tasks = [], affectedTypes = {};
                 tasks.parallel = false;
                 tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
                 let equalNameExists = false;
@@ -1983,12 +2010,16 @@
                     const queryParameter = `${idChecksum.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${idChecksum.substring(idChecksum.length - Math.ceil(AUTO_KEY_LENGTH / 2), idChecksum.length)}`;
                     adapter.AddValue(`${hmiTable.name}.${hmiTable.queryParameterColumn}`, SqlHelper.escape(queryParameter));
                     adapter.AddValue(`${hmiTable.name}.${hmiTable.viewObjectColumn}`, SqlHelper.escape(id));
-                    adapter.PerformInsert(hmiTable.name, onSuc, onErr);
+                    adapter.PerformInsert(hmiTable.name, () => {
+                        affectedTypes[hmiTable.type] = true;
+                        onSuc();
+                    }, onErr);
                 });
                 Executor.run(tasks, () => {
                     adapter.CommitTransaction(() => {
                         adapter.Close();
                         onResponse();
+                        this._nofifyAffectedTypes(affectedTypes);
                     }, err => {
                         adapter.Close();
                         onError(err);
@@ -2112,7 +2143,7 @@
             const rawKey = match[1];
             const taskTable = this._taskTable;
             this._getSqlAdapter(adapter => {
-                const tasks = [];
+                const tasks = [], affectedTypes = {};
                 tasks.parallel = false;
                 tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
                 let equalNameExists = false;
@@ -2131,12 +2162,16 @@
                     adapter.AddValue(`${taskTable.name}.${taskTable.taskObjectColumn}`, SqlHelper.escape(id));
                     adapter.AddValue(`${taskTable.name}.${taskTable.flagsColumn}`, SqlHelper.escape('0'));
                     adapter.AddValue(`${taskTable.name}.${taskTable.cycleIntervalMillisColumn}`, SqlHelper.escape('0'));
-                    adapter.PerformInsert(taskTable.name, onSuc, onErr);
+                    adapter.PerformInsert(taskTable.name, () => {
+                        affectedTypes[taskTable.type] = true;
+                        onSuc();
+                    }, onErr);
                 });
                 Executor.run(tasks, () => {
                     adapter.CommitTransaction(() => {
                         adapter.Close();
                         onResponse();
+                        this._nofifyAffectedTypes(affectedTypes);
                     }, err => {
                         adapter.Close();
                         onError(err);
@@ -2230,7 +2265,8 @@
                 case COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT:
                     this.AddDefaultTaskObject(request.id, onResponse, onError);
                     break;
-                case COMMAND_GET_TASK_OBJECTS:
+                case COMMAND_GET_TASK_OBJECTS: // TODO: Remove from client
+                    console.error('Called deprecated client method GetTaskObjects()');
                     this.GetTaskObjects(onResponse, onError);
                     break;
                 default:
@@ -2513,8 +2549,9 @@
         AddDefaultTaskObject(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT, id }, onResponse, onError);
         }
-        GetTaskObjects(onResponse, onError) {
+        GetTaskObjects(onResponse, onError) { // TODO: Remove from client
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_TASK_OBJECTS }, onResponse, onError);
+            throw new Error('Called deprecated client method GetTaskObjects()');
         }
     }
 
