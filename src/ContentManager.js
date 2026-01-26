@@ -36,7 +36,7 @@
             'GetHMIObjects(onResponse, onError)',
             'IsTaskObject(id, onResponse, onError)',
             'AddDefaultTaskObject(id, onResponse, onError)',
-            'GetTaskObjects(onResponse, onError)'
+            'GetTaskObjects(onResponse, onError)' // TODO: move to server
         ], validateMethodArguments);
     }
     ContentManager.validateAsContentManager = validateAsContentManager;
@@ -1581,7 +1581,7 @@
         }
         _nofifyAffectedTypes(affectedTypes) {
             for (const type in affectedTypes) {
-                if (affectedTypes.hasOwnProperty(type)) {
+                if (affectedTypes.hasOwnProperty(type) && affectedTypes[type] === true) {
                     const listeners = this._affectedTypesListeners[type];
                     for (let onChanged of listeners) {
                         try {
