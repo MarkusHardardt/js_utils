@@ -2537,16 +2537,17 @@
                 const values = detailsEditor.getValue();
                 const selectedData = taskObjects[selectedDataIndex];
                 selectedData.edited = true;
-                if (values.taskObjectColumn !== selectedData.config.taskObject) {
-                    const value = selectedData.config.taskObject = values.taskObjectColumn;
+                const config = selectedData.config;
+                if (values.taskObjectColumn !== config.taskObject) {
+                    const value = config.taskObject = values.taskObjectColumn;
                     table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.TaskObject, value);
                 }
-                if (values.cycleIntervalMillisColumn !== selectedData.config.cycleMillis) {
-                    const value = selectedData.config.cycleMillis = values.cycleIntervalMillisColumn;
+                if (values.cycleIntervalMillisColumn !== config.cycleMillis) {
+                    const value = config.cycleMillis = values.cycleIntervalMillisColumn;
                     table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.CycleMillis, value.toString());
                 }
-                if (values.flagsColumn !== selectedData.config.flags) {
-                    const value = selectedData.config.flags = values.flagsColumn;
+                if (values.flagsColumn !== config.flags) {
+                    const value = config.flags = values.flagsColumn;
                     table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.Autorun, (value & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? 'enabled' : 'disabled');
                 }
             },
@@ -2564,10 +2565,11 @@
                         (function () {
                             const obj = taskObj;
                             tasks.push((onSuccess, onError) => {
-                                performModification(hmi, obj.checksum, obj.config.file, obj.config.file, undefined, {
-                                    taskObjectColumn: obj.config.taskObject,
-                                    cycleIntervalMillisColumn: obj.config.cycleMillis,
-                                    flagsColumn: obj.config.flags
+                                const config = obj.config;
+                                performModification(hmi, obj.checksum, config.file, config.file, undefined, {
+                                    taskObjectColumn: config.taskObject,
+                                    cycleIntervalMillisColumn: config.cycleMillis,
+                                    flagsColumn: config.flags
                                 }, params => onSuccess(), onError);
                             });
                         }());
