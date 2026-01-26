@@ -474,7 +474,7 @@
                 adapter.Close();
                 onResponse(response);
             }, error => {
-                adapter.Close();
+                adapter.Close(); // TODO: Why we have an exception calling this?
                 onError(error);
             }), onError);
         }

@@ -92,7 +92,12 @@
                             } else {
                                 that._taskObjects[path] = {
                                     config,
-                                    onLifecycleStateChanged: state => that._onLifecycleStateChanged(path, state)
+                                    state: ObjectLifecycleManager.LifecycleState.Idle,
+                                    onLifecycleStateChanged: state => {
+                                        console.log(`onLifecycleStateChanged(task: ${path}, state: ${state})`); // TODO: Remove log
+                                        taskObject.state = state;
+                                        that._onLifecycleStateChanged(path, state);
+                                    }
                                 };
                             }
                         }());
@@ -125,8 +130,7 @@
                     }
                     tasks.push((onSuc, onErr) => {
                         try {
-                            // TODO: Send state data as part of this?
-                            const configData = { type: TransmissionType.ConfigurationRefresh, config: that._getTaskConfig() };
+                            const configData = { type: TransmissionType.ConfigurationRefresh, tasksConfigAndState: that._getTasksConfigAndState() };
                             for (const sessionId in this._connections) {
                                 if (this._connections.hasOwnProperty(sessionId)) {
                                     this._connections[sessionId].connection.Send(TASK_MANAGER_RECEIVER, configData);
@@ -149,7 +153,6 @@
         }
 
         _onLifecycleStateChanged(path, state) {
-            console.log(`task: ${path}, state: ${state}`); // TODO: Remove log
             const data = { type: TransmissionType.StateRefresh, path, state };
             for (const sessionId in this._connections) {
                 if (this._connections.hasOwnProperty(sessionId)) {
@@ -196,7 +199,7 @@
         _handleReceived(data, onResponse, onError) {
             switch (data.type) {
                 case TransmissionType.ConfigurationRequest:
-                    onResponse(this._getTaskConfig());
+                    onResponse(this._getTasksConfigAndState());
                     break;
                 case TransmissionType.StartTask:
                     this._startTask(data.path, onResponse, onError);
@@ -209,11 +212,12 @@
             }
         }
 
-        _getTaskConfig() {
+        _getTasksConfigAndState() {
             const configs = [];
             for (const path in this._taskObjects) {
                 if (this._taskObjects.hasOwnProperty(path)) {
-                    configs.push(this._taskObjects[path].config);
+                    const taskObject = this._taskObjects[path];
+                    configs.push({ config: taskObject.config, state: taskObject.state });
                 }
             }
             return configs;
@@ -354,7 +358,7 @@
         _handleReceived(data, onResponse, onError) {
             switch (data.type) {
                 case TransmissionType.ConfigurationRefresh:
-                    this._updateConfiguration(data.config);
+                    this._updateConfiguration(data.tasksConfigAndState);
                     break;
                 case TransmissionType.StateRefresh:
                     this._updateTaskState(data.path, data.state);
@@ -374,21 +378,21 @@
             );
         }
 
-        _updateConfiguration(tasksConfig) {
-            for (let config of tasksConfig) {
-                const path = config.path;
+        _updateConfiguration(tasksConfigAndState) {
+            for (let configAndState of tasksConfigAndState) {
+                const path = configAndState.config.path;
                 const taskObject = this._taskObjects[path];
                 if (taskObject) {
-                    taskObject.config = config;
+                    taskObject.config = configAndState.config;
                 } else {
-                    this._taskObjects[path] = { config, state: 0 };
+                    this._taskObjects[path] = { config: configAndState.config, state: configAndState.state };
                 }
             }
             for (const path in this._taskObjects) {
                 if (this._taskObjects.hasOwnProperty(path)) {
                     let available = false;
-                    for (let config of tasksConfig) {
-                        if (config.path === path) {
+                    for (let configAndState of tasksConfigAndState) {
+                        if (configAndState.config.path === path) {
                             available = true;
                             break;
                         }
