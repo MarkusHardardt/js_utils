@@ -38,6 +38,15 @@
             super(hmi);
             this._connections = {};
             this._taskObjects = {};
+            this._onTypesChanged = () => console.log('Tasks changed');
+        }
+
+        get OnTasksChanged() {
+            return this._onTypesChanged;
+        }
+
+        _handleTaskTypesChanged() {
+
         }
 
         Initialize(onSuccess, onError) {

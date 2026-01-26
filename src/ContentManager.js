@@ -44,6 +44,7 @@
     function validateAsContentManagerOnServer(instance, validateMethodArguments) {
         validateAsContentManager(instance, validateMethodArguments);
         return Core.validateAs('ContentManager', instance, [
+            'RegisterAffectedTypesListener(type, onChanged)',
             'RegisterOnWebServer(webServer)' // Registers web server 'POST' and 'GET' (for fancy tree) handling
         ], validateMethodArguments);
     }
@@ -250,6 +251,13 @@
             this._parallel = typeof db_config.maxParallelQueries === 'number' && db_config.maxParallelQueries > 0 ? db_config.maxParallelQueries : true;
             this._contentTablesByExtension = {};
             this._extensionsForType = {};
+            this._affectedTypesListeners = {};
+            for (const type in DataTableType) {
+                if (DataTableType.hasOwnProperty(type)) {
+                    this._affectedTypesListeners[type] = [];
+                }
+            }
+
             const tableExtensions = [];
             for (const type in this._config.tables) {
                 if (this._config.tables.hasOwnProperty(type)) {
@@ -1556,8 +1564,34 @@
             }
             Executor.run(main, onResponse, onError);
         }
+        RegisterAffectedTypesListener(type, onChanged) {
+            const listeners = this._affectedTypesListeners[type];
+            if (listeners === undefined) {
+                throw new Error(`Failed to register listener for unknown type: '${type}'`);
+            } else if (typeof onChanged !== 'function') {
+                throw new Error('Failed to register listener because onChanged() is not a function');
+            } else {
+                for (let listener of listeners) {
+                    if (listener === onChanged) {
+                        throw new Error('Failed to register listener because onChanged() is already stored');
+                    }
+                }
+                listeners.push(onChanged);
+            }
+        }
         _nofifyAffectedTypes(affectedTypes) {
-            console.log(`affectedTypes: ${JSON.stringify(affectedTypes)}`);
+            for (const type in affectedTypes) {
+                if (affectedTypes.hasOwnProperty(type)) {
+                    const listeners = this._affectedTypesListeners[type];
+                    for (let onChanged of listeners) {
+                        try {
+                            onChanged();
+                        } catch (error) {
+                            console.error(`Failed calling onChanged() for type '${type}': ${error}`);
+                        }
+                    }
+                }
+            }
         }
         _getReferencesTo(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
