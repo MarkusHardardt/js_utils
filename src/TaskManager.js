@@ -384,6 +384,7 @@
                 const taskObject = this._taskObjects[path];
                 if (taskObject) {
                     taskObject.config = configAndState.config;
+                    taskObject.state = configAndState.state;
                 } else {
                     this._taskObjects[path] = { config: configAndState.config, state: configAndState.state };
                 }
@@ -427,14 +428,15 @@
             }
         }
 
-        GetTaskObjects() {
+        GetTasks() {
             const result = [];
             for (const path in this._taskObjects) {
                 if (this._taskObjects.hasOwnProperty(path)) {
                     const taskObject = this._taskObjects[path];
-                    const data = JSON.parse(JSON.stringify(taskObject.config));
-                    data.state = taskObject.state;
-                    result.push(data);
+                    result.push({
+                        config: JSON.parse(JSON.stringify(taskObject.config)),
+                        state: taskObject.state
+                    });
                 }
             }
             return result;

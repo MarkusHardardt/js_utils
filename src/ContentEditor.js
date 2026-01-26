@@ -2413,15 +2413,6 @@
         State: 4
     });
 
-    function formatObjectLifecycleState(state) {
-        for (const name in ObjectLifecycleManager.LifecycleState) {
-            if (ObjectLifecycleManager.LifecycleState.hasOwnProperty(name) && ObjectLifecycleManager.LifecycleState[name] === state) {
-                return name;
-            }
-        }
-        return `Unknown state: ${state}`;
-    }
-
     function showTasksConfigurationDialog(hmi, adapter, currentlySelectedData) {
         const cms = hmi.env.cms;
         let taskObjects = null;
@@ -2437,14 +2428,14 @@
             stopTaskButton.hmi_setVisible(false);
             browseTaskObjectButton.hmi_setVisible(false);
             browseJsonFXObjectButton.hmi_setVisible(false);
-            taskObjects = hmi.env.tasks.GetTaskObjects(); // TODO: Debug this in browser
+            taskObjects = hmi.env.tasks.GetTasks(); // TODO: Debug this in browser
             const tasks = [];
             for (let i = 0; i < taskObjects.length; i++) {
                 (function () {
                     const taskObject = taskObjects[i];
                     taskObject.edited = false;
                     tasks.push((onSuccess, onError) => {
-                        cms.GetChecksum(taskObject.file, checksum => {
+                        cms.GetChecksum(taskObject.config.file, checksum => {
                             taskObject.checksum = checksum;
                             onSuccess();
                         }, onError)
@@ -2460,14 +2451,14 @@
             }, error => adapter.notifyError(`Error loading task objects: ${error}`));
         }
         function onStateChanged(path, state) {
-            console.log(`task '${path}', state: '${formatObjectLifecycleState(state)}'`);
+            console.log(`task '${path}', state: '${ObjectLifecycleManager.formatObjectLifecycleState(state)}'`);
             if (taskObjects) {
                 for (let i = 0; i < taskObjects.length; i++) {
                     const taskObject = taskObjects[i];
-                    if (taskObject.path === path) {
+                    if (taskObject.config.path === path) {
                         if (state !== taskObject.state) {
                             taskObject.state = state;
-                            table.hmi_value(i, TaskObjectsTableColumn.State, formatObjectLifecycleState(state));
+                            table.hmi_value(i, TaskObjectsTableColumn.State, ObjectLifecycleManager.formatObjectLifecycleState(state));
                         }
                         break;
                     }
@@ -2504,15 +2495,15 @@
                 const taskObject = taskObjects[rowIndex];
                 switch (columnIndex) {
                     case TaskObjectsTableColumn.Id:
-                        return taskObject.id;
+                        return taskObject.config.id;
                     case TaskObjectsTableColumn.TaskObject:
-                        return taskObject.taskObject;
+                        return taskObject.config.taskObject;
                     case TaskObjectsTableColumn.CycleMillis:
-                        return taskObject.cycleMillis;
+                        return taskObject.config.cycleMillis;
                     case TaskObjectsTableColumn.Autorun:
-                        return (taskObject.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? 'enabled' : 'disabled';
+                        return (taskObject.config.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? 'enabled' : 'disabled';
                     case TaskObjectsTableColumn.State:
-                        return formatObjectLifecycleState(taskObject.state);
+                        return ObjectLifecycleManager.formatObjectLifecycleState(taskObject.state);
                     default:
                         return '';
                 }
@@ -2520,12 +2511,12 @@
             handleTableRowClicked: rowIndex => {
                 if (rowIndex !== selectedDataIndex) {
                     const selectedData = taskObjects[selectedDataIndex = rowIndex];
-                    detailsEditor.onKeyChanged(selectedData, undefined, () => { }, error => adapter.notifyError(`Error setting content for ${selectedData.path}: ${error}`));
-                    const browsingEnabled = !selectedDataEdited && selectedData !== null;
-                    startTaskButton.hmi_setVisible(browsingEnabled);
-                    stopTaskButton.hmi_setVisible(browsingEnabled);
-                    browseTaskObjectButton.hmi_setVisible(browsingEnabled);
-                    browseJsonFXObjectButton.hmi_setVisible(browsingEnabled);
+                    detailsEditor.onKeyChanged(selectedData.config, undefined, () => { }, error => adapter.notifyError(`Error setting content for ${selectedData.path}: ${error}`));
+                    const taskActionButtonsEnabled = !selectedDataEdited && selectedData !== null;
+                    startTaskButton.hmi_setVisible(taskActionButtonsEnabled);
+                    stopTaskButton.hmi_setVisible(taskActionButtonsEnabled);
+                    browseTaskObjectButton.hmi_setVisible(taskActionButtonsEnabled);
+                    browseJsonFXObjectButton.hmi_setVisible(taskActionButtonsEnabled);
                 }
             }
         };
@@ -2568,9 +2559,9 @@
                             const obj = taskObj;
                             tasks.push((onSuccess, onError) => {
                                 performModification(hmi, obj.checksum, obj.file, obj.file, undefined, {
-                                    taskObjectColumn: obj.taskObject,
-                                    cycleIntervalMillisColumn: obj.cycleMillis,
-                                    flagsColumn: obj.flags
+                                    taskObjectColumn: obj.config.taskObject,
+                                    cycleIntervalMillisColumn: obj.config.cycleMillis,
+                                    flagsColumn: obj.config.flags
                                 }, params => onSuccess(), onError);
                             });
                         }());
@@ -2597,7 +2588,7 @@
             click: onClose => {
                 if (selectedDataIndex !== -1) {
                     const taskObject = taskObjects[selectedDataIndex];
-                    hmi.env.tasks.StartTask(taskObject.path, response => adapter.updateInfo(response), error => adapter.notifyError(error));
+                    hmi.env.tasks.StartTask(taskObject.config.path, response => adapter.updateInfo(response), error => adapter.notifyError(error));
                 }
             }
         };
@@ -2607,7 +2598,7 @@
             click: onClose => {
                 if (selectedDataIndex !== -1) {
                     const taskObject = taskObjects[selectedDataIndex];
-                    hmi.env.tasks.StopTask(taskObject.path, response => adapter.updateInfo(response), error => adapter.notifyError(error));
+                    hmi.env.tasks.StopTask(taskObject.config.path, response => adapter.updateInfo(response), error => adapter.notifyError(error));
                 }
             }
         };
@@ -2616,7 +2607,7 @@
             visible: false,
             click: onClose => {
                 if (selectedDataIndex !== -1) {
-                    adapter.selectInNavigator(cms.AnalyzeId(taskObjects[selectedDataIndex].id));
+                    adapter.selectInNavigator(cms.AnalyzeId(taskObjects[selectedDataIndex].config.id));
                 }
                 hmi.env.tasks.OnConfigChanged = null;
                 hmi.env.tasks.OnStateChanged = null;
@@ -2628,7 +2619,7 @@
             visible: false,
             click: onClose => {
                 if (selectedDataIndex !== -1) {
-                    adapter.selectInNavigator(cms.AnalyzeId(taskObjects[selectedDataIndex].taskObject));
+                    adapter.selectInNavigator(cms.AnalyzeId(taskObjects[selectedDataIndex].config.taskObject));
                 }
                 hmi.env.tasks.OnConfigChanged = null;
                 hmi.env.tasks.OnStateChanged = null;

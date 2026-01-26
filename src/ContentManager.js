@@ -2427,13 +2427,12 @@
             ));
         }
         // Note: this next is a template method - copy when new request has to be implemented
-        _$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$_$(onResponse, onError) {
-            const that = this;
+        _tempdateMethodUsingTransaction(onResponse, onError) {
             this._getSqlAdapter(adapter => {
                 const main = [];
                 main.parallel = false;
                 main.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
-                main.push(function (onSuc, onErr) {
+                main.push((onSuc, onErr) => {
                     // add this as often as reqzured and implement actions
                 });
                 Executor.run(main, () => {

@@ -20,6 +20,10 @@
             this._values = [];
         }
         Close() {
+            if (!this._con) {
+                console.error('SQL adapter has allready been closed');
+                return;
+            }
             this._con.release();
             delete this._con;
         }
@@ -360,7 +364,7 @@
     }
 
     function getAdapterFactory(config, verbose) {
-        const db_access = require(typeof config === 'string' ? config : '../cfg/db_access.json'); 
+        const db_access = require(typeof config === 'string' ? config : '../cfg/db_access.json');
         const helper = mysql.createPool(db_access);
         return (onSuccess, onError) => {
             helper.getConnection((onErr, connection) => {

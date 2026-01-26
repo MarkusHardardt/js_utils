@@ -7931,6 +7931,14 @@
     const LifecycleUserMethods = Object.freeze({ Build: 'build', Apply: 'apply', Prepare: 'prepare', Start: 'start', Stop: 'stop', Destroy: 'destroy', Remove: 'remove', Cleanup: 'cleanup' });
     const LifecycleState = Object.freeze({ Idle: 0, Build: 1, Apply: 2, Prepare: 3, Start: 4, Running: 5, Stop: 6, Destroy: 7, Remove: 8, Cleanup: 9 });
     ObjectLifecycleManager.LifecycleState = LifecycleState;
+    ObjectLifecycleManager.formatObjectLifecycleState = state => {
+        for (const name in LifecycleState) {
+            if (LifecycleState.hasOwnProperty(name) && LifecycleState[name] === state) {
+                return name;
+            }
+        }
+        return `Unknown state: ${state}`;
+    };
 
     // /////////////////////////////////////////////////////////////////////////////////////////
     // INITIALIZATION AND DESTROY
