@@ -2230,8 +2230,8 @@
             selectedDataIndex = -1;
             selectedDataEdited = false;
             viewObjectValue.hmi_value('');
-            enableCheckbox.setValue(false);
             enableCheckbox.setOnChanged(null);
+            enableCheckbox.setValue(false);
             queryParameterValue.hmi_value('');
             commitButton.hmi_setVisible(false);
             resetButton.hmi_setVisible(false);
@@ -2303,6 +2303,7 @@
                 if (rowIndex !== selectedDataIndex) {
                     const selectedData = hmiObjects[selectedDataIndex = rowIndex];
                     viewObjectValue.hmi_value(selectedData.viewObject);
+                    enableCheckbox.setOnChanged(null);
                     enableCheckbox.setValue((selectedData.flags & ContentManager.HMI_FLAG_ENABLE) !== 0);
                     enableCheckbox.setOnChanged(onEnableEdited);
                     queryParameterValue.hmi_value(selectedData.queryParameter);
@@ -2518,8 +2519,8 @@
             selectedDataEdited = false;
             taskObjectValue.hmi_value('');
             cycleIntervalMillisValue.hmi_value('');
-            autorunCheckbox.setValue(false);
             autorunCheckbox.setOnChanged(null);
+            autorunCheckbox.setValue(false);
             commitButton.hmi_setVisible(false);
             resetButton.hmi_setVisible(false);
             startTaskButton.hmi_setVisible(false);
@@ -2612,6 +2613,7 @@
                     const config = selectedData.config;
                     taskObjectValue.hmi_value(config.taskObject);
                     cycleIntervalMillisValue.hmi_value(config.cycleMillis.toString());
+                    autorunCheckbox.setOnChanged(null);
                     autorunCheckbox.setValue((config.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0);
                     autorunCheckbox.setOnChanged(onAutorunEdited);
                     const taskActionButtonsEnabled = !selectedDataEdited;
