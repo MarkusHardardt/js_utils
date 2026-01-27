@@ -116,15 +116,16 @@
                                 if (taskObject.task) {
                                     // If the task is not available anymore we must stop the running instance
                                     tasks.push((onSuc, onErr) => that._stopTask(path, () => {
+                                        delete that._taskObjects[path];
                                         console.log(`Stopped task '${path}' because it is not available anymore`);
                                         onSuc();
                                     }, error => {
+                                        delete that._taskObjects[path];
                                         const err = `Failed stopping task '${path}' because it is not available anymore: ${error}`;
-                                        console.log(err);
+                                        console.error(err);
                                         onErr(err);
                                     }));
                                 }
-                                delete that._taskObjects[path];
                             }
                         }
                     }
