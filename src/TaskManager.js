@@ -424,8 +424,6 @@
                 } catch (error) {
                     this.onError(`Failed calling onStateChanged(path, state): ${error}`);
                 }
-            } else {
-                console.log(`task: ${data.path}, state: ${data.state}`); // TODO: Implement
             }
         }
 
