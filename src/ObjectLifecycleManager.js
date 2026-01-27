@@ -110,24 +110,24 @@
 
     const s_extensions = [];
 
-    function attach_hmi_object(i_object) {
+    function attachHmiObject(object) {
         // If we got a valid object we iterate to the actual visualization object
         // first. [1]
         // Then we iterate again and connect all objects to the visualization
         // object. [2]
         // Finally we call ourself recursively on all children. [3]
-        if (i_object !== null && typeof i_object === 'object') {
+        if (object !== null && typeof object === 'object') {
             // step to hmi-object [1]
-            var obj = i_object;
-            var cld = obj.object;
+            let obj = object;
+            let cld = obj.object;
             while (cld !== null && typeof cld === 'object') {
                 obj = cld;
                 cld = obj.object;
             }
             // store hmi object
-            var hmiobj = obj;
+            const hmiobj = obj;
             // step again and attach [2]
-            obj = i_object;
+            obj = object;
             obj._hmi_object = hmiobj;
             obj.hmi_object = hmiobj;
             cld = obj.object;
@@ -138,29 +138,29 @@
                 cld = obj.object;
             }
             // handle children [3]
-            var children = hmiobj.children;
+            const children = hmiobj.children;
             if (Array.isArray(children)) {
                 for (var i = 0, l = children.length; i < l; i++) {
-                    attach_hmi_object(children[i]);
+                    attachHmiObject(children[i]);
                 }
             }
         }
     }
 
-    function detach_hmi_object(i_object) {
-        if (i_object !== null && typeof i_object === 'object') {
+    function detachHmiObject(object) {
+        if (object !== null && typeof object === 'object') {
             // detach children
-            var children = i_object._hmi_object.children;
+            const children = object._hmi_object.children;
             if (Array.isArray(children)) {
                 for (var i = children.length - 1; i >= 0; i--) {
-                    detach_hmi_object(children[i]);
+                    detachHmiObject(children[i]);
                 }
             }
             // delete all
-            var obj = i_object;
+            let obj = object;
             delete obj._hmi_object;
             delete obj.hmi_object;
-            var cld = obj.object;
+            let cld = obj.object;
             while (cld !== null && typeof cld === 'object') {
                 delete cld._hmi_object;
                 delete cld.hmi_object;
@@ -170,147 +170,137 @@
         }
     }
 
-    function process_object_branch(i_hmiObject, i_fromRootToLeaf, i_is_valid, i_callback) {
-        if (i_is_valid === undefined || i_is_valid(i_hmiObject) === true) {
+    function processObjectBranch(object, fromRootToLeaf, isValid, callback) {
+        if (isValid === undefined || isValid(object) === true) {
             // perform callback if from root to leaf
-            if (i_fromRootToLeaf === true) {
-                i_callback(i_hmiObject);
+            if (fromRootToLeaf === true) {
+                callback(object);
             }
             // if children available iterate over all children
-            var children = i_hmiObject.children;
+            var children = object.children;
             if (Array.isArray(children)) {
-                if (i_fromRootToLeaf === true) {
+                if (fromRootToLeaf === true) {
                     for (var i = 0, l = children.length; i < l; i++) {
-                        process_object_branch(children[i]._hmi_object, i_fromRootToLeaf, i_is_valid, i_callback);
+                        processObjectBranch(children[i]._hmi_object, fromRootToLeaf, isValid, callback);
                     }
-                }
-                else {
+                } else {
                     for (var i = children.length - 1; i >= 0; i--) {
-                        process_object_branch(children[i]._hmi_object, i_fromRootToLeaf, i_is_valid, i_callback);
+                        processObjectBranch(children[i]._hmi_object, fromRootToLeaf, isValid, callback);
                     }
                 }
             }
             // perform callback if not from root to leaf
-            if (i_fromRootToLeaf !== true) {
-                i_callback(i_hmiObject);
+            if (fromRootToLeaf !== true) {
+                callback(object);
             }
         }
     }
 
-    function set_bounds(i_element, i_bounds) {
-        i_element.css('left', i_bounds.x.toString() + 'px');
-        i_element.css('top', i_bounds.y.toString() + 'px');
-        i_element.css('width', i_bounds.width.toString() + 'px');
-        i_element.css('height', i_bounds.height.toString() + 'px');
+    function setBounds(element, bounds) {
+        element.css('left', bounds.x.toString() + 'px');
+        element.css('top', bounds.y.toString() + 'px');
+        element.css('width', bounds.width.toString() + 'px');
+        element.css('height', bounds.height.toString() + 'px');
     }
-    ObjectLifecycleManager.setBounds = set_bounds;
+    ObjectLifecycleManager.setBounds = setBounds;
 
-    function get_pixel_value(i_value) {
-        if (typeof i_value !== 'string') {
+    function getPixelValue(value) {
+        if (typeof value !== 'string') {
             return undefined;
         }
-        var idx = i_value.indexOf('px');
+        var idx = value.indexOf('px');
         if (idx <= 0) {
             return undefined;
         }
-        var px = i_value.substr(0, idx);
+        var px = value.substr(0, idx);
         if (isNaN(px)) {
             return undefined;
         }
         return parseFloat(px);
     }
 
-    function is_number_or_pixel_value(i_value) {
-        if (typeof i_value === 'string') {
-            var idx = i_value.indexOf('px');
-            return idx > 0 && isNaN(i_value.substr(0, idx)) === false;
-        }
-        else {
-            return typeof i_value === 'number';
+    function isNumberOrPixelValue(value) {
+        if (typeof value === 'string') {
+            var idx = value.indexOf('px');
+            return idx > 0 && isNaN(value.substr(0, idx)) === false;
+        } else {
+            return typeof value === 'number';
         }
     }
 
-    function get_alignment(i_align, i_result, i_mirrorX, i_mirrorY) {
-        var res = i_result || {};
-        if (typeof i_align === 'string') {
-            if (i_align.indexOf('left') !== -1) {
-                res.x = i_mirrorX === true ? 1.0 : 0.0;
-            }
-            else if (i_align.indexOf('right') !== -1) {
-                res.x = i_mirrorX === true ? 0.0 : 1.0;
-            }
-            else {
+    function getAlignment(align, result, mirrorX, mirrorY) {
+        var res = result || {};
+        if (typeof align === 'string') {
+            if (align.indexOf('left') !== -1) {
+                res.x = mirrorX === true ? 1.0 : 0.0;
+            } else if (align.indexOf('right') !== -1) {
+                res.x = mirrorX === true ? 0.0 : 1.0;
+            } else {
                 res.x = 0.5;
             }
-            if (i_align.indexOf('bottom') !== -1) {
-                res.y = i_mirrorY === true ? 1.0 : 0.0;
-            }
-            else if (i_align.indexOf('top') !== -1) {
-                res.y = i_mirrorY === true ? 0.0 : 1.0;
-            }
-            else {
+            if (align.indexOf('bottom') !== -1) {
+                res.y = mirrorY === true ? 1.0 : 0.0;
+            } else if (align.indexOf('top') !== -1) {
+                res.y = mirrorY === true ? 0.0 : 1.0;
+            } else {
                 res.y = 0.5;
             }
-        }
-        else if (i_align !== null && typeof i_align === 'object') {
-            var x = i_align.x;
-            var y = i_align.y;
-            res.x = typeof x === 'number' ? (i_mirrorX === true ? 1.0 - x : x) : 0.5;
-            res.y = typeof y === 'number' ? (i_mirrorY === true ? 1.0 - y : y) : 0.5;
-        }
-        else {
+        } else if (align !== null && typeof align === 'object') {
+            var x = align.x;
+            var y = align.y;
+            res.x = typeof x === 'number' ? (mirrorX === true ? 1.0 - x : x) : 0.5;
+            res.y = typeof y === 'number' ? (mirrorY === true ? 1.0 - y : y) : 0.5;
+        } else {
             res.x = 0.5;
             res.y = 0.5;
         }
         return res;
     }
 
-    function get_floating_bounds(i_child, i_containerWidth, i_containerHeight) {
+    function getFloatingBounds(child, containerWidth, containerHeight) {
         // get the alignment
-        var align = get_alignment(i_child.align, undefined, false, true);
+        var alignment = getAlignment(child.align, undefined, false, true);
         // get pixel values as number if available (returns undefined if not
         // something like "42px")
-        var parX = get_pixel_value(i_child.x);
-        var parY = get_pixel_value(i_child.y);
-        var parW = get_pixel_value(i_child.width);
-        var parH = get_pixel_value(i_child.height);
+        var parX = getPixelValue(child.x);
+        var parY = getPixelValue(child.y);
+        var parW = getPixelValue(child.width);
+        var parH = getPixelValue(child.height);
         // compute the pixel values
-        var pixX = typeof parX === 'number' ? parX : (typeof i_child.x === 'number' ? i_child.x * i_containerWidth : 0.0);
-        var pixY = typeof parY === 'number' ? parY : (typeof i_child.y === 'number' ? i_child.y * i_containerHeight : 0.0);
-        var pixW = typeof parW === 'number' ? parW : (typeof i_child.width === 'number' ? i_child.width * i_containerWidth : 0.1);
-        var pixH = typeof parH === 'number' ? parH : (typeof i_child.height === 'number' ? i_child.height * i_containerHeight : 0.1);
+        var pixX = typeof parX === 'number' ? parX : (typeof child.x === 'number' ? child.x * containerWidth : 0.0);
+        var pixY = typeof parY === 'number' ? parY : (typeof child.y === 'number' ? child.y * containerHeight : 0.0);
+        var pixW = typeof parW === 'number' ? parW : (typeof child.width === 'number' ? child.width * containerWidth : 0.1);
+        var pixH = typeof parH === 'number' ? parH : (typeof child.height === 'number' ? child.height * containerHeight : 0.1);
         // return the bounds
         return {
-            x: Math.floor(pixX - pixW * align.x),
-            y: Math.floor(pixY - pixH * align.y),
+            x: Math.floor(pixX - pixW * alignment.x),
+            y: Math.floor(pixY - pixH * alignment.y),
             width: Math.floor(pixW),
             height: Math.floor(pixH)
         };
     }
 
-    function update_coordinates(i_element, i_x, i_y, i_width, i_height, i_containerWidth, i_containerHeight, i_align) {
+    function updateCoordinates(i_element, x, y, width, height, containerWidth, containerHeight, align) {
         // get the alignment
-        var align = get_alignment(i_align, undefined, false, true);
+        var alignment = getAlignment(align, undefined, false, true);
         // get pixel values as number if available (returns undefined if not
         // something like "42px")
-        var parX = get_pixel_value(i_x);
-        var parY = get_pixel_value(i_y);
-        var parW = get_pixel_value(i_width);
-        var parH = get_pixel_value(i_height);
-
+        var parX = getPixelValue(x);
+        var parY = getPixelValue(y);
+        var parW = getPixelValue(width);
+        var parH = getPixelValue(height);
         // compute the pixel values
-        var pixX = typeof parX === 'number' ? parX : (typeof i_x === 'number' ? i_x : 0);
-        var pixY = typeof parY === 'number' ? parY : (typeof i_y === 'number' ? i_y : 0);
-        var pixW = typeof parW === 'number' ? parW : (typeof i_width === 'number' ? i_width : i_containerWidth);
-        var pixH = typeof parH === 'number' ? parH : (typeof i_height === 'number' ? i_height : i_containerHeight);
-
+        var pixX = typeof parX === 'number' ? parX : (typeof x === 'number' ? x : 0);
+        var pixY = typeof parY === 'number' ? parY : (typeof y === 'number' ? y : 0);
+        var pixW = typeof parW === 'number' ? parW : (typeof width === 'number' ? width : containerWidth);
+        var pixH = typeof parH === 'number' ? parH : (typeof height === 'number' ? height : containerHeight);
         // update the view
-        i_element.css('left', Math.floor(pixX - pixW * align.x).toString() + 'px');
+        i_element.css('left', Math.floor(pixX - pixW * alignment.x).toString() + 'px');
         i_element.css('width', Math.floor(pixW).toString() + 'px');
-        i_element.css('top', Math.floor(pixY - pixH * align.y).toString() + 'px');
+        i_element.css('top', Math.floor(pixY - pixH * alignment.y).toString() + 'px');
         i_element.css('height', Math.floor(pixH).toString() + 'px');
     }
-    ObjectLifecycleManager.updateCoordinates = update_coordinates;
+    ObjectLifecycleManager.updateCoordinates = updateCoordinates;
 
     function ListenerSupport() {
         var that = this;
@@ -394,8 +384,7 @@
         if (typeof i_object.init === 'function') {
             try {
                 i_object.init(i_data);
-            }
-            catch (exc) {
+            }            catch (exc) {
                 console.error('EXCEPTION Calling init(): ' + exc + ' ' + i_object.init.toString());
             }
         }
@@ -843,7 +832,7 @@
             for (var i = 0; i < i_param.length; i++) {
                 var param = i_param[i];
                 var coor = {};
-                var pixel = get_pixel_value(param);
+                var pixel = getPixelValue(param);
                 if (typeof pixel === 'number') {
                     coor.pixel = Math.floor(pixel);
                     validPixelCnt++;
@@ -1392,7 +1381,7 @@
                         placeholder._hmi_gridElement = $(DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                         placeholder._hmi_gridElement.appendTo(_mainDiv);
                         placeholder._hmi_gridElement.data('hmi_object', hmiobj);
-                        set_bounds(placeholder._hmi_gridElement, _grid.getBounds(placeholder));
+                        setBounds(placeholder._hmi_gridElement, _grid.getBounds(placeholder));
                         _placeholders.push(placeholder);
                         placeholder._hmi_gridElement.droppable({
                             scope: _scope,
@@ -1409,7 +1398,7 @@
                                     if (child._hmi_gridElement && child._hmi_object === source) {
                                         child.x = placeholder.x;
                                         child.y = placeholder.y;
-                                        set_bounds(child._hmi_gridElement, _grid.getBounds(child));
+                                        setBounds(child._hmi_gridElement, _grid.getBounds(child));
                                         var hmiobj = child._hmi_object;
                                         if (hmiobj && hmiobj._hmi_resize) {
                                             hmiobj._hmi_resize();
@@ -1522,7 +1511,7 @@
                                 }
                             }
                             child._hmi_gridElement.data('hmi_object', hmiobj);
-                            set_bounds(child._hmi_gridElement, _grid.getBounds(child));
+                            setBounds(child._hmi_gridElement, _grid.getBounds(child));
                             _children.push(child);
                             droppableCellAdded(child);
                         }
@@ -1560,7 +1549,7 @@
                             child.height = i_height;
                             child._hmi_gridElement = $(DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                             child._hmi_gridElement.appendTo(_mainDiv);
-                            set_bounds(child._hmi_gridElement, _grid.getBounds(child));
+                            setBounds(child._hmi_gridElement, _grid.getBounds(child));
                             _children.push(child);
                             droppableCellAdded(child);
                             createObjectBranch(i_object, child._hmi_gridElement, function () {
@@ -1707,7 +1696,7 @@
                         else {
                             child._hmi_gridElement = $(DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                             child._hmi_gridElement.appendTo(_mainDiv);
-                            set_bounds(child._hmi_gridElement, _grid.getBounds(child));
+                            setBounds(child._hmi_gridElement, _grid.getBounds(child));
                             if (hmiobj._hmi_init_dom) {
                                 tasks.push(function (i_suc, i_err) {
                                     // #grid: 2
@@ -1750,13 +1739,13 @@
             if (Array.isArray(_placeholders)) {
                 for (var i = 0; i < _placeholders.length; i++) {
                     var child = _placeholders[i];
-                    set_bounds(child._hmi_gridElement, _grid.getBounds(child));
+                    setBounds(child._hmi_gridElement, _grid.getBounds(child));
                 }
             }
             for (var i = 0; i < _children.length; i++) {
                 var child = _children[i];
                 if (child._hmi_gridElement) {
-                    set_bounds(child._hmi_gridElement, _grid.getBounds(child));
+                    setBounds(child._hmi_gridElement, _grid.getBounds(child));
                     var hmiobj = child._hmi_object;
                     if (hmiobj && hmiobj._hmi_resize) {
                         hmiobj._hmi_resize();
@@ -1859,18 +1848,18 @@
                             var width = _mainDiv.width();
                             var height = _mainDiv.height();
                             // get the alignment
-                            var align = get_alignment(child.align, undefined, false, true);
+                            var align = getAlignment(child.align, undefined, false, true);
                             // get pixel values as number if available (returns undefined if
                             // not something like "42px")
-                            var parX = get_pixel_value(child.x);
-                            var parY = get_pixel_value(child.y);
-                            var parW = get_pixel_value(child.width);
-                            var parH = get_pixel_value(child.height);
+                            var parX = getPixelValue(child.x);
+                            var parY = getPixelValue(child.y);
+                            var parW = getPixelValue(child.width);
+                            var parH = getPixelValue(child.height);
                             // get the current views location and dimension
-                            var pixW = get_pixel_value(child._hmi_floatElement.css('width'));
-                            var pixH = get_pixel_value(child._hmi_floatElement.css('height'));
-                            var pixX = get_pixel_value(child._hmi_floatElement.css('left')) + pixW * align.x;
-                            var pixY = get_pixel_value(child._hmi_floatElement.css('top')) + pixH * align.y;
+                            var pixW = getPixelValue(child._hmi_floatElement.css('width'));
+                            var pixH = getPixelValue(child._hmi_floatElement.css('height'));
+                            var pixX = getPixelValue(child._hmi_floatElement.css('left')) + pixW * align.x;
+                            var pixY = getPixelValue(child._hmi_floatElement.css('top')) + pixH * align.y;
                             // update the rectangle attributes
                             child.x = typeof parX === 'number' ? pixX + 'px' : pixX / width;
                             child.y = typeof parY === 'number' ? pixY + 'px' : pixY / height;
@@ -1913,7 +1902,7 @@
                     else {
                         child._hmi_floatElement = $(DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                         child._hmi_floatElement.appendTo(_mainDiv);
-                        set_bounds(child._hmi_floatElement, get_floating_bounds(child, width, height));
+                        setBounds(child._hmi_floatElement, getFloatingBounds(child, width, height));
                         if (hmiobj._hmi_init_dom) {
                             tasks.push(function (i_suc, i_err) {
                                 // #float: 2
@@ -1977,7 +1966,7 @@
             for (var i = 0; i < _children.length; i++) {
                 var child = _children[i];
                 if (child._hmi_floatElement) {
-                    set_bounds(child._hmi_floatElement, get_floating_bounds(child, width, height));
+                    setBounds(child._hmi_floatElement, getFloatingBounds(child, width, height));
                     var hmiobj = child._hmi_object;
                     if (hmiobj && hmiobj._hmi_resize) {
                         hmiobj._hmi_resize();
@@ -3847,7 +3836,7 @@
                     _text._hmi_marginTop = undefined;
                     _text.css('margin-top', '');
                 }
-                var align = get_alignment(that.align, undefined, false, true);
+                var align = getAlignment(that.align, undefined, false, true);
                 var containerWidth = Math.floor(_cont.innerWidth());
                 var containerHeight = Math.floor(_cont.innerHeight());
                 var contentWidth = Math.ceil(_text.width());
@@ -3880,7 +3869,7 @@
                 }
             }
             else if (_image !== undefined) {
-                var align = get_alignment(that.align, undefined, false, true);
+                var align = getAlignment(that.align, undefined, false, true);
                 var containerWidth = Math.floor(_cont.innerWidth());
                 var containerHeight = Math.floor(_cont.innerHeight());
                 var contentWidth = Math.ceil(_image[0].naturalWidth);
@@ -4025,11 +4014,11 @@
     };
     function get_canvas_pixel(i_object, i_attribute, i_scale, i_default) {
         var val = get_canvas_attribute(i_object, i_attribute);
-        var pix = get_pixel_value(val);
+        var pix = getPixelValue(val);
         return typeof pix === 'number' ? pix : (typeof val === 'number' ? val * i_scale : i_default);
     };
     function get_pixel_size(i_value, i_scale, i_default) {
-        var pix = get_pixel_value(i_value);
+        var pix = getPixelValue(i_value);
         return typeof pix === 'number' ? pix : (typeof i_value === 'number' ? i_value * i_scale : i_default);
     };
 
@@ -4699,7 +4688,7 @@
                             }
                         }
                         // moving vehicles [2]
-                        process_object_branch(that, true, function (i_hmiObject) {
+                        processObjectBranch(that, true, function (i_hmiObject) {
                             // this is our valid? call
                             return _ctx === i_hmiObject._hmi_context.context2d;
                         }, function (i_hmiObject) {
@@ -4753,7 +4742,7 @@
                         // collect and update [3]
                         var elems = that._hmi_canvasElements;
                         elems.splice(0, elems.length);
-                        process_object_branch(that, true, function (i_hmiObject) {
+                        processObjectBranch(that, true, function (i_hmiObject) {
                             // this is our valid? call
                             return _ctx === i_hmiObject._hmi_context.context2d;
                         }, function (i_hmiObject) {
@@ -4847,7 +4836,7 @@
                     var search = true;
                     _ctx.setTransform(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
                     _ctx.save();
-                    process_object_branch(that, true, function (i_hmiObject) {
+                    processObjectBranch(that, true, function (i_hmiObject) {
                         // this is our valid? call
                         return search && _ctx === i_hmiObject._hmi_context.context2d;
                     }, function (i_hmiObject) {
@@ -5198,7 +5187,7 @@
                     break;
                 case RECT:
                     _ctx.beginPath();
-                    get_alignment(that.align, _p, mx, my);
+                    getAlignment(that.align, _p, mx, my);
                     var x = ox - _p.x * w;
                     var y = oy - _p.y * h;
                     var rb = get_canvas_pixel(that, 'roundBorder', scale);
@@ -5265,7 +5254,7 @@
                 case ARC:
                 case RECT:
                 case TEXT:
-                    if (that.stroke === true || is_number_or_pixel_value(that.lineWidth) || typeof that.strokeStyle === 'string') {
+                    if (that.stroke === true || isNumberOrPixelValue(that.lineWidth) || typeof that.strokeStyle === 'string') {
                         stroke = true;
                     }
                     break;
@@ -5377,7 +5366,7 @@
                         var fontFamily = get_canvas_attribute(that, 'fontFamily');
                         font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                         _ctx.font = font;
-                        get_alignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
+                        getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
                         _ctx.textAlign = 'center';
                         _ctx.textBaseline = 'middle';
                         if (Array.isArray(text)) {
@@ -5414,7 +5403,7 @@
                     }
                     break;
                 case IMAGE:
-                    get_alignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
+                    getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
                     var x = ox - _p.x * w;
                     var y = oy - _p.y * h;
                     _ctx.globalAlpha = typeof that.alpha === 'number' ? Math.max(Math.min(that.alpha, 1.0), 0.0) : 1.0; // 0 == transparent .. 1 == full
@@ -5614,7 +5603,7 @@
                     break;
                 case RECT:
                     _ctx.beginPath();
-                    get_alignment(that.align, _p, mx, my);
+                    getAlignment(that.align, _p, mx, my);
                     var x = ox - _p.x * w;
                     var y = oy - _p.y * h;
                     var rb = get_canvas_pixel(that, 'roundBorder', scale);
@@ -5677,7 +5666,7 @@
                     font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                     _ctx.font = font;
                     _ctx.beginPath();
-                    get_alignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
+                    getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
                     // Bugfix #text_click (2016-09-09, Hm)
                     if (Array.isArray(text)) {
                         // #text_click: var y0 = oy - (_p.y * text.length - 0.5) * fontSize;
@@ -5717,7 +5706,7 @@
                     break;
                 case IMAGE:
                     _ctx.beginPath();
-                    get_alignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
+                    getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
                     var x = ox - _p.x * w;
                     var y = oy - _p.y * h;
                     _ctx.rect(x, y, w, h);
@@ -5963,7 +5952,7 @@
                     update_bounds(i_bounds, ox + r, oy - r);
                     break;
                 case RECT:
-                    get_alignment(that.align, _p, false, false);
+                    getAlignment(that.align, _p, false, false);
                     var x = ox - _p.x * w;
                     var y = oy - _p.y * h;
                     i_transform.transform(x, y, _p);
@@ -5999,7 +5988,7 @@
                     var fontFamily = get_canvas_attribute(that, 'fontFamily');
                     font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                     _ctx.font = font;
-                    get_alignment(that.align, _p, false, false);
+                    getAlignment(that.align, _p, false, false);
                     if (Array.isArray(text)) {
                         var y0 = oy - _p.y * text.length * fontSize;
                         var x0 = undefined;
@@ -6049,7 +6038,7 @@
                     _ctx.restore();
                     break;
                 case IMAGE:
-                    get_alignment(that.align, _p, false, false);
+                    getAlignment(that.align, _p, false, false);
                     var x = ox - _p.x * w;
                     var y = oy - _p.y * h;
                     i_transform.transform(x, y, _p);
@@ -6186,7 +6175,7 @@
                     _ctx.translate(-ox, -oy);
                 }
                 _ctx.beginPath();
-                get_alignment(i_config.align, _p, mx, my);
+                getAlignment(i_config.align, _p, mx, my);
                 var x = ox - _p.x * w;
                 var y = oy - _p.y * h;
                 var rb = get_canvas_pixel(i_config, 'roundBorder', scale);
@@ -6375,7 +6364,7 @@
                     _ctx.translate(-ox, -oy);
                 }
                 var stroke = false;
-                if (i_config.stroke === true || is_number_or_pixel_value(i_config.lineWidth) || typeof i_config.strokeStyle === 'string') {
+                if (i_config.stroke === true || isNumberOrPixelValue(i_config.lineWidth) || typeof i_config.strokeStyle === 'string') {
                     stroke = true;
                 }
                 var fill = false;
@@ -6409,7 +6398,7 @@
                     var fontFamily = i_config.fontFamily;
                     font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                     _ctx.font = font;
-                    get_alignment(i_config.align, _p, mx !== (i_config.flipX === true), my !== (i_config.flipY === true));
+                    getAlignment(i_config.align, _p, mx !== (i_config.flipX === true), my !== (i_config.flipY === true));
                     _ctx.textAlign = 'center';
                     _ctx.textBaseline = 'middle';
                     if (Array.isArray(i_text)) {
@@ -6526,7 +6515,7 @@
                     _ctx.scale(i_config.flipX === true ? -sc : sc, i_config.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
                 }
-                get_alignment(i_config.align, _p, mx !== (i_config.flipX === true), my !== (i_config.flipY === true));
+                getAlignment(i_config.align, _p, mx !== (i_config.flipX === true), my !== (i_config.flipY === true));
                 var x = ox - _p.x * w;
                 var y = oy - _p.y * h;
                 _ctx.drawImage(i_image, x, y, w, h);
@@ -6654,7 +6643,7 @@
                 // TODO not sure about mirrors
                 var mx = _tf.mirrorX !== (i_child.mirrorX === true);
                 var my = _tf.mirrorY !== (i_child.mirrorY === true);
-                get_alignment(i_child.align, _p, mx, my);
+                getAlignment(i_child.align, _p, mx, my);
                 var ax = _p.x;
                 var ay = _p.y;
                 // var x1 = ox - ( mx ? 1.0 - ax : ax) * i_width;
@@ -7840,7 +7829,7 @@
      * @param {Object}
      *          i_success This function will be called when done.
      */
-    function perform_attribute_on_object_branch(i_object, i_attributeName, i_fromRootToLeaf, i_success, i_error, i_hmi) {
+    function performAttributeOnObjectBranch(i_object, i_attributeName, i_fromRootToLeaf, i_success, i_error, i_hmi) {
         // if we where called with i_object = object.children (in case of i_object
         // is grid, split, float, ...)
         if (Array.isArray(i_object)) {
@@ -7852,7 +7841,7 @@
                         var idx = i;
                         tasks.push(function (i_suc, i_err) {
                             var child = children[i_fromRootToLeaf === true ? idx : children.length - 1 - idx];
-                            perform_attribute_on_object_branch(child, i_attributeName, i_fromRootToLeaf, i_suc, i_err, i_hmi);
+                            performAttributeOnObjectBranch(child, i_attributeName, i_fromRootToLeaf, i_suc, i_err, i_hmi);
                         });
                     }());
                 }
@@ -7888,17 +7877,17 @@
                     }
                     if (i_fromRootToLeaf === true) {
                         perform_data_on_hmi_object(i_object, hmiobj, data, function () {
-                            perform_attribute_on_object_branch(object, i_attributeName, i_fromRootToLeaf, success, i_error, i_hmi);
+                            performAttributeOnObjectBranch(object, i_attributeName, i_fromRootToLeaf, success, i_error, i_hmi);
                         }, i_error);
                     }
                     else {
-                        perform_attribute_on_object_branch(object, i_attributeName, i_fromRootToLeaf, function () {
+                        performAttributeOnObjectBranch(object, i_attributeName, i_fromRootToLeaf, function () {
                             perform_data_on_hmi_object(i_object, hmiobj, data, success, i_error);
                         }, i_error, i_hmi);
                     }
                 }
                 else {
-                    perform_attribute_on_object_branch(object, i_attributeName, i_fromRootToLeaf, success, i_error, i_hmi);
+                    performAttributeOnObjectBranch(object, i_attributeName, i_fromRootToLeaf, success, i_error, i_hmi);
                 }
             }
             else {
@@ -7907,17 +7896,17 @@
                 if (data !== undefined && data !== null) {
                     if (i_fromRootToLeaf === true) {
                         perform_data_on_hmi_object(i_object, i_object, data, function () {
-                            perform_attribute_on_object_branch(i_object.children, i_attributeName, i_fromRootToLeaf, success, i_error, i_hmi);
+                            performAttributeOnObjectBranch(i_object.children, i_attributeName, i_fromRootToLeaf, success, i_error, i_hmi);
                         }, i_error);
                     }
                     else {
-                        perform_attribute_on_object_branch(i_object.children, i_attributeName, i_fromRootToLeaf, function () {
+                        performAttributeOnObjectBranch(i_object.children, i_attributeName, i_fromRootToLeaf, function () {
                             perform_data_on_hmi_object(i_object, i_object, data, success, i_error);
                         }, i_error, i_hmi);
                     }
                 }
                 else {
-                    perform_attribute_on_object_branch(i_object.children, i_attributeName, i_fromRootToLeaf, success, i_error, i_hmi);
+                    performAttributeOnObjectBranch(i_object.children, i_attributeName, i_fromRootToLeaf, success, i_error, i_hmi);
                 }
             }
         }
@@ -7949,28 +7938,28 @@
             Executor.run((onSuc, onErr) => {
                 init_object(object, initData);
                 onStateChanged(LifecycleState.Build);
-                perform_attribute_on_object_branch(object, LifecycleUserMethods.Build, true, () => {
-                    attach_hmi_object(object);
+                performAttributeOnObjectBranch(object, LifecycleUserMethods.Build, true, () => {
+                    attachHmiObject(object);
                     const hmiobj = object._hmi_object;
                     create_id_node_branch(hmiobj, parentObject, nodeId, parentNode);
-                    process_object_branch(hmiobj, true, undefined, processObject => ObjectImpl.call(processObject, disableVisuEvents, hmiobj === processObject && enableEditorEvents));
+                    processObjectBranch(hmiobj, true, undefined, processObject => ObjectImpl.call(processObject, disableVisuEvents, hmiobj === processObject && enableEditorEvents));
                     onStateChanged(LifecycleState.Apply);
-                    perform_attribute_on_object_branch(object, LifecycleUserMethods.Apply, false, () => {
+                    performAttributeOnObjectBranch(object, LifecycleUserMethods.Apply, false, () => {
                         if (hmiobj._hmi_init_dom) {
                             hmiobj._hmi_init_dom({
                                 // #create/destroy_hmi_object_branch: 2
                                 container: jqueryElement
                             }, () => {
                                 onStateChanged(LifecycleState.Prepare);
-                                perform_attribute_on_object_branch(object, LifecycleUserMethods.Prepare, true, () => {
+                                performAttributeOnObjectBranch(object, LifecycleUserMethods.Prepare, true, () => {
                                     // TODO: handle external sources here
-                                    perform_attribute_on_object_branch(object, '_hmi_addListeners', true, () => {
+                                    performAttributeOnObjectBranch(object, '_hmi_addListeners', true, () => {
                                         // #bugfix: 'start' is reverse (from leaves to root) - fixed
                                         // 2017-02-07
                                         onStateChanged(LifecycleState.Start);
-                                        perform_attribute_on_object_branch(object, LifecycleUserMethods.Start, false, () => {
+                                        performAttributeOnObjectBranch(object, LifecycleUserMethods.Start, false, () => {
                                             // set alive
-                                            process_object_branch(hmiobj, true, undefined, processObject => processObject._hmi_alive = true);
+                                            processObjectBranch(hmiobj, true, undefined, processObject => processObject._hmi_alive = true);
                                             // handle root objects
                                             let found = false;
                                             for (let i = 0; i < s_root_objects.length; i++) {
@@ -8002,7 +7991,7 @@
     function refreshAllRecursive(date) {
         for (let i = 0, l = s_root_objects.length; i < l; i++) {
             // first we call all found user refresh functions
-            process_object_branch(s_root_objects[i], true, undefined, processObject => {
+            processObjectBranch(s_root_objects[i], true, undefined, processObject => {
                 if (processObject._hmi_alive === true) {
                     if (typeof processObject.refresh === 'function') {
                         try {
@@ -8014,7 +8003,7 @@
                 }
             });
             // next we call system _hmi_refreshs
-            process_object_branch(s_root_objects[i], true, undefined, processObject => {
+            processObjectBranch(s_root_objects[i], true, undefined, processObject => {
                 if (processObject._hmi_alive === true) {
                     const refreshs = processObject._hmi_refreshs;
                     if (refreshs !== undefined && Array.isArray(refreshs)) {
@@ -8048,28 +8037,28 @@
                         break;
                     }
                 }
-                process_object_branch(hmiobj, false, undefined, processObject => delete processObject._hmi_alive);
+                processObjectBranch(hmiobj, false, undefined, processObject => delete processObject._hmi_alive);
                 Executor.run((onSuc, onErr) => {
                     onStateChanged(LifecycleState.Stop);
-                    perform_attribute_on_object_branch(object, LifecycleUserMethods.Stop, true, () => {
-                        perform_attribute_on_object_branch(object, '_hmi_removeListeners', false, () => {
+                    performAttributeOnObjectBranch(object, LifecycleUserMethods.Stop, true, () => {
+                        performAttributeOnObjectBranch(object, '_hmi_removeListeners', false, () => {
                             onStateChanged(LifecycleState.Destroy);
-                            perform_attribute_on_object_branch(object, LifecycleUserMethods.Destroy, false, () => {
+                            performAttributeOnObjectBranch(object, LifecycleUserMethods.Destroy, false, () => {
                                 if (hmiobj._hmi_destroy_dom) {
                                     // #create/destroy_hmi_object_branch: 1 + 2
                                     hmiobj._hmi_destroy_dom();
                                 }
                                 onStateChanged(LifecycleState.Remove);
-                                perform_attribute_on_object_branch(object, LifecycleUserMethods.Remove, true, () => {
-                                    process_object_branch(hmiobj, false, undefined, processObject => {
+                                performAttributeOnObjectBranch(object, LifecycleUserMethods.Remove, true, () => {
+                                    processObjectBranch(hmiobj, false, undefined, processObject => {
                                         if (processObject._hmi_destroy) {
                                             processObject._hmi_destroy();
                                         }
                                     });
                                     destroy_id_node_branch(hmiobj);
-                                    detach_hmi_object(object);
+                                    detachHmiObject(object);
                                     onStateChanged(LifecycleState.Cleanup);
-                                    perform_attribute_on_object_branch(object, LifecycleUserMethods.Cleanup, false, onSuc, onErr, false); // Note: passing false als 'hmi' will delete the reference on the object
+                                    performAttributeOnObjectBranch(object, LifecycleUserMethods.Cleanup, false, onSuc, onErr, false); // Note: passing false als 'hmi' will delete the reference on the object
                                 }, onErr);
                             }, onErr);
                         }, onErr);
