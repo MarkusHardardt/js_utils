@@ -770,7 +770,7 @@
         this.hmi_getContent = () => _object;
         this.hmi_setContent = (i_object, i_success, i_error, i_initData, i_disableVisuEvents, i_enableEditorEvents) => {
             if (_object === undefined && i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
-                create_hmi_object_branch(i_object, _div, () => {
+                createObjectBranch(i_object, _div, () => {
                     _object = i_object;
                     i_success();
                 }, i_exception => {
@@ -783,7 +783,7 @@
             if (_object !== undefined) {
                 const obj = _object;
                 _object = undefined;
-                destroy_hmi_object_branch(obj, () => {
+                destroyObjectBranch(obj, () => {
                     _div.empty();
                     if (typeof onSuccess === 'function') {
                         onSuccess();
@@ -1563,7 +1563,7 @@
                             set_bounds(child._hmi_gridElement, _grid.getBounds(child));
                             _children.push(child);
                             droppableCellAdded(child);
-                            create_hmi_object_branch(i_object, child._hmi_gridElement, function () {
+                            createObjectBranch(i_object, child._hmi_gridElement, function () {
                                 child._hmi_object = i_object._hmi_object;
                                 child.hmi_object = i_object._hmi_object;
                                 i_suc();
@@ -1595,7 +1595,7 @@
                         if (child.objectReference === i_objectReference) {
                             // here we use .object because we placed our object there (see
                             // code above)
-                            destroy_hmi_object_branch(child.object, () => {
+                            destroyObjectBranch(child.object, () => {
                                 delete child._hmi_object;
                                 delete child.hmi_object;
                                 delete child.object;
@@ -7385,7 +7385,7 @@
                         delete button._hmi_element;
                     }
                 }
-                destroy_hmi_object_branch(config.object, () => { }, error => console.error(`Error closing dialog: ${error}`));
+                destroyObjectBranch(config.object, () => { }, error => console.error(`Error closing dialog: ${error}`));
                 dialogElement.dialog('destroy');
                 dialogElement.remove();
                 if (typeof config.closed === 'function') {
@@ -7420,7 +7420,7 @@
             options.closeOnEscape = true;
         }
         dialogElement.dialog(options);
-        create_hmi_object_branch(config.object, dialogElement, () => {
+        createObjectBranch(config.object, dialogElement, () => {
             const hmiobj = config.object._hmi_object;
             if (hmiobj) {
                 _buttons = Array.isArray(hmiobj.buttons) ? hmiobj.buttons : (Array.isArray(config.buttons) ? config.buttons : undefined);
@@ -7943,35 +7943,34 @@
     // /////////////////////////////////////////////////////////////////////////////////////////
     // INITIALIZATION AND DESTROY
     // /////////////////////////////////////////////////////////////////////////////////////////
-    function create_hmi_object_branch(i_object, i_jqueryElement, i_success, i_error, i_hmi, i_initData, i_parentObject, i_nodeId, i_parentNode, i_disableVisuEvents, i_enableEditorEvents, onLifecycleStateChanged) { // TODO: Clean up this argument list
-        if (i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
+    function createObjectBranch(object, jqueryElement, onSuccess, onError, hmi, initData, parentObject, nodeId, parentNode, disableVisuEvents, enableEditorEvents, onLifecycleStateChanged) { // TODO: Clean up this argument list
+        if (object !== null && typeof object === 'object' && !Array.isArray(object)) {
             const onStateChanged = typeof onLifecycleStateChanged === 'function' ? onLifecycleStateChanged : state => { };
-            onStateChanged(LifecycleState.Idle);
-            Executor.run(function (i_suc, i_err) {
-                init_object(i_object, i_initData);
+            Executor.run((onSuc, onErr) => {
+                init_object(object, initData);
                 onStateChanged(LifecycleState.Build);
-                perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Build, true, () => {
-                    attach_hmi_object(i_object);
-                    const hmiobj = i_object._hmi_object;
-                    create_id_node_branch(hmiobj, i_parentObject, i_nodeId, i_parentNode);
-                    process_object_branch(hmiobj, true, undefined, i_processObject => ObjectImpl.call(i_processObject, i_disableVisuEvents, hmiobj === i_processObject && i_enableEditorEvents));
+                perform_attribute_on_object_branch(object, LifecycleUserMethods.Build, true, () => {
+                    attach_hmi_object(object);
+                    const hmiobj = object._hmi_object;
+                    create_id_node_branch(hmiobj, parentObject, nodeId, parentNode);
+                    process_object_branch(hmiobj, true, undefined, processObject => ObjectImpl.call(processObject, disableVisuEvents, hmiobj === processObject && enableEditorEvents));
                     onStateChanged(LifecycleState.Apply);
-                    perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Apply, false, () => {
+                    perform_attribute_on_object_branch(object, LifecycleUserMethods.Apply, false, () => {
                         if (hmiobj._hmi_init_dom) {
                             hmiobj._hmi_init_dom({
                                 // #create/destroy_hmi_object_branch: 2
-                                container: i_jqueryElement
+                                container: jqueryElement
                             }, () => {
                                 onStateChanged(LifecycleState.Prepare);
-                                perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Prepare, true, () => {
+                                perform_attribute_on_object_branch(object, LifecycleUserMethods.Prepare, true, () => {
                                     // TODO: handle external sources here
-                                    perform_attribute_on_object_branch(i_object, '_hmi_addListeners', true, () => {
+                                    perform_attribute_on_object_branch(object, '_hmi_addListeners', true, () => {
                                         // #bugfix: 'start' is reverse (from leaves to root) - fixed
                                         // 2017-02-07
                                         onStateChanged(LifecycleState.Start);
-                                        perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Start, false, () => {
+                                        perform_attribute_on_object_branch(object, LifecycleUserMethods.Start, false, () => {
                                             // set alive
-                                            process_object_branch(hmiobj, true, undefined, i_processObject => i_processObject._hmi_alive = true);
+                                            process_object_branch(hmiobj, true, undefined, processObject => processObject._hmi_alive = true);
                                             // handle root objects
                                             let found = false;
                                             for (let i = 0; i < s_root_objects.length; i++) {
@@ -7985,20 +7984,20 @@
                                             }
                                             onStateChanged(LifecycleState.Running);
                                             // done
-                                            i_suc();
-                                        }, i_err);
-                                    }, i_err);
-                                }, i_err);
-                            }, i_err);
+                                            onSuc();
+                                        }, onErr);
+                                    }, onErr);
+                                }, onErr);
+                            }, onErr);
                         }
-                    }, i_err);
-                }, i_err, i_hmi);
-            }, i_success, i_error, () => i_error('timeout'), 5000);
+                    }, onErr);
+                }, onErr, hmi);
+            }, onSuccess, onError, () => onError('timeout'), 5000);
         } else {
-            i_error('Invalid object');
+            onError('Invalid object');
         }
     }
-    ObjectLifecycleManager.create = create_hmi_object_branch;
+    ObjectLifecycleManager.create = createObjectBranch;
 
     function refreshAllRecursive(date) {
         for (let i = 0, l = s_root_objects.length; i < l; i++) {
@@ -8036,11 +8035,11 @@
     }
     ObjectLifecycleManager.refresh = refreshAllRecursive;
 
-    function destroy_hmi_object_branch(i_object, i_success, i_error, onLifecycleStateChanged) {
-        if (i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
+    function destroyObjectBranch(object, onSuccess, onError, onLifecycleStateChanged) {
+        if (object !== null && typeof object === 'object' && !Array.isArray(object)) {
             const onStateChanged = typeof onLifecycleStateChanged === 'function' ? onLifecycleStateChanged : state => { };
-            const hmi = i_object.hmi;
-            const hmiobj = i_object._hmi_object;
+            const hmi = object.hmi;
+            const hmiobj = object._hmi_object;
             if (hmiobj !== null && typeof hmiobj === 'object') {
                 // handle root objects
                 for (let i = 0; i < s_root_objects.length; i++) {
@@ -8049,56 +8048,53 @@
                         break;
                     }
                 }
-                process_object_branch(hmiobj, false, undefined, i_processObject => delete i_processObject._hmi_alive);
-                Executor.run((i_suc, i_err) => {
+                process_object_branch(hmiobj, false, undefined, processObject => delete processObject._hmi_alive);
+                Executor.run((onSuc, onErr) => {
                     onStateChanged(LifecycleState.Stop);
-                    perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Stop, true, () => {
-                        perform_attribute_on_object_branch(i_object, '_hmi_removeListeners', false, () => {
+                    perform_attribute_on_object_branch(object, LifecycleUserMethods.Stop, true, () => {
+                        perform_attribute_on_object_branch(object, '_hmi_removeListeners', false, () => {
                             onStateChanged(LifecycleState.Destroy);
-                            perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Destroy, false, () => {
+                            perform_attribute_on_object_branch(object, LifecycleUserMethods.Destroy, false, () => {
                                 if (hmiobj._hmi_destroy_dom) {
                                     // #create/destroy_hmi_object_branch: 1 + 2
                                     hmiobj._hmi_destroy_dom();
                                 }
                                 onStateChanged(LifecycleState.Remove);
-                                perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Remove, true, () => {
-                                    process_object_branch(hmiobj, false, undefined, i_processObject => {
-                                        if (i_processObject._hmi_destroy) {
-                                            i_processObject._hmi_destroy();
+                                perform_attribute_on_object_branch(object, LifecycleUserMethods.Remove, true, () => {
+                                    process_object_branch(hmiobj, false, undefined, processObject => {
+                                        if (processObject._hmi_destroy) {
+                                            processObject._hmi_destroy();
                                         }
                                     });
                                     destroy_id_node_branch(hmiobj);
-                                    detach_hmi_object(i_object);
+                                    detach_hmi_object(object);
                                     onStateChanged(LifecycleState.Cleanup);
-                                    perform_attribute_on_object_branch(i_object, LifecycleUserMethods.Cleanup, false, () => {
-                                        onStateChanged(LifecycleState.Idle);
-                                        i_suc();
-                                    }, i_err, false); // Note: passing false als 'hmi' will delete the reference on the object
-                                }, i_err);
-                            }, i_err);
-                        }, i_err);
-                    }, i_err);
+                                    perform_attribute_on_object_branch(object, LifecycleUserMethods.Cleanup, false, onSuc, onErr, false); // Note: passing false als 'hmi' will delete the reference on the object
+                                }, onErr);
+                            }, onErr);
+                        }, onErr);
+                    }, onErr);
                 }, () => {
                     onStateChanged(LifecycleState.Idle);
-                    if (typeof i_success === 'function') { // TODO: Do we really need this check?
-                        i_success();
+                    if (typeof onSuccess === 'function') { // TODO: Do we really need this check?
+                        onSuccess();
                     } else {
                         console.error('Missing onSuccess callback');
                     }
-                }, i_error, () => i_error('timeout'), 5000); // TODO: And if why don't we check this?
+                }, onError, () => onError('timeout'), 5000); // TODO: And if why don't we check this?
             } else {
                 onStateChanged(LifecycleState.Idle);
-                if (typeof i_success === 'function') { // TODO: Do we really need this check?
-                    i_success();
+                if (typeof onSuccess === 'function') { // TODO: Do we really need this check?
+                    onSuccess();
                 } else {
                     console.error('Missing onSuccess callback');
                 }
             }
         } else {
-            i_error('Invalid object'); // TODO: And if why don't we check this?
+            onError('Invalid object'); // TODO: And if why don't we check this?
         }
     }
-    ObjectLifecycleManager.destroy = destroy_hmi_object_branch;
+    ObjectLifecycleManager.destroy = destroyObjectBranch;
 
     /**
      * Add a new type to the visualization object handler.
