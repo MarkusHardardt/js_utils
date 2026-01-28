@@ -146,46 +146,45 @@
 
     function run() { // Note: No not change to lambda function, because 'arguments' will not work anymore!
         // init callbacks and helpers
-        let ai, al = arguments.length, ar;
-        let on_success = al > 1 && typeof arguments[1] === 'function' ? arguments[1] : false;
-        let on_error = al > 2 && typeof arguments[2] === 'function' ? arguments[2] : false;
-        let on_timeout = on_error, millis = false;
-        for (ai = 3; ai < al; ai++) {
-            ar = arguments[ai];
-            if (on_timeout !== ar && typeof ar === 'function') {
-                on_timeout = ar;
+        const al = arguments.length;
+        const onSuccess = al > 1 && typeof arguments[1] === 'function' ? arguments[1] : false;
+        const onError = al > 2 && typeof arguments[2] === 'function' ? arguments[2] : false;
+        let onTimeout = onError, millis = false;
+        for (let ai = 3; ai < al; ai++) {
+            const ar = arguments[ai];
+            if (onTimeout !== ar && typeof ar === 'function') {
+                onTimeout = ar;
             } else if (!millis && typeof ar === 'number' && ar > 0) {
                 millis = ar;
             }
         }
-        let this_call = true, success, result, error, exception;
+        let thisCall = true, hasSuccess, hasError, result, exception;
         exec(arguments[0], res => {
-            if (this_call) {
-                success = true;
+            if (thisCall) {
+                hasSuccess = true;
                 result = res;
-            } else if (on_success) {
-                on_success(res);
+            } else if (onSuccess) {
+                onSuccess(res);
             }
-        }, err => {
-            if (this_call) {
-                error = true;
-                exception = err;
-            } else if (on_error) {
-                on_error(err);
+        }, error => {
+            if (thisCall) {
+                hasError = true;
+                exception = error;
+            } else if (onError) {
+                onError(error);
             } else {
-                throw new Error('EXCEPTION! Cannot execute: ' + err);
+                throw new Error(`EXCEPTION! Cannot execute: ${error}`);
             }
-        }, on_timeout, millis);
-        this_call = false;
-        if (error) {
-            if (on_error) {
-                on_error(exception);
+        }, onTimeout, millis);
+        thisCall = false;
+        if (hasError) {
+            if (onError) {
+                onError(exception);
             } else {
-                throw new Error('EXCEPTION! Cannot execute: ' + exception);
+                throw new Error(`EXCEPTION! Cannot execute: ${exception}`);
             }
-        }
-        else if (success && on_success) {
-            on_success(result);
+        } else if (hasSuccess && onSuccess) {
+            onSuccess(result);
         }
     }
     Executor.run = run;
