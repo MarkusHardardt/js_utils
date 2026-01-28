@@ -140,7 +140,7 @@
             // handle children [3]
             const children = hmiobj.children;
             if (Array.isArray(children)) {
-                for (var i = 0, l = children.length; i < l; i++) {
+                for (let i = 0, l = children.length; i < l; i++) {
                     attachHmiObject(children[i]);
                 }
             }
@@ -152,7 +152,7 @@
             // detach children
             const children = object._hmi_object.children;
             if (Array.isArray(children)) {
-                for (var i = children.length - 1; i >= 0; i--) {
+                for (let i = children.length - 1; i >= 0; i--) {
                     detachHmiObject(children[i]);
                 }
             }
@@ -177,14 +177,14 @@
                 callback(object);
             }
             // if children available iterate over all children
-            var children = object.children;
+            const children = object.children;
             if (Array.isArray(children)) {
                 if (fromRootToLeaf === true) {
-                    for (var i = 0, l = children.length; i < l; i++) {
+                    for (let i = 0, l = children.length; i < l; i++) {
                         processObjectSubTree(children[i]._hmi_object, fromRootToLeaf, isValid, callback);
                     }
                 } else {
-                    for (var i = children.length - 1; i >= 0; i--) {
+                    for (let i = children.length - 1; i >= 0; i--) {
                         processObjectSubTree(children[i]._hmi_object, fromRootToLeaf, isValid, callback);
                     }
                 }
@@ -208,11 +208,11 @@
         if (typeof value !== 'string') {
             return undefined;
         }
-        var idx = value.indexOf('px');
+        const idx = value.indexOf('px');
         if (idx <= 0) {
             return undefined;
         }
-        var px = value.substr(0, idx);
+        const px = value.substring(0, idx);
         if (isNaN(px)) {
             return undefined;
         }
@@ -221,15 +221,15 @@
 
     function isNumberOrPixelValue(value) {
         if (typeof value === 'string') {
-            var idx = value.indexOf('px');
-            return idx > 0 && isNaN(value.substr(0, idx)) === false;
+            const idx = value.indexOf('px');
+            return idx > 0 && isNaN(value.substring(0, idx)) === false;
         } else {
             return typeof value === 'number';
         }
     }
 
     function getAlignment(align, result, mirrorX, mirrorY) {
-        var res = result || {};
+        const res = result || {};
         if (typeof align === 'string') {
             if (align.indexOf('left') !== -1) {
                 res.x = mirrorX === true ? 1.0 : 0.0;
@@ -246,8 +246,8 @@
                 res.y = 0.5;
             }
         } else if (align !== null && typeof align === 'object') {
-            var x = align.x;
-            var y = align.y;
+            const x = align.x;
+            const y = align.y;
             res.x = typeof x === 'number' ? (mirrorX === true ? 1.0 - x : x) : 0.5;
             res.y = typeof y === 'number' ? (mirrorY === true ? 1.0 - y : y) : 0.5;
         } else {
@@ -259,18 +259,18 @@
 
     function getFloatingBounds(child, containerWidth, containerHeight) {
         // get the alignment
-        var alignment = getAlignment(child.align, undefined, false, true);
+        const alignment = getAlignment(child.align, undefined, false, true);
         // get pixel values as number if available (returns undefined if not
         // something like "42px")
-        var parX = getPixelValue(child.x);
-        var parY = getPixelValue(child.y);
-        var parW = getPixelValue(child.width);
-        var parH = getPixelValue(child.height);
+        const parX = getPixelValue(child.x);
+        const parY = getPixelValue(child.y);
+        const parW = getPixelValue(child.width);
+        const parH = getPixelValue(child.height);
         // compute the pixel values
-        var pixX = typeof parX === 'number' ? parX : (typeof child.x === 'number' ? child.x * containerWidth : 0.0);
-        var pixY = typeof parY === 'number' ? parY : (typeof child.y === 'number' ? child.y * containerHeight : 0.0);
-        var pixW = typeof parW === 'number' ? parW : (typeof child.width === 'number' ? child.width * containerWidth : 0.1);
-        var pixH = typeof parH === 'number' ? parH : (typeof child.height === 'number' ? child.height * containerHeight : 0.1);
+        const pixX = typeof parX === 'number' ? parX : (typeof child.x === 'number' ? child.x * containerWidth : 0.0);
+        const pixY = typeof parY === 'number' ? parY : (typeof child.y === 'number' ? child.y * containerHeight : 0.0);
+        const pixW = typeof parW === 'number' ? parW : (typeof child.width === 'number' ? child.width * containerWidth : 0.1);
+        const pixH = typeof parH === 'number' ? parH : (typeof child.height === 'number' ? child.height * containerHeight : 0.1);
         // return the bounds
         return {
             x: Math.floor(pixX - pixW * alignment.x),
@@ -280,25 +280,25 @@
         };
     }
 
-    function updateCoordinates(i_element, x, y, width, height, containerWidth, containerHeight, align) {
+    function updateCoordinates(element, x, y, width, height, containerWidth, containerHeight, align) {
         // get the alignment
-        var alignment = getAlignment(align, undefined, false, true);
+        const alignment = getAlignment(align, undefined, false, true);
         // get pixel values as number if available (returns undefined if not
         // something like "42px")
-        var parX = getPixelValue(x);
-        var parY = getPixelValue(y);
-        var parW = getPixelValue(width);
-        var parH = getPixelValue(height);
+        const parX = getPixelValue(x);
+        const parY = getPixelValue(y);
+        const parW = getPixelValue(width);
+        const parH = getPixelValue(height);
         // compute the pixel values
-        var pixX = typeof parX === 'number' ? parX : (typeof x === 'number' ? x : 0);
-        var pixY = typeof parY === 'number' ? parY : (typeof y === 'number' ? y : 0);
-        var pixW = typeof parW === 'number' ? parW : (typeof width === 'number' ? width : containerWidth);
-        var pixH = typeof parH === 'number' ? parH : (typeof height === 'number' ? height : containerHeight);
+        const pixX = typeof parX === 'number' ? parX : (typeof x === 'number' ? x : 0);
+        const pixY = typeof parY === 'number' ? parY : (typeof y === 'number' ? y : 0);
+        const pixW = typeof parW === 'number' ? parW : (typeof width === 'number' ? width : containerWidth);
+        const pixH = typeof parH === 'number' ? parH : (typeof height === 'number' ? height : containerHeight);
         // update the view
-        i_element.css('left', Math.floor(pixX - pixW * alignment.x).toString() + 'px');
-        i_element.css('width', Math.floor(pixW).toString() + 'px');
-        i_element.css('top', Math.floor(pixY - pixH * alignment.y).toString() + 'px');
-        i_element.css('height', Math.floor(pixH).toString() + 'px');
+        element.css('left', Math.floor(pixX - pixW * alignment.x).toString() + 'px');
+        element.css('width', Math.floor(pixW).toString() + 'px');
+        element.css('top', Math.floor(pixY - pixH * alignment.y).toString() + 'px');
+        element.css('height', Math.floor(pixH).toString() + 'px');
     }
     ObjectLifecycleManager.updateCoordinates = updateCoordinates;
 
