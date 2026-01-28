@@ -170,7 +170,7 @@
         }
     }
 
-    function processObjectBranch(object, fromRootToLeaf, isValid, callback) {
+    function processObjectSubTree(object, fromRootToLeaf, isValid, callback) {
         if (isValid === undefined || isValid(object) === true) {
             // perform callback if from root to leaf
             if (fromRootToLeaf === true) {
@@ -181,11 +181,11 @@
             if (Array.isArray(children)) {
                 if (fromRootToLeaf === true) {
                     for (var i = 0, l = children.length; i < l; i++) {
-                        processObjectBranch(children[i]._hmi_object, fromRootToLeaf, isValid, callback);
+                        processObjectSubTree(children[i]._hmi_object, fromRootToLeaf, isValid, callback);
                     }
                 } else {
                     for (var i = children.length - 1; i >= 0; i--) {
-                        processObjectBranch(children[i]._hmi_object, fromRootToLeaf, isValid, callback);
+                        processObjectSubTree(children[i]._hmi_object, fromRootToLeaf, isValid, callback);
                     }
                 }
             }
@@ -759,7 +759,7 @@
         this.hmi_getContent = () => _object;
         this.hmi_setContent = (i_object, i_success, i_error, i_initData, i_disableVisuEvents, i_enableEditorEvents) => {
             if (_object === undefined && i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
-                createObjectBranch(i_object, _div, () => {
+                createObjectSubTree(i_object, _div, () => {
                     _object = i_object;
                     i_success();
                 }, i_exception => {
@@ -772,7 +772,7 @@
             if (_object !== undefined) {
                 const obj = _object;
                 _object = undefined;
-                destroyObjectBranch(obj, () => {
+                destroyObjectSubTree(obj, () => {
                     _div.empty();
                     if (typeof onSuccess === 'function') {
                         onSuccess();
@@ -1552,7 +1552,7 @@
                             setBounds(child._hmi_gridElement, _grid.getBounds(child));
                             _children.push(child);
                             droppableCellAdded(child);
-                            createObjectBranch(i_object, child._hmi_gridElement, function () {
+                            createObjectSubTree(i_object, child._hmi_gridElement, function () {
                                 child._hmi_object = i_object._hmi_object;
                                 child.hmi_object = i_object._hmi_object;
                                 i_suc();
@@ -1584,7 +1584,7 @@
                         if (child.objectReference === i_objectReference) {
                             // here we use .object because we placed our object there (see
                             // code above)
-                            destroyObjectBranch(child.object, () => {
+                            destroyObjectSubTree(child.object, () => {
                                 delete child._hmi_object;
                                 delete child.hmi_object;
                                 delete child.object;
@@ -4688,7 +4688,7 @@
                             }
                         }
                         // moving vehicles [2]
-                        processObjectBranch(that, true, function (i_hmiObject) {
+                        processObjectSubTree(that, true, function (i_hmiObject) {
                             // this is our valid? call
                             return _ctx === i_hmiObject._hmi_context.context2d;
                         }, function (i_hmiObject) {
@@ -4742,7 +4742,7 @@
                         // collect and update [3]
                         var elems = that._hmi_canvasElements;
                         elems.splice(0, elems.length);
-                        processObjectBranch(that, true, function (i_hmiObject) {
+                        processObjectSubTree(that, true, function (i_hmiObject) {
                             // this is our valid? call
                             return _ctx === i_hmiObject._hmi_context.context2d;
                         }, function (i_hmiObject) {
@@ -4836,7 +4836,7 @@
                     var search = true;
                     _ctx.setTransform(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
                     _ctx.save();
-                    processObjectBranch(that, true, function (i_hmiObject) {
+                    processObjectSubTree(that, true, function (i_hmiObject) {
                         // this is our valid? call
                         return search && _ctx === i_hmiObject._hmi_context.context2d;
                     }, function (i_hmiObject) {
@@ -7368,13 +7368,13 @@
                     for (let i = _buttons.length - 1; i >= 0; i--) {
                         const button = _buttons[i];
                         if (config.object && config.object._hmi_object) {
-                            destroyIdNodeBranch(button);
+                            destroyIdNodeSubTree(button);
                         }
                         delete button.hmi_setVisible;
                         delete button._hmi_element;
                     }
                 }
-                destroyObjectBranch(config.object, () => { }, error => console.error(`Error closing dialog: ${error}`));
+                destroyObjectSubTree(config.object, () => { }, error => console.error(`Error closing dialog: ${error}`));
                 dialogElement.dialog('destroy');
                 dialogElement.remove();
                 if (typeof config.closed === 'function') {
@@ -7409,7 +7409,7 @@
             options.closeOnEscape = true;
         }
         dialogElement.dialog(options);
-        createObjectBranch(config.object, dialogElement, () => {
+        createObjectSubTree(config.object, dialogElement, () => {
             const hmiobj = config.object._hmi_object;
             if (hmiobj) {
                 _buttons = Array.isArray(hmiobj.buttons) ? hmiobj.buttons : (Array.isArray(config.buttons) ? config.buttons : undefined);
@@ -7420,7 +7420,7 @@
                         (function () {
                             const button = _buttons[i];
                             if (typeof button.click === 'function') {
-                                createIdNodeBranch(button, hmiobj, button.id, hmiobj);
+                                createIdNodeSubTree(button, hmiobj, button.id, hmiobj);
                                 button._hmi_buttonId = Utilities.getUniqueId();
                                 buttons.push({
                                     text: typeof button.text === 'string' ? button.text : '?',
@@ -7653,7 +7653,7 @@
         return node;
     };
 
-    function createIdNodeBranch(object, parentObject, id, nodeParent) {
+    function createIdNodeSubTree(object, parentObject, id, nodeParent) {
         object.hmi_node = path => {
             const node = typeof object._hmi_nodeId === 'string' || object._hmi_nodeParent === undefined || object._hmi_nodeParent === null ? object : object._hmi_nodeParent;
             return typeof path === 'string' ? get_id_node(node, path) : node;
@@ -7703,20 +7703,20 @@
                 const hmiobj = child._hmi_object;
                 if (hmiobj) {
                     hmiobj.hmi_locator = child;
-                    createIdNodeBranch(hmiobj, object, child.id, parent);
+                    createIdNodeSubTree(hmiobj, object, child.id, parent);
                 }
             }
         }
     };
 
-    function destroyIdNodeBranch(object) {
+    function destroyIdNodeSubTree(object) {
         const children = object.children;
         if (Array.isArray(children)) {
             for (let i = children.length - 1; i >= 0; i--) {
                 const child = children[i];
                 const hmiobj = child._hmi_object;
                 if (hmiobj) {
-                    destroyIdNodeBranch(hmiobj);
+                    destroyIdNodeSubTree(hmiobj);
                     delete hmiobj.hmi_locator;
                 }
                 delete child.hmi_parentObject;
@@ -7816,7 +7816,7 @@
      * @param {Object}
      *          onSuccess This function will be called when done.
      */
-    function performAttributeOnObjectBranch(object, attributeName, fromRootToLeaf, onSuccess, onError, hmi) {
+    function performAttributeOnObjectSubTree(object, attributeName, fromRootToLeaf, onSuccess, onError, hmi) {
         // if we where called with i_object = object.children (in case of i_object
         // is grid, split, float, ...)
         if (Array.isArray(object)) {
@@ -7827,7 +7827,7 @@
                         const idx = i;
                         tasks.push((onSuc, onErr) => {
                             const child = children[fromRootToLeaf === true ? idx : children.length - 1 - idx];
-                            performAttributeOnObjectBranch(child, attributeName, fromRootToLeaf, onSuc, onErr, hmi);
+                            performAttributeOnObjectSubTree(child, attributeName, fromRootToLeaf, onSuc, onErr, hmi);
                         });
                     }());
                 }
@@ -7859,23 +7859,23 @@
                         hmiobj = obj;
                     }
                     if (fromRootToLeaf === true) {
-                        performDataOnHmiObject(object, hmiobj, data, () => performAttributeOnObjectBranch(subObject, attributeName, fromRootToLeaf, success, onError, hmi), onError);
+                        performDataOnHmiObject(object, hmiobj, data, () => performAttributeOnObjectSubTree(subObject, attributeName, fromRootToLeaf, success, onError, hmi), onError);
                     } else {
-                        performAttributeOnObjectBranch(subObject, attributeName, fromRootToLeaf, () => performDataOnHmiObject(object, hmiobj, data, success, onError), onError, hmi);
+                        performAttributeOnObjectSubTree(subObject, attributeName, fromRootToLeaf, () => performDataOnHmiObject(object, hmiobj, data, success, onError), onError, hmi);
                     }
                 } else {
-                    performAttributeOnObjectBranch(subObject, attributeName, fromRootToLeaf, success, onError, hmi);
+                    performAttributeOnObjectSubTree(subObject, attributeName, fromRootToLeaf, success, onError, hmi);
                 }
             } else { // we contain no object named object so we are the hmi object
                 const data = object[attributeName];
                 if (data !== undefined && data !== null) {
                     if (fromRootToLeaf === true) {
-                        performDataOnHmiObject(object, object, data, () => performAttributeOnObjectBranch(object.children, attributeName, fromRootToLeaf, success, onError, hmi), onError);
+                        performDataOnHmiObject(object, object, data, () => performAttributeOnObjectSubTree(object.children, attributeName, fromRootToLeaf, success, onError, hmi), onError);
                     } else {
-                        performAttributeOnObjectBranch(object.children, attributeName, fromRootToLeaf, () => performDataOnHmiObject(object, object, data, success, onError), onError, hmi);
+                        performAttributeOnObjectSubTree(object.children, attributeName, fromRootToLeaf, () => performDataOnHmiObject(object, object, data, success, onError), onError, hmi);
                     }
                 } else {
-                    performAttributeOnObjectBranch(object.children, attributeName, fromRootToLeaf, success, onError, hmi);
+                    performAttributeOnObjectSubTree(object.children, attributeName, fromRootToLeaf, success, onError, hmi);
                 }
             }
         } else {
@@ -7900,64 +7900,7 @@
     // /////////////////////////////////////////////////////////////////////////////////////////
     // INITIALIZATION AND DESTROY
     // /////////////////////////////////////////////////////////////////////////////////////////
-
-    // TODO: Remove if no more issues (replaced 28.01.2026)
-    function createObjectBranch_DISCARDED(object, jqueryElement, onSuccess, onError, hmi, initData, parentObject, nodeId, parentNode, disableVisuEvents, enableEditorEvents, onLifecycleStateChanged) { // TODO: Clean up this argument list
-        if (object !== null && typeof object === 'object' && !Array.isArray(object)) {
-            const onStateChanged = typeof onLifecycleStateChanged === 'function' ? onLifecycleStateChanged : state => { };
-            Executor.run((onSuc, onErr) => {
-                initObject(object, initData);
-                onStateChanged(LifecycleState.Build);
-                performAttributeOnObjectBranch(object, LifecycleUserMethods.Build, true, () => {
-                    attachHmiObject(object);
-                    const hmiobj = object._hmi_object;
-                    createIdNodeBranch(hmiobj, parentObject, nodeId, parentNode);
-                    processObjectBranch(hmiobj, true, undefined, processObject => ObjectImpl.call(processObject, disableVisuEvents, hmiobj === processObject && enableEditorEvents));
-                    onStateChanged(LifecycleState.Apply);
-                    performAttributeOnObjectBranch(object, LifecycleUserMethods.Apply, false, () => {
-                        if (hmiobj._hmi_init_dom) {
-                            hmiobj._hmi_init_dom({
-                                // #create/destroy_hmi_object_branch: 2
-                                container: jqueryElement
-                            }, () => {
-                                onStateChanged(LifecycleState.Prepare);
-                                performAttributeOnObjectBranch(object, LifecycleUserMethods.Prepare, true, () => {
-                                    // TODO: handle external sources here
-                                    performAttributeOnObjectBranch(object, '_hmi_addListeners', true, () => {
-                                        // #bugfix: 'start' is reverse (from leaves to root) - fixed
-                                        // 2017-02-07
-                                        onStateChanged(LifecycleState.Start);
-                                        performAttributeOnObjectBranch(object, LifecycleUserMethods.Start, false, () => {
-                                            // set alive
-                                            processObjectBranch(hmiobj, true, undefined, processObject => processObject._hmi_alive = true);
-                                            // handle root objects
-                                            let found = false;
-                                            for (let i = 0; i < s_root_objects.length; i++) {
-                                                if (s_root_objects[i] === hmiobj) {
-                                                    found = true;
-                                                    break;
-                                                }
-                                            }
-                                            if (!found) {
-                                                s_root_objects.push(hmiobj);
-                                            }
-                                            onStateChanged(LifecycleState.Running);
-                                            // done
-                                            onSuc();
-                                        }, onErr);
-                                    }, onErr);
-                                }, onErr);
-                            }, onErr);
-                        }
-                    }, onErr);
-                }, onErr, hmi);
-            }, onSuccess, onError, () => onError('timeout'), 5000);
-        } else {
-            onError('Invalid object');
-        }
-    }
-
-    function createObjectBranch(object, jqueryElement, onSuccess, onError, hmi, initData, parentObject, nodeId, parentNode, disableVisuEvents, enableEditorEvents, onLifecycleStateChanged) { // TODO: Clean up this argument list
+    function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, initData, parentObject, nodeId, parentNode, disableVisuEvents, enableEditorEvents, onLifecycleStateChanged) { // TODO: Clean up this argument list
         if (object !== null && typeof object === 'object' && !Array.isArray(object)) {
             const onStateChanged = typeof onLifecycleStateChanged === 'function' ? onLifecycleStateChanged : state => { };
             const tasks = [];
@@ -7965,38 +7908,38 @@
             tasks.push((onSuc, onErr) => {
                 initObject(object, initData);
                 onStateChanged(LifecycleState.Build);
-                performAttributeOnObjectBranch(object, LifecycleUserMethods.Build, true, onSuc, onErr, hmi);
+                performAttributeOnObjectSubTree(object, LifecycleUserMethods.Build, true, onSuc, onErr, hmi);
             });
             tasks.push((onSuc, onErr) => {
                 attachHmiObject(object);
                 hmiobj = object._hmi_object;
-                createIdNodeBranch(hmiobj, parentObject, nodeId, parentNode);
-                processObjectBranch(hmiobj, true, undefined, processObject => ObjectImpl.call(processObject, disableVisuEvents, hmiobj === processObject && enableEditorEvents));
+                createIdNodeSubTree(hmiobj, parentObject, nodeId, parentNode);
+                processObjectSubTree(hmiobj, true, undefined, processObject => ObjectImpl.call(processObject, disableVisuEvents, hmiobj === processObject && enableEditorEvents));
                 onStateChanged(LifecycleState.Apply);
-                performAttributeOnObjectBranch(object, LifecycleUserMethods.Apply, false, onSuc, onErr);
+                performAttributeOnObjectSubTree(object, LifecycleUserMethods.Apply, false, onSuc, onErr);
             });
             tasks.push((onSuc, onErr) => {
                 if (hmiobj._hmi_init_dom) {
                     hmiobj._hmi_init_dom({
                         // #create/destroy_hmi_object_branch: 2
-                        container: jqueryElement
+                        container: jQueryElement
                     }, () => {
                         onStateChanged(LifecycleState.Prepare);
-                        performAttributeOnObjectBranch(object, LifecycleUserMethods.Prepare, true, onSuc, onErr);
+                        performAttributeOnObjectSubTree(object, LifecycleUserMethods.Prepare, true, onSuc, onErr);
                     }, onErr);
                 }
             });
             tasks.push((onSuc, onErr) => {
                 // TODO: handle external sources here
-                performAttributeOnObjectBranch(object, '_hmi_addListeners', true, onSuc, onErr);
+                performAttributeOnObjectSubTree(object, '_hmi_addListeners', true, onSuc, onErr);
             });
             tasks.push((onSuc, onErr) => {
                 onStateChanged(LifecycleState.Start);
-                performAttributeOnObjectBranch(object, LifecycleUserMethods.Start, false, onSuc, onErr);
+                performAttributeOnObjectSubTree(object, LifecycleUserMethods.Start, false, onSuc, onErr);
             });
             tasks.push((onSuc, onErr) => {
                 // set alive
-                processObjectBranch(hmiobj, true, undefined, processObject => processObject._hmi_alive = true);
+                processObjectSubTree(hmiobj, true, undefined, processObject => processObject._hmi_alive = true);
                 // handle root objects
                 let found = false;
                 for (let i = 0; i < s_root_objects.length; i++) {
@@ -8023,12 +7966,12 @@
             onError('Invalid object');
         }
     }
-    ObjectLifecycleManager.create = createObjectBranch;
+    ObjectLifecycleManager.create = createObjectSubTree;
 
     function refreshAllRecursive(date) {
         for (let i = 0, l = s_root_objects.length; i < l; i++) {
             // first we call all found user refresh functions
-            processObjectBranch(s_root_objects[i], true, undefined, processObject => {
+            processObjectSubTree(s_root_objects[i], true, undefined, processObject => {
                 if (processObject._hmi_alive === true) {
                     if (typeof processObject.refresh === 'function') {
                         try {
@@ -8040,7 +7983,7 @@
                 }
             });
             // next we call system _hmi_refreshs
-            processObjectBranch(s_root_objects[i], true, undefined, processObject => {
+            processObjectSubTree(s_root_objects[i], true, undefined, processObject => {
                 if (processObject._hmi_alive === true) {
                     const refreshs = processObject._hmi_refreshs;
                     if (refreshs !== undefined && Array.isArray(refreshs)) {
@@ -8061,68 +8004,7 @@
     }
     ObjectLifecycleManager.refresh = refreshAllRecursive;
 
-    // TODO: Remove if no more issues (replaced 28.01.2026)
-    function destroyObjectBranch_DISCARDED(object, onSuccess, onError, onLifecycleStateChanged) {
-        if (object !== null && typeof object === 'object' && !Array.isArray(object)) {
-            const onStateChanged = typeof onLifecycleStateChanged === 'function' ? onLifecycleStateChanged : state => { };
-            const hmi = object.hmi;
-            const hmiobj = object._hmi_object;
-            if (hmiobj !== null && typeof hmiobj === 'object') {
-                // handle root objects
-                for (let i = 0; i < s_root_objects.length; i++) {
-                    if (s_root_objects[i] === hmiobj) {
-                        s_root_objects.splice(i, 1);
-                        break;
-                    }
-                }
-                processObjectBranch(hmiobj, false, undefined, processObject => delete processObject._hmi_alive);
-                Executor.run((onSuc, onErr) => {
-                    onStateChanged(LifecycleState.Stop);
-                    performAttributeOnObjectBranch(object, LifecycleUserMethods.Stop, true, () => {
-                        performAttributeOnObjectBranch(object, '_hmi_removeListeners', false, () => {
-                            onStateChanged(LifecycleState.Destroy);
-                            performAttributeOnObjectBranch(object, LifecycleUserMethods.Destroy, false, () => {
-                                if (hmiobj._hmi_destroy_dom) {
-                                    // #create/destroy_hmi_object_branch: 1 + 2
-                                    hmiobj._hmi_destroy_dom();
-                                }
-                                onStateChanged(LifecycleState.Remove);
-                                performAttributeOnObjectBranch(object, LifecycleUserMethods.Remove, true, () => {
-                                    processObjectBranch(hmiobj, false, undefined, processObject => {
-                                        if (processObject._hmi_destroy) {
-                                            processObject._hmi_destroy();
-                                        }
-                                    });
-                                    destroyIdNodeBranch(hmiobj);
-                                    detachHmiObject(object);
-                                    onStateChanged(LifecycleState.Cleanup);
-                                    performAttributeOnObjectBranch(object, LifecycleUserMethods.Cleanup, false, onSuc, onErr, false); // Note: passing false als 'hmi' will delete the reference on the object
-                                }, onErr);
-                            }, onErr);
-                        }, onErr);
-                    }, onErr);
-                }, () => {
-                    onStateChanged(LifecycleState.Idle);
-                    if (typeof onSuccess === 'function') { // TODO: Do we really need this check?
-                        onSuccess();
-                    } else {
-                        console.error('Missing onSuccess callback');
-                    }
-                }, onError, () => onError('timeout'), 5000); // TODO: And if why don't we check this?
-            } else {
-                onStateChanged(LifecycleState.Idle);
-                if (typeof onSuccess === 'function') { // TODO: Do we really need this check?
-                    onSuccess();
-                } else {
-                    console.error('Missing onSuccess callback');
-                }
-            }
-        } else {
-            onError('Invalid object'); // TODO: And if why don't we check this?
-        }
-    }
-
-    function destroyObjectBranch(object, onSuccess, onError, onLifecycleStateChanged) {
+    function destroyObjectSubTree(object, onSuccess, onError, onLifecycleStateChanged) {
         if (object !== null && typeof object === 'object' && !Array.isArray(object)) {
             const onStateChanged = typeof onLifecycleStateChanged === 'function' ? onLifecycleStateChanged : state => { };
             const hmiobj = object._hmi_object;
@@ -8134,16 +8016,16 @@
                         break;
                     }
                 }
-                processObjectBranch(hmiobj, false, undefined, processObject => delete processObject._hmi_alive);
+                processObjectSubTree(hmiobj, false, undefined, processObject => delete processObject._hmi_alive);
                 const tasks = [];
                 tasks.push((onSuc, onErr) => {
                     onStateChanged(LifecycleState.Stop);
-                    performAttributeOnObjectBranch(object, LifecycleUserMethods.Stop, true, onSuc, onErr);
+                    performAttributeOnObjectSubTree(object, LifecycleUserMethods.Stop, true, onSuc, onErr);
                 });
-                tasks.push((onSuc, onErr) => performAttributeOnObjectBranch(object, '_hmi_removeListeners', false, onSuc, onErr));
+                tasks.push((onSuc, onErr) => performAttributeOnObjectSubTree(object, '_hmi_removeListeners', false, onSuc, onErr));
                 tasks.push((onSuc, onErr) => {
                     onStateChanged(LifecycleState.Destroy);
-                    performAttributeOnObjectBranch(object, LifecycleUserMethods.Destroy, false, onSuc, onErr);
+                    performAttributeOnObjectSubTree(object, LifecycleUserMethods.Destroy, false, onSuc, onErr);
                 });
                 tasks.push((onSuc, onErr) => {
                     if (hmiobj._hmi_destroy_dom) {
@@ -8151,18 +8033,18 @@
                         hmiobj._hmi_destroy_dom();
                     }
                     onStateChanged(LifecycleState.Remove);
-                    performAttributeOnObjectBranch(object, LifecycleUserMethods.Remove, true, onSuc, onErr);
+                    performAttributeOnObjectSubTree(object, LifecycleUserMethods.Remove, true, onSuc, onErr);
                 });
                 tasks.push((onSuc, onErr) => {
-                    processObjectBranch(hmiobj, false, undefined, processObject => {
+                    processObjectSubTree(hmiobj, false, undefined, processObject => {
                         if (processObject._hmi_destroy) {
                             processObject._hmi_destroy();
                         }
                     });
-                    destroyIdNodeBranch(hmiobj);
+                    destroyIdNodeSubTree(hmiobj);
                     detachHmiObject(object);
                     onStateChanged(LifecycleState.Cleanup);
-                    performAttributeOnObjectBranch(object, LifecycleUserMethods.Cleanup, false, onSuc, onErr, false); // Note: passing false als 'hmi' will delete the reference on the object
+                    performAttributeOnObjectSubTree(object, LifecycleUserMethods.Cleanup, false, onSuc, onErr, false); // Note: passing false als 'hmi' will delete the reference on the object
                 });
                 Executor.run(tasks, () => {
                     onStateChanged(LifecycleState.Idle);
@@ -8184,7 +8066,7 @@
             onError('Invalid object'); // TODO: And if why don't we check this?
         }
     }
-    ObjectLifecycleManager.destroy = destroyObjectBranch;
+    ObjectLifecycleManager.destroy = destroyObjectSubTree;
 
     /**
      * Add a new type to the visualization object handler.
