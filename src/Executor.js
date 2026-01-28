@@ -191,85 +191,85 @@
 
     function pipe() {// Note: No not change to lambda function, because 'arguments' will not work anymore!
         // init callbacks and helpers
-        let ai, al = arguments.length, ar;
-        let on_error = al > 0 && typeof arguments[0] === 'function' ? arguments[0] : false;
-        let on_timeout = on_error, timeoutTimer = null, millis = false;
-        for (ai = 1; ai < al; ai++) {
-            ar = arguments[ai];
-            if (on_timeout !== ar && typeof ar === 'function') {
-                on_timeout = ar;
-            } else if (!millis && typeof ar === 'number' && ar > 0) {
-                millis = ar;
+        const al = arguments.length;
+        const onError = al > 0 && typeof arguments[0] === 'function' ? arguments[0] : false;
+        let onTimeout = onError, timeoutTimer = null, timeoutMillis = false;
+        for (let ai = 1; ai < al; ai++) {
+            const ar = arguments[ai];
+            if (onTimeout !== ar && typeof ar === 'function') {
+                onTimeout = ar;
+            } else if (!timeoutMillis && typeof ar === 'number' && ar > 0) {
+                timeoutMillis = ar;
             }
         }
-        let tasks = [], running = false, run = () => {
+        let running = false;
+        const tasks = [], run = () => {
             if (!running) {
-                let task, this_call, success, error, exception;
+                let task, thisCall, hasSuccess, hasError, exception;
                 while (tasks.length > 0) {
                     try {
                         // get next task, remove from pipe and run task
                         task = tasks[0]
                         tasks.splice(0, 1);
                         running = true;
-                        this_call = true;
-                        success = false;
-                        error = false;
+                        thisCall = true;
+                        hasSuccess = false;
+                        hasError = false;
                         exception = undefined;
                         task(() => {
                             // handle success callback only once and if still running
                             if (running) {
                                 running = false;
-                                if (this_call) {
-                                    success = true;
+                                if (thisCall) {
+                                    hasSuccess = true;
                                 } else if (tasks.length > 0) {
                                     run();
                                 }
                             }
-                        }, err => {
+                        }, error => {
                             // handle error callback only once and if still running
                             if (running) {
                                 running = false;
                                 tasks.splice(0, tasks.length);
-                                if (this_call) {
-                                    error = true;
-                                    exception = err;
-                                } else if (on_error) {
-                                    on_error(err);
+                                if (thisCall) {
+                                    hasError = true;
+                                    exception = error;
+                                } else if (onError) {
+                                    onError(error);
                                 } else {
-                                    console.error('ERROR! On performing task: ' + err);
+                                    console.error(`ERROR! On performing task: ${error}`);
                                 }
                             }
                         });
-                        this_call = false;
-                        if (error) {
-                            if (on_error) {
-                                on_error(exception);
+                        thisCall = false;
+                        if (hasError) {
+                            if (onError) {
+                                onError(exception);
                             } else {
-                                console.error('ERROR! On performing task: ' + exception);
+                                console.error(`ERROR! On performing task: ${exception}`);
                             }
                             return;
-                        }
-                        else if (!success) {
-                            if (millis && on_timeout) {
+                        } else if (!hasSuccess) {
+                            if (timeoutMillis && onTimeout) {
                                 timeoutTimer = setTimeout(() => {
                                     if (running) {
                                         running = false;
                                         tasks.splice(0, tasks.length);
-                                        if (on_timeout) {
-                                            on_timeout('timeout: ' + task.toString());
+                                        if (onTimeout) {
+                                            onTimeout('timeout: ' + task.toString());
                                         }
                                     }
-                                }, Math.ceil(millis));
+                                }, Math.ceil(timeoutMillis));
                             }
                             return;
                         }
                     } catch (exc) {
                         running = false;
                         tasks.splice(0, tasks.length);
-                        if (on_error) {
-                            on_error(exc);
+                        if (onError) {
+                            onError(exc);
                         } else {
-                            console.error('EXCEPTION! On performing task: ' + exc);
+                            console.error(`EXCEPTION! On performing task: ${exc}`);
                         }
                         return;
                     }
@@ -289,9 +289,10 @@
 
     function decouple() { // Note: No not change to lambda function, because 'arguments' will not work anymore!
         // init callbacks and times
-        let action = false, delay = false, millis = false, ai, al = arguments.length, ar;
-        for (ai = 0; ai < al; ai++) {
-            ar = arguments[ai];
+        const al = arguments.length;
+        let action = false, delay = false, millis = false;
+        for (let ai = 0; ai < al; ai++) {
+            const ar = arguments[ai];
             if (!action && typeof ar === 'function') {
                 action = ar;
             } else if (!millis && typeof ar === 'number' && ar > 0) {
@@ -305,24 +306,24 @@
                 }
             }
         }
-        let perform = () => {
+        const perform = () => {
             try {
                 action();
             } catch (exc) {
                 console.error('EXCEPTION! Cannot perform minimum timeout action: ' + exc);
             }
         };
-        let timeoutTimer = null, prev = undefined, trigger = () => {
+        let timeoutTimer = null, prev = undefined;
+        const trigger = () => {
             // we only perform if we are not already waiting in a timeout
             if (!timeoutTimer) {
-                let time = new Date().getTime();
+                const time = new Date().getTime();
                 if (prev === undefined || time >= prev + millis) {
                     // if first call or previous is the minimum time in the past we
                     // perform immediately
                     prev = time;
                     perform();
-                }
-                else {
+                } else {
                     // if previous call is too short in the past we wait until timeout
                     timeoutTimer = setTimeout(() => {
                         prev = new Date().getTime();
@@ -332,11 +333,11 @@
                 }
             }
         };
-        let delay_timeout = undefined;
+        let delayTimeout = undefined;
         return delay ? () => {
-            if (delay_timeout === undefined) {
-                delay_timeout = setTimeout(() => {
-                    delay_timeout = undefined;
+            if (delayTimeout === undefined) {
+                delayTimeout = setTimeout(() => {
+                    delayTimeout = undefined;
                     trigger();
                 }, delay);
             }
@@ -346,24 +347,24 @@
 
     function unstress() { // Note: No not change to lambda function, because 'arguments' will not work anymore!
         // init callbacks and helpers
-        let ai, al = arguments.length, ar;
-        let on_error = al > 0 && typeof arguments[0] === 'function' ? arguments[0] : false;
-        let on_timeout = on_error, timeoutTimer = null, millis = false;
-        for (ai = 1; ai < al; ai++) {
-            ar = arguments[ai];
-            if (on_timeout !== ar && typeof ar === 'function') {
-                on_timeout = ar;
-            } else if (!millis && typeof ar === 'number' && ar > 0) {
-                millis = ar;
+        const al = arguments.length;
+        const onError = al > 0 && typeof arguments[0] === 'function' ? arguments[0] : false;
+        let onTimeout = onError, timeoutTimer = null, timeoutMillis = false;
+        for (let ai = 1; ai < al; ai++) {
+            const ar = arguments[ai];
+            if (onTimeout !== ar && typeof ar === 'function') {
+                onTimeout = ar;
+            } else if (!timeoutMillis && typeof ar === 'number' && ar > 0) {
+                timeoutMillis = ar;
             }
         }
         // If not busy we change to busy and run the task.
         // On success, error or in case of an exception and if meanwhile
         // another task has been passed we call this function again.
-        var latest_requested_task, busy = false;
-        var run = task => {
+        let latestRequestedTask, busy = false;
+        const run = task => {
             if (typeof task === 'function') {
-                latest_requested_task = task;
+                latestRequestedTask = task;
                 if (!busy) {
                     busy = true;
                     try {
@@ -372,8 +373,8 @@
                                 busy = false;
                                 if (timeoutTimer) {
                                     clearTimeout(timeoutTimer);
-                                } if (latest_requested_task !== task) {
-                                    run(latest_requested_task);
+                                } if (latestRequestedTask !== task) {
+                                    run(latestRequestedTask);
                                 }
                             }
                         }, err => {
@@ -382,32 +383,32 @@
                                 if (timeoutTimer) {
                                     clearTimeout(timeoutTimer);
                                 }
-                                on_error(err);
-                                if (latest_requested_task !== task) {
-                                    run(latest_requested_task);
+                                onError(err);
+                                if (latestRequestedTask !== task) {
+                                    run(latestRequestedTask);
                                 }
                             }
                         });
-                        if (busy && millis && on_timeout) {
+                        if (busy && timeoutMillis && onTimeout) {
                             timeoutTimer = setTimeout(() => {
                                 if (busy) {
                                     busy = false;
-                                    if (on_timeout) {
-                                        on_timeout('timeout: ' + task.toString());
+                                    if (onTimeout) {
+                                        onTimeout('timeout: ' + task.toString());
                                     }
-                                    if (latest_requested_task !== task) {
-                                        run(latest_requested_task);
+                                    if (latestRequestedTask !== task) {
+                                        run(latestRequestedTask);
                                     }
                                 }
-                            }, Math.ceil(millis));
+                            }, Math.ceil(timeoutMillis));
                         }
                     } catch (exc) {
                         busy = false;
                         if (timeoutTimer) {
                             clearTimeout(timeoutTimer);
                         }
-                        if (on_error) {
-                            on_error(exc);
+                        if (onError) {
+                            onError(exc);
                         }
                     }
                 }
