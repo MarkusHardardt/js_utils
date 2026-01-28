@@ -303,37 +303,37 @@
     ObjectLifecycleManager.updateCoordinates = updateCoordinates;
 
     function ListenerSupport() {
-        var that = this;
-        var _listeners = [];
-        this._hmi_addEditListener = function (i_listener) {
-            for (var i = 0, l = _listeners.length; i < l; i++) {
-                if (_listeners[i] === i_listener) {
+        let that = this;
+        let listeners = [];
+        this._hmi_addEditListener = listener => {
+            for (let i = 0, l = listeners.length; i < l; i++) {
+                if (listeners[i] === listener) {
                     return false;
                 }
             }
-            _listeners.push(i_listener);
+            listeners.push(listener);
             return true;
         };
-        this._hmi_removeEditListener = function (i_listener) {
-            for (var i = 0, l = _listeners.length; i < l; i++) {
-                if (_listeners[i] === i_listener) {
-                    _listeners.splice(i, 1);
+        this._hmi_removeEditListener = listener => {
+            for (let i = 0, l = listeners.length; i < l; i++) {
+                if (listeners[i] === listener) {
+                    listeners.splice(i, 1);
                     return true;
                 }
             }
             return false;
         };
-        this._hmi_forAllEditListeners = function (i_callback) {
-            for (var i = 0, l = _listeners.length; i < l; i++) {
-                i_callback(_listeners[i]);
+        this._hmi_forAllEditListeners = callback => {
+            for (let i = 0, l = listeners.length; i < l; i++) {
+                callback(listeners[i]);
             }
         };
-        this._hmi_destroys.push(function () {
+        this._hmi_destroys.push(() => {
             delete that._hmi_forAllEditListeners;
             delete that._hmi_addEditListener;
             delete that._hmi_removeEditListener;
-            _listeners.splice(0, _listeners.length);
-            _listeners = undefined;
+            listeners.splice(0, listeners.length);
+            listeners = undefined;
             that = undefined;
         });
     }
@@ -7885,8 +7885,19 @@
 
     var s_root_objects = [];
 
-    const LifecycleUserMethods = Object.freeze({ Build: 'build', Apply: 'apply', Prepare: 'prepare', Start: 'start', Stop: 'stop', Destroy: 'destroy', Remove: 'remove', Cleanup: 'cleanup' });
-    const LifecycleState = Object.freeze({ Idle: 0, Build: 1, Apply: 2, Prepare: 3, Start: 4, Running: 5, Stop: 6, Destroy: 7, Remove: 8, Cleanup: 9 });
+    const LifecycleUserMethod = Object.freeze({
+        Build: 'build', Apply: 'apply', Prepare: 'prepare', Start: 'start',
+        Stop: 'stop', Destroy: 'destroy', Remove: 'remove', Cleanup: 'cleanup'
+    });
+    const LifecycleUserMethodTimeout = Object.freeze({
+        Create: 'createTimeout', Kill: 'killTimeout',
+        Build: 'buildTimeout', Apply: 'applyTimeout', Prepare: 'prepareTimeout', Start: 'startTimeout',
+        Stop: 'stopTimeout', Destroy: 'destroyTimeout', Remove: 'removeTimeout', Cleanup: 'cleanupTimeout'
+    });
+    const LifecycleState = Object.freeze({
+        Idle: 0, Build: 1, Apply: 2, Prepare: 3, Start: 4,
+        Running: 5, Stop: 6, Destroy: 7, Remove: 8, Cleanup: 9
+    });
     ObjectLifecycleManager.LifecycleState = LifecycleState;
     ObjectLifecycleManager.formatObjectLifecycleState = state => {
         for (const name in LifecycleState) {
@@ -7900,6 +7911,7 @@
     // /////////////////////////////////////////////////////////////////////////////////////////
     // INITIALIZATION AND DESTROY
     // /////////////////////////////////////////////////////////////////////////////////////////
+    const DEFAULT_TIMEOUT = 5000;
     function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, initData, parentObject, nodeId, parentNode, disableVisuEvents, enableEditorEvents, onLifecycleStateChanged) { // TODO: Clean up this argument list
         if (object !== null && typeof object === 'object' && !Array.isArray(object)) {
             const onStateChanged = typeof onLifecycleStateChanged === 'function' ? onLifecycleStateChanged : state => { };
@@ -7908,7 +7920,13 @@
             tasks.push((onSuc, onErr) => {
                 initObject(object, initData);
                 onStateChanged(LifecycleState.Build);
-                performAttributeOnObjectSubTree(object, LifecycleUserMethods.Build, true, onSuc, onErr, hmi);
+                const timeout = object[LifecycleUserMethodTimeout.Build];
+                if (typeof timeout === 'number' && timeout > 0) {
+                    Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Build, true, os, oe, hmi),
+                        onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Build}() (${timeout} ms)`), timeout);
+                } else {
+                    performAttributeOnObjectSubTree(object, LifecycleUserMethod.Build, true, onSuc, onErr, hmi);
+                }
             });
             tasks.push((onSuc, onErr) => {
                 attachHmiObject(object);
@@ -7916,7 +7934,13 @@
                 createIdNodeSubTree(hmiobj, parentObject, nodeId, parentNode);
                 processObjectSubTree(hmiobj, true, undefined, processObject => ObjectImpl.call(processObject, disableVisuEvents, hmiobj === processObject && enableEditorEvents));
                 onStateChanged(LifecycleState.Apply);
-                performAttributeOnObjectSubTree(object, LifecycleUserMethods.Apply, false, onSuc, onErr);
+                const timeout = object[LifecycleUserMethodTimeout.Apply];
+                if (typeof timeout === 'number' && timeout > 0) {
+                    Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Apply, false, os, oe),
+                        onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Apply}() (${timeout} ms)`), timeout);
+                } else {
+                    performAttributeOnObjectSubTree(object, LifecycleUserMethod.Apply, false, onSuc, onErr);
+                }
             });
             tasks.push((onSuc, onErr) => {
                 if (hmiobj._hmi_init_dom) {
@@ -7925,7 +7949,13 @@
                         container: jQueryElement
                     }, () => {
                         onStateChanged(LifecycleState.Prepare);
-                        performAttributeOnObjectSubTree(object, LifecycleUserMethods.Prepare, true, onSuc, onErr);
+                        const timeout = object[LifecycleUserMethodTimeout.Prepare];
+                        if (typeof timeout === 'number' && timeout > 0) {
+                            Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Prepare, true, os, oe),
+                                onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Prepare}() (${timeout} ms)`), timeout);
+                        } else {
+                            performAttributeOnObjectSubTree(object, LifecycleUserMethod.Prepare, true, onSuc, onErr);
+                        }
                     }, onErr);
                 }
             });
@@ -7935,7 +7965,13 @@
             });
             tasks.push((onSuc, onErr) => {
                 onStateChanged(LifecycleState.Start);
-                performAttributeOnObjectSubTree(object, LifecycleUserMethods.Start, false, onSuc, onErr);
+                const timeout = object[LifecycleUserMethodTimeout.Start];
+                if (typeof timeout === 'number' && timeout > 0) {
+                    Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Start, false, os, oe),
+                        onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Start}() (${timeout} ms)`), timeout);
+                } else {
+                    performAttributeOnObjectSubTree(object, LifecycleUserMethod.Start, false, onSuc, onErr);
+                }
             });
             tasks.push((onSuc, onErr) => {
                 // set alive
@@ -7954,6 +7990,10 @@
                 // done
                 onSuc();
             });
+            let timeout = object[LifecycleUserMethodTimeout.Create];
+            if (typeof timeout !== 'number' || timeout <= 0) {
+                timeout = DEFAULT_TIMEOUT;
+            }
             Executor.run(tasks, () => {
                 onStateChanged(LifecycleState.Running);
                 if (typeof onSuccess === 'function') { // TODO: Do we really need this check?
@@ -7961,7 +8001,7 @@
                 } else {
                     console.error('Missing onSuccess callback');
                 }
-            }, onError, () => onError('timeout'), 5000); // TODO: timeout as individual parameters
+            }, onError, () => onError(`timeout expired during 'create' procedure (${timeout} ms)`), timeout);
         } else {
             onError('Invalid object');
         }
@@ -8020,12 +8060,24 @@
                 const tasks = [];
                 tasks.push((onSuc, onErr) => {
                     onStateChanged(LifecycleState.Stop);
-                    performAttributeOnObjectSubTree(object, LifecycleUserMethods.Stop, true, onSuc, onErr);
+                    const timeout = object[LifecycleUserMethodTimeout.Stop];
+                    if (typeof timeout === 'number' && timeout > 0) {
+                        Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Stop, true, os, oe),
+                            onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Stop}() (${timeout} ms)`), timeout);
+                    } else {
+                        performAttributeOnObjectSubTree(object, LifecycleUserMethod.Stop, true, onSuc, onErr);
+                    }
                 });
                 tasks.push((onSuc, onErr) => performAttributeOnObjectSubTree(object, '_hmi_removeListeners', false, onSuc, onErr));
                 tasks.push((onSuc, onErr) => {
                     onStateChanged(LifecycleState.Destroy);
-                    performAttributeOnObjectSubTree(object, LifecycleUserMethods.Destroy, false, onSuc, onErr);
+                    const timeout = object[LifecycleUserMethodTimeout.Destroy];
+                    if (typeof timeout === 'number' && timeout > 0) {
+                        Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Destroy, false, os, oe),
+                            onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Destroy}() (${timeout} ms)`), timeout);
+                    } else {
+                        performAttributeOnObjectSubTree(object, LifecycleUserMethod.Destroy, false, onSuc, onErr);
+                    }
                 });
                 tasks.push((onSuc, onErr) => {
                     if (hmiobj._hmi_destroy_dom) {
@@ -8033,7 +8085,13 @@
                         hmiobj._hmi_destroy_dom();
                     }
                     onStateChanged(LifecycleState.Remove);
-                    performAttributeOnObjectSubTree(object, LifecycleUserMethods.Remove, true, onSuc, onErr);
+                    const timeout = object[LifecycleUserMethodTimeout.Remove];
+                    if (typeof timeout === 'number' && timeout > 0) {
+                        Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Remove, true, os, oe),
+                            onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Remove}() (${timeout} ms)`), timeout);
+                    } else {
+                        performAttributeOnObjectSubTree(object, LifecycleUserMethod.Remove, true, onSuc, onErr);
+                    }
                 });
                 tasks.push((onSuc, onErr) => {
                     processObjectSubTree(hmiobj, false, undefined, processObject => {
@@ -8044,8 +8102,19 @@
                     destroyIdNodeSubTree(hmiobj);
                     detachHmiObject(object);
                     onStateChanged(LifecycleState.Cleanup);
-                    performAttributeOnObjectSubTree(object, LifecycleUserMethods.Cleanup, false, onSuc, onErr, false); // Note: passing false als 'hmi' will delete the reference on the object
+                    const timeout = object[LifecycleUserMethodTimeout.Cleanup];
+                    // Note: passing false as 'hmi' will delete the reference on the object
+                    if (typeof timeout === 'number' && timeout > 0) {
+                        Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Cleanup, false, os, oe, false),
+                            onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Cleanup}() (${timeout} ms)`), timeout);
+                    } else {
+                        performAttributeOnObjectSubTree(object, LifecycleUserMethod.Cleanup, false, onSuc, onErr, false);
+                    }
                 });
+                let timeout = object[LifecycleUserMethodTimeout.Kill];
+                if (typeof timeout !== 'number' || timeout <= 0) {
+                    timeout = DEFAULT_TIMEOUT;
+                }
                 Executor.run(tasks, () => {
                     onStateChanged(LifecycleState.Idle);
                     if (typeof onSuccess === 'function') { // TODO: Do we really need this check?
@@ -8053,7 +8122,7 @@
                     } else {
                         console.error('Missing onSuccess callback');
                     }
-                }, onError, () => onError('timeout'), 5000); // TODO: And if why don't we check this?
+                }, onError, () => onError(`timeout expired during 'kill' procedure (${timeout} ms)`), timeout); // TODO: And if why don't we check this?
             } else {
                 onStateChanged(LifecycleState.Idle);
                 if (typeof onSuccess === 'function') { // TODO: Do we really need this check?
