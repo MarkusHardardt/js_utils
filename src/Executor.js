@@ -3,67 +3,62 @@
     const Executor = {};
     const isNodeJS = typeof require === 'function';
 
-    function exec(object, onSuccess, onError, timeout, millis) {
+    function exec(object, onSuccess, onError, onTimeout, timeoutMillis) {
         if (typeof object === 'function') {
             let done = false, timeoutTimer = null;
             try {
-                let this_call = true, success, result, error, exception;
+                let thisCall = true, hasSuccess = false, hasError = false, result, exception;
                 // call safely ...
-                object(response => {
-                    // on success:
+                object(response => { // on success:
                     if (!done) {
                         done = true;
                         if (timeoutTimer) {
                             clearTimeout(timeoutTimer);
                         }
-                        if (this_call) {
-                            success = true;
+                        if (thisCall) {
+                            hasSuccess = true;
                             result = response;
                         } else {
                             onSuccess(response);
                         }
                     }
-                }, err => {
-                    // on error:
+                }, error => { // on error:
                     if (!done) {
                         done = true;
                         if (timeoutTimer) {
                             clearTimeout(timeoutTimer);
                         }
-                        if (this_call) {
-                            error = true;
-                            exception = err;
+                        if (thisCall) {
+                            hasError = true;
+                            exception = error;
                         } else {
-                            onError(err);
+                            onError(error);
                         }
                     }
                 });
-                this_call = false;
-                if (error) {
+                thisCall = false;
+                if (hasError) {
                     onError(exception);
-                }
-                else if (success) {
+                } else if (hasSuccess) {
                     onSuccess(result);
-                }
-                // start watchdog only if required
-                else if (millis && timeout) {
+                } else if (timeoutMillis && typeof onTimeout === 'function') { // start watchdog only if required
                     timeoutTimer = setTimeout(() => {
                         if (!done) {
                             done = true;
-                            timeout(object);
+                            onTimeout(object);
                         }
-                    }, Math.ceil(millis));
+                    }, Math.ceil(timeoutMillis));
                 }
-            } catch (exc) {
+            } catch (error) {
                 done = true;
-                onError(exc);
+                onError(error);
             }
-        }
-        else if (Array.isArray(object)) {
+        } else if (Array.isArray(object)) {
             // There are several ways to configure the serial / parallel behavior of
             // this mechanism. So at first we try to resolve how many tasks may be
             // called together and what is our first task.
-            let start = typeof object[0] === 'boolean' || typeof object[0] === 'number' ? 1 : 0, end = object.length, count = 1;
+            const start = typeof object[0] === 'boolean' || typeof object[0] === 'number' ? 1 : 0, end = object.length;
+            let count = 1;
             if (object.parallel === true || object[0] === true) {
                 count = end - start;
             } else if (typeof object.parallel === 'number' && object.parallel > 0) {
@@ -73,20 +68,21 @@
             }
             // We store our task states inside an array and by calling 'next()' we
             // either trigger the next task or our success callback.
-            let states = [], results, done = false, next = () => {
+            let results, done = false
+            const states = [], next = () => {
                 if (!done) {
-                    let t, this_call, success, error, exception;
+                    let t, thisCall, hasSuccess, hasError, exception;
                     // First we loop over all tasks and trigger the next that has not been
                     // already triggered.
                     for (t = start; t < end; t++) {
                         if (states[t] === undefined) {
                             states[t] = false;
-                            this_call = true;
-                            success = false;
-                            error = false;
+                            thisCall = true;
+                            hasSuccess = false;
+                            hasError = false;
                             exception = undefined;
                             (function () {
-                                let task = t;
+                                const task = t;
                                 exec(object[task], result => {
                                     states[task] = true;
                                     if (result !== undefined) {
@@ -96,27 +92,26 @@
                                             results = [result];
                                         }
                                     }
-                                    if (this_call) {
-                                        success = true;
+                                    if (thisCall) {
+                                        hasSuccess = true;
                                     } else {
                                         next();
                                     }
-                                }, err => {
+                                }, error => {
                                     done = true;
-                                    if (this_call) {
+                                    if (thisCall) {
                                         error = true;
-                                        exception = err;
+                                        exception = error;
                                     } else {
-                                        onError(err);
+                                        onError(error);
                                     }
-                                }, timeout, millis);
+                                }, onTimeout, timeoutMillis);
                             }());
-                            this_call = false;
-                            if (error) {
+                            thisCall = false;
+                            if (hasError) {
                                 onError(exception);
                                 return;
-                            }
-                            else if (!success) {
+                            } else if (!hasSuccess) {
                                 return;
                             }
                         }
@@ -136,18 +131,16 @@
             };
             // Now we call our next function as often as allowed. But if no tasks
             // available at all we succeed.
-            let t, e = start + count;
+            const e = start + count;
             if (start < e) {
-                for (t = start; t < e; t++) {
+                for (let t = start; t < e; t++) {
                     next();
                 }
-            }
-            else {
+            } else {
                 onSuccess();
             }
-        }
-        else {
-            onError('Cannot execute! Object is not a function and no array: ' + object);
+        } else {
+            onError(`Cannot execute! Object is not a function and no array: ${object}`);
         }
     }
 
