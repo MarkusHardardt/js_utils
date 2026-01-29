@@ -339,32 +339,36 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getLanguageSelector(hmi, adapter) {
-        let langs = hmi.env.cms.GetLanguages(), language = langs[0], children = [{
+        const langs = hmi.env.cms.GetLanguages(), columns = [1];
+        let language = langs[0];
+        const children = [{
             x: 0,
             y: 0,
             align: 'right',
             text: 'languages:'
-        }], columns = [1], select_language = btn => {
+        }];
+        function selectLanguage(btn) {
             for (let i = 0, l = children.length; i < l; i++) {
-                let button = children[i];
+                const button = children[i];
                 button.hmi_setSelected(button === btn);
             }
             language = btn.text;
             adapter.languageChanged(language);
         };
-        for (let i = 0, l = langs.length; i < l; i++) {
-            let lang = langs[i];
-            children.push({
-                x: i + 1,
-                y: 0,
-                text: lang,
-                border: true,
-                selected: i === 0,
-                clicked: function () { // Note: Do not change to lambda function becaus 'this' will not be the button anymore!
-                    select_language(this);
-                }
-            });
-            columns.push(DEFAULT_COLUMN_WIDTH);
+        for (let i = 0; i < langs.length; i++) {
+            (function () {
+                const lang = langs[i];
+                const button = {
+                    x: i + 1,
+                    y: 0,
+                    text: lang,
+                    border: true,
+                    selected: i === 0,
+                    clicked: () => selectLanguage(button)
+                };
+                children.push(button);
+                columns.push(DEFAULT_COLUMN_WIDTH);
+            }());
         }
         return {
             type: 'grid',
@@ -2550,7 +2554,7 @@
             }, error => adapter.notifyError(`Error loading task objects: ${error}`));
         }
         function onStateChanged(path, state) {
-            console.log(`task '${path}', state: '${ObjectLifecycleManager.formatObjectLifecycleState(state)}'`);
+            // TODO: remove console.log(`task '${path}', state: '${ObjectLifecycleManager.formatObjectLifecycleState(state)}'`);
             if (taskObjects) {
                 for (let i = 0; i < taskObjects.length; i++) {
                     const taskObject = taskObjects[i];
@@ -2561,6 +2565,11 @@
                         }
                         break;
                     }
+                }
+                if (!selectedDataEdited && selectedDataIndex !== -1) {
+                    const selectedData = taskObjects[selectedDataIndex];
+                    startTaskButton.hmi_setVisible(selectedData.state === ObjectLifecycleManager.LifecycleState.Idle);
+                    stopTaskButton.hmi_setVisible(selectedData.state !== ObjectLifecycleManager.LifecycleState.Idle);
                 }
             }
         }
@@ -2616,11 +2625,10 @@
                     autorunCheckbox.setOnChanged(null);
                     autorunCheckbox.setValue((config.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0);
                     autorunCheckbox.setOnChanged(onAutorunEdited);
-                    const taskActionButtonsEnabled = !selectedDataEdited;
-                    startTaskButton.hmi_setVisible(taskActionButtonsEnabled);
-                    stopTaskButton.hmi_setVisible(taskActionButtonsEnabled);
-                    browseTaskObjectButton.hmi_setVisible(taskActionButtonsEnabled);
-                    browseJsonFXObjectButton.hmi_setVisible(taskActionButtonsEnabled);
+                    startTaskButton.hmi_setVisible(!selectedDataEdited && selectedData.state === ObjectLifecycleManager.LifecycleState.Idle);
+                    stopTaskButton.hmi_setVisible(!selectedDataEdited && selectedData.state !== ObjectLifecycleManager.LifecycleState.Idle);
+                    browseTaskObjectButton.hmi_setVisible(!selectedDataEdited);
+                    browseJsonFXObjectButton.hmi_setVisible(!selectedDataEdited);
                 }
             }
         };
