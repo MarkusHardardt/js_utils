@@ -255,7 +255,7 @@
             } else {
                 const task = taskObject.task;
                 delete taskObject.task;
-                ObjectLifecycleManager.destroy(task, () => {
+                ObjectLifecycleManager.kill(task, () => {
                     console.log(`Successfully stopped '${taskObject.config.taskObject}' for task '${path}'`);
                     onSuccess();
                 }, error => {

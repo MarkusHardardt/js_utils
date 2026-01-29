@@ -772,7 +772,7 @@
             if (_object !== undefined) {
                 const obj = _object;
                 _object = undefined;
-                destroyObjectSubTree(obj, () => {
+                killObjectSubTree(obj, () => {
                     _div.empty();
                     if (typeof onSuccess === 'function') {
                         onSuccess();
@@ -1584,7 +1584,7 @@
                         if (child.objectReference === i_objectReference) {
                             // here we use .object because we placed our object there (see
                             // code above)
-                            destroyObjectSubTree(child.object, () => {
+                            killObjectSubTree(child.object, () => {
                                 delete child._hmi_object;
                                 delete child.hmi_object;
                                 delete child.object;
@@ -7374,7 +7374,7 @@
                         delete button._hmi_element;
                     }
                 }
-                destroyObjectSubTree(config.object, () => { }, error => console.error(`Error closing dialog: ${error}`));
+                killObjectSubTree(config.object, () => { }, error => console.error(`Error closing dialog: ${error}`));
                 dialogElement.dialog('destroy');
                 dialogElement.remove();
                 if (typeof config.closed === 'function') {
@@ -8044,7 +8044,7 @@
     }
     ObjectLifecycleManager.refresh = refreshAllRecursive;
 
-    function destroyObjectSubTree(object, onSuccess, onError, onLifecycleStateChanged) {
+    function killObjectSubTree(object, onSuccess, onError, onLifecycleStateChanged) {
         if (object !== null && typeof object === 'object' && !Array.isArray(object)) {
             const onStateChanged = typeof onLifecycleStateChanged === 'function' ? onLifecycleStateChanged : state => { };
             const hmiobj = object._hmi_object;
@@ -8135,7 +8135,7 @@
             onError('Invalid object'); // TODO: And if why don't we check this?
         }
     }
-    ObjectLifecycleManager.destroy = destroyObjectSubTree;
+    ObjectLifecycleManager.kill = killObjectSubTree;
 
     /**
      * Add a new type to the visualization object handler.

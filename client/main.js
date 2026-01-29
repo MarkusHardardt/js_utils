@@ -23,7 +23,7 @@
     // add hmi-object-framweork
     hmi.create = (object, element, onSuccess, onError, initData) =>
         ObjectLifecycleManager.create(object, element, onSuccess, onError, hmi, initData);
-    hmi.destroy = ObjectLifecycleManager.destroy;
+    hmi.kill = ObjectLifecycleManager.kill;
     hmi.showDialog = (config, onSuccess, onError) =>
         ObjectLifecycleManager.showDialog(hmi, config, onSuccess, onError);
     hmi.showDefaultConfirmationDialog = (config, onSuccess, onError) =>
@@ -135,7 +135,7 @@
             body.empty();
             body.addClass('hmi-body');
             hmi.create(rootObject, body, () => console.log('js hmi started'), error => console.error(error));
-            body.on('unload', () => hmi.destroy(rootObject, () => console.log('js hmi stopped'), error => console.error(error)));
+            body.on('unload', () => hmi.kill(rootObject, () => console.log('js hmi stopped'), error => console.error(error)));
         }, error => console.error(error));
     });
 }(globalThis));
