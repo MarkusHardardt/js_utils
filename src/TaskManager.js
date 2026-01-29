@@ -254,8 +254,8 @@
                 onError(`Task '${path}' has not been started`);
             } else {
                 const task = taskObject.task;
-                delete taskObject.task;
                 ObjectLifecycleManager.kill(task, () => {
+                    delete taskObject.task;
                     console.log(`Successfully stopped '${taskObject.config.taskObject}' for task '${path}'`);
                     onSuccess();
                 }, error => {
