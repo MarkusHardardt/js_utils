@@ -194,8 +194,8 @@
             Common.validateAsDataAccessObject(this, true);
         }
 
-        set Parent(value) { // TODO: 
-            if (this._parentDataAccessObject !== value) { // TODO: unsubscribe and re-subscribe existing subscriptions for operational state (???)
+        set Parent(value) {
+            if (this._parentDataAccessObject !== value) {
                 if (this._parentDataAccessObject !== null) {
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {

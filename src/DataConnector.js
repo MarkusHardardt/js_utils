@@ -83,20 +83,10 @@
                     throw new Error('Set value for Equal(e1, e2) is not a function');
                 }
                 this._equal = value;
-                for (const dataId in this._dataPointsByDataId) {
-                    if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
-                        this._dataPointsByDataId[dataId].node.Equal = value;
-                    }
-                }
             }
 
             set OnError(value) {
                 super.OnError = value;
-                for (const dataId in this._dataPointsByDataId) {
-                    if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
-                        this._dataPointsByDataId[dataId].node.OnError = value;
-                    }
-                }
             }
 
             GetType(dataId) {
@@ -117,8 +107,15 @@
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
                     throw new Error(`Unknown data point for id '${dataId}' for subscription`);
+                } else if (dataPoint.onRefresh) {
+                    throw new Error(`Data point for id '${dataId}' already has subscription`);
                 }
-                dataPoint.node.Subscribe(onRefresh);
+                dataPoint.onRefresh = onRefresh;
+                try {
+                    dataPoint.onRefresh(dataPoint.value);
+                } catch (error) {
+                    this._onError(`Failed calling onRefresh(value) for dataId: ${dataId}: ${error.message}`, error); // TODO: Why error as second argument?
+                }
                 this._subscriptionsChanged();
             }
 
@@ -131,8 +128,10 @@
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
                     throw new Error(`Unknown data point for id '${dataId}' for subscription`);
+                } else if (dataPoint.onRefresh !== onRefresh) {
+                    throw new Error(`Data point for id '${dataId}' has other subscription`);
                 }
-                dataPoint.node.Unsubscribe(onRefresh);
+                dataPoint.onRefresh = null;
                 this._subscriptionsChanged();
             }
 
@@ -151,11 +150,18 @@
                         try {
                             onResponse(value);
                         } catch (error) {
-                            this._onError(`Failed calling onResponse() for dataId: ${dataId}: ${error.message}`, error);
+                            this._onError(`Failed calling onResponse() for dataId: ${dataId}: ${error.message}`, error); // TODO: Why error as second argument?
                         }
                         const dataPoint = this._dataPointsByDataId[dataId];
                         if (dataPoint) {
-                            dataPoint.node.Value = value;
+                            dataPoint.value = value;
+                            if (dataPoint.onRefresh) {
+                                try {
+                                    dataPoint.onRefresh(value);
+                                } catch (error) {
+                                    this._onError(`Failed calling onRefresh(value) for dataId: ${dataId}: ${error.message}`, error); // TODO: Why error as second argument?
+                                }
+                            }
                         }
                     },
                     onError
@@ -206,7 +212,14 @@
                                         this.onError(`Unknown data id: ${dpConfByShortId.dataId}`);
                                         continue;
                                     }
-                                    dataPoint.node.Value = data.values[shortId];
+                                    dataPoint.value = data.values[shortId];
+                                    if (dataPoint.onRefresh) {
+                                        try {
+                                            dataPoint.onRefresh(dataPoint.value);
+                                        } catch (error) {
+                                            this._onError(`Failed calling onRefresh(value) for dataId: ${dpConfByShortId.dataId}: ${error.message}`, error); // TODO: Why error as second argument?
+                                        }
+                                    }
                                 }
                             }
                             break;
@@ -254,28 +267,19 @@
             _prepareDataPoint(dataId, dataPoint, oldDataPointsByDataId) {
                 const oldDataPoint = oldDataPointsByDataId ? oldDataPointsByDataId[dataId] : null;
                 if (!oldDataPoint) {
-                    const node = new DataPoint.Node();
-                    node.Equal = this._equal;
-                    node.OnError = this.onError;
-                    node.Value = null;
-                    dataPoint.node = node;
+                    dataPoint.value = null;
                     dataPoint.Subscribe = onRefresh => this.SubscribeData(dataId, onRefresh);
                     dataPoint.Unsubscribe = onRefresh => this.UnsubscribeData(dataId, onRefresh);
                 } else {
-                    dataPoint.node = oldDataPoint.node;
+                    dataPoint.value = oldDataPoint.value;
                     dataPoint.Subscribe = oldDataPoint.Subscribe;
                     dataPoint.Unsubscribe = oldDataPoint.Unsubscribe;
                     delete oldDataPointsByDataId[dataId];
                 }
-                dataPoint.node.UnsubscribeDelay = this._unsubscribeDelay;
-                dataPoint.node.Observable = dataPoint;
             }
 
-            _destroyDataPoint(dataPoint) {
-                const node = dataPoint.node;
-                node.Value = null;
-                node.Observable = null;
-                delete dataPoint.node;
+            _destroyDataPoint(dataPoint) { // TODO: Required
+                delete dataPoint.value;
             }
 
             _subscriptionsChanged() {
@@ -297,7 +301,7 @@
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                             const dataPoint = this._dataPointsByDataId[dataId];
-                            if (dataPoint.node.SubscriptionsCount > 0) {
+                            if (dataPoint.onRefresh) {
                                 subs += dataPoint.shortId;
                             }
                         }

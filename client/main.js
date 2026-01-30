@@ -35,41 +35,39 @@
             this._languages = cms.GetLanguages();
             this._language = this._languages[0];
             this._dataPoints = {};
-            this._collection = new DataPoint.Collection();
-            this._collection.Parent = {
-                GetType: dataId => this._dataPoints[dataId] ? Core.DataType.String : Core.DataType.Unknown,
-                SubscribeData: (dataId, onRefresh) => {
-                    const dataPoint = this._dataPoints[dataId];
-                    if (dataPoint) {
-                        dataPoint.onRefresh = onRefresh;
-                        onRefresh(dataPoint.value);
-                    } else {
-                        throw new Error(`Unsupported data id for subscribe: '${dataId}'`);
-                    }
-                },
-                UnsubscribeData: (dataId, onRefresh) => {
-                    const dataPoint = this._dataPoints[dataId];
-                    if (dataPoint && dataPoint.onRefresh === onRefresh) {
-                        dataPoint.onRefresh = null;
-                    } else {
-                        throw new Error(`Unsupported data id for unsubscribe: '${dataId}'`);
-                    }
-                },
-                Read: (dataId, onResponse, onError) => {
-                    const dataPoint = this._dataPoints[dataId];
-                    if (dataPoint) {
-                        onResponse(dataPoint.value);
-                    } else {
-                        onError(`Unsupported data id for read: '${dataId}'`);
-                    }
-                },
-                Write: (dataId, value) => {
-                    onError(`Write to data with id '${dataId}' is not supported`);
-                }
-            };
         }
-        get LanguageDataPoints() {
-            return this._collection;
+        GetType(dataId) {
+            return this._dataPoints[dataId] ? Core.DataType.String : Core.DataType.Unknown;
+        }
+        SubscribeData(dataId, onRefresh) {
+            const dataPoint = this._dataPoints[dataId];
+            if (!dataPoint) {
+                throw new Error(`Unsupported data id for subscribe: '${dataId}'`);
+            } else if (dataPoint.onRefresh !== null) {
+                throw new Error(`Data id '${dataId}' is already subscribed`);
+            }
+            dataPoint.onRefresh = onRefresh;
+            onRefresh(dataPoint.value);
+        }
+        UnsubscribeData(dataId, onRefresh) {
+            const dataPoint = this._dataPoints[dataId];
+            if (!dataPoint) {
+                throw new Error(`Unsupported data id for unsubscribe: '${dataId}'`);
+            } else if (dataPoint.onRefresh === null) {
+                throw new Error(`Data id '${dataId}' is not subscribed`);
+            }
+            dataPoint.onRefresh = null;
+        }
+        Read(dataId, onResponse, onError) {
+            const dataPoint = this._dataPoints[dataId];
+            if (dataPoint) {
+                onResponse(dataPoint.value);
+            } else {
+                onError(`Unsupported data id for read: '${dataId}'`);
+            }
+        }
+        Write(dataId, value) {
+            throw new Error(`Write to data with id '${dataId}' is not supported`);
         }
         GetLanguages() {
             return this._languages.map(l => l);
@@ -129,8 +127,11 @@
         const tasks = [];
         tasks.parallel = false;
 
+        const dataCollection = new DataPoint.Collection();
+        hmi.env.data = dataCollection;
+
         const dataRouter = new DataPoint.Router();
-        hmi.env.data = dataRouter;
+        dataCollection.Parent = dataRouter;
 
         const dataConnector = new DataConnector.ClientConnector();
         // hmi.env.data = dataConnector; // TODO: Insert router for labels, html and data connector values
@@ -150,7 +151,7 @@
             const isValidHtmlId = hmi.env.cms.GetIdValidTestFunctionForType(ContentManager.DataTableType.HTML);
             dataRouter.GetDataAccessObject = dataId => {
                 if (isValidLabelId(dataId) || isValidHtmlId(dataId)) {
-                    return hmi.env.lang.LanguageDataPoints;
+                    return hmi.env.lang;
                 } else {
                     return dataConnector;
                 }
