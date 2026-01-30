@@ -30,6 +30,9 @@
             'PerformRefactoring(source, target, action, checksum, onResponse, onError)',
             'GetSearchResults(key, value, onResponse, onError)',
             'GetIdKeyValues(id, onResponse, onError)',
+            'GetAllIdsForType(type, onResponse, onError)',
+            'GetAllLabelValuesForLanguage(language, onResponse, onError)',
+            'GetAllHtmlValuesForLanguage(language, onResponse, onError)',
             'IsHMIObject(id, onResponse, onError)',
             'AddDefaultHMIObject(id, onResponse, onError)',
             'GetHMIObject(queryParameterValue, language, onResponse, onError)',
@@ -161,6 +164,9 @@
     const COMMAND_PERFORM_REFACTORING = 'perform_refactoring';
     const COMMAND_GET_SEARCH_RESULTS = 'get_search_results';
     const COMMAND_GET_ID_KEY_VALUES = 'get_id_key_values';
+    const COMMAND_GET_ALL_IDS_FOR_TYPE = 'get_all_ids_for_type';
+    const COMMAND_GET_ALL_LABEL_VALUES_FOR_LANGUAGE = 'get_all_label_values_for_language';
+    const COMMAND_GET_ALL_HTML_VALUES_FOR_LANGUAGE = 'get_all_html_values_for_language';
     const COMMAND_IS_HMI_OBJECT = 'is_hmi_object';
     const COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT = 'set_availability_as_hmi_object';
     const COMMAND_GET_HMI_OBJECT = 'get_hmi_object';
@@ -1950,8 +1956,8 @@
             if (data.file || data.folder) {
                 this._getSqlAdapter(adapter => {
                     const results = [], tasks = [], path = SqlHelper.escape(data.path);
-                    for (const extension in that._contentTablesByExtension) {
-                        if (that._contentTablesByExtension.hasOwnProperty(extension)) {
+                    for (const extension in this._contentTablesByExtension) {
+                        if (this._contentTablesByExtension.hasOwnProperty(extension)) {
                             (function () {
                                 const ext = extension;
                                 const table = that._contentTablesByExtension[extension];
@@ -1969,7 +1975,7 @@
                             }());
                         }
                     }
-                    tasks.parallel = that._parallel;
+                    tasks.parallel = this._parallel;
                     Executor.run(tasks, () => {
                         adapter.Close();
                         onResponse(results);
@@ -1981,6 +1987,83 @@
             } else {
                 onError(`Invalid selection: '${data.string}'`);
             }
+        }
+        GetAllIdsForType(type, onResponse, onError) {
+            const extension = this._extensionsForType[type];
+            if (!extension) {
+                onError(`Invalid type: '${type}'`);
+                return;
+            }
+            const table = this._contentTablesByExtension[extension];
+            if (!table) {
+                onError(`Invalid table for type: ${type}`);
+                return;
+            }
+            this._getSqlAdapter(adapter => this._getAllIdsForType(adapter, table, extension, ids => {
+                adapter.Close();
+                onResponse(ids);
+            }, error => {
+                adapter.Close();
+                onError(error);
+            }), onError);
+        }
+        _getAllIdsForType(adapter, table, extension, onResponse, onError) {
+            adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
+            adapter.PerformSelect(table.name, undefined, 'path ASC', undefined, result => {
+                const response = [], l = result.length;
+                for (let i = 0; i < l; i++) {
+                    response.push(`$${result[i].path}.${extension}`);
+                }
+                onResponse(response);
+            }, onError);
+        }
+        GetAllLabelValuesForLanguage(language, onResponse, onError) {
+            this._getAllValuesForTypeAndLanguage(DataTableType.Label, language, onResponse, onError);
+        }
+        GetAllHtmlValuesForLanguage(language, onResponse, onError) {
+            this._getAllValuesForTypeAndLanguage(DataTableType.HTML, language, onResponse, onError);
+        }
+        _getAllValuesForTypeAndLanguage(type, language, onResponse, onError) {
+            const extension = this._extensionsForType[type];
+            if (!extension) {
+                onError(`Invalid type: '${type}'`);
+                return;
+            }
+            const table = this._contentTablesByExtension[extension];
+            if (!table) {
+                onError(`Invalid table for type: ${type}`);
+                return;
+            }
+            this._getSqlAdapter(adapter => this._getAllIdsForType(adapter, table, extension, allIdsForType => {
+                const that = this, response = {}, tasks = [];
+                for (let idForType of allIdsForType) {
+                    (function () {
+                        const id = idForType;
+                        tasks.push((onSuc, onErr) => {
+                            const match = that._contentTablesKeyRegex.exec(id);
+                            if (!match) {
+                                onErr(`Invalid id: '${id}'`);
+                                return;
+                            }
+                            that._getObject(adapter, id, match[1], table, language, ContentManager.INCLUDE, value => {
+                                response[id] = value;
+                                onSuc();
+                            }, onErr)
+                        });
+                    }());
+                }
+                tasks.parallel = that._parallel;
+                Executor.run(tasks, () => {
+                    adapter.Close();
+                    onResponse(response);
+                }, error => {
+                    adapter.Close();
+                    onError(error);
+                });
+            }, error => {
+                adapter.Close();
+                onError(error);
+            }), onError);
         }
         IsHMIObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
@@ -2280,6 +2363,15 @@
                 case COMMAND_GET_ID_KEY_VALUES:
                     this.GetIdKeyValues(request.id, onResponse, onError);
                     break;
+                case COMMAND_GET_ALL_IDS_FOR_TYPE:
+                    this.GetAllIdsForType(request.type, onResponse, onError);
+                    break;
+                case COMMAND_GET_ALL_LABEL_VALUES_FOR_LANGUAGE:
+                    this.GetAllLabelValuesForLanguage(request.language, onResponse, onError);
+                    break;
+                case COMMAND_GET_ALL_HTML_VALUES_FOR_LANGUAGE:
+                    this.GetAllHtmlValuesForLanguage(request.language, onResponse, onError);
+                    break;
                 case COMMAND_IS_HMI_OBJECT:
                     this.IsHMIObject(request.id, onResponse, onError);
                     break;
@@ -2540,6 +2632,15 @@
         }
         GetIdKeyValues(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_ID_KEY_VALUES, id }, onResponse, onError);
+        }
+        GetAllIdsForType(type, onResponse, onError) {
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_ALL_IDS_FOR_TYPE, type }, onResponse, onError);
+        }
+        GetAllLabelValuesForLanguage(language, onResponse, onError) {
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_ALL_LABEL_VALUES_FOR_LANGUAGE, language }, onResponse, onError);
+        }
+        GetAllHtmlValuesForLanguage(language, onResponse, onError) {
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_ALL_HTML_VALUES_FOR_LANGUAGE, language }, onResponse, onError);
         }
         IsHMIObject(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_IS_HMI_OBJECT, id }, onResponse, onError);

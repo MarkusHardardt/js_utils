@@ -3115,6 +3115,7 @@
         // with define the callbacks used inside the respective control.
         const language_selector_adapter = {
             languageChanged: language => {
+                hmi.language = language;
                 edit_ctrl.update(key_textfield.getIdData(), language);
                 preview.update(references.getIdData(), language);
             }
