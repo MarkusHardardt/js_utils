@@ -17,6 +17,7 @@
         return Core.validateAs('ContentManager', instance, [
             'GetExchangeHandler()',
             'GetLanguages(array)',
+            'IsValidIdForType(id, type)',
             'AnalyzeId(id)',
             'GetExtensionForType(type)',
             'GetIcon(id)',
@@ -193,6 +194,10 @@
         GetLanguages(array) {
             return Utilities.copyArray(this._config.languages, array);
         }
+        IsValidIdForType(id, type) {
+            const regex = this._validIdForTypeRegex[type];
+            return regex ? regex.test(id) : false;
+        }
         AnalyzeId(id) {
             let match = this._contentTablesKeyRegex.exec(id);
             if (match) {
@@ -262,7 +267,7 @@
                     this._affectedTypesListeners[type] = [];
                 }
             }
-
+            this._validIdForTypeRegex = {};
             const tableExtensions = [];
             for (const type in this._config.tables) {
                 if (this._config.tables.hasOwnProperty(type)) {
@@ -341,6 +346,7 @@
                     }
                     this._contentTablesByExtension[extension] = table;
                     this._extensionsForType[type] = extension;
+                    this._validIdForTypeRegex[type] = new RegExp(`^\\$(?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?\\.${extension}$`);
                     tableExtensions.push(extension);
                 }
             }
@@ -2325,6 +2331,12 @@
         _handleRequest(request, onResponse, onError) {
             switch (request.command) {
                 case COMMAND_GET_CONFIG:
+                    const validIdForTypeRegex = {};
+                    for (const type in this._validIdForTypeRegex) {
+                        if (this._validIdForTypeRegex.hasOwnProperty(type)) {
+                            validIdForTypeRegex[type] = this._validIdForTypeRegex[type].source;
+                        }
+                    }
                     onResponse({
                         iconDirectory: this._iconDirectory,
                         languages: this._config.languages,
@@ -2333,7 +2345,8 @@
                         extensionsForType: this._extensionsForType,
                         contentTablesByExtension: this._contentTablesByExtension,
                         contentTablesKeyRegex: this._contentTablesKeyRegex.source,
-                        exchangeHeaderRegex: this.exchangeHeaderRegex.source
+                        exchangeHeaderRegex: this.exchangeHeaderRegex.source,
+                        validIdForTypeRegex
                     });
                     break;
                 case COMMAND_EXISTS:
@@ -2578,9 +2591,13 @@
                 this._contentTablesKeyRegex = new RegExp(config.contentTablesKeyRegex);
                 this.exchangeHeaderRegex = new RegExp(config.exchangeHeaderRegex, 'g');
                 this._contentTablesByExtension = config.contentTablesByExtension;
-                if (typeof onResponse === 'function') {
-                    onResponse();
+                this._validIdForTypeRegex = {};
+                for (const type in config.validIdForTypeRegex) {
+                    if (config.validIdForTypeRegex.hasOwnProperty(type)) {
+                        this._validIdForTypeRegex[type] = new RegExp(config.validIdForTypeRegex[type]);
+                    }
                 }
+                onResponse();
             }, onError);
         }
         Exists(id, onResponse, onError) {
