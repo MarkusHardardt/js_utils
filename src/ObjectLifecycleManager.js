@@ -7885,18 +7885,18 @@
 
     var s_root_objects = [];
 
+    const LifecycleLevel = Object.freeze({ Idle: 0, Initialized: 1, BaseFeaturesAdded: 2, DOMFeaturesAdded: 3, ListenersAdded: 4, Running: 5 });
+    const LifecycleState = Object.freeze({
+        Idle: 0, Build: 1, Apply: 2, Prepare: 3, Start: 4,
+        Running: 5, Stop: 6, Destroy: 7, Remove: 8, Cleanup: 9
+    });
     const LifecycleUserMethod = Object.freeze({
         Build: 'build', Apply: 'apply', Prepare: 'prepare', Start: 'start',
         Stop: 'stop', Destroy: 'destroy', Remove: 'remove', Cleanup: 'cleanup'
     });
     const LifecycleUserMethodTimeout = Object.freeze({
-        Create: 'createTimeout', Kill: 'killTimeout',
-        Build: 'buildTimeout', Apply: 'applyTimeout', Prepare: 'prepareTimeout', Start: 'startTimeout',
-        Stop: 'stopTimeout', Destroy: 'destroyTimeout', Remove: 'removeTimeout', Cleanup: 'cleanupTimeout'
-    });
-    const LifecycleState = Object.freeze({
-        Idle: 0, Build: 1, Apply: 2, Prepare: 3, Start: 4,
-        Running: 5, Stop: 6, Destroy: 7, Remove: 8, Cleanup: 9
+        Create: 'createTimeout', Build: 'buildTimeout', Apply: 'applyTimeout', Prepare: 'prepareTimeout', Start: 'startTimeout',
+        Kill: 'killTimeout', Stop: 'stopTimeout', Destroy: 'destroyTimeout', Remove: 'removeTimeout', Cleanup: 'cleanupTimeout'
     });
     ObjectLifecycleManager.LifecycleState = LifecycleState;
     ObjectLifecycleManager.formatObjectLifecycleState = state => {
@@ -7907,7 +7907,6 @@
         }
         return `Unknown state: ${state}`;
     };
-    const LifecycleLevel = Object.freeze({ Initialized: 1, Objectified: 2, Domified: 3, Observed: 4, Alive: 5 });
     const DEFAULT_TIMEOUT = 5000;
 
     // /////////////////////////////////////////////////////////////////////////////////////////
@@ -7928,82 +7927,100 @@
                 }
             });
             tasks.push((onSuc, onErr) => {
-                onStateChanged(LifecycleState.Build);
-                const timeout = object[LifecycleUserMethodTimeout.Build];
-                if (typeof timeout === 'number' && timeout > 0) {
-                    Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Build, true, os, oe, hmi),
-                        onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Build}() (${timeout} ms)`), timeout);
+                if (object._hmi_kill) {
+                    onErr(`Object has been killed before ${LifecycleUserMethod.Build}()`);
                 } else {
-                    performAttributeOnObjectSubTree(object, LifecycleUserMethod.Build, true, onSuc, onErr, hmi);
+                    onStateChanged(LifecycleState.Build);
+                    const timeout = object[LifecycleUserMethodTimeout.Build];
+                    if (typeof timeout === 'number' && timeout > 0) {
+                        Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Build, true, os, oe, hmi),
+                            onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Build}() (${timeout} ms)`), timeout);
+                    } else {
+                        performAttributeOnObjectSubTree(object, LifecycleUserMethod.Build, true, onSuc, onErr, hmi);
+                    }
                 }
             });
             tasks.push((onSuc, onErr) => {
                 if (object._hmi_kill) {
-                    onErr('Object has been killed before objectification');
+                    onErr('Object has been killed before adding core features');
                 } else {
                     attachHmiObject(object);
                     hmiobj = object._hmi_object;
                     createIdNodeSubTree(hmiobj, parentObject, nodeId, parentNode);
                     processObjectSubTree(hmiobj, true, undefined, processObject => ObjectImpl.call(processObject, disableVisuEvents, hmiobj === processObject && enableEditorEvents));
-                    object._hmi_lifecycleLevel = LifecycleLevel.Objectified;
+                    object._hmi_lifecycleLevel = LifecycleLevel.BaseFeaturesAdded;
                     onSuc();
                 }
             });
             tasks.push((onSuc, onErr) => {
-                onStateChanged(LifecycleState.Apply);
-                const timeout = object[LifecycleUserMethodTimeout.Apply];
-                if (typeof timeout === 'number' && timeout > 0) {
-                    Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Apply, false, os, oe),
-                        onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Apply}() (${timeout} ms)`), timeout);
+                if (object._hmi_kill) {
+                    onErr(`Object has been killed before ${LifecycleUserMethod.Apply}()`);
                 } else {
-                    performAttributeOnObjectSubTree(object, LifecycleUserMethod.Apply, false, onSuc, onErr);
+                    onStateChanged(LifecycleState.Apply);
+                    const timeout = object[LifecycleUserMethodTimeout.Apply];
+                    if (typeof timeout === 'number' && timeout > 0) {
+                        Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Apply, false, os, oe),
+                            onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Apply}() (${timeout} ms)`), timeout);
+                    } else {
+                        performAttributeOnObjectSubTree(object, LifecycleUserMethod.Apply, false, onSuc, onErr);
+                    }
                 }
             });
             tasks.push((onSuc, onErr) => {
                 if (object._hmi_kill) {
-                    onErr('Object has been killed before domification');
+                    onErr('Object has been killed before adding dom features');
                 } else if (typeof hmiobj._hmi_init_dom !== 'function') {
                     onErr(`Missing '_hmi_init_dom()'`);
                 } else {
                     // #create/destroy_hmi_object_branch: 2
                     hmiobj._hmi_init_dom({ container: jQueryElement }, () => {
-                        object._hmi_lifecycleLevel = LifecycleLevel.Domified;
+                        object._hmi_lifecycleLevel = LifecycleLevel.DOMFeaturesAdded;
                         onSuc();
                     }, onErr);
                 }
             });
             tasks.push((onSuc, onErr) => {
-                onStateChanged(LifecycleState.Prepare);
-                const timeout = object[LifecycleUserMethodTimeout.Prepare];
-                if (typeof timeout === 'number' && timeout > 0) {
-                    Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Prepare, true, os, oe),
-                        onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Prepare}() (${timeout} ms)`), timeout);
+                if (object._hmi_kill) {
+                    onErr(`Object has been killed before ${LifecycleUserMethod.Prepare}()`);
                 } else {
-                    performAttributeOnObjectSubTree(object, LifecycleUserMethod.Prepare, true, onSuc, onErr);
+                    onStateChanged(LifecycleState.Prepare);
+                    const timeout = object[LifecycleUserMethodTimeout.Prepare];
+                    if (typeof timeout === 'number' && timeout > 0) {
+                        Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Prepare, true, os, oe),
+                            onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Prepare}() (${timeout} ms)`), timeout);
+                    } else {
+                        performAttributeOnObjectSubTree(object, LifecycleUserMethod.Prepare, true, onSuc, onErr);
+                    }
                 }
             });
             tasks.push((onSuc, onErr) => {
                 if (object._hmi_kill) {
-                    onErr('Object has been killed before observation');
+                    onErr('Object has been killed before adding listeners');
                 } else {
                     // TODO: handle external sources here
-                    performAttributeOnObjectSubTree(object, '_hmi_addListeners', true, onSuc, onErr);
-                    object._hmi_lifecycleLevel = LifecycleLevel.Observed;
-                }
-            });
-            tasks.push((onSuc, onErr) => {
-                onStateChanged(LifecycleState.Start);
-                const timeout = object[LifecycleUserMethodTimeout.Start];
-                if (typeof timeout === 'number' && timeout > 0) {
-                    Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Start, false, os, oe),
-                        onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Start}() (${timeout} ms)`), timeout);
-                } else {
-                    performAttributeOnObjectSubTree(object, LifecycleUserMethod.Start, false, onSuc, onErr);
+                    performAttributeOnObjectSubTree(object, '_hmi_addListeners', true, () => {
+                        object._hmi_lifecycleLevel = LifecycleLevel.ListenersAdded;
+                        onSuc();
+                    }, onErr);
                 }
             });
             tasks.push((onSuc, onErr) => {
                 if (object._hmi_kill) {
-                    onErr('Object has been killed before becoming alive');
+                    onErr(`Object has been killed before ${LifecycleUserMethod.Start}()`);
+                } else {
+                    onStateChanged(LifecycleState.Start);
+                    const timeout = object[LifecycleUserMethodTimeout.Start];
+                    if (typeof timeout === 'number' && timeout > 0) {
+                        Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Start, false, os, oe),
+                            onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Start}() (${timeout} ms)`), timeout);
+                    } else {
+                        performAttributeOnObjectSubTree(object, LifecycleUserMethod.Start, false, onSuc, onErr);
+                    }
+                }
+            });
+            tasks.push((onSuc, onErr) => {
+                if (object._hmi_kill) {
+                    onErr('Object has been killed before running');
                 } else {
                     // set alive
                     processObjectSubTree(hmiobj, true, undefined, processObject => processObject._hmi_alive = true);
@@ -8018,7 +8035,7 @@
                     if (!found) {
                         s_root_objects.push(hmiobj);
                     }
-                    object._hmi_lifecycleLevel = LifecycleLevel.Alive;
+                    object._hmi_lifecycleLevel = LifecycleLevel.Running;
                     onSuc();
                 }
             });
@@ -8028,11 +8045,7 @@
             }
             Executor.run(tasks, () => {
                 onStateChanged(LifecycleState.Running);
-                if (typeof onSuccess === 'function') { // TODO: Do we really need this check?
-                    onSuccess();
-                } else {
-                    console.error('Missing onSuccess callback');
-                }
+                onSuccess();
             }, onError, () => onError(`timeout expired during 'create' procedure (${timeout} ms)`), timeout);
         } else {
             onError('Invalid object');
@@ -8044,7 +8057,7 @@
         if (object === undefined || object === null || typeof object !== 'object' && Array.isArray(object)) {
             onError('Invalid object');
         } else if (object._hmi_kill) {
-            onError('Object killing procedure has already been started');
+            onError('Object killing procedure has already been triggered');
         } else {
             const hmiobj = object._hmi_object;
             const onStateChanged = typeof onLifecycleStateChanged === 'function' ? onLifecycleStateChanged : state => { };
@@ -8056,132 +8069,128 @@
                 }
             }
             const tasks = [];
-            // Note 1: None of the tasks below calls the onErr() callback, because the killing procedure must complete no matter what!
-            // Note 2: We fall through each case below, because the higher the level the more actions must be performed!
-            switch (object._hmi_lifecycleLevel) {
-                case LifecycleLevel.Alive:
-                    tasks.push((onSuc, onErr) => {
-                        // handle root objects
-                        for (let i = 0; i < s_root_objects.length; i++) {
-                            if (s_root_objects[i] === hmiobj) {
-                                s_root_objects.splice(i, 1);
-                                break;
-                            }
+            const objectLifecycleLevel = typeof object._hmi_lifecycleLevel === 'number' ? object._hmi_lifecycleLevel : LifecycleLevel.Idle;
+            if (objectLifecycleLevel >= LifecycleLevel.Running) {
+                tasks.push((onSuc, onErr) => {
+                    // handle root objects
+                    for (let i = 0; i < s_root_objects.length; i++) {
+                        if (s_root_objects[i] === hmiobj) {
+                            s_root_objects.splice(i, 1);
+                            break;
                         }
-                        // reset alive
-                        processObjectSubTree(hmiobj, false, undefined, processObject => delete processObject._hmi_alive);
-                        onSuc();
-                    });
-                // Note: No break because we want to fall through to the next cases
-                case LifecycleLevel.Observed:
-                    tasks.push((onSuc, onErr) => {
-                        onStateChanged(LifecycleState.Stop);
-                        const timeout = object[LifecycleUserMethodTimeout.Stop];
-                        if (typeof timeout === 'number' && timeout > 0) {
-                            Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Stop, true, os, oe), onSuc, error => {
-                                storeFirstError(error);
-                                onSuc();
-                            }, () => {
-                                storeFirstError(`timeout expired during ${LifecycleUserMethod.Stop}() (${timeout} ms)`);
-                                onSuc();
-                            }, timeout);
-                        } else {
-                            performAttributeOnObjectSubTree(object, LifecycleUserMethod.Stop, true, onSuc, error => {
-                                storeFirstError(error);
-                                onSuc();
-                            });
-                        }
-                    });
-                    tasks.push((onSuc, onErr) => performAttributeOnObjectSubTree(object, '_hmi_removeListeners', false, onSuc, error => {
-                        storeFirstError(error);
-                        onSuc();
-                    }));
-                // Note: No break because we want to fall through to the next cases
-                case LifecycleLevel.Domified:
-                    tasks.push((onSuc, onErr) => {
-                        onStateChanged(LifecycleState.Destroy);
-                        const timeout = object[LifecycleUserMethodTimeout.Destroy];
-                        if (typeof timeout === 'number' && timeout > 0) {
-                            Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Destroy, false, os, oe), onSuc, error => {
-                                storeFirstError(error);
-                                onSuc();
-                            }, () => {
-                                storeFirstError(`timeout expired during ${LifecycleUserMethod.Destroy}() (${timeout} ms)`);
-                                onSuc();
-                            }, timeout);
-                        } else {
-                            performAttributeOnObjectSubTree(object, LifecycleUserMethod.Destroy, false, onSuc, error => {
-                                storeFirstError(error);
-                                onSuc();
-                            });
-                        }
-                    });
-                    tasks.push((onSuc, onErr) => {
-                        if (hmiobj._hmi_destroy_dom) {
-                            // #create/destroy_hmi_object_branch: 1 + 2
-                            hmiobj._hmi_destroy_dom();
-                        }
-                        onSuc();
-                    });
-                // Note: No break because we want to fall through to the next cases
-                case LifecycleLevel.Objectified:
-                    tasks.push((onSuc, onErr) => {
-                        onStateChanged(LifecycleState.Remove);
-                        const timeout = object[LifecycleUserMethodTimeout.Remove];
-                        if (typeof timeout === 'number' && timeout > 0) {
-                            Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Remove, true, os, oe), onSuc, error => {
-                                storeFirstError(error);
-                                onSuc();
-                            }, () => {
-                                storeFirstError(`timeout expired during ${LifecycleUserMethod.Remove}() (${timeout} ms)`);
-                                onSuc();
-                            }, timeout);
-                        } else {
-                            performAttributeOnObjectSubTree(object, LifecycleUserMethod.Remove, true, onSuc, error => {
-                                storeFirstError(error);
-                                onSuc();
-                            });
-                        }
-                    });
-                    tasks.push((onSuc, onErr) => {
-                        processObjectSubTree(hmiobj, false, undefined, processObject => {
-                            if (processObject._hmi_destroy) {
-                                processObject._hmi_destroy();
-                            }
-                        });
-                        destroyIdNodeSubTree(hmiobj);
-                        detachHmiObject(object);
-                        onSuc();
-                    });
-                // Note: No break because we want to fall through to the next cases
-                case LifecycleLevel.Initialized:
-                    tasks.push((onSuc, onErr) => {
-                        onStateChanged(LifecycleState.Cleanup);
-                        const timeout = object[LifecycleUserMethodTimeout.Cleanup];
-                        if (typeof timeout === 'number' && timeout > 0) {
-                            Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Cleanup, false, os, oe, false), onSuc, error => {
-                                storeFirstError(error);
-                                onSuc();
-                            }, () => {
-                                storeFirstError(`timeout expired during ${LifecycleUserMethod.Cleanup}() (${timeout} ms)`);
-                                onSuc();
-                            }, timeout);
-                        } else {
-                            performAttributeOnObjectSubTree(object, LifecycleUserMethod.Cleanup, false, onSuc, error => {
-                                storeFirstError(error);
-                                onSuc();
-                            }, false); // Note: passing false as 'hmi' will delete the reference on the object
-                        }
-                    });
-                // Note: No break because we want to fall through to the next cases
-                default:
-                    tasks.push((onSuc, onErr) => {
-                        delete object._hmi_lifecycleLevel;
-                        delete object._hmi_kill;
-                        onStateChanged(LifecycleState.Idle);
-                        onSuc();
-                    });
+                    }
+                    // reset alive
+                    processObjectSubTree(hmiobj, false, undefined, processObject => delete processObject._hmi_alive);
+                    onSuc();
+                });
             }
+            if (objectLifecycleLevel >= LifecycleLevel.ListenersAdded) {
+                tasks.push((onSuc, onErr) => {
+                    onStateChanged(LifecycleState.Stop);
+                    const timeout = object[LifecycleUserMethodTimeout.Stop];
+                    if (typeof timeout === 'number' && timeout > 0) {
+                        Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Stop, true, os, oe), onSuc, error => {
+                            storeFirstError(error);
+                            onSuc();
+                        }, () => {
+                            storeFirstError(`timeout expired during ${LifecycleUserMethod.Stop}() (${timeout} ms)`);
+                            onSuc();
+                        }, timeout);
+                    } else {
+                        performAttributeOnObjectSubTree(object, LifecycleUserMethod.Stop, true, onSuc, error => {
+                            storeFirstError(error);
+                            onSuc();
+                        });
+                    }
+                });
+                tasks.push((onSuc, onErr) => performAttributeOnObjectSubTree(object, '_hmi_removeListeners', false, onSuc, error => {
+                    storeFirstError(error);
+                    onSuc();
+                }));
+            }
+            if (objectLifecycleLevel >= LifecycleLevel.DOMFeaturesAdded) {
+                tasks.push((onSuc, onErr) => {
+                    onStateChanged(LifecycleState.Destroy);
+                    const timeout = object[LifecycleUserMethodTimeout.Destroy];
+                    if (typeof timeout === 'number' && timeout > 0) {
+                        Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Destroy, false, os, oe), onSuc, error => {
+                            storeFirstError(error);
+                            onSuc();
+                        }, () => {
+                            storeFirstError(`timeout expired during ${LifecycleUserMethod.Destroy}() (${timeout} ms)`);
+                            onSuc();
+                        }, timeout);
+                    } else {
+                        performAttributeOnObjectSubTree(object, LifecycleUserMethod.Destroy, false, onSuc, error => {
+                            storeFirstError(error);
+                            onSuc();
+                        });
+                    }
+                });
+                tasks.push((onSuc, onErr) => {
+                    if (typeof hmiobj._hmi_destroy_dom === 'function') {
+                        // #create/destroy_hmi_object_branch: 1 + 2
+                        hmiobj._hmi_destroy_dom();
+                    }
+                    onSuc();
+                });
+            }
+            if (objectLifecycleLevel >= LifecycleLevel.BaseFeaturesAdded) {
+                tasks.push((onSuc, onErr) => {
+                    onStateChanged(LifecycleState.Remove);
+                    const timeout = object[LifecycleUserMethodTimeout.Remove];
+                    if (typeof timeout === 'number' && timeout > 0) {
+                        Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Remove, true, os, oe), onSuc, error => {
+                            storeFirstError(error);
+                            onSuc();
+                        }, () => {
+                            storeFirstError(`timeout expired during ${LifecycleUserMethod.Remove}() (${timeout} ms)`);
+                            onSuc();
+                        }, timeout);
+                    } else {
+                        performAttributeOnObjectSubTree(object, LifecycleUserMethod.Remove, true, onSuc, error => {
+                            storeFirstError(error);
+                            onSuc();
+                        });
+                    }
+                });
+                tasks.push((onSuc, onErr) => {
+                    processObjectSubTree(hmiobj, false, undefined, processObject => {
+                        if (processObject._hmi_destroy) {
+                            processObject._hmi_destroy();
+                        }
+                    });
+                    destroyIdNodeSubTree(hmiobj);
+                    detachHmiObject(object);
+                    onSuc();
+                });
+            }
+            if (objectLifecycleLevel >= LifecycleLevel.Initialized) {
+                tasks.push((onSuc, onErr) => {
+                    onStateChanged(LifecycleState.Cleanup);
+                    const timeout = object[LifecycleUserMethodTimeout.Cleanup];
+                    if (typeof timeout === 'number' && timeout > 0) {
+                        Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Cleanup, false, os, oe, false), onSuc, error => {
+                            storeFirstError(error);
+                            onSuc();
+                        }, () => {
+                            storeFirstError(`timeout expired during ${LifecycleUserMethod.Cleanup}() (${timeout} ms)`);
+                            onSuc();
+                        }, timeout);
+                    } else {
+                        performAttributeOnObjectSubTree(object, LifecycleUserMethod.Cleanup, false, onSuc, error => {
+                            storeFirstError(error);
+                            onSuc();
+                        }, false); // Note: passing false as 'hmi' will delete the reference on the object
+                    }
+                });
+            }
+            tasks.push((onSuc, onErr) => {
+                delete object._hmi_lifecycleLevel;
+                delete object._hmi_kill;
+                onStateChanged(LifecycleState.Idle);
+                onSuc();
+            });
             let timeout = object[LifecycleUserMethodTimeout.Kill];
             if (typeof timeout !== 'number' || timeout <= 0) {
                 timeout = DEFAULT_TIMEOUT;
