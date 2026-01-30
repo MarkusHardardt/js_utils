@@ -31,6 +31,10 @@
             }
         }());
 
+        Client.breakpoint = () => {
+            console.log('breakpoint');
+        }
+
         /*  refresh cycle  */
         let refreshCycleEnabled = false;
         function startRefreshCycle(requestAnimationFrameCycle, onRefresh) {
