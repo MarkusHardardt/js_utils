@@ -100,7 +100,7 @@
                                 }, error => {
                                     done = true;
                                     if (thisCall) {
-                                        error = true;
+                                        hasError = true;
                                         exception = error;
                                     } else {
                                         onError(error);
