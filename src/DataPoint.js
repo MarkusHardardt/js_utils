@@ -142,47 +142,8 @@
     }
     DataPoint.Node = Node;
 
-    class OperationalState {
+    class Router {
         constructor() {
-            this._operational = new DataPoint.Node();
-            this._operational.Value = false;
-            this._operational.Observable = null;
-            Common.validateAsOperationalState(this, true);
-        }
-
-        set OnError(value) {
-            this._operational.OnError = value;
-        }
-
-        set Observable(value) {
-            this._operational.Observable = value;
-        }
-
-        set UnsubscribeDelay(value) {
-            this._operational.UnsubscribeDelay = value;
-        }
-
-        get IsOperational() {
-            return this._operational.Value;
-        }
-
-        set IsOperational(value) {
-            this._operational.Value = value;
-        }
-
-        SubscribeOperationalState(onOperationalStateChanged) {
-            this._operational.Subscribe(onOperationalStateChanged);
-        }
-
-        UnsubscribeOperationalState(onOperationalStateChanged) {
-            this._operational.Unsubscribe(onOperationalStateChanged);
-        }
-    }
-    DataPoint.OperationalState = OperationalState;
-
-    class Router extends OperationalState {
-        constructor() {
-            super();
             this._getDataAccessObject = null;
             Common.validateAsDataAccessObject(this, true);
         }
@@ -223,35 +184,19 @@
     }
     DataPoint.Router = Router;
 
-    class Collection extends OperationalState { // NOTE: Remove if after some time still not required
+    class Collection {
         constructor() {
-            super();
             this._parentDataAccessObject = null;
             this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
             this._unsubscribeDelay = false;
             this._dataPointsByDataId = {};
-            this._observable = {
-                // Not: The following 'onRefresh' function is the local instance inside our node created above.
-                Subscribe: onRefresh => {
-                    if (this._parentDataAccessObject) {
-                        this._parentDataAccessObject.SubscribeOperationalState(onRefresh);
-                    }
-                },
-                Unsubscribe: onRefresh => {
-                    if (this._parentDataAccessObject) {
-                        this._parentDataAccessObject.UnsubscribeOperationalState(onRefresh);
-                    }
-                }
-            };
-            this.Observable = null; // TODO: Is this correct? We set/reset this in 'Parent' setter, but maybe we must not???
             Common.validateAsDataAccessObject(this, true);
         }
 
         set Parent(value) { // TODO: 
             if (this._parentDataAccessObject !== value) { // TODO: unsubscribe and re-subscribe existing subscriptions for operational state (???)
                 if (this._parentDataAccessObject !== null) {
-                    this.Observable = null;
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                             const dataPoint = this._dataPointsByDataId[dataId];
@@ -266,7 +211,6 @@
                     this._parentDataAccessObject = null;
                 }
                 if (this._parentDataAccessObject !== null) {
-                    this.Observable = this._observable;
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                             const dataPoint = this._dataPointsByDataId[dataId];

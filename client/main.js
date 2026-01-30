@@ -36,16 +36,7 @@
             this._language = this._languages[0];
             this._dataPoints = {};
             this._collection = new DataPoint.Collection();
-            this._onOperationalStateChanged = null;
             this._collection.Parent = {
-                IsOperational: true, // TODO: Get this running
-                SubscribeOperationalState: onOperationalStateChanged => {  // TODO: Get this running
-                    this._onOperationalStateChanged = onOperationalStateChanged;
-                    onOperationalStateChanged(true);
-                },
-                UnsubscribeOperationalState: onOperationalStateChanged => { // TODO: Get this running
-                    this._onOperationalStateChanged = null;
-                },
                 GetType: dataId => this._dataPoints[dataId] ? Core.DataType.String : Core.DataType.Unknown,
                 SubscribeData: (dataId, onRefresh) => {
                     const dataPoint = this._dataPoints[dataId];

@@ -13,19 +13,8 @@
     }
     Common.validateAsObservable = validateAsObservable;
 
-    /*  OperationalState interface  */
-    function validateAsOperationalState(instance, validateMethodArguments) {
-        return Core.validateAs('OperationalState', instance, [
-            'IsOperational:boolean', // property getter returns true if operational
-            'SubscribeOperationalState(onOperationalStateChanged)',
-            'UnsubscribeOperationalState(onOperationalStateChanged)'
-        ], validateMethodArguments);
-    }
-    Common.validateAsOperationalState = validateAsOperationalState;
-
     /*  DataAccessObject inferface  */
     function validateAsDataAccessObject(instance, validateMethodArguments) {
-        validateAsOperationalState(instance, validateMethodArguments);
         return Core.validateAs('DataAccessObject', instance, [
             'GetType(dataId)',
             'SubscribeData(dataId, onRefresh)',

@@ -232,7 +232,7 @@
             } else if (taskObject.task) {
                 onError(`Task '${path}' has already been started`);
             } else {
-                hmi.env.cms.GetObject(taskObject.config.taskObject, hmi.env.lang.GetLanguage(), ContentManager.PARSE, task => {
+                hmi.env.cms.GetObject(taskObject.config.taskObject, undefined, ContentManager.PARSE, task => { // hmi.env.lang.GetLanguage()
                     taskObject.task = task;
                     ObjectLifecycleManager.create(taskObject.task, null, () => {
                         console.log(`Successfully started '${taskObject.config.taskObject}' for task '${path}'`);

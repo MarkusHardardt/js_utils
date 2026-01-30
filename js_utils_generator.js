@@ -62,32 +62,4 @@
         ext: ['ext/md5.js'],
         index_js_outputFile: './js_utils.js'
     });
-
-
-    // Edited manually 2025-12-27
-    const js_utils_dependencies = {
-        'Client': [],
-        'Common': ['Core'],
-        'ContentManager': ['Utilities', 'JsonFX', 'Regex', 'Executor', 'Sorting', 'SqlHelper'],
-        'Core': ['Regex', 'Executor'],
-        'DataConnector': ['Global', 'Core', 'Sorting', 'Regex'],
-        'DataPublisher': ['Global'],
-        'Executor': [],
-        'Global': ['Core'],
-        'HashLists': ['Utilities'],
-        'hmi_object': ['Regex', 'Core', 'Executor', 'math', 'ObjectPositionSystem', 'Sorting'],
-        'JsonFX': [],
-        'math': [],
-        'ObjectPositionSystem': [],
-        'OperationalState': ['Global'],
-        'Regex': [],
-        'Server': [],
-        'Sorting': [],
-        'SqlHelper': ['Executor'],
-        'TargetSystemAdapter': ['Global', 'OperationalState'],
-        'Utilities': [],
-        'WebServer': ['Server'],
-        'WebSocketConnection': ['Global', 'Core', 'Server'],
-    };
-
 }());

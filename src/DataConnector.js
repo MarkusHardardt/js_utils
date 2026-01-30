@@ -67,9 +67,7 @@
         class ClientDataConnector extends BaseConnector {
             constructor() {
                 super();
-                this._operational = new DataPoint.Node();
-                this._operational.Value = false;
-                this._operational.Observable = null;
+                this._open = false;
                 this._equal = Core.defaultEqual;
                 this._dataPointConfigsByShortId = null;
                 this._dataPointsByDataId = {};
@@ -94,24 +92,11 @@
 
             set OnError(value) {
                 super.OnError = value;
-                this._operational.OnError = value;
                 for (const dataId in this._dataPointsByDataId) {
                     if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                         this._dataPointsByDataId[dataId].node.OnError = value;
                     }
                 }
-            }
-
-            get IsOperational() {
-                return this._operational.Value;
-            }
-
-            SubscribeOperationalState(onOperationalStateChanged) {
-                this._operational.Subscribe(onOperationalStateChanged);
-            }
-
-            UnsubscribeOperationalState(onOperationalStateChanged) {
-                this._operational.Unsubscribe(onOperationalStateChanged);
             }
 
             GetType(dataId) {
@@ -152,7 +137,7 @@
             }
 
             Read(dataId, onResponse, onError) {
-                if (!this._operational.Value) {
+                if (!this._open) {
                     throw new Error('Cannot Read() because not connected');
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
@@ -178,7 +163,7 @@
             }
 
             Write(dataId, value) {
-                if (!this._operational.Value) {
+                if (!this._open) {
                     throw new Error('Cannot Write() because not connected');
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
@@ -196,13 +181,13 @@
             }
 
             OnClose() {
-                this._operational.Value = false;
+                this._open = false;
                 clearTimeout(this._subscribeDelayTimer);
                 this._subscribeDelayTimer = null;
             }
 
             handleReceived(data, onResponse, onError) {
-                if (this._operational.Value) {
+                if (this._open) {
                     switch (data.type) {
                         case TransmissionType.DataPointConfigurationsRefresh:
                             this._setDataPointConfigsByShortId(data.dataPointConfigsByShortId);
@@ -236,12 +221,11 @@
                 this.connection.Send(RECEIVER, { type: TransmissionType.ConfigurationRequest }, config => {
                     this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
                     this._unsubscribeDelay = typeof config.unsubscribeDelay === 'number' && config.unsubscribeDelay > 0 ? config.unsubscribeDelay : false;
-                    this._operational.UnsubscribeDelay = this._unsubscribeDelay;
                     this._setDataPointConfigsByShortId(config.dataPointConfigsByShortId);
-                    this._operational.Value = true;
+                    this._open = true;
                     this._sendSubscriptionRequest();
                 }, error => {
-                    this._operational.Value = false;
+                    this._open = false;
                     this.onError(error);
                 });
             }
@@ -307,7 +291,7 @@
 
             _sendSubscriptionRequest() {
                 Common.validateAsConnection(this.connection);
-                if (this._operational.Value) {
+                if (this._open) {
                     // Build a string with all short ids of the currently subscribed data point and send to server
                     let subs = '';
                     for (const dataId in this._dataPointsByDataId) {
