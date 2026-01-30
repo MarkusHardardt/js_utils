@@ -41,7 +41,7 @@
         hmi.env.data = dataCollection;
 
         const dataRouter = new DataPoint.Router();
-        dataCollection.Parent = dataRouter;
+        dataCollection.Source = dataRouter;
 
         const dataConnector = new DataConnector.ClientConnector();
         // hmi.env.data = dataConnector; // TODO: Insert router for labels, html and data connector values

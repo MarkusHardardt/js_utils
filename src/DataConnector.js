@@ -57,7 +57,7 @@
     function getAsDataPointsByDataId(dataPointConfigsByShortId) {
         return Core.getTransformedObject(dataPointConfigsByShortId,
             (shortId, config) => config.dataId,
-            (shortId, dataPoint) => { return { shortId, type: dataPoint.type } }
+            (shortId, dataPoint) => { return { shortId, type: dataPoint.type }; }
         );
     }
 
@@ -84,25 +84,19 @@
                 this._equal = value;
             }
 
-            set OnError(value) {
-                super.OnError = value;
-            }
-
             GetType(dataId) {
                 if (typeof dataId !== 'string') {
-                    throw new Error(`Invalid data id: '${dataId}'`);
+                    this.onError(`Invalid data id: '${dataId}'`);
+                    return Core.DataType.Unknown;
                 } else if (this._dataPointsByDataId[dataId] === undefined) {
-                    throw new Error(`Unknown data point for id '${dataId}' to get type`);
+                    this.onError(`Unknown data point for id '${dataId}' to get type`);
+                    return Core.DataType.Unknown;
+                } else {
+                    return this._dataPointsByDataId[dataId].type;
                 }
-                return this._dataPointsByDataId[dataId].type;
             }
 
             SubscribeData(dataId, onRefresh) {
-                if (typeof dataId !== 'string') {
-                    throw new Error(`Invalid subscription data id: '${dataId}'`);
-                } else if (typeof onRefresh !== 'function') {
-                    throw new Error(`Subscriber for subscription data id '${dataId}' is not a function`);
-                }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
                     throw new Error(`Unknown data point for id '${dataId}' for subscription`);
@@ -322,7 +316,7 @@
             constructor() {
                 super();
                 this._isOpen = false;
-                this._parent = null;
+                this._source = null;
                 this._onEventCallbacks = {};
                 this._dataPointConfigsByShortId = null;
                 this._dataPointsByDataId = null;
@@ -334,12 +328,12 @@
                 Common.validateAsServerConnector(this, true);
             }
 
-            set Parent(value) {
+            set Source(value) {
                 if (value) {
                     Common.validateAsDataAccessObject(value, true);
-                    this._parent = value;
+                    this._source = value;
                 } else {
-                    this._parent = null;
+                    this._source = null;
                 }
             }
 
@@ -400,7 +394,7 @@
 
             handleReceived(data, onResponse, onError) {
                 if (this._isOpen) {
-                    Common.validateAsDataAccessObject(this._parent);
+                    Common.validateAsDataAccessObject(this._source);
                     switch (data.type) {
                         case TransmissionType.ConfigurationRequest:
                             onResponse({
@@ -418,7 +412,7 @@
                                 this.onError('Unknown data point for read request');
                                 return;
                             }
-                            this._parent.Read(readDPConf.dataId, onResponse, onError);
+                            this._source.Read(readDPConf.dataId, onResponse, onError);
                             break;
                         case TransmissionType.WriteRequest:
                             let writeDPConf = this._dataPointConfigsByShortId[data.shortId];
@@ -426,7 +420,7 @@
                                 this.onError('Unknown data point for write request');
                                 return;
                             }
-                            this._parent.Write(writeDPConf.dataId, data.value);
+                            this._source.Write(writeDPConf.dataId, data.value);
                             break;
                         default:
                             this.onError(`Invalid transmission type: ${data.type}`);
@@ -436,14 +430,14 @@
 
             _updateSubscriptions(subscriptionShorts) {
                 if (this._isOpen) {
-                    Common.validateAsDataAccessObject(this._parent);
+                    Common.validateAsDataAccessObject(this._source);
                     for (const dataId in this._onEventCallbacks) {
                         if (this._onEventCallbacks.hasOwnProperty(dataId)) {
                             const shortId = this._dataPointsByDataId[dataId];
                             const onRefresh = subscriptionShorts.indexOf(shortId) < 0 ? this._onEventCallbacks[dataId] : false;
                             if (onRefresh) {
                                 delete this._onEventCallbacks[dataId];
-                                this._parent.UnsubscribeData(dataId, onRefresh);
+                                this._source.UnsubscribeData(dataId, onRefresh);
                             }
                         }
                     }
@@ -461,7 +455,7 @@
                                     this._valuesChanged();
                                 };
                                 this._onEventCallbacks[dpConf.dataId] = onRefresh;
-                                this._parent.SubscribeData(dpConf.dataId, onRefresh);
+                                this._source.SubscribeData(dpConf.dataId, onRefresh);
                             }
                         } else {
                             this.onError(`Cannot subscribe: ${shortId}`);

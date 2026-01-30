@@ -11,30 +11,55 @@
             this._cms = cms;
             this._languages = cms.GetLanguages();
             this._language = this._languages[0];
+            this._onError = Core.defaultOnError;
             this._dataPoints = {};
+            this._labelValues = null;
+            this._htmlValues = null;
             Common.validateAsDataAccessObject(this, true);
         }
+        set OnError(value) {
+            if (typeof value !== 'function') {
+                throw new Error('Set value for OnError(error) is not a function');
+            }
+            this._onError = value;
+        }
         GetType(dataId) {
-            return this._dataPoints[dataId] ? Core.DataType.String : Core.DataType.Unknown;
+            return Core.DataType.String;
         }
         SubscribeData(dataId, onRefresh) {
-            const dataPoint = this._dataPoints[dataId];
+            // Use existing or create new data point, set callback and call callback passing value.
+            // Write errors to output.
+            let dataPoint = this._dataPoints[dataId];
             if (!dataPoint) {
-                throw new Error(`Unsupported data id for subscribe: '${dataId}'`);
+                dataPoint = this._dataPoints[dataId] = { onRefresh: null, value: null };
             } else if (dataPoint.onRefresh !== null) {
-                throw new Error(`Data id '${dataId}' is already subscribed`);
+                this._onError(`Data id '${dataId}' is already subscribed`);
             }
             dataPoint.onRefresh = onRefresh;
-            onRefresh(dataPoint.value);
+            try {
+                onRefresh(dataPoint.value);
+            } catch (error) {
+                this._onError(`Failed calling onRefresh(value) for data id '${dataId}': ${error}`);
+            }
         }
         UnsubscribeData(dataId, onRefresh) {
+            // If data point available reset the callback.
+            // If data id unknown delete data point.
+            // Write errors to output.
             const dataPoint = this._dataPoints[dataId];
             if (!dataPoint) {
-                throw new Error(`Unsupported data id for unsubscribe: '${dataId}'`);
+                this._onError(`Unsupported data id for unsubscribe: '${dataId}'`);
             } else if (dataPoint.onRefresh === null) {
-                throw new Error(`Data id '${dataId}' is not subscribed`);
+                this._onError(`Data id '${dataId}' is not subscribed`);
+            } else if (dataPoint.onRefresh !== onRefresh) {
+                this._onError(`Data id '${dataId}' is subscribed with a different callback`);
+            } else {
+                dataPoint.onRefresh = null;
+                if ((this._labelValues === null || this._labelValues[dataId] === undefined) &&
+                    (this._htmlValues === null || this._htmlValues[dataId] === undefined)) {
+                    delete this._dataPoints[dataId];
+                }
             }
-            dataPoint.onRefresh = null;
         }
         Read(dataId, onResponse, onError) {
             const dataPoint = this._dataPoints[dataId];
@@ -45,10 +70,10 @@
             }
         }
         Write(dataId, value) {
-            throw new Error(`Write to data with id '${dataId}' is not supported`);
+            this._onError(`Write to data with id '${dataId}' is not supported`);
         }
         GetLanguages() {
-            return this._languages.map(l => l);
+            return this._languages.map(lang => lang);
         }
         GetLanguage() {
             return this._language;
@@ -58,40 +83,61 @@
         }
         LoadLanguage(language, onSuccess, onError) {
             const tasks = [];
-            let labelValues, htmlValues;
-            tasks.push((onSuc, onErr) => this._cms.GetAllLabelValuesForLanguage(language, response => {
-                labelValues = response;
+            // Load label values and store.
+            // Use existing or create new data point and store value.
+            tasks.push((onSuc, onErr) => this._cms.GetAllLabelValuesForLanguage(language, values => {
+                this._labelValues = values;
+                for (const dataId in values) {
+                    if (values.hasOwnProperty(dataId)) {
+                        let dataPoint = this._dataPoints[dataId];
+                        if (!dataPoint) {
+                            dataPoint = this._dataPoints[dataId] = { onRefresh: null };
+                        }
+                        dataPoint.value = values[dataId];
+                    }
+                }
                 onSuc();
             }, onErr));
-            tasks.push((onSuc, onErr) => this._cms.GetAllHtmlValuesForLanguage(language, response => {
-                htmlValues = response;
+            // Load html values and store.
+            // Use existing or create new data point and store value.
+            tasks.push((onSuc, onErr) => this._cms.GetAllHtmlValuesForLanguage(language, values => {
+                this._htmlValues = values;
+                for (const dataId in values) {
+                    if (values.hasOwnProperty(dataId)) {
+                        let dataPoint = this._dataPoints[dataId];
+                        if (!dataPoint) {
+                            dataPoint = this._dataPoints[dataId] = { onRefresh: null };
+                        }
+                        dataPoint.value = values[dataId];
+                    }
+                }
                 onSuc();
             }, onErr));
+            // Check all data points and if not subscribed and not available as label or html value than delete.
+            tasks.push((onSuc, onErr) => {
+                for (const dataId in this._dataPoints) {
+                    if (this._dataPoints.hasOwnProperty(dataId) && this._dataPoints[dataId].onRefresh === null &&
+                        this._labelValues[dataId] === undefined && this._htmlValues[dataId] === undefined) {
+                        delete this._dataPoints[dataId];
+                    }
+                }
+                onSuc();
+            });
+            // After loaded notify subscribers
             Executor.run(tasks, () => {
-                for (const id in labelValues) {
-                    if (labelValues.hasOwnProperty(id)) {
-                        let dataPoint = this._dataPoints[id];
-                        if (!dataPoint) {
-                            dataPoint = this._dataPoints[id] = { onRefresh: null };
-                        }
-                        dataPoint.value = labelValues[id];
-                    }
-                }
-                for (const id in htmlValues) {
-                    if (htmlValues.hasOwnProperty(id)) {
-                        let dataPoint = this._dataPoints[id];
-                        if (!dataPoint) {
-                            dataPoint = this._dataPoints[id] = { onRefresh: null };
-                        }
-                        dataPoint.value = htmlValues[id];
-                    }
-                }
-                for (const id in this._dataPoints) {
-                    if (this._dataPoints.hasOwnProperty(id) && labelValues[id] === undefined && htmlValues[id] === undefined) {
-                        delete this._dataPoints[id];
-                    }
-                }
                 this._language = language;
+                for (const dataId in this._dataPoints) {
+                    if (this._dataPoints.hasOwnProperty(dataId)) {
+                        const dataPoint = this._dataPoints[dataId];
+                        if (dataPoint.onRefresh) {
+                            try {
+                                dataPoint.onRefresh(dataPoint.value);
+                            } catch (error) {
+                                this._onError(`Failed calling onRefresh(value) for data id '${dataId}': ${error}`);
+                            }
+                        }
+                    }
+                }
                 onSuccess();
             }, onError);
         }

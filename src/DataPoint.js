@@ -186,7 +186,7 @@
 
     class Collection {
         constructor() {
-            this._parentDataAccessObject = null;
+            this._source = null;
             this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
             this._unsubscribeDelay = false;
@@ -194,9 +194,9 @@
             Common.validateAsDataAccessObject(this, true);
         }
 
-        set Parent(value) {
-            if (this._parentDataAccessObject !== value) {
-                if (this._parentDataAccessObject !== null) {
+        set Source(value) {
+            if (this._source !== value) {
+                if (this._source !== null) {
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                             const dataPoint = this._dataPointsByDataId[dataId];
@@ -206,11 +206,11 @@
                 }
                 if (value) {
                     Common.validateAsDataAccessObject(value, true);
-                    this._parentDataAccessObject = value;
+                    this._source = value;
                 } else {
-                    this._parentDataAccessObject = null;
+                    this._source = null;
                 }
-                if (this._parentDataAccessObject !== null) {
+                if (this._source !== null) {
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                             const dataPoint = this._dataPointsByDataId[dataId];
@@ -254,7 +254,7 @@
         }
 
         GetType(dataId) {
-            return Common.validateAsDataAccessObject(this._parentDataAccessObject).GetType(dataId);
+            return Common.validateAsDataAccessObject(this._source).GetType(dataId);
         }
 
         SubscribeData(dataId, onRefresh) {
@@ -284,7 +284,7 @@
         }
 
         Read(dataId, onResponse, onError) {
-            Common.validateAsDataAccessObject(this._parentDataAccessObject).Read(dataId, value => {
+            Common.validateAsDataAccessObject(this._source).Read(dataId, value => {
                 try {
                     onResponse(value);
                 } catch (error) {
@@ -298,7 +298,7 @@
         }
 
         Write(dataId, value) {
-            Common.validateAsDataAccessObject(this._parentDataAccessObject).Write(dataId, value);
+            Common.validateAsDataAccessObject(this._source).Write(dataId, value);
         }
 
         _createDataForId(dataId) {
@@ -307,13 +307,13 @@
                 node,
                 // Not: The following 'onRefresh' function is the local instance inside our node created above.
                 Subscribe: onRefresh => {
-                    if (this._parentDataAccessObject) {
-                        this._parentDataAccessObject.SubscribeData(dataId, onRefresh);
+                    if (this._source) {
+                        this._source.SubscribeData(dataId, onRefresh);
                     }
                 },
                 Unsubscribe: onRefresh => {
-                    if (this._parentDataAccessObject) {
-                        this._parentDataAccessObject.UnsubscribeData(dataId, onRefresh);
+                    if (this._source) {
+                        this._source.UnsubscribeData(dataId, onRefresh);
                     }
                 }
             };
