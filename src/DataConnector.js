@@ -5,7 +5,6 @@
     const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Common = isNodeJS ? require('./Common.js') : root.Common;
-    const DataPoint = isNodeJS ? require('./DataPoint.js') : root.DataPoint;
 
     const RECEIVER = 'DataConnector';
 

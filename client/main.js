@@ -29,96 +29,6 @@
     hmi.showDefaultConfirmationDialog = (object, onSuccess, onError) =>
         ObjectLifecycleManager.showDefaultConfirmationDialog(hmi, object, onSuccess, onError);
 
-    class LanguageSwitching { // TODO: move to separate file
-        constructor(cms) {
-            this._cms = cms;
-            this._languages = cms.GetLanguages();
-            this._language = this._languages[0];
-            this._dataPoints = {};
-        }
-        GetType(dataId) {
-            return this._dataPoints[dataId] ? Core.DataType.String : Core.DataType.Unknown;
-        }
-        SubscribeData(dataId, onRefresh) {
-            const dataPoint = this._dataPoints[dataId];
-            if (!dataPoint) {
-                throw new Error(`Unsupported data id for subscribe: '${dataId}'`);
-            } else if (dataPoint.onRefresh !== null) {
-                throw new Error(`Data id '${dataId}' is already subscribed`);
-            }
-            dataPoint.onRefresh = onRefresh;
-            onRefresh(dataPoint.value);
-        }
-        UnsubscribeData(dataId, onRefresh) {
-            const dataPoint = this._dataPoints[dataId];
-            if (!dataPoint) {
-                throw new Error(`Unsupported data id for unsubscribe: '${dataId}'`);
-            } else if (dataPoint.onRefresh === null) {
-                throw new Error(`Data id '${dataId}' is not subscribed`);
-            }
-            dataPoint.onRefresh = null;
-        }
-        Read(dataId, onResponse, onError) {
-            const dataPoint = this._dataPoints[dataId];
-            if (dataPoint) {
-                onResponse(dataPoint.value);
-            } else {
-                onError(`Unsupported data id for read: '${dataId}'`);
-            }
-        }
-        Write(dataId, value) {
-            throw new Error(`Write to data with id '${dataId}' is not supported`);
-        }
-        GetLanguages() {
-            return this._languages.map(l => l);
-        }
-        GetLanguage() {
-            return this._language;
-        }
-        IsAvailable(language) {
-            return this._languages.indexOf(language) >= 0;
-        }
-        LoadLanguage(language, onSuccess, onError) {
-            const tasks = [];
-            let labelValues, htmlValues;
-            tasks.push((onSuc, onErr) => hmi.env.cms.GetAllLabelValuesForLanguage(language, response => {
-                labelValues = response;
-                onSuc();
-            }, onErr));
-            tasks.push((onSuc, onErr) => hmi.env.cms.GetAllHtmlValuesForLanguage(language, response => {
-                htmlValues = response;
-                onSuc();
-            }, onErr));
-            Executor.run(tasks, () => {
-                for (const id in labelValues) {
-                    if (labelValues.hasOwnProperty(id)) {
-                        let dataPoint = this._dataPoints[id];
-                        if (!dataPoint) {
-                            dataPoint = this._dataPoints[id] = { onRefresh: null };
-                        }
-                        dataPoint.value = labelValues[id];
-                    }
-                }
-                for (const id in htmlValues) {
-                    if (htmlValues.hasOwnProperty(id)) {
-                        let dataPoint = this._dataPoints[id];
-                        if (!dataPoint) {
-                            dataPoint = this._dataPoints[id] = { onRefresh: null };
-                        }
-                        dataPoint.value = htmlValues[id];
-                    }
-                }
-                for (const id in this._dataPoints) {
-                    if (this._dataPoints.hasOwnProperty(id) && labelValues[id] === undefined && htmlValues[id] === undefined) {
-                        delete this._dataPoints[id];
-                    }
-                }
-                this._language = language;
-                onSuccess();
-            }, onError);
-        }
-    }
-
     // all static files have been loaded and now we create the hmi.
     $(() => {
         const urlSearchParams = new URLSearchParams(root.location.search);
@@ -142,7 +52,7 @@
         // prepare content management system
         tasks.push((onSuccess, onError) => hmi.env.cms = new ContentManager.Instance(onSuccess, onError));
         tasks.push((onSuccess, onError) => {
-            const languages = hmi.env.lang = new LanguageSwitching(hmi.env.cms);
+            const languages = hmi.env.lang = LanguageSwitching.getInstance(hmi.env.cms);
             const language = languages.IsAvailable(languageQueryParameterValue) ? languageQueryParameterValue : languages.GetLanguage();
             languages.LoadLanguage(language, onSuccess, onError);
         });

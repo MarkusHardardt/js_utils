@@ -15,12 +15,13 @@
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Common.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentManager.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectLifecycleManager.js');
+        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataPoint.js');
+        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/LanguageSwitching.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/TargetSystem.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/TaskManager.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/ext/md5.js'); // external
         // And last but not least our client side 'main' program using all of the previously added files 
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/client/main.js');
@@ -42,12 +43,13 @@
         Common: require('./src/Common.js'),
         ContentManager: require('./src/ContentManager.js'),
         ObjectLifecycleManager: require('./src/ObjectLifecycleManager.js'),
+        DataConnector: require('./src/DataConnector.js'),
         DataPoint: require('./src/DataPoint.js'),
+        LanguageSwitching: require('./src/LanguageSwitching.js'),
         TargetSystem: require('./src/TargetSystem.js'),
         WebSocketConnection: require('./src/WebSocketConnection.js'),
         ContentEditor: require('./src/ContentEditor.js'),
         TaskManager: require('./src/TaskManager.js'),
-        DataConnector: require('./src/DataConnector.js'),
         md5: require('./ext/md5.js'), // external
         addStaticWebServerJsUtilsFiles
     };
