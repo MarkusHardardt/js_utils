@@ -29,11 +29,56 @@
     hmi.showDefaultConfirmationDialog = (object, onSuccess, onError) =>
         ObjectLifecycleManager.showDefaultConfirmationDialog(hmi, object, onSuccess, onError);
 
-    class LanguageSwitching {
+    class LanguageSwitching { // TODO: move to separate file
         constructor(cms) {
             this._cms = cms;
             this._languages = cms.GetLanguages();
             this._language = this._languages[0];
+            this._dataPoints = {};
+            this._collection = new DataPoint.Collection();
+            this._onOperationalStateChanged = null;
+            this._collection.Parent = {
+                IsOperational: true, // TODO: Get this running
+                SubscribeOperationalState: onOperationalStateChanged => {  // TODO: Get this running
+                    this._onOperationalStateChanged = onOperationalStateChanged;
+                    onOperationalStateChanged(true);
+                },
+                UnsubscribeOperationalState: onOperationalStateChanged => { // TODO: Get this running
+                    this._onOperationalStateChanged = null;
+                },
+                GetType: dataId => this._dataPoints[dataId] ? Core.DataType.String : Core.DataType.Unknown,
+                SubscribeData: (dataId, onRefresh) => {
+                    const dataPoint = this._dataPoints[dataId];
+                    if (dataPoint) {
+                        dataPoint.onRefresh = onRefresh;
+                        onRefresh(dataPoint.value);
+                    } else {
+                        throw new Error(`Unsupported data id for subscribe: '${dataId}'`);
+                    }
+                },
+                UnsubscribeData: (dataId, onRefresh) => {
+                    const dataPoint = this._dataPoints[dataId];
+                    if (dataPoint && dataPoint.onRefresh === onRefresh) {
+                        dataPoint.onRefresh = null;
+                    } else {
+                        throw new Error(`Unsupported data id for unsubscribe: '${dataId}'`);
+                    }
+                },
+                Read: (dataId, onResponse, onError) => {
+                    const dataPoint = this._dataPoints[dataId];
+                    if (dataPoint) {
+                        onResponse(dataPoint.value);
+                    } else {
+                        onError(`Unsupported data id for read: '${dataId}'`);
+                    }
+                },
+                Write: (dataId, value) => {
+                    onError(`Write to data with id '${dataId}' is not supported`);
+                }
+            };
+        }
+        get LanguageDataPoints() {
+            return this._collection;
         }
         GetLanguages() {
             return this._languages.map(l => l);
@@ -45,17 +90,41 @@
             return this._languages.indexOf(language) >= 0;
         }
         LoadLanguage(language, onSuccess, onError) {
-            const that = this, tasks = [];
+            const tasks = [];
+            let labelValues, htmlValues;
             tasks.push((onSuc, onErr) => hmi.env.cms.GetAllLabelValuesForLanguage(language, response => {
-                that._labelValues = response;
+                labelValues = response;
                 onSuc();
             }, onErr));
             tasks.push((onSuc, onErr) => hmi.env.cms.GetAllHtmlValuesForLanguage(language, response => {
-                that._htmlValues = response;
+                htmlValues = response;
                 onSuc();
             }, onErr));
             Executor.run(tasks, () => {
-                that._language = language;
+                for (const id in labelValues) {
+                    if (labelValues.hasOwnProperty(id)) {
+                        let dataPoint = this._dataPoints[id];
+                        if (!dataPoint) {
+                            dataPoint = this._dataPoints[id] = { onRefresh: null };
+                        }
+                        dataPoint.value = labelValues[id];
+                    }
+                }
+                for (const id in htmlValues) {
+                    if (htmlValues.hasOwnProperty(id)) {
+                        let dataPoint = this._dataPoints[id];
+                        if (!dataPoint) {
+                            dataPoint = this._dataPoints[id] = { onRefresh: null };
+                        }
+                        dataPoint.value = htmlValues[id];
+                    }
+                }
+                for (const id in this._dataPoints) {
+                    if (this._dataPoints.hasOwnProperty(id) && labelValues[id] === undefined && htmlValues[id] === undefined) {
+                        delete this._dataPoints[id];
+                    }
+                }
+                this._language = language;
                 onSuccess();
             }, onError);
         }
@@ -69,8 +138,11 @@
         const tasks = [];
         tasks.parallel = false;
 
+        const dataRouter = new DataPoint.Router();
+        hmi.env.data = dataRouter;
+
         const dataConnector = new DataConnector.ClientConnector();
-        hmi.env.data = dataConnector; // TODO: Insert router for labels, html and data connector values
+        // hmi.env.data = dataConnector; // TODO: Insert router for labels, html and data connector values
 
         const taskManager = TaskManager.getInstance(hmi);
         hmi.env.tasks = taskManager;
@@ -82,7 +154,18 @@
             const language = languages.IsAvailable(languageQueryParameterValue) ? languageQueryParameterValue : languages.GetLanguage();
             languages.LoadLanguage(language, onSuccess, onError);
         });
-
+        tasks.push((onSuccess, onError) => {
+            const isValidLabelId = hmi.env.cms.GetIdValidTestFunctionForType(ContentManager.DataTableType.Label);
+            const isValidHtmlId = hmi.env.cms.GetIdValidTestFunctionForType(ContentManager.DataTableType.HTML);
+            dataRouter.GetDataAccessObject = dataId => {
+                if (isValidLabelId(dataId) || isValidHtmlId(dataId)) {
+                    return hmi.env.lang.LanguageDataPoints;
+                } else {
+                    return dataConnector;
+                }
+            }
+            onSuccess();
+        });
         let webSocketSessionConfig = undefined;
         // Load web socket session config from server
         tasks.push((onSuccess, onError) => Client.fetch('/get_web_socket_session_config', undefined, response => {
