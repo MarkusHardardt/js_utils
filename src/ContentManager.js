@@ -18,6 +18,7 @@
             'GetExchangeHandler()',
             'GetLanguages(array)',
             'IsValidIdForType(id, type)',
+            'GetIdValidTestFunctionForType(type)',
             'AnalyzeId(id)',
             'GetExtensionForType(type)',
             'GetIcon(id)',
@@ -196,7 +197,19 @@
         }
         IsValidIdForType(id, type) {
             const regex = this._validIdForTypeRegex[type];
-            return regex ? regex.test(id) : false;
+            if (regex) {
+                return regex.test(id);
+            } else {
+                throw new Error(`Unsupported type: '${type}'`);
+            }
+        }
+        GetIdValidTestFunctionForType(type) {
+            const regex = this._validIdForTypeRegex[type];
+            if (regex) {
+                return id => regex.test(id);
+            } else {
+                throw new Error(`Unsupported type: '${type}'`);
+            }
         }
         AnalyzeId(id) {
             let match = this._contentTablesKeyRegex.exec(id);

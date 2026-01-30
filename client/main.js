@@ -24,20 +24,64 @@
     hmi.create = (object, element, onSuccess, onError, initData) =>
         ObjectLifecycleManager.create(object, element, onSuccess, onError, hmi, initData);
     hmi.kill = ObjectLifecycleManager.kill;
-    hmi.showDialog = (config, onSuccess, onError) =>
-        ObjectLifecycleManager.showDialog(hmi, config, onSuccess, onError);
-    hmi.showDefaultConfirmationDialog = (config, onSuccess, onError) =>
-        ObjectLifecycleManager.showDefaultConfirmationDialog(hmi, config, onSuccess, onError);
+    hmi.showDialog = (object, onSuccess, onError) =>
+        ObjectLifecycleManager.showDialog(hmi, object, onSuccess, onError);
+    hmi.showDefaultConfirmationDialog = (object, onSuccess, onError) =>
+        ObjectLifecycleManager.showDefaultConfirmationDialog(hmi, object, onSuccess, onError);
+
+    class LanguageSwitching {
+        constructor(cms) {
+            this._cms = cms;
+            this._languages = cms.GetLanguages();
+            this._language = this._languages[0];
+        }
+        GetLanguages() {
+            return this._languages.map(l => l);
+        }
+        GetLanguage() {
+            return this._language;
+        }
+        IsAvailable(language) {
+            return this._languages.indexOf(language) >= 0;
+        }
+        LoadLanguage(language, onSuccess, onError) {
+            const that = this, tasks = [];
+            tasks.push((onSuc, onErr) => hmi.env.cms.GetAllLabelValuesForLanguage(language, response => {
+                that._labelValues = response;
+                onSuc();
+            }, onErr));
+            tasks.push((onSuc, onErr) => hmi.env.cms.GetAllHtmlValuesForLanguage(language, response => {
+                that._htmlValues = response;
+                onSuc();
+            }, onErr));
+            Executor.run(tasks, () => {
+                that._language = language;
+                onSuccess();
+            }, onError);
+        }
+    }
+
     // all static files have been loaded and now we create the hmi.
     $(() => {
+        const urlSearchParams = new URLSearchParams(root.location.search);
+        const languageQueryParameterValue = urlSearchParams.get('lang');
+        const hmiQueryParameterValue = urlSearchParams.get('hmi');
         const tasks = [];
         tasks.parallel = false;
 
         const dataConnector = new DataConnector.ClientConnector();
-        hmi.env.data = dataConnector;
+        hmi.env.data = dataConnector; // TODO: Insert router for labels, html and data connector values
 
         const taskManager = TaskManager.getInstance(hmi);
         hmi.env.tasks = taskManager;
+
+        // prepare content management system
+        tasks.push((onSuccess, onError) => hmi.env.cms = new ContentManager.Instance(onSuccess, onError));
+        tasks.push((onSuccess, onError) => {
+            const languages = hmi.env.lang = new LanguageSwitching(hmi.env.cms);
+            const language = languages.IsAvailable(languageQueryParameterValue) ? languageQueryParameterValue : languages.GetLanguage();
+            languages.LoadLanguage(language, onSuccess, onError);
+        });
 
         let webSocketSessionConfig = undefined;
         // Load web socket session config from server
@@ -88,35 +132,18 @@
                 onSuccess();
             }, onError);
         });
-        // prepare content management system
-        tasks.push((onSuccess, onError) => hmi.env.cms = new ContentManager.Instance(onSuccess, onError));
-        tasks.push((onSuccess, onError) => {
-            const languages = hmi.env.cms.GetLanguages();
-            if (Array.isArray(languages) && languages.length > 0) {
-                hmi.languages = languages;
-                hmi.language = languages[0];
-                onSuccess();
-            } else {
-                onError('no languages available');
-            }
-        });
-
         let rootObject = null;
         tasks.push((onSuccess, onError) => {
-            const params = new URLSearchParams(root.location.search);
-            const queryParameterValue = params.get('hmi');
-            // TODO reuse or remove: const defaultObject = { text: `hmi: '${hmiKey}' is not available` };
-            // console.log(`view: '${hmiKey}'`);
-            if (queryParameterValue) {
-                hmi.env.cms.GetHMIObject(queryParameterValue, hmi.language, object => {
+            if (hmiQueryParameterValue) {
+                hmi.env.cms.GetHMIObject(hmiQueryParameterValue, hmi.env.lang.GetLanguage(), object => {
                     if (object !== null && typeof object === 'object' && !Array.isArray(object)) {
                         rootObject = object;
                     } else {
-                        rootObject = { text: `view: '${queryParameterValue}' is not an HMI object` }; // TODO: Implement 'better' info object
+                        rootObject = { text: `view: '${hmiQueryParameterValue}' is not an HMI object` }; // TODO: Implement 'better' info object
                     }
                     onSuccess();
                 }, error => {
-                    rootObject = { html: `<h1>Failed loading HMI: '<code>${queryParameterValue}</code>'</h1><br />Error reason: <code>${error}</code>` };
+                    rootObject = { html: `<h1>Failed loading HMI: '<code>${hmiQueryParameterValue}</code>'</h1><br />Error reason: <code>${error}</code>` };
                     onSuccess();
                 });
             } else {

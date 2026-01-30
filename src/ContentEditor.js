@@ -339,8 +339,9 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getLanguageSelector(hmi, adapter) {
-        const langs = hmi.env.cms.GetLanguages(), columns = [1];
-        let language = langs[0];
+        const languageSwitching = hmi.env.lang;
+        const langs = languageSwitching.GetLanguages(), columns = [1];
+        let language = languageSwitching.GetLanguage();
         const children = [{
             x: 0,
             y: 0,
@@ -353,7 +354,12 @@
                 button.hmi_setSelected(button === btn);
             }
             language = btn.text;
-            adapter.languageChanged(language);
+            languageSwitching.LoadLanguage(language, () => {
+                console.log(`loaded language '${language}'`);
+                adapter.languageChanged(language);
+            }, error => {
+                console.error(`failed loading language '${language}': ${error}`);
+            })
         };
         for (let i = 0; i < langs.length; i++) {
             (function () {
@@ -363,7 +369,7 @@
                     y: 0,
                     text: lang,
                     border: true,
-                    selected: i === 0,
+                    selected: lang === language,
                     clicked: () => selectLanguage(button)
                 };
                 children.push(button);
@@ -3115,7 +3121,6 @@
         // with define the callbacks used inside the respective control.
         const language_selector_adapter = {
             languageChanged: language => {
-                hmi.language = language;
                 edit_ctrl.update(key_textfield.getIdData(), language);
                 preview.update(references.getIdData(), language);
             }
