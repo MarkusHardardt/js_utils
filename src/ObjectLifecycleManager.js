@@ -7023,7 +7023,7 @@
      */
     var s_objectId = 0;
     function ObjectImpl(i_disableVisuEvents, i_enableEditorEvents) {
-        var that = this;
+        let that = this;
         var _cont = undefined;
         this._hmi_objectId = s_objectId++;
 
@@ -7237,7 +7237,8 @@
                 }
             }
             if (typeof that.handleLanguageChanged === 'function') {
-                // TODO: S4.env.languageSupport.addLanguageListener(that);
+                that._hmi_onLanguageChanged = language => that.handleLanguageChanged(language);
+                that.hmi.env.lang.SubscribeLanguage(that._hmi_onLanguageChanged);
             }
             // add listeners
             for (var i = 0; i < that._hmi_listenerAdds.length; i++) {
@@ -7270,7 +7271,8 @@
                 }
             }
             if (typeof that.handleLanguageChanged === 'function') {
-                // TODO: S4.env.languageSupport.removeLanguageListener(that);
+                that.hmi.env.lang.UnsubscribeLanguage(that._hmi_onLanguageChanged);
+                delete that._hmi_onLanguageChanged;
             }
             if (Array.isArray(_watch)) {
                 for (var i = _watch.length - 1; i >= 0; i--) {

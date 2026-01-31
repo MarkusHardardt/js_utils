@@ -14,6 +14,7 @@
             this._onError = Core.defaultOnError;
             this._values = null;
             this._dataPoints = {};
+            this._observers = [];
             Common.validateAsDataAccessObject(this, true);
         }
         set OnError(value) {
@@ -21,6 +22,29 @@
                 throw new Error('Set value for OnError(error) is not a function');
             }
             this._onError = value;
+        }
+        SubscribeLanguage(onLanguageChanged) {
+            if (typeof onLanguageChanged !== 'function') {
+                throw new Error('onLanguageChanged(language) is not a function');
+            }
+            for (const observer of this._observers) {
+                if (onLanguageChanged === observer) {
+                    throw new Error('Callback onLanguageChanged(language) is already subscribed');
+                }
+            }
+            this._observers.push(onLanguageChanged);
+        }
+        UnsubscribeLanguage(onLanguageChanged) {
+            if (typeof onLanguageChanged !== 'function') {
+                throw new Error('Value for onLanguageChanged(language) is not a function');
+            }
+            for (let i = 0; i < this._observers.length; i++) {
+                if (this._observers[i] === onLanguageChanged) {
+                    this._observers.splice(i, 1);
+                    return;
+                }
+            }
+            this._onError('onLanguageChanged() is not subscribed');
         }
         GetType(dataId) {
             return Core.DataType.String;
@@ -118,6 +142,13 @@
                                 this._onError(`Failed calling onRefresh(value) for data id '${dataId}': ${error}`);
                             }
                         }
+                    }
+                }
+                for (const observer of this._observers) {
+                    try {
+                        observer(language);
+                    } catch (error) {
+                        this._onError(`Failed calling onLanguageChanged('${language}'): ${error}`);
                     }
                 }
                 onSuccess();
