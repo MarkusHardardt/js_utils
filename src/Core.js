@@ -21,6 +21,7 @@
         Double: 11,
         String: 12,
         Object: 23,
+        HTML: 72,
         Unknown: -1
     });
     Core.DataType = DataType;

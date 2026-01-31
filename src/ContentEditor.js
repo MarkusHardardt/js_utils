@@ -359,7 +359,7 @@
                 adapter.languageChanged(language);
             }, error => {
                 console.error(`failed loading language '${language}': ${error}`);
-            })
+            });
         };
         for (let i = 0; i < langs.length; i++) {
             (function () {
@@ -2040,12 +2040,12 @@
         const hmiPreview = getHmiView(hmi, adapter, false);
         const taskPreview = getTaskView(hmi, adapter, false);
         const handlers = {};
-        handlers[cms.GetExtensionForType(ContentManager.DataTableType.JsonFX)] = jsonFxPreview;
-        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Text)] = textPreview;
-        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Label)] = labelPreview;
-        handlers[cms.GetExtensionForType(ContentManager.DataTableType.HTML)] = htmlPreview;
-        handlers[cms.GetExtensionForType(ContentManager.DataTableType.HMI)] = hmiPreview;
-        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Task)] = taskPreview;
+        handlers[cms.GetExtensionForType(ContentManager.DataType.JsonFX)] = jsonFxPreview;
+        handlers[cms.GetExtensionForType(ContentManager.DataType.Text)] = textPreview;
+        handlers[cms.GetExtensionForType(ContentManager.DataType.Label)] = labelPreview;
+        handlers[cms.GetExtensionForType(ContentManager.DataType.HTML)] = htmlPreview;
+        handlers[cms.GetExtensionForType(ContentManager.DataType.HMI)] = hmiPreview;
+        handlers[cms.GetExtensionForType(ContentManager.DataType.Task)] = taskPreview;
         const container = {
             type: 'container',
             update: (data, lang) => {
@@ -2894,7 +2894,7 @@
         };
         let edited = false, editListenerEnabled = true, pending_commit = false, pending_reset = false;
         function updateEditorButtons() {
-            const isJsonFX = sel_data.type === ContentManager.DataTableType.JsonFX;
+            const isJsonFX = sel_data.type === ContentManager.DataType.JsonFX;
             tasksButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset);
             if (isJsonFX) {
                 cms.IsTaskObject(sel_data.id, response => {
@@ -2943,7 +2943,7 @@
             pending_commit = true;
             updateEditorButtons();
             const data = adapter.getIdData();
-            const lang = sel_data.type === ContentManager.DataTableType.Label ? undefined : edit_lang;
+            const lang = sel_data.type === ContentManager.DataType.Label ? undefined : edit_lang;
             performModification(hmi, edit_cs, edit_data.file, data.file, lang, value, params => {
                 pending_commit = false;
                 if (params) {
@@ -2991,12 +2991,12 @@
         const hmiEditor = getHmiView(hmi, adapter, true);
         const taskEditor = getTaskView(hmi, adapter, true);
         const handlers = {};
-        handlers[cms.GetExtensionForType(ContentManager.DataTableType.JsonFX)] = jsonFxEditor;
-        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Text)] = textEditor;
-        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Label)] = labelEditor;
-        handlers[cms.GetExtensionForType(ContentManager.DataTableType.HTML)] = htmlEditor;
-        handlers[cms.GetExtensionForType(ContentManager.DataTableType.HMI)] = hmiEditor;
-        handlers[cms.GetExtensionForType(ContentManager.DataTableType.Task)] = taskEditor;
+        handlers[cms.GetExtensionForType(ContentManager.DataType.JsonFX)] = jsonFxEditor;
+        handlers[cms.GetExtensionForType(ContentManager.DataType.Text)] = textEditor;
+        handlers[cms.GetExtensionForType(ContentManager.DataType.Label)] = labelEditor;
+        handlers[cms.GetExtensionForType(ContentManager.DataType.HTML)] = htmlEditor;
+        handlers[cms.GetExtensionForType(ContentManager.DataType.HMI)] = hmiEditor;
+        handlers[cms.GetExtensionForType(ContentManager.DataType.Task)] = taskEditor;
         const editContainer = {
             type: 'container'
         };
@@ -3009,7 +3009,7 @@
             clicked: () => showHmisConfigurationDialog(hmi, adapter, sel_data),
             longClicked: () => {
                 try {
-                    if (sel_data && sel_data.type === ContentManager.DataTableType.JsonFX) {
+                    if (sel_data && sel_data.type === ContentManager.DataType.JsonFX) {
                         cms.IsHMIObject(sel_data.id, response => {
                             if (response !== true) {
                                 cms.AddDefaultHMIObject(sel_data.id, resp => {
@@ -3037,7 +3037,7 @@
             clicked: () => showTasksConfigurationDialog(hmi, adapter, sel_data),
             longClicked: () => {
                 try {
-                    if (sel_data && sel_data.type === ContentManager.DataTableType.JsonFX) {
+                    if (sel_data && sel_data.type === ContentManager.DataType.JsonFX) {
                         cms.IsTaskObject(sel_data.id, response => {
                             if (response !== true) {
                                 cms.AddDefaultTaskObject(sel_data.id, resp => {

@@ -5,10 +5,12 @@
     const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Common = isNodeJS ? require('./Common.js') : root.Common;
+    const ContentManager = isNodeJS ? require('./ContentManager.js') : root.ContentManager;
 
     class Handler { // TODO: Add onLanguageChanged(language) listener support
         constructor(cms) {
             this._cms = cms;
+            this._isValidHTMLType = cms.GetIdValidTestFunctionForType(ContentManager.DataType.HTML);
             this._languages = cms.GetLanguages();
             this._language = this._languages[0];
             this._onError = Core.defaultOnError;
@@ -47,7 +49,7 @@
             this._onError('onLanguageChanged() is not subscribed');
         }
         GetType(dataId) {
-            return Core.DataType.String;
+            return this._isValidHTMLType(dataId) ? Core.DataType.HTML : Core.DataType.String;
         }
         SubscribeData(dataId, onRefresh) {
             // Use existing or create new data point, set callback and call callback passing value.

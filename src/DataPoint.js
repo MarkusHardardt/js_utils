@@ -97,6 +97,11 @@
                     if (this._unsubscribeDelayTimer) {
                         clearTimeout(this._unsubscribeDelayTimer);
                         this._unsubscribeDelayTimer = null;
+                        try {
+                            onRefresh(this._value);
+                        } catch (error) {
+                            this._onError(`Failed calling onRefresh(value): ${error}`);
+                        }
                     } else {
                         this._source.Subscribe(this._onRefresh);
                     }

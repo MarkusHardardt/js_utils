@@ -76,13 +76,6 @@
     const TWO_PI = PI + PI;
     const HALF_PI = PI / 2;
 
-    const ElementTypes = Object.freeze({
-        LABELS_GROUP: 'Labels',
-        LABELS_TYPE: 'STRING',
-        TEXTS_GROUP: 'Texts',
-        TEXTS_TYPE: 'TEXT'
-    });
-
     const regex_analyse = Regex.analyse;
 
     // zoom factor: double by three clicks: Math.exp(Math.log(2)/3)
@@ -7207,12 +7200,12 @@
                 for (var i = 0; i < _watch.length; i++) {
                     (function () {
                         const dataId = _watch[i];
-                        const type = undefined; // TODO: Handle ElementTypes.TEXTS_TYPE ???
+                        const type = that.hmi.env.data.GetType(dataId);
                         const onRefresh = value => {
                             try {
                                 if (typeof that.handleDataUpdate === 'function') {
                                     that.handleDataUpdate(dataId, value, type);
-                                } else if (type === ElementTypes.TEXTS_TYPE) {
+                                } else if (type === Core.DataType.HTML) {
                                     if (that.hmi_html) {
                                         that.hmi_html(value);
                                     }
@@ -7232,7 +7225,11 @@
                             }
                         };
                         _onEventCallbacks.push(onRefresh);
-                        that.hmi.env.data.SubscribeData(dataId, onRefresh);
+                        try {
+                            that.hmi.env.data.SubscribeData(dataId, onRefresh);
+                        } catch (error) {
+                            console.error(`Failed subscribing to '${dataId}':\n${error.message}`);
+                        }
                     }());
                 }
             }
@@ -7276,7 +7273,11 @@
             }
             if (Array.isArray(_watch)) {
                 for (var i = _watch.length - 1; i >= 0; i--) {
-                    that.hmi.env.data.UnsubscribeData(_watch[i], _onEventCallbacks[i]);
+                    try {
+                        that.hmi.env.data.UnsubscribeData(_watch[i], _onEventCallbacks[i]);
+                    } catch (error) {
+                        console.error(`Failed unsubscribing from '${dataId}':\n${error.message}`);
+                    }
                 }
                 _watch.splice(0, _watch.length);
                 _watch = undefined;

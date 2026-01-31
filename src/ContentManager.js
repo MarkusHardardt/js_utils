@@ -55,7 +55,7 @@
     }
     ContentManager.validateAsContentManagerOnServer = validateAsContentManagerOnServer;
 
-    const DataTableType = Object.freeze({
+    const DataType = Object.freeze({
         JsonFX: 'JsonFX',
         Text: 'Text',
         Label: 'Label',
@@ -63,7 +63,7 @@
         HMI: 'HMI',
         Task: 'Task'
     });
-    ContentManager.DataTableType = DataTableType;
+    ContentManager.DataType = DataType;
 
     /*  Used by ContentEditor  */
     ContentManager.INSERT = 'insert';
@@ -278,8 +278,8 @@
             this._contentTablesByExtension = {};
             this._extensionsForType = {};
             this._affectedTypesListeners = {};
-            for (const type in DataTableType) {
-                if (DataTableType.hasOwnProperty(type)) {
+            for (const type in DataType) {
+                if (DataType.hasOwnProperty(type)) {
                     this._affectedTypesListeners[type] = [];
                 }
             }
@@ -300,18 +300,18 @@
                         name: tableConfig.name,
                         keyColumn: tableConfig.keyColumn,
                         icon: tableConfig.icon,
-                        JsonFX: type === DataTableType.JsonFX
+                        JsonFX: type === DataType.JsonFX
                     };
                     switch (type) {
-                        case DataTableType.JsonFX:
-                        case DataTableType.Text:
+                        case DataType.JsonFX:
+                        case DataType.Text:
                             if (typeof tableConfig.valueColumn !== 'string') {
                                 throw new Error(`Missing value column parameter for table type '${type}'`);
                             }
                             table.valueColumn = tableConfig.valueColumn;
                             break;
-                        case DataTableType.Label:
-                        case DataTableType.HTML:
+                        case DataType.Label:
+                        case DataType.HTML:
                             if (typeof tableConfig.valueColumnPrefix !== 'string') {
                                 throw new Error(`Missing value column prefix parameter for table type '${type}'`);
                             } else if (db_config.languages.length === 0) {
@@ -324,7 +324,7 @@
                             }
                             tableLanguageExtensions.push(extension);
                             break;
-                        case DataTableType.HMI:
+                        case DataType.HMI:
                             if (typeof tableConfig.viewObjectColumn !== 'string') {
                                 throw new Error(`Missing view object column parameter for table type '${type}'`);
                             } else if (typeof tableConfig.queryParameterColumn !== 'string') {
@@ -342,7 +342,7 @@
                             };
                             this._hmiTable = table;
                             break;
-                        case DataTableType.Task:
+                        case DataType.Task:
                             if (typeof tableConfig.taskObjectColumn !== 'string') {
                                 throw new Error(`Missing task object column parameter for table type '${type}'`);
                             } else if (typeof tableConfig.flagsColumn !== 'string') {
@@ -449,8 +449,8 @@
                 // if JsonFX or plain text is available we decode the string and
                 // return with or without all includes included
                 switch (table.type) {
-                    case DataTableType.JsonFX:
-                    case DataTableType.Text:
+                    case DataType.JsonFX:
+                    case DataType.Text:
                         // note: no language required here because we got only one anyway
                         that._getRawString(adapter, table, rawKey, undefined, rawString => {
                             if (rawString !== false) {
@@ -460,10 +460,10 @@
                             success();
                         }, error);
                         break;
-                    case DataTableType.Label:
-                    case DataTableType.HTML:
-                    case DataTableType.HMI:
-                    case DataTableType.Task:
+                    case DataType.Label:
+                    case DataType.HTML:
+                    case DataType.HMI:
+                    case DataType.Task:
                         for (const attr in table.valueColumn) {
                             if (table.valueColumn.hasOwnProperty(attr)) {
                                 adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${attr}`);
@@ -534,12 +534,12 @@
             // if JsonFX or plain text is available we decode the string and
             // return with or without all includes included
             switch (table.type) {
-                case DataTableType.JsonFX:
-                case DataTableType.Text:
+                case DataType.JsonFX:
+                case DataType.Text:
                     // note: no language required here because we got only one anyway
                     that._getRawString(adapter, table, rawKey, undefined, rawString => {
                         if (rawString !== false) {
-                            const object = table.type === DataTableType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
+                            const object = table.type === DataType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
                             if (include) {
                                 const ids = {};
                                 ids[id] = true;
@@ -552,8 +552,8 @@
                         }
                     }, onError);
                     break;
-                case DataTableType.Label:
-                case DataTableType.HTML:
+                case DataType.Label:
+                case DataType.HTML:
                     if (typeof language === 'string') {
                         // if selection is available we return string with or without all
                         // includes included
@@ -608,8 +608,8 @@
                         }, onError);
                     }
                     break;
-                case DataTableType.HMI:
-                case DataTableType.Task:
+                case DataType.HMI:
+                case DataType.Task:
                     for (const attr in table.valueColumn) {
                         if (table.valueColumn.hasOwnProperty(attr)) {
                             adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${attr}`);
@@ -647,7 +647,7 @@
                 this._getRawString(adapter, table, match[1], language, rawString => {
                     if (rawString !== false) {
                         ids[includeKey] = true;
-                        const includedObject = table.type === DataTableType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
+                        const includedObject = table.type === DataType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
                         that._include(adapter, includedObject, ids, language, inclObj => {
                             delete ids[includeKey];
                             if (typeof inclObj === 'object' && inclObj !== null) {
@@ -711,10 +711,10 @@
                                     that._getRawString(adapter, table, rawKey, language, rawString => {
                                         if (rawString !== false) {
                                             ids[includeKey] = true;
-                                            const object = table.type === DataTableType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
+                                            const object = table.type === DataType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
                                             that._include(adapter, object, ids, language, build => {
                                                 delete ids[includeKey];
-                                                array[idx] = table.type === DataTableType.JsonFX && array.length > 1 ? JsonFX.stringify(build, false) : build;
+                                                array[idx] = table.type === DataType.JsonFX && array.length > 1 ? JsonFX.stringify(build, false) : build;
                                                 onSuc();
                                             }, onErr);
                                         } else {
@@ -778,12 +778,12 @@
             // try to get all current database values for given id and copy the new
             // values
             switch (table.type) {
-                case DataTableType.JsonFX:
-                case DataTableType.Text:
+                case DataType.JsonFX:
+                case DataType.Text:
                     adapter.AddColumn(`${table.name}.${table.valueColumn} AS ${table.valueColumn}`);
                     break;
-                case DataTableType.Label:
-                case DataTableType.HTML:
+                case DataType.Label:
+                case DataType.HTML:
                     // in case of a multiligual data type and a given language we got to make
                     // sure that language is supported
                     if (typeof language === 'string' && table.valueColumn[language] === undefined) {
@@ -797,8 +797,8 @@
                         }
                     }
                     break;
-                case DataTableType.HMI:
-                case DataTableType.Task:
+                case DataType.HMI:
+                case DataType.Task:
                     for (const attr in table.valueColumn) {
                         if (table.valueColumn.hasOwnProperty(attr)) {
                             adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${table.valueColumn[attr]}`);
@@ -818,8 +818,8 @@
                 const values = {};
                 let checksum = '';
                 switch (table.type) {
-                    case DataTableType.JsonFX:
-                    case DataTableType.Text:
+                    case DataType.JsonFX:
+                    case DataType.Text:
                         {
                             checksum += table.valueColumn;
                             const currval = getValueForAttribute(currentData, table.valueColumn);
@@ -839,8 +839,8 @@
                             }
                         }
                         break;
-                    case DataTableType.Label:
-                    case DataTableType.HTML:
+                    case DataType.Label:
+                    case DataType.HTML:
                         for (const attr in table.valueColumn) {
                             if (table.valueColumn.hasOwnProperty(attr)) {
                                 // for all columns we try to get the current and new value
@@ -870,8 +870,8 @@
                             }
                         }
                         break;
-                    case DataTableType.HMI:
-                    case DataTableType.Task:
+                    case DataType.HMI:
+                    case DataType.Task:
                         // TODO: remove console.log(`currentData: ${JSON.stringify(currentData)}, value: ${JSON.stringify(value)}`);
                         // currentData: {"jsonFxObjectKey":"$001_debug/maze_game.j","flags":1}, value: {"jsonFxObjectKey":"$001_debug/m aze_game.j","flags":1}
                         for (const attr in table.valueColumn) {
@@ -965,8 +965,8 @@
                         } else if (params.action === ContentManager.INSERT) {
                             adapter.AddValue(`${table.name}.${table.keyColumn}`, SqlHelper.escape(rawKey));
                             switch (table.type) {
-                                case DataTableType.JsonFX:
-                                case DataTableType.Text:
+                                case DataType.JsonFX:
+                                case DataType.Text:
                                     {
                                         const value = params.values[table.valueColumn];
                                         if (value.changed) {
@@ -974,10 +974,10 @@
                                         }
                                     }
                                     break;
-                                case DataTableType.Label:
-                                case DataTableType.HTML:
-                                case DataTableType.HMI:
-                                case DataTableType.Task:
+                                case DataType.Label:
+                                case DataType.HTML:
+                                case DataType.HMI:
+                                case DataType.Task:
                                     for (const attr in table.valueColumn) {
                                         if (table.valueColumn.hasOwnProperty(attr)) {
                                             const value = params.values[attr];
@@ -997,8 +997,8 @@
                             }, onErr);
                         } else if (params.action === ContentManager.UPDATE) {
                             switch (table.type) {
-                                case DataTableType.JsonFX:
-                                case DataTableType.Text:
+                                case DataType.JsonFX:
+                                case DataType.Text:
                                     {
                                         const value = params.values[table.valueColumn];
                                         if (value.changed) {
@@ -1006,10 +1006,10 @@
                                         }
                                     }
                                     break;
-                                case DataTableType.Label:
-                                case DataTableType.HTML:
-                                case DataTableType.HMI:
-                                case DataTableType.Task:
+                                case DataType.Label:
+                                case DataType.HTML:
+                                case DataType.HMI:
+                                case DataType.Task:
                                     for (const attr in table.valueColumn) {
                                         if (table.valueColumn.hasOwnProperty(attr)) {
                                             const value = params.values[attr];
@@ -1441,14 +1441,14 @@
                     const target = params.objects[source];
                     const targetAlreadyExists = params.existingTargets && params.existingTargets[target] === true;
                     switch (table.type) {
-                        case DataTableType.JsonFX:
-                        case DataTableType.Text:
+                        case DataType.JsonFX:
+                        case DataType.Text:
                             adapter.AddColumn(`${table.name}.${table.valueColumn}`);
                             break;
-                        case DataTableType.Label:
-                        case DataTableType.HTML:
-                        case DataTableType.HMI:
-                        case DataTableType.Task:
+                        case DataType.Label:
+                        case DataType.HTML:
+                        case DataType.HMI:
+                        case DataType.Task:
                             for (const attr in table.valueColumn) {
                                 if (table.valueColumn.hasOwnProperty(attr)) {
                                     adapter.AddColumn(`${table.name}.${table.valueColumn[attr]}`);
@@ -1462,18 +1462,18 @@
                         // replace internal cross references and prepare database
                         // update or insert value
                         switch (table.type) {
-                            case DataTableType.JsonFX:
-                            case DataTableType.Text:
+                            case DataType.JsonFX:
+                            case DataType.Text:
                                 let string = values[table.valueColumn];
                                 if (typeof string === 'string' && string.length > 0) {
                                     string = getReplacement(string);
                                     adapter.AddValue(`${table.name}.${table.valueColumn}`, SqlHelper.escape(string));
                                 }
                                 break;
-                            case DataTableType.Label:
-                            case DataTableType.HTML:
-                            case DataTableType.HMI:
-                            case DataTableType.Task:
+                            case DataType.Label:
+                            case DataType.HTML:
+                            case DataType.HMI:
+                            case DataType.Task:
                                 for (const attr in table.valueColumn) {
                                     if (table.valueColumn.hasOwnProperty(attr)) {
                                         const value = values[table.valueColumn[attr]];
@@ -1533,14 +1533,14 @@
                                     const usrKey = match[1];
                                     tasks.push((os, oe) => {
                                         switch (table.type) {
-                                            case DataTableType.JsonFX:
-                                            case DataTableType.Text:
+                                            case DataType.JsonFX:
+                                            case DataType.Text:
                                                 adapter.AddColumn(`${table.name}.${table.valueColumn} AS ${table.valueColumn}`);
                                                 break;
-                                            case DataTableType.Label:
-                                            case DataTableType.HTML:
-                                            case DataTableType.HMI:
-                                            case DataTableType.Task:
+                                            case DataType.Label:
+                                            case DataType.HTML:
+                                            case DataType.HMI:
+                                            case DataType.Task:
                                                 for (const attr in table.valueColumn) {
                                                     if (table.valueColumn.hasOwnProperty(attr)) {
                                                         adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${table.valueColumn[attr]}`);
@@ -1556,18 +1556,18 @@
                                             // update object
                                             const values = result[0];
                                             switch (table.type) {
-                                                case DataTableType.JsonFX:
-                                                case DataTableType.Text:
+                                                case DataType.JsonFX:
+                                                case DataType.Text:
                                                     let string = values[table.valueColumn];
                                                     if (typeof string === 'string' && string.length > 0) {
                                                         string = getReplacement(string);
                                                         adapter.AddValue(`${table.name}.${table.valueColumn}`, SqlHelper.escape(string));
                                                     }
                                                     break;
-                                                case DataTableType.Label:
-                                                case DataTableType.HTML:
-                                                case DataTableType.HMI:
-                                                case DataTableType.Task:
+                                                case DataType.Label:
+                                                case DataType.HTML:
+                                                case DataType.HMI:
+                                                case DataType.Task:
                                                     for (const attr in table.valueColumn) {
                                                         if (table.valueColumn.hasOwnProperty(attr)) {
                                                             let string = values[table.valueColumn[attr]];
@@ -1731,14 +1731,14 @@
                         tasks.push((onSuc, onErr) => {
                             adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
                             switch (table.type) {
-                                case DataTableType.JsonFX:
-                                case DataTableType.Text:
+                                case DataType.JsonFX:
+                                case DataType.Text:
                                     adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn}`), false);
                                     break;
-                                case DataTableType.Label:
-                                case DataTableType.HTML:
-                                case DataTableType.HMI:
-                                case DataTableType.Task:
+                                case DataType.Label:
+                                case DataType.HTML:
+                                case DataType.HMI:
+                                case DataType.Task:
                                     for (const col in table.valueColumn) {
                                         if (table.valueColumn.hasOwnProperty(col)) {
                                             adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn[col]}`), false);
@@ -1798,14 +1798,14 @@
                                 tasks.push((onSuc, onErr) => {
                                     adapter.AddColumn('COUNT(*) AS cnt');
                                     switch (table.type) {
-                                        case DataTableType.JsonFX:
-                                        case DataTableType.Text:
+                                        case DataType.JsonFX:
+                                        case DataType.Text:
                                             adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn}`), false);
                                             break;
-                                        case DataTableType.Label:
-                                        case DataTableType.HTML:
-                                        case DataTableType.HMI:
-                                        case DataTableType.Task:
+                                        case DataType.Label:
+                                        case DataType.HTML:
+                                        case DataType.HMI:
+                                        case DataType.Task:
                                             for (const col in table.valueColumn) {
                                                 if (table.valueColumn.hasOwnProperty(col)) {
                                                     adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn[col]}`), false);
@@ -1931,14 +1931,14 @@
                                     }
                                     if (value.length > 0) {
                                         switch (table.type) {
-                                            case DataTableType.JsonFX:
-                                            case DataTableType.Text:
+                                            case DataType.JsonFX:
+                                            case DataType.Text:
                                                 where += `LOCATE(${SqlHelper.escape(value)}, ${table.name}.${table.valueColumn}) > 0`;
                                                 break;
-                                            case DataTableType.Label:
-                                            case DataTableType.HTML:
-                                            case DataTableType.HMI:
-                                            case DataTableType.Task:
+                                            case DataType.Label:
+                                            case DataType.HTML:
+                                            case DataType.HMI:
+                                            case DataType.Task:
                                                 where += '(';
                                                 let next = false;
                                                 for (const val in table.valueColumn) {
@@ -2080,8 +2080,8 @@
                     }, onErr);
                 }
                 const tasks = [];
-                tasks.push((onSuc, onErr) => get(DataTableType.Label, onSuc, onErr));
-                tasks.push((onSuc, onErr) => get(DataTableType.HTML, onSuc, onErr));
+                tasks.push((onSuc, onErr) => get(DataType.Label, onSuc, onErr));
+                tasks.push((onSuc, onErr) => get(DataType.HTML, onSuc, onErr));
                 Executor.run(tasks, () => {
                     adapter.Close();
                     onResponse(values);
@@ -2098,7 +2098,7 @@
                 return;
             }
             const table = this._contentTablesByExtension[match[2]];
-            if (!table || table.type !== DataTableType.JsonFX) {
+            if (!table || table.type !== DataType.JsonFX) {
                 onResponse(false);
                 return;
             }
@@ -2125,7 +2125,7 @@
             if (!table) {
                 onError(`Invalid table: '${id}'`);
                 return;
-            } else if (table.type !== DataTableType.JsonFX) {
+            } else if (table.type !== DataType.JsonFX) {
                 onError(`Is not a JsonFX object: '${id}'`);
                 return;
             }
@@ -2208,7 +2208,7 @@
                         return;
                     }
                     const table = this._contentTablesByExtension[match[2]];
-                    if (!table || table.type !== DataTableType.JsonFX) {
+                    if (!table || table.type !== DataType.JsonFX) {
                         onError(`HMI could not be loaded: Invalid table name: '${id}' for query parameter '${queryParameterValue}'`);
                         return;
                     }
@@ -2251,7 +2251,7 @@
                 return;
             }
             const table = this._contentTablesByExtension[match[2]];
-            if (!table || table.type !== DataTableType.JsonFX) {
+            if (!table || table.type !== DataType.JsonFX) {
                 onResponse(false);
                 return;
             }
@@ -2278,7 +2278,7 @@
             if (!table) {
                 onError(`Invalid table: '${id}'`);
                 return;
-            } else if (table.type !== DataTableType.JsonFX) {
+            } else if (table.type !== DataType.JsonFX) {
                 onError(`Is not a JsonFX object: '${id}'`);
                 return;
             }
@@ -2737,9 +2737,9 @@
                 (function () {
                     let idx = i, id = ids[idx], data = cms.AnalyzeId(id);
                     switch (data.type) {
-                        case DataTableType.JsonFX:
-                        case DataTableType.HMI:
-                        case DataTableType.Task:
+                        case DataType.JsonFX:
+                        case DataType.HMI:
+                        case DataType.Task:
                             tasks.push((onSuc, onErr) => {
                                 cms.GetObject(id, undefined, ContentManager.RAW, object => {
                                     exports.push(createHeader(data.extension, id));
@@ -2750,7 +2750,7 @@
                                 }, onErr);
                             });
                             break;
-                        case DataTableType.Text:
+                        case DataType.Text:
                             tasks.push((onSuc, onErr) => {
                                 cms.GetObject(id, undefined, ContentManager.RAW, object => {
                                     exports.push(createHeader(data.extension, id));
@@ -2761,8 +2761,8 @@
                                 }, onErr);
                             });
                             break;
-                        case DataTableType.Label:
-                        case DataTableType.HTML:
+                        case DataType.Label:
+                        case DataType.HTML:
                             tasks.push((onSuc, onErr) => {
                                 cms.GetObject(id, undefined, ContentManager.RAW, results => {
                                     exports.push(createHeader(data.extension, id));
@@ -2813,9 +2813,9 @@
                     if (createChecksum(header[1], path) === header[2]) {
                         const data = cms.AnalyzeId(path);
                         switch (data.type) {
-                            case DataTableType.JsonFX:
-                            case DataTableType.HMI:
-                            case DataTableType.Task:
+                            case DataType.JsonFX:
+                            case DataType.HMI:
+                            case DataType.Task:
                                 try {
                                     data.value = JsonFX.parse(elements[idx++], true, true);
                                 } catch (exc) {
@@ -2824,12 +2824,12 @@
                                 }
                                 results.push(data);
                                 break;
-                            case DataTableType.Text:
+                            case DataType.Text:
                                 data.value = elements[idx++].trim();
                                 results.push(data);
                                 break;
-                            case DataTableType.Label:
-                            case DataTableType.HTML:
+                            case DataType.Label:
+                            case DataType.HTML:
                                 data.value = {};
                                 while (idx < elements.length) {
                                     header = elements[idx];
@@ -2868,17 +2868,17 @@
                 (function () {
                     const idx = i, d = data[idx];
                     switch (d.type) {
-                        case DataTableType.JsonFX:
+                        case DataType.JsonFX:
                             tasks.push((onSuc, onErr) => {
                                 const val = d.value !== undefined && d.value !== null ? JsonFX.stringify(d.value, false) : undefined;
                                 cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr), onErr);
                             });
                             break;
-                        case DataTableType.Text:
-                        case DataTableType.Label:
-                        case DataTableType.HTML:
-                        case DataTableType.HMI:
-                        case DataTableType.Task:
+                        case DataType.Text:
+                        case DataType.Label:
+                        case DataType.HTML:
+                        case DataType.HMI:
+                        case DataType.Task:
                             tasks.push((onSuc, onErr) => {
                                 const val = d.value !== undefined && d.value !== null ? d.value : undefined;
                                 cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr), onErr);
