@@ -68,20 +68,20 @@
 
         Subscribe(onRefresh) {
             if (typeof onRefresh !== 'function') {
-                throw new Error('onRefresh() is not a function');
+                throw new Error('onRefresh(value) is not a function');
             }
             let alreadySubscribed = false;
             for (const callback of this._observers) {
                 if (callback === onRefresh) {
                     alreadySubscribed = true;
-                    this._onError('onRefresh() is already subscribed');
+                    this._onError('onRefresh(value) is already subscribed');
                 }
             }
             if (alreadySubscribed) {
                 try {
                     onRefresh(this._value);
                 } catch (error) {
-                    this._onError(`Failed calling onRefresh(value): ${error}`);
+                    throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
                 }
             } else {
                 this._observers.push(onRefresh);
@@ -90,7 +90,7 @@
                     try {
                         onRefresh(this._value);
                     } catch (error) {
-                        this._onError(`Failed calling onRefresh(value): ${error}`);
+                        throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
                     }
                 } else {
                     // If first subscription we subscribe on our parent which should result in firering the event.
@@ -100,7 +100,7 @@
                         try {
                             onRefresh(this._value);
                         } catch (error) {
-                            this._onError(`Failed calling onRefresh(value): ${error}`);
+                            throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
                         }
                     } else {
                         this._source.Subscribe(this._onRefresh);
@@ -111,7 +111,7 @@
 
         Unsubscribe(onRefresh) {
             if (typeof onRefresh !== 'function') {
-                throw new Error('onRefresh() is not a function');
+                throw new Error('onRefresh(value) is not a function');
             }
             for (let i = 0; i < this._observers.length; i++) {
                 if (this._observers[i] === onRefresh) {
@@ -129,7 +129,7 @@
                     return;
                 }
             }
-            this._onError('onRefresh() is not subscribed');
+            this._onError('onRefresh(value) is not subscribed');
         }
 
         _refresh(value) {
@@ -139,7 +139,7 @@
                     try {
                         onRefresh(value);
                     } catch (error) {
-                        this._onError(`Failed calling onRefresh(value): ${error.message}`, error);
+                        this._onError(`Failed calling onRefresh(value):\n${error.message}`);
                     }
                 }
             }
@@ -262,7 +262,7 @@
 
         SubscribeData(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`Invalid subscription dataId: ${dataId}`);
+                throw new Error(`Invalid subscription dataId: '${dataId}'`);
             }
             let dataPoint = this._dataPointsByDataId[dataId];
             if (!dataPoint) {
@@ -279,7 +279,7 @@
                             try {
                                 this._source.SubscribeData(dataId, onRefresh);
                             } catch (error) {
-                                this._onError(`Failed to subscribe data with id '${dataId}': ${error}`);
+                                throw new Error(`Failed subscribing to '${dataId}':\n${error.message}`);
                             }
                         }
                     },
@@ -288,7 +288,7 @@
                             try {
                                 this._source.UnsubscribeData(dataId, onRefresh);
                             } catch (error) {
-                                this._onError(`Failed to unsubscribe data with id '${dataId}': ${error}`);
+                                throw new Error(`Failed unsubscribing from '${dataId}':\n${error.message}`);
                             }
                         }
                         node.Source = null;
@@ -317,7 +317,7 @@
                 try {
                     onResponse(value);
                 } catch (error) {
-                    this._onError(`Failed calling onResponse() for dataId: ${dataId}: ${error.message}`, error);
+                    this._onError(`Failed calling onResponse(${value}) for dataId: '${dataId}':\n${error.message}`);
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (dataPoint) {

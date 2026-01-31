@@ -2,19 +2,17 @@
     "use strict";
     const LanguageSwitching = {};
     const isNodeJS = typeof require === 'function';
-    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Common = isNodeJS ? require('./Common.js') : root.Common;
     const ContentManager = isNodeJS ? require('./ContentManager.js') : root.ContentManager;
 
-    class Handler { // TODO: Add onLanguageChanged(language) listener support
+    class Handler {
         constructor(cms) {
             this._cms = cms;
             this._isValidHTMLType = cms.GetIdValidTestFunctionForType(ContentManager.DataType.HTML);
             this._languages = cms.GetLanguages();
             this._language = this._languages[0];
             this._onError = Core.defaultOnError;
-            this._values = null;
             this._dataPoints = {};
             this._observers = [];
             Common.validateAsDataAccessObject(this, true);
@@ -46,17 +44,22 @@
                     return;
                 }
             }
-            this._onError('onLanguageChanged() is not subscribed');
+            this._onError('onLanguageChanged(language) is not subscribed');
         }
         GetType(dataId) {
             return this._isValidHTMLType(dataId) ? Core.DataType.HTML : Core.DataType.String;
         }
         SubscribeData(dataId, onRefresh) {
+            if (typeof dataId !== 'string') {
+                throw new Error(`Invalid subscription dataId '${dataId}'`);
+            } else if (typeof onRefresh !== 'function') {
+                throw new Error(`onRefresh(value) subscription callback for dataId '${dataId}' is not a function`);
+            }
             // Use existing or create new data point, set callback and call callback passing value.
             // Write errors to output.
             let dataPoint = this._dataPoints[dataId];
             if (!dataPoint) {
-                dataPoint = this._dataPoints[dataId] = { onRefresh: null, value: null };
+                throw new Error(`Data point '${dataId}' is not available to subscribe`);
             } else if (dataPoint.onRefresh !== null) {
                 this._onError(`Data id '${dataId}' is already subscribed`);
             }
@@ -64,25 +67,27 @@
             try {
                 onRefresh(dataPoint.value);
             } catch (error) {
-                this._onError(`Failed calling onRefresh(value) for data id '${dataId}': ${error}`);
+                throw new Error(`Failed calling onRefresh(value) for '${dataId}':\n${error.message}`);
             }
         }
         UnsubscribeData(dataId, onRefresh) {
+            if (typeof dataId !== 'string') {
+                throw new Error(`Invalid unsubscription dataId '${dataId}'`);
+            } else if (typeof onRefresh !== 'function') {
+                throw new Error(`onRefresh(value) unsubscription callback for dataId '${dataId}' is not a function`);
+            }
             // If data point available reset the callback.
             // If data id unknown delete data point.
             // Write errors to output.
             const dataPoint = this._dataPoints[dataId];
             if (!dataPoint) {
-                this._onError(`Unsupported data id for unsubscribe: '${dataId}'`);
+                throw new Error(`Data point '${dataId}' is not available to unsubscribe`);
             } else if (dataPoint.onRefresh === null) {
                 this._onError(`Data id '${dataId}' is not subscribed`);
             } else if (dataPoint.onRefresh !== onRefresh) {
                 this._onError(`Data id '${dataId}' is subscribed with a different callback`);
             } else {
                 dataPoint.onRefresh = null;
-                if (this._values === null || this._values[dataId] === undefined) {
-                    delete this._dataPoints[dataId];
-                }
             }
         }
         Read(dataId, onResponse, onError) {
@@ -94,7 +99,6 @@
             }
         }
         Write(dataId, value) {
-            this._onError(`Write to data with id '${dataId}' is not supported`);
             throw new Error(`Write to data with id '${dataId}' is not supported`);
         }
         GetLanguages() {
@@ -107,11 +111,10 @@
             return this._languages.indexOf(language) >= 0;
         }
         LoadLanguage(language, onSuccess, onError) {
-            const tasks = [];
-            // Load label and html values and store.
-            // Use existing or create new data point and store value.
-            tasks.push((onSuc, onErr) => this._cms.GetAllForLanguage(language, values => {
-                this._values = values;
+            // Load all label and html values
+            this._cms.GetAllForLanguage(language, values => {
+                this._language = language;
+                // Use existing or create new data point and store value.
                 for (const dataId in values) {
                     if (values.hasOwnProperty(dataId)) {
                         let dataPoint = this._dataPoints[dataId];
@@ -121,20 +124,13 @@
                         dataPoint.value = values[dataId];
                     }
                 }
-                onSuc();
-            }, onErr));
-            // Check all data points and if not subscribed and not available as label or html value than delete.
-            tasks.push((onSuc, onErr) => {
+                // Check all data points and if not available as label or html value than delete
                 for (const dataId in this._dataPoints) {
-                    if (this._dataPoints.hasOwnProperty(dataId) && this._dataPoints[dataId].onRefresh === null && this._values[dataId] === undefined) {
+                    if (this._dataPoints.hasOwnProperty(dataId) && values[dataId] === undefined) {
                         delete this._dataPoints[dataId];
                     }
                 }
-                onSuc();
-            });
-            // After loaded notify subscribers
-            Executor.run(tasks, () => {
-                this._language = language;
+                // After loaded notify subscribers
                 for (const dataId in this._dataPoints) {
                     if (this._dataPoints.hasOwnProperty(dataId)) {
                         const dataPoint = this._dataPoints[dataId];
@@ -142,7 +138,7 @@
                             try {
                                 dataPoint.onRefresh(dataPoint.value);
                             } catch (error) {
-                                this._onError(`Failed calling onRefresh(value) for data id '${dataId}': ${error}`);
+                                this._onError(`Failed calling onRefresh(value) for data id '${dataId}':\n${error.message}`);
                             }
                         }
                     }
@@ -151,11 +147,11 @@
                     try {
                         observer(language);
                     } catch (error) {
-                        this._onError(`Failed calling onLanguageChanged('${language}'): ${error}`);
+                        this._onError(`Failed calling onLanguageChanged('${language}'):\n${error.message}`);
                     }
                 }
                 onSuccess();
-            }, onError);
+            }, onError)
         }
     }
     LanguageSwitching.getInstance = cms => new Handler(cms);

@@ -7197,10 +7197,18 @@
             _watch = get_watch(that.watch);
             if (Array.isArray(_watch)) {
                 _onEventCallbacks = [];
+                function tryGetType(dataId) {
+                    try {
+                        return that.hmi.env.data.GetType(dataId);
+                    } catch (error) {
+                        console.error(`Failed calling GetType('${dataId}'):\n${error.message}`);
+                        return Core.DataType.Unknown;
+                    }
+                }
                 for (var i = 0; i < _watch.length; i++) {
                     (function () {
                         const dataId = _watch[i];
-                        const type = that.hmi.env.data.GetType(dataId);
+                        const type = tryGetType(dataId);
                         const onRefresh = value => {
                             try {
                                 if (typeof that.handleDataUpdate === 'function') {
@@ -7235,7 +7243,11 @@
             }
             if (typeof that.handleLanguageChanged === 'function') {
                 that._hmi_onLanguageChanged = language => that.handleLanguageChanged(language);
-                that.hmi.env.lang.SubscribeLanguage(that._hmi_onLanguageChanged);
+                try {
+                    that.hmi.env.lang.SubscribeLanguage(that._hmi_onLanguageChanged);
+                } catch (error) {
+                    console.error(`Failed subscribing on language:\n${error.message}`);
+                }
             }
             // add listeners
             for (var i = 0; i < that._hmi_listenerAdds.length; i++) {
@@ -7267,8 +7279,12 @@
                     }
                 }
             }
-            if (typeof that.handleLanguageChanged === 'function') {
-                that.hmi.env.lang.UnsubscribeLanguage(that._hmi_onLanguageChanged);
+            if (that._hmi_onLanguageChanged) {
+                try {
+                    that.hmi.env.lang.UnsubscribeLanguage(that._hmi_onLanguageChanged);
+                } catch (error) {
+                    console.error(`Failed subscribing from language:\n${error.message}`);
+                }
                 delete that._hmi_onLanguageChanged;
             }
             if (Array.isArray(_watch)) {

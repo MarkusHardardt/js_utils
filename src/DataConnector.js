@@ -86,13 +86,13 @@
 
             GetType(dataId) {
                 if (typeof dataId !== 'string') {
-                    this.onError(`Invalid data id: '${dataId}'`);
-                    return Core.DataType.Unknown;
-                } else if (this._dataPointsByDataId[dataId] === undefined) {
-                    this.onError(`Unknown data point for id '${dataId}' to get type`);
-                    return Core.DataType.Unknown;
+                    throw new Error(`Invalid data id: '${dataId}'`);
+                }
+                const dataPoint = this._dataPointsByDataId[dataId];
+                if (!dataPoint) {
+                    throw new Error(`Unknown data point for id '${dataId}' to get type`);
                 } else {
-                    return this._dataPointsByDataId[dataId].type;
+                    return dataPoint.type;
                 }
             }
 
@@ -109,17 +109,17 @@
                     throw new Error(`Data point for id '${dataId}' already has subscription`);
                 }
                 dataPoint.onRefresh = onRefresh;
-                try {
-                    dataPoint.onRefresh(dataPoint.value);
-                } catch (error) {
-                    this._onError(`Failed calling onRefresh(value) for dataId: ${dataId}: ${error.message}`, error); // TODO: Why error as second argument?
-                }
                 this._subscriptionsChanged();
+                try {
+                    onRefresh(dataPoint.value);
+                } catch (error) {
+                    throw new Error(`Failed calling onRefresh(value) for id '${dataId}':\n${error.message}`);
+                }
             }
 
             UnsubscribeData(dataId, onRefresh) {
                 if (typeof dataId !== 'string') { // TODO: go on here
-                    throw new Error(`Invalid unsubscription data id: '${dataId}'`);
+                    throw new Error(`Invalid unsubscription data id '${dataId}'`);
                 } else if (typeof onRefresh !== 'function') {
                     throw new Error(`Subscriber for unsubscription id '${dataId}' is not a function`);
                 }
@@ -139,7 +139,7 @@
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
-                    throw new Error(`Unknown data point for id ${dataId} to Read()`);
+                    throw new Error(`Unknown data point for id '${dataId}' to Read()`);
                 }
                 Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER,
                     { type: TransmissionType.ReadRequest, shortId: dataPoint.shortId },
@@ -147,7 +147,7 @@
                         try {
                             onResponse(value);
                         } catch (error) {
-                            this._onError(`Failed calling onResponse() for dataId: ${dataId}: ${error.message}`, error); // TODO: Why error as second argument?
+                            this._onError(`Failed calling onResponse() for id '${dataId}':\n${error.message}`);
                         }
                         const dataPoint = this._dataPointsByDataId[dataId];
                         if (dataPoint) {
@@ -156,7 +156,7 @@
                                 try {
                                     dataPoint.onRefresh(value);
                                 } catch (error) {
-                                    this._onError(`Failed calling onRefresh(value) for dataId: ${dataId}: ${error.message}`, error); // TODO: Why error as second argument?
+                                    this._onError(`Failed calling onRefresh(value) for id '${dataId}':\n${error.message}`);
                                 }
                             }
                         }
@@ -171,7 +171,7 @@
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
-                    throw new Error(`Unknown data point for id ${dataId} to Write()`);
+                    throw new Error(`Unknown data point for id '${dataId}' to Write()`);
                 }
                 Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER,
                     { type: TransmissionType.WriteRequest, shortId: dataPoint.shortId, value }
@@ -200,12 +200,12 @@
                                 if (data.values.hasOwnProperty(shortId)) {
                                     const dpConfByShortId = this._dataPointConfigsByShortId[shortId];
                                     if (!dpConfByShortId) {
-                                        this.onError(`Unexpected short id: ${shortId}`);
+                                        this.onError(`Unexpected short id '${shortId}'`);
                                         continue;
                                     }
                                     const dataPoint = this._dataPointsByDataId[dpConfByShortId.dataId];
                                     if (!dataPoint) {
-                                        this.onError(`Unknown data id: ${dpConfByShortId.dataId}`);
+                                        this.onError(`Unknown data id '${dpConfByShortId.dataId}'`);
                                         continue;
                                     }
                                     dataPoint.value = data.values[shortId];
@@ -213,7 +213,7 @@
                                         try {
                                             dataPoint.onRefresh(dataPoint.value);
                                         } catch (error) {
-                                            this._onError(`Failed calling onRefresh(value) for dataId: ${dpConfByShortId.dataId}: ${error.message}`, error); // TODO: Why error as second argument?
+                                            this._onError(`Failed calling onRefresh(value) for id '${dpConfByShortId.dataId}':\n${error.message}`);
                                         }
                                     }
                                 }
@@ -252,7 +252,7 @@
                 if (oldDataPointsByDataId) {
                     for (const dataId in oldDataPointsByDataId) {
                         if (oldDataPointsByDataId.hasOwnProperty(dataId)) {
-                            this._destroyDataPoint(oldDataPointsByDataId[dataId]);
+                            delete oldDataPointsByDataId[dataId].value;
                             delete oldDataPointsByDataId[dataId];
                         }
                     }
@@ -271,10 +271,6 @@
                     dataPoint.Unsubscribe = oldDataPoint.Unsubscribe;
                     delete oldDataPointsByDataId[dataId];
                 }
-            }
-
-            _destroyDataPoint(dataPoint) { // TODO: Required
-                delete dataPoint.value;
             }
 
             _subscriptionsChanged() {
