@@ -370,8 +370,7 @@
         }
 
         _loadConfiguration() {
-            Common.validateAsConnection(this._connection);
-            this._connection.Send(
+            Core.validateAs('Connection', this._connection, 'Send:function').Send(
                 TASK_MANAGER_RECEIVER,
                 { type: TransmissionType.ConfigurationRequest },
                 response => this._updateConfiguration(response),

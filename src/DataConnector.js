@@ -10,7 +10,7 @@
 
     const TransmissionType = Object.freeze({
         ConfigurationRequest: 1,
-        DataPointConfigurationsRefresh: 2,
+        DataPointsConfigurationRefresh: 2,
         SubscriptionRequest: 3,
         DataRefresh: 4,
         ReadRequest: 5,
@@ -141,8 +141,7 @@
                 if (!dataPoint) {
                     throw new Error(`Unknown data point for id ${dataId} to Read()`);
                 }
-                Common.validateAsConnection(this.connection);
-                this.connection.Send(RECEIVER,
+                Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER,
                     { type: TransmissionType.ReadRequest, shortId: dataPoint.shortId },
                     value => {
                         try {
@@ -174,8 +173,7 @@
                 if (!dataPoint) {
                     throw new Error(`Unknown data point for id ${dataId} to Write()`);
                 }
-                Common.validateAsConnection(this.connection);
-                this.connection.Send(RECEIVER,
+                Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER,
                     { type: TransmissionType.WriteRequest, shortId: dataPoint.shortId, value }
                 );
             }
@@ -193,7 +191,7 @@
             handleReceived(data, onResponse, onError) {
                 if (this._open) {
                     switch (data.type) {
-                        case TransmissionType.DataPointConfigurationsRefresh:
+                        case TransmissionType.DataPointsConfigurationRefresh:
                             this._setDataPointConfigsByShortId(data.dataPointConfigsByShortId);
                             this._sendSubscriptionRequest();
                             break;
@@ -228,8 +226,7 @@
             }
 
             _loadConfiguration() {
-                Common.validateAsConnection(this.connection);
-                this.connection.Send(RECEIVER, { type: TransmissionType.ConfigurationRequest }, config => {
+                Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER, { type: TransmissionType.ConfigurationRequest }, config => {
                     this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
                     this._unsubscribeDelay = typeof config.unsubscribeDelay === 'number' && config.unsubscribeDelay > 0 ? config.unsubscribeDelay : false;
                     this._setDataPointConfigsByShortId(config.dataPointConfigsByShortId);
@@ -292,7 +289,6 @@
             }
 
             _sendSubscriptionRequest() {
-                Common.validateAsConnection(this.connection);
                 if (this._open) {
                     // Build a string with all short ids of the currently subscribed data point and send to server
                     let subs = '';
@@ -304,7 +300,9 @@
                             }
                         }
                     }
-                    this.connection.Send(RECEIVER, { type: TransmissionType.SubscriptionRequest, subs });
+                    Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER,
+                        { type: TransmissionType.SubscriptionRequest, subs }
+                    );
                 }
             }
         }
@@ -371,8 +369,7 @@
                 this._dataPointsByDataId = getAsDataPointsByDataId(dataPointConfigsByShortId);
                 this._dataPointConfigsByShortId = dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
                 if (this._isOpen && send === true) {
-                    Common.validateAsConnection(this.connection);
-                    this.connection.Send(RECEIVER, { type: TransmissionType.DataPointConfigurationsRefresh, dataPointConfigsByShortId });
+                    Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER, { type: TransmissionType.DataPointsConfigurationRefresh, dataPointConfigsByShortId });
                 }
             }
 
@@ -399,7 +396,6 @@
 
             handleReceived(data, onResponse, onError) {
                 if (this._isOpen) {
-                    Common.validateAsDataAccessObject(this._source);
                     switch (data.type) {
                         case TransmissionType.ConfigurationRequest:
                             onResponse({
@@ -417,7 +413,7 @@
                                 this.onError('Unknown data point for read request');
                                 return;
                             }
-                            this._source.Read(readDPConf.dataId, onResponse, onError);
+                            Core.validateAs('DataAccessObject', this._source, 'Read:function').Read(readDPConf.dataId, onResponse, onError);
                             break;
                         case TransmissionType.WriteRequest:
                             let writeDPConf = this._dataPointConfigsByShortId[data.shortId];
@@ -425,7 +421,7 @@
                                 this.onError('Unknown data point for write request');
                                 return;
                             }
-                            this._source.Write(writeDPConf.dataId, data.value);
+                            Core.validateAs('DataAccessObject', this._source, 'Write:function').Write(writeDPConf.dataId, data.value);
                             break;
                         default:
                             this.onError(`Invalid transmission type: ${data.type}`);
@@ -435,7 +431,7 @@
 
             _updateSubscriptions(subscriptionShorts) {
                 if (this._isOpen) {
-                    Common.validateAsDataAccessObject(this._source);
+                    Core.validateAs('DataAccessObject', this._source, ['SubscribeData:function', 'UnsubscribeData:function']);
                     for (const dataId in this._onEventCallbacks) {
                         if (this._onEventCallbacks.hasOwnProperty(dataId)) {
                             const shortId = this._dataPointsByDataId[dataId];
@@ -482,8 +478,9 @@
 
             _sendValues() {
                 if (this._isOpen && this._values) {
-                    Common.validateAsConnection(this.connection);
-                    this.connection.Send(RECEIVER, { type: TransmissionType.DataRefresh, values: this._values });
+                    Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER,
+                        { type: TransmissionType.DataRefresh, values: this._values }
+                    );
                     this._values = null;
                 }
             }
