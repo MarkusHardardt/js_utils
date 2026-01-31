@@ -191,7 +191,6 @@
             this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
             this._unsubscribeDelay = false;
-            this._nodesByDataId = {};
             this._dataPointsByDataId = {};
             Common.validateAsDataAccessObject(this, true);
         }
@@ -263,7 +262,34 @@
             }
             let dataPoint = this._dataPointsByDataId[dataId];
             if (!dataPoint) {
-                this._dataPointsByDataId[dataId] = dataPoint = this._createDataPoint(dataId);
+                const node = new Node();
+                node.UnsubscribeDelay = this._unsubscribeDelay;
+                node.Equal = this._equal;
+                node.OnError = this._onError;
+                node.Value = null;
+                this._dataPointsByDataId[dataId] = dataPoint = {
+                    node,
+                    isSubscribed: false,
+                    // Note: The following 'onRefresh' function is the local instance inside our node created above.
+                    Subscribe: onRefresh => {
+                        if (this._source) {
+                            this._source.SubscribeData(dataId, onRefresh);
+                        }
+                        dataPoint.isSubscribed = true;
+                    },
+                    Unsubscribe: onRefresh => {
+                        if (this._source) {
+                            this._source.UnsubscribeData(dataId, onRefresh);
+                        }
+                        dataPoint.isSubscribed = false;
+                        if (this._nodesByDataId[dataId] === undefined) {
+                            node.Source = null;
+                            delete dataPoint.node;
+                            delete this._nodesByDataId[dataId];
+                        }
+                    }
+                };
+                node.Source = dataPoint;
             }
             dataPoint.node.Subscribe(onRefresh);
         }
@@ -303,41 +329,6 @@
 
         Write(dataId, value) {
             Core.validateAs('DataAccessObject', this._source, 'Write:function').Write(dataId, value);
-        }
-
-        _createDataPoint(dataId) {
-            let node = this._nodesByDataId[dataId]; // TODO: Do we really need this?
-            if (!node) {
-                this._nodesByDataId[dataId] = node = new Node();
-                node.UnsubscribeDelay = this._unsubscribeDelay;
-                node.Equal = this._equal;
-                node.OnError = this._onError;
-                node.Value = null;
-            }
-            const data = {
-                node,
-                isSubscribed: false,
-                // Not: The following 'onRefresh' function is the local instance inside our node created above.
-                Subscribe: onRefresh => {
-                    if (this._source) {
-                        this._source.SubscribeData(dataId, onRefresh);
-                    }
-                    data.isSubscribed = true;
-                },
-                Unsubscribe: onRefresh => {
-                    if (this._source) {
-                        this._source.UnsubscribeData(dataId, onRefresh);
-                    }
-                    data.isSubscribed = false;
-                    if (this._nodesByDataId[dataId] === undefined) {
-                        node.Source = null;
-                        delete data.node;
-                        delete this._nodesByDataId[dataId];
-                    }
-                }
-            };
-            node.Source = data;
-            return data;
         }
 
         _destroyData(data) {
