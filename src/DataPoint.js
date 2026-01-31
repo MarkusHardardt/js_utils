@@ -234,7 +234,6 @@
         }
 
         set OnError(value) {
-            super.OnError = value;
             this._onError = value;
             for (const dataId in this._dataPointsByDataId) {
                 if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
@@ -244,7 +243,6 @@
         }
 
         set UnsubscribeDelay(value) {
-            super.UnsubscribeDelay = value;
             this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
             for (const dataId in this._dataPointsByDataId) {
                 if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
@@ -254,7 +252,7 @@
         }
 
         GetType(dataId) {
-            return Common.validateAsDataAccessObject(this._source).GetType(dataId);
+            return Core.validateAs(this._source, 'GetType:function').GetType(dataId);
         }
 
         SubscribeData(dataId, onRefresh) {
@@ -278,13 +276,13 @@
             }
             dataPoint.node.Unsubscribe(onRefresh);
             if (dataPoint.node.SubscriptionsCount === 0) {
-                this._destroyData(dataPoint);
+                delete dataPoint.node;
                 delete this._dataPointsByDataId[dataId];
             }
         }
 
         Read(dataId, onResponse, onError) {
-            Common.validateAsDataAccessObject(this._source).Read(dataId, value => {
+            Core.validateAs(this._source, 'Read:function').Read(dataId, value => {
                 try {
                     onResponse(value);
                 } catch (error) {
@@ -298,7 +296,7 @@
         }
 
         Write(dataId, value) {
-            Common.validateAsDataAccessObject(this._source).Write(dataId, value);
+            Core.validateAs(this._source, 'Write:function').Write(dataId, value);
         }
 
         _createDataForId(dataId) {
@@ -323,13 +321,6 @@
             node.Value = null;
             node.Observable = subscribableData;
             return subscribableData;
-        }
-
-        _destroyData(data) { 
-            const node = data.node;
-            node.Value = null;
-            node.Observable = null;
-            delete data.node;
         }
     }
     DataPoint.Collection = Collection;

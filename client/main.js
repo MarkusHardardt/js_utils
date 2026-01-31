@@ -37,14 +37,7 @@
         const tasks = [];
         tasks.parallel = false;
 
-        const dataCollection = new DataPoint.Collection();
-        hmi.env.data = dataCollection;
-
-        const dataRouter = new DataPoint.Router();
-        dataCollection.Source = dataRouter;
-
         const dataConnector = new DataConnector.ClientConnector();
-        // hmi.env.data = dataConnector; // TODO: Insert router for labels, html and data connector values
 
         const taskManager = TaskManager.getInstance(hmi);
         hmi.env.tasks = taskManager;
@@ -56,11 +49,6 @@
             const language = languages.IsAvailable(languageQueryParameterValue) ? languageQueryParameterValue : languages.GetLanguage();
             languages.LoadLanguage(language, onSuccess, onError);
         });
-        tasks.push((onSuccess, onError) => {
-            const isValidLanguageValueId = hmi.env.cms.GetIdValidTestFunctionForLanguageValue();
-            dataRouter.GetDataAccessObject = dataId => isValidLanguageValueId(dataId) ?  hmi.env.lang : dataConnector;
-            onSuccess();
-        });
         let webSocketSessionConfig = undefined;
         // Load web socket session config from server
         tasks.push((onSuccess, onError) => Client.fetch('/get_web_socket_session_config', undefined, response => {
@@ -71,7 +59,6 @@
             console.error(`Error loading web socket session configuration: ${error}`);
             onError(error);
         }));
-
         let webSocketConnection = undefined;
         tasks.push((onSuccess, onError) => {
             try {
@@ -110,6 +97,20 @@
                 onSuccess();
             }, onError);
         });
+        // Provide data access from any context to any source
+        tasks.push((onSuccess, onError) => {
+            // Create router for delegation to language or data values 
+            const router = new DataPoint.Router();
+            const isValidLanguageValueId = hmi.env.cms.GetIdValidTestFunctionForLanguageValue();
+            router.GetDataAccessObject = dataId => isValidLanguageValueId(dataId) ? hmi.env.lang : dataConnector;
+            // Create collection providing multiple subscriptions from any context
+            const collection = new DataPoint.Collection();
+            collection.UnsubscribeDelay = config.unsubscribeDelay;
+            collection.Source = router; // Use the router as source
+            hmi.env.data = collection; // Enable access from anyhwere
+            onSuccess();
+        });
+
         let rootObject = null;
         tasks.push((onSuccess, onError) => {
             if (hmiQueryParameterValue) {
@@ -135,6 +136,8 @@
         });
         // load hmi
         Executor.run(tasks, () => {
+            Object.seal(hmi.lib);
+            Object.seal(hmi.env);
             Object.seal(hmi);
             const body = $(document.body);
             body.empty();

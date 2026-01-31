@@ -191,38 +191,44 @@
         }
         Core.validateFunction = validateFunction;
 
-        function validateAs(instanceType, objectInstance, expectedItems, validateMethodArguments) {
+        function validateDetail(instanceType, objectInstance, aspect, validateMethodArguments) {
+            const methodMatch = attributeMethodRegex.exec(aspect);
+            if (methodMatch) {
+                const methodName = methodMatch[1];
+                try {
+                    validateFunction(objectInstance[methodName], methodMatch[2], validateMethodArguments)
+                } catch (error) {
+                    throw new Error(`${instanceType} method '${methodName}' ${error.message}`);
+                }
+                return;
+            }
+            const propertyMatch = attributePropertyRegex.exec(aspect);
+            if (propertyMatch) {
+                const propertyName = propertyMatch[1];
+                const expectedType = propertyMatch[2];
+                const actualPropertyValue = objectInstance[propertyName];
+                if (actualPropertyValue === undefined) {
+                    throw new Error(`${instanceType} has no property '${propertyName}'`);
+                } else if (typeof actualPropertyValue !== expectedType) {
+                    throw new Error(`${instanceType} property '${propertyName}' has invalid type (expected: '${expectedType}', actual: '${(typeof actualPropertyValue)}')`);
+                }
+                return;
+            }
+            throw new Error(`Invalid method/property check pattern: '${aspect}'`);
+        }
+
+        function validateAs(instanceType, objectInstance, config, validateMethodArguments) {
             if (objectInstance === undefined) {
                 throw new Error(`${instanceType} is undefined!`);
             } if (objectInstance === null) {
                 throw new Error(`${instanceType} is null`);
             } else if (typeof objectInstance !== 'object') {
                 throw new Error(`${instanceType} is not an object`);
-            } else if (Array.isArray(expectedItems)) {
-                for (const expectedItem of expectedItems) {
-                    const methodMatch = attributeMethodRegex.exec(expectedItem);
-                    if (methodMatch) {
-                        const methodName = methodMatch[1];
-                        try {
-                            validateFunction(objectInstance[methodName], methodMatch[2], validateMethodArguments)
-                        } catch (error) {
-                            throw new Error(`${instanceType} method '${methodName}' ${error.message}`);
-                        }
-                        continue;
-                    }
-                    const propertyMatch = attributePropertyRegex.exec(expectedItem);
-                    if (propertyMatch) {
-                        const propertyName = propertyMatch[1];
-                        const expectedType = propertyMatch[2];
-                        const actualPropertyValue = objectInstance[propertyName];
-                        if (actualPropertyValue === undefined) {
-                            throw new Error(`${instanceType} has no property '${propertyName}'`);
-                        } else if (typeof actualPropertyValue !== expectedType) {
-                            throw new Error(`${instanceType} property '${propertyName}' has invalid type (expected: '${expectedType}', actual: '${(typeof actualPropertyValue)}')`);
-                        }
-                        continue;
-                    }
-                    throw new Error(`Invalid method/property check pattern: '${expectedItem}'`);
+            } else if (typeof config === 'string') {
+                validateDetail(instanceType, objectInstance, config, validateMethodArguments);
+            } else if (Array.isArray(config)) {
+                for (const aspect of config) {
+                    validateDetail(instanceType, objectInstance, aspect, validateMethodArguments);
                 }
             }
             return objectInstance;
