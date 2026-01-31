@@ -6,6 +6,7 @@
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Common = isNodeJS ? require('./Common.js') : root.Common;
 
+    // TODO: Node may unsubscribe delayed
     class Node {
         constructor() {
             this._value = null;
@@ -13,25 +14,25 @@
             this._onError = Core.defaultOnError;
             this._onRefresh = value => this._refresh(value);
             this._observers = [];
-            this._observable = null;
+            this._source = null;
             this._unsubscribeDelay = false;
             this._unsubscribeDelayTimer = null;
             Common.validateAsObservable(this, true);
         }
 
-        set Observable(value) {
-            if (this._observable !== value) {
-                if (this._observable && this._observers.length > 0) {
-                    this._observable.Unsubscribe(this._onRefresh);
+        set Source(value) {
+            if (this._source !== value) {
+                if (this._source && this._observers.length > 0) {
+                    this._source.Unsubscribe(this._onRefresh);
                 }
                 if (value) {
                     Common.validateAsObservable(value, true);
-                    this._observable = value;
+                    this._source = value;
                 } else {
-                    this._observable = null;
+                    this._source = null;
                 }
-                if (this._observable && this._observers.length > 0) {
-                    this._observable.Subscribe(this._onRefresh);
+                if (this._source && this._observers.length > 0) {
+                    this._source.Subscribe(this._onRefresh);
                 }
             }
         }
@@ -85,7 +86,7 @@
                 }
             } else {
                 this._observers.push(onRefresh);
-                if (!this._observable || this._observers.length > 1) {
+                if (!this._source || this._observers.length > 1) {
                     // If we cannot subscribe or it is not the first subscription we fire the event manually.
                     try {
                         onRefresh(this._value);
@@ -98,7 +99,7 @@
                         clearTimeout(this._unsubscribeDelayTimer);
                         this._unsubscribeDelayTimer = null;
                     } else {
-                        this._observable.Subscribe(this._onRefresh);
+                        this._source.Subscribe(this._onRefresh);
                     }
                 }
             }
@@ -111,14 +112,14 @@
             for (let i = 0; i < this._observers.length; i++) {
                 if (this._observers[i] === onRefresh) {
                     this._observers.splice(i, 1);
-                    if (this._observable && this._observers.length === 0) {
+                    if (this._source && this._observers.length === 0) {
                         if (this._unsubscribeDelay) {
                             this._unsubscribeDelayTimer = setTimeout(() => {
-                                this._observable.Unsubscribe(this._onRefresh);
+                                this._source.Unsubscribe(this._onRefresh);
                                 this._unsubscribeDelayTimer = null;
                             }, this._unsubscribeDelay);
                         } else {
-                            this._observable.Unsubscribe(this._onRefresh);
+                            this._source.Unsubscribe(this._onRefresh);
                         }
                     }
                     return;
@@ -190,6 +191,7 @@
             this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
             this._unsubscribeDelay = false;
+            this._nodesByDataId = {};
             this._dataPointsByDataId = {};
             Common.validateAsDataAccessObject(this, true);
         }
@@ -200,7 +202,7 @@
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                             const dataPoint = this._dataPointsByDataId[dataId];
-                            dataPoint.node.Observable = null;
+                            dataPoint.node.Source = null;
                         }
                     }
                 }
@@ -214,7 +216,7 @@
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                             const dataPoint = this._dataPointsByDataId[dataId];
-                            dataPoint.node.Observable = dataPoint;
+                            dataPoint.node.Source = dataPoint;
                         }
                     }
                 }
@@ -261,7 +263,7 @@
             }
             let dataPoint = this._dataPointsByDataId[dataId];
             if (!dataPoint) {
-                this._dataPointsByDataId[dataId] = dataPoint = this._createDataForId(dataId);
+                this._dataPointsByDataId[dataId] = dataPoint = this._createDataPoint(dataId);
             }
             dataPoint.node.Subscribe(onRefresh);
         }
@@ -275,10 +277,14 @@
                 throw new Error(`Cannot unsubscribe for unknown dataId: ${dataId}`);
             }
             dataPoint.node.Unsubscribe(onRefresh);
-            if (dataPoint.node.SubscriptionsCount === 0) {
-                delete dataPoint.node;
+            if (!dataPoint.isSubscribed) {
+                this._destroyData(dataPoint);
                 delete this._dataPointsByDataId[dataId];
             }
+            /*if (dataPoint.node.SubscriptionsCount === 0) { // TODO: Using _destroyData resets the source and sunsubscribe is not possible anymore
+                delete dataPoint.node; // this._destroyData(dataPoint);
+                delete this._dataPointsByDataId[dataId];
+            }*/
         }
 
         Read(dataId, onResponse, onError) {
@@ -299,28 +305,46 @@
             Core.validateAs(this._source, 'Write:function').Write(dataId, value);
         }
 
-        _createDataForId(dataId) {
-            const node = new Node();
-            const subscribableData = {
+        _createDataPoint(dataId) {
+            let node = this._nodesByDataId[dataId]; // TODO: Do we really need this?
+            if (!node) {
+                this._nodesByDataId[dataId] = node = new Node();
+                node.UnsubscribeDelay = this._unsubscribeDelay;
+                node.Equal = this._equal;
+                node.OnError = this._onError;
+                node.Value = null;
+            }
+            const data = {
                 node,
+                isSubscribed: false,
                 // Not: The following 'onRefresh' function is the local instance inside our node created above.
                 Subscribe: onRefresh => {
                     if (this._source) {
                         this._source.SubscribeData(dataId, onRefresh);
                     }
+                    data.isSubscribed = true;
                 },
                 Unsubscribe: onRefresh => {
                     if (this._source) {
                         this._source.UnsubscribeData(dataId, onRefresh);
                     }
+                    data.isSubscribed = false;
+                    if (this._nodesByDataId[dataId] === undefined) {
+                        node.Source = null;
+                        delete data.node;
+                        delete this._nodesByDataId[dataId];
+                    }
                 }
             };
-            node.UnsubscribeDelay = this._unsubscribeDelay;
-            node.Equal = this._equal;
-            node.OnError = this._onError;
+            node.Source = data;
+            return data;
+        }
+
+        _destroyData(data) {
+            const node = data.node;
             node.Value = null;
-            node.Observable = subscribableData;
-            return subscribableData;
+            node.Source = null;
+            delete data.node;
         }
     }
     DataPoint.Collection = Collection;

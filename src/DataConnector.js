@@ -97,6 +97,11 @@
             }
 
             SubscribeData(dataId, onRefresh) {
+                if (typeof dataId !== 'string') { // TODO: go on here
+                    throw new Error(`Invalid unsubscription data id: '${dataId}'`);
+                } else if (typeof onRefresh !== 'function') {
+                    throw new Error(`Subscriber for unsubscription id '${dataId}' is not a function`);
+                }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
                     throw new Error(`Unknown data point for id '${dataId}' for subscription`);
@@ -113,7 +118,7 @@
             }
 
             UnsubscribeData(dataId, onRefresh) {
-                if (typeof dataId !== 'string') {
+                if (typeof dataId !== 'string') { // TODO: go on here
                     throw new Error(`Invalid unsubscription data id: '${dataId}'`);
                 } else if (typeof onRefresh !== 'function') {
                     throw new Error(`Subscriber for unsubscription id '${dataId}' is not a function`);
