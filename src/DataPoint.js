@@ -254,7 +254,7 @@
         }
 
         GetType(dataId) {
-            return Core.validateAs(this._source, 'GetType:function').GetType(dataId);
+            return Core.validateAs('DataAccessObject', this._source, 'GetType:function').GetType(dataId);
         }
 
         SubscribeData(dataId, onRefresh) {
@@ -288,7 +288,7 @@
         }
 
         Read(dataId, onResponse, onError) {
-            Core.validateAs(this._source, 'Read:function').Read(dataId, value => {
+            Core.validateAs('DataAccessObject', this._source, 'Read:function').Read(dataId, value => {
                 try {
                     onResponse(value);
                 } catch (error) {
@@ -302,7 +302,7 @@
         }
 
         Write(dataId, value) {
-            Core.validateAs(this._source, 'Write:function').Write(dataId, value);
+            Core.validateAs('DataAccessObject', this._source, 'Write:function').Write(dataId, value);
         }
 
         _createDataPoint(dataId) {
