@@ -106,7 +106,7 @@
             // Create collection providing multiple subscriptions from any context
             const collection = new DataPoint.Collection();
             collection.UnsubscribeDelay = config.unsubscribeDelay;
-            collection.UnsubscribeDelay = 0; // TODO: remove this line
+            // collection.UnsubscribeDelay = 0; // TODO: remove this line
             collection.Source = router; // Use the router as source
             hmi.env.data = collection; // Enable access from anyhwere
             onSuccess();
@@ -128,6 +128,7 @@
                 });
             } else {
                 rootObject = ContentEditor.create(hmi);
+                hmi.env.data.OnError = rootObject.notifyError;
                 onSuccess();
             }
         });

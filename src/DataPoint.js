@@ -6,7 +6,6 @@
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Common = isNodeJS ? require('./Common.js') : root.Common;
 
-    // TODO: Node may unsubscribe delayed
     class Node {
         constructor() {
             this._value = null;
@@ -269,24 +268,27 @@
                 node.Value = null;
                 this._dataPointsByDataId[dataId] = dataPoint = {
                     node,
-                    isSubscribed: false,
                     // Note: The following 'onRefresh' function is the local instance inside our node created above.
                     Subscribe: onRefresh => {
                         if (this._source) {
-                            this._source.SubscribeData(dataId, onRefresh);
+                            try {
+                                this._source.SubscribeData(dataId, onRefresh);
+                            } catch (error) {
+                                this._onError(`Failed to subscribe data with id '${dataId}': ${error}`);
+                            }
                         }
-                        dataPoint.isSubscribed = true;
                     },
                     Unsubscribe: onRefresh => {
                         if (this._source) {
-                            this._source.UnsubscribeData(dataId, onRefresh);
+                            try {
+                                this._source.UnsubscribeData(dataId, onRefresh);
+                            } catch (error) {
+                                this._onError(`Failed to unsubscribe data with id '${dataId}': ${error}`);
+                            }
                         }
-                        dataPoint.isSubscribed = false;
-                        if (this._nodesByDataId[dataId] === undefined) {
-                            node.Source = null;
-                            delete dataPoint.node;
-                            delete this._nodesByDataId[dataId];
-                        }
+                        node.Source = null;
+                        delete dataPoint.node;
+                        delete this._dataPointsByDataId[dataId];
                     }
                 };
                 node.Source = dataPoint;
@@ -303,14 +305,6 @@
                 throw new Error(`Cannot unsubscribe for unknown dataId: ${dataId}`);
             }
             dataPoint.node.Unsubscribe(onRefresh);
-            if (!dataPoint.isSubscribed) {
-                this._destroyData(dataPoint);
-                delete this._dataPointsByDataId[dataId];
-            }
-            /*if (dataPoint.node.SubscriptionsCount === 0) { // TODO: Using _destroyData resets the source and sunsubscribe is not possible anymore
-                delete dataPoint.node; // this._destroyData(dataPoint);
-                delete this._dataPointsByDataId[dataId];
-            }*/
         }
 
         Read(dataId, onResponse, onError) {
@@ -329,13 +323,6 @@
 
         Write(dataId, value) {
             Core.validateAs('DataAccessObject', this._source, 'Write:function').Write(dataId, value);
-        }
-
-        _destroyData(data) {
-            const node = data.node;
-            node.Value = null;
-            node.Source = null;
-            delete data.node;
         }
     }
     DataPoint.Collection = Collection;

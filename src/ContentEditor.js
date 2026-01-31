@@ -3339,7 +3339,8 @@
                     type: 'split',
                     children: [edit_ctrl.editor, preview]
                 }]
-            }, footer]
+            }, footer],
+            notifyError: log_handler.pushError
         };
     }
     ContentEditor.create = create;

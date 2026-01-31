@@ -93,6 +93,7 @@
         }
         Write(dataId, value) {
             this._onError(`Write to data with id '${dataId}' is not supported`);
+            throw new Error(`Write to data with id '${dataId}' is not supported`);
         }
         GetLanguages() {
             return this._languages.map(lang => lang);
