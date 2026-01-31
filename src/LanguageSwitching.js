@@ -6,15 +6,14 @@
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Common = isNodeJS ? require('./Common.js') : root.Common;
 
-    class Handler {
+    class Handler { // TODO: Add onLanguageChanged(language) listener support
         constructor(cms) {
             this._cms = cms;
             this._languages = cms.GetLanguages();
             this._language = this._languages[0];
             this._onError = Core.defaultOnError;
+            this._values = null;
             this._dataPoints = {};
-            this._labelValues = null;
-            this._htmlValues = null;
             Common.validateAsDataAccessObject(this, true);
         }
         set OnError(value) {
@@ -55,8 +54,7 @@
                 this._onError(`Data id '${dataId}' is subscribed with a different callback`);
             } else {
                 dataPoint.onRefresh = null;
-                if ((this._labelValues === null || this._labelValues[dataId] === undefined) &&
-                    (this._htmlValues === null || this._htmlValues[dataId] === undefined)) {
+                if (this._values === null || this._values[dataId] === undefined) {
                     delete this._dataPoints[dataId];
                 }
             }
@@ -83,25 +81,10 @@
         }
         LoadLanguage(language, onSuccess, onError) {
             const tasks = [];
-            // Load label values and store.
+            // Load label and html values and store.
             // Use existing or create new data point and store value.
-            tasks.push((onSuc, onErr) => this._cms.GetAllLabelValuesForLanguage(language, values => {
-                this._labelValues = values;
-                for (const dataId in values) {
-                    if (values.hasOwnProperty(dataId)) {
-                        let dataPoint = this._dataPoints[dataId];
-                        if (!dataPoint) {
-                            dataPoint = this._dataPoints[dataId] = { onRefresh: null };
-                        }
-                        dataPoint.value = values[dataId];
-                    }
-                }
-                onSuc();
-            }, onErr));
-            // Load html values and store.
-            // Use existing or create new data point and store value.
-            tasks.push((onSuc, onErr) => this._cms.GetAllHtmlValuesForLanguage(language, values => {
-                this._htmlValues = values;
+            tasks.push((onSuc, onErr) => this._cms.GetAllForLanguage(language, values => {
+                this._values = values;
                 for (const dataId in values) {
                     if (values.hasOwnProperty(dataId)) {
                         let dataPoint = this._dataPoints[dataId];
@@ -116,8 +99,7 @@
             // Check all data points and if not subscribed and not available as label or html value than delete.
             tasks.push((onSuc, onErr) => {
                 for (const dataId in this._dataPoints) {
-                    if (this._dataPoints.hasOwnProperty(dataId) && this._dataPoints[dataId].onRefresh === null &&
-                        this._labelValues[dataId] === undefined && this._htmlValues[dataId] === undefined) {
+                    if (this._dataPoints.hasOwnProperty(dataId) && this._dataPoints[dataId].onRefresh === null && this._values[dataId] === undefined) {
                         delete this._dataPoints[dataId];
                     }
                 }

@@ -19,6 +19,7 @@
             'GetLanguages(array)',
             'IsValidIdForType(id, type)',
             'GetIdValidTestFunctionForType(type)',
+            'GetIdValidTestFunctionForLanguageValue()',
             'AnalyzeId(id)',
             'GetExtensionForType(type)',
             'GetIcon(id)',
@@ -33,8 +34,7 @@
             'GetSearchResults(key, value, onResponse, onError)',
             'GetIdKeyValues(id, onResponse, onError)',
             'GetAllIdsForType(type, onResponse, onError)',
-            'GetAllLabelValuesForLanguage(language, onResponse, onError)',
-            'GetAllHtmlValuesForLanguage(language, onResponse, onError)',
+            'GetAllForLanguage(language, onResponse, onError)',
             'IsHMIObject(id, onResponse, onError)',
             'AddDefaultHMIObject(id, onResponse, onError)',
             'GetHMIObject(queryParameterValue, language, onResponse, onError)',
@@ -167,8 +167,7 @@
     const COMMAND_GET_SEARCH_RESULTS = 'get_search_results';
     const COMMAND_GET_ID_KEY_VALUES = 'get_id_key_values';
     const COMMAND_GET_ALL_IDS_FOR_TYPE = 'get_all_ids_for_type';
-    const COMMAND_GET_ALL_LABEL_VALUES_FOR_LANGUAGE = 'get_all_label_values_for_language';
-    const COMMAND_GET_ALL_HTML_VALUES_FOR_LANGUAGE = 'get_all_html_values_for_language';
+    const COMMAND_GET_ALL_FOR_LANGUAGE = 'get_all_for_language';
     const COMMAND_IS_HMI_OBJECT = 'is_hmi_object';
     const COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT = 'set_availability_as_hmi_object';
     const COMMAND_GET_HMI_OBJECT = 'get_hmi_object';
@@ -210,6 +209,10 @@
             } else {
                 throw new Error(`Unsupported type: '${type}'`);
             }
+        }
+        GetIdValidTestFunctionForLanguageValue() {
+            const regex = this._validIdForLanguageValueRegex;
+            return id => regex.test(id);
         }
         AnalyzeId(id) {
             let match = this._contentTablesKeyRegex.exec(id);
@@ -282,6 +285,7 @@
             }
             this._validIdForTypeRegex = {};
             const tableExtensions = [];
+            const tableLanguageExtensions = [];
             for (const type in this._config.tables) {
                 if (this._config.tables.hasOwnProperty(type)) {
                     const tableConfig = this._config.tables[type];
@@ -315,8 +319,10 @@
                             }
                             table.valueColumn = {};
                             for (let language of db_config.languages) {
-                                table.valueColumn[language] = tableConfig.valueColumnPrefix + language;
+                                table.
+                                    valueColumn[language] = tableConfig.valueColumnPrefix + language;
                             }
+                            tableLanguageExtensions.push(extension);
                             break;
                         case DataTableType.HMI:
                             if (typeof tableConfig.viewObjectColumn !== 'string') {
@@ -363,6 +369,7 @@
                     tableExtensions.push(extension);
                 }
             }
+            this._validIdForLanguageValueRegex = new RegExp(`^\\$(?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?\\.(?:${tableLanguageExtensions.join('|')})$`);
             // we need all available extensions for building regular expressions
             const tabexts = tableExtensions.join('|');
             this._contentTablesKeyRegex = new RegExp(`^\\$((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?)\\.(${tabexts})$`);
@@ -2036,53 +2043,53 @@
                 onResponse(response);
             }, onError);
         }
-        GetAllLabelValuesForLanguage(language, onResponse, onError) {
-            this._getAllValuesForTypeAndLanguage(DataTableType.Label, language, onResponse, onError);
-        }
-        GetAllHtmlValuesForLanguage(language, onResponse, onError) {
-            this._getAllValuesForTypeAndLanguage(DataTableType.HTML, language, onResponse, onError);
-        }
-        _getAllValuesForTypeAndLanguage(type, language, onResponse, onError) {
-            const extension = this._extensionsForType[type];
-            if (!extension) {
-                onError(`Invalid type: '${type}'`);
-                return;
-            }
-            const table = this._contentTablesByExtension[extension];
-            if (!table) {
-                onError(`Invalid table for type: ${type}`);
-                return;
-            }
-            this._getSqlAdapter(adapter => this._getAllIdsForType(adapter, table, extension, allIdsForType => {
-                const that = this, response = {}, tasks = [];
-                for (let idForType of allIdsForType) {
-                    (function () {
-                        const id = idForType;
-                        tasks.push((onSuc, onErr) => {
-                            const match = that._contentTablesKeyRegex.exec(id);
-                            if (!match) {
-                                onErr(`Invalid id: '${id}'`);
-                                return;
-                            }
-                            that._getObject(adapter, id, match[1], table, language, ContentManager.INCLUDE, value => {
-                                response[id] = value;
-                                onSuc();
-                            }, onErr)
-                        });
-                    }());
+        GetAllForLanguage(language, onResponse, onError) {
+            this._getSqlAdapter(adapter => {
+                const that = this, values = {};
+                function get(type, onSuc, onErr) {
+                    const extension = that._extensionsForType[type];
+                    if (!extension) {
+                        onError(`Invalid type: '${type}'`);
+                        return;
+                    }
+                    const table = that._contentTablesByExtension[extension];
+                    if (!table) {
+                        onError(`Invalid table for type: ${type}`);
+                        return;
+                    }
+                    that._getAllIdsForType(adapter, table, extension, allIdsForType => {
+                        const tasks = [];
+                        for (let idForType of allIdsForType) {
+                            (function () {
+                                const id = idForType;
+                                tasks.push((os, oe) => {
+                                    const match = that._contentTablesKeyRegex.exec(id);
+                                    if (!match) {
+                                        oe(`Invalid id: '${id}'`);
+                                    } else {
+                                        that._getObject(adapter, id, match[1], table, language, ContentManager.INCLUDE, value => {
+                                            values[id] = value;
+                                            os();
+                                        }, oe)
+                                    }
+                                });
+                            }());
+                        }
+                        tasks.parallel = that._parallel;
+                        Executor.run(tasks, onSuc, onErr);
+                    }, onErr);
                 }
-                tasks.parallel = that._parallel;
+                const tasks = [];
+                tasks.push((onSuc, onErr) => get(DataTableType.Label, onSuc, onErr));
+                tasks.push((onSuc, onErr) => get(DataTableType.HTML, onSuc, onErr));
                 Executor.run(tasks, () => {
                     adapter.Close();
-                    onResponse(response);
+                    onResponse(values);
                 }, error => {
                     adapter.Close();
                     onError(error);
                 });
-            }, error => {
-                adapter.Close();
-                onError(error);
-            }), onError);
+            }, onError);
         }
         IsHMIObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
@@ -2359,7 +2366,8 @@
                         contentTablesByExtension: this._contentTablesByExtension,
                         contentTablesKeyRegex: this._contentTablesKeyRegex.source,
                         exchangeHeaderRegex: this.exchangeHeaderRegex.source,
-                        validIdForTypeRegex
+                        validIdForTypeRegex,
+                        validIdForLanguageValueRegex: this._validIdForLanguageValueRegex.source
                     });
                     break;
                 case COMMAND_EXISTS:
@@ -2392,11 +2400,8 @@
                 case COMMAND_GET_ALL_IDS_FOR_TYPE:
                     this.GetAllIdsForType(request.type, onResponse, onError);
                     break;
-                case COMMAND_GET_ALL_LABEL_VALUES_FOR_LANGUAGE:
-                    this.GetAllLabelValuesForLanguage(request.language, onResponse, onError);
-                    break;
-                case COMMAND_GET_ALL_HTML_VALUES_FOR_LANGUAGE:
-                    this.GetAllHtmlValuesForLanguage(request.language, onResponse, onError);
+                case COMMAND_GET_ALL_FOR_LANGUAGE:
+                    this.GetAllForLanguage(request.language, onResponse, onError);
                     break;
                 case COMMAND_IS_HMI_OBJECT:
                     this.IsHMIObject(request.id, onResponse, onError);
@@ -2610,6 +2615,7 @@
                         this._validIdForTypeRegex[type] = new RegExp(config.validIdForTypeRegex[type]);
                     }
                 }
+                this._validIdForLanguageValueRegex = new RegExp(config.validIdForLanguageValueRegex);
                 onResponse();
             }, onError);
         }
@@ -2666,11 +2672,8 @@
         GetAllIdsForType(type, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_ALL_IDS_FOR_TYPE, type }, onResponse, onError);
         }
-        GetAllLabelValuesForLanguage(language, onResponse, onError) {
-            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_ALL_LABEL_VALUES_FOR_LANGUAGE, language }, onResponse, onError);
-        }
-        GetAllHtmlValuesForLanguage(language, onResponse, onError) {
-            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_ALL_HTML_VALUES_FOR_LANGUAGE, language }, onResponse, onError);
+        GetAllForLanguage(language, onResponse, onError) {
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_ALL_FOR_LANGUAGE, language }, onResponse, onError);
         }
         IsHMIObject(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_IS_HMI_OBJECT, id }, onResponse, onError);

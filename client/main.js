@@ -57,15 +57,8 @@
             languages.LoadLanguage(language, onSuccess, onError);
         });
         tasks.push((onSuccess, onError) => {
-            const isValidLabelId = hmi.env.cms.GetIdValidTestFunctionForType(ContentManager.DataTableType.Label);
-            const isValidHtmlId = hmi.env.cms.GetIdValidTestFunctionForType(ContentManager.DataTableType.HTML);
-            dataRouter.GetDataAccessObject = dataId => {
-                if (isValidLabelId(dataId) || isValidHtmlId(dataId)) {
-                    return hmi.env.lang;
-                } else {
-                    return dataConnector;
-                }
-            }
+            const isValidLanguageValueId = hmi.env.cms.GetIdValidTestFunctionForLanguageValue();
+            dataRouter.GetDataAccessObject = dataId => isValidLanguageValueId(dataId) ?  hmi.env.lang : dataConnector;
             onSuccess();
         });
         let webSocketSessionConfig = undefined;
