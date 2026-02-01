@@ -97,10 +97,10 @@
             }
 
             SubscribeData(dataId, onRefresh) {
-                if (typeof dataId !== 'string') { // TODO: go on here
-                    throw new Error(`Invalid unsubscription data id: '${dataId}'`);
+                if (typeof dataId !== 'string') {
+                    throw new Error(`Invalid subscription id '${dataId}'`);
                 } else if (typeof onRefresh !== 'function') {
-                    throw new Error(`Subscriber for unsubscription id '${dataId}' is not a function`);
+                    throw new Error(`Subscription callback onRefresh(value) for id '${dataId}' is not a function`);
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
@@ -113,33 +113,36 @@
                 try {
                     onRefresh(dataPoint.value);
                 } catch (error) {
-                    throw new Error(`Failed calling onRefresh(value) for id '${dataId}':\n${error.message}`);
+                    throw new Error(`Failed calling onRefresh(value) for '${dataId}':\n${error.message}`);
                 }
             }
 
             UnsubscribeData(dataId, onRefresh) {
-                if (typeof dataId !== 'string') { // TODO: go on here
-                    throw new Error(`Invalid unsubscription data id '${dataId}'`);
+                if (typeof dataId !== 'string') {
+                    throw new Error(`Invalid unsubscription id '${dataId}'`);
                 } else if (typeof onRefresh !== 'function') {
-                    throw new Error(`Subscriber for unsubscription id '${dataId}' is not a function`);
+                    throw new Error(`Unsubscription callback onRefresh(value) for id '${dataId}' is not a function`);
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
-                    throw new Error(`Unknown data point for id '${dataId}' for subscription`);
+                    throw new Error(`Data point with id '${dataId}' is not available to unsubscribe`);
+                } else if (dataPoint.onRefresh === null) {
+                    this._onError(`Data point with id '${dataId}' is not subscribed`);
                 } else if (dataPoint.onRefresh !== onRefresh) {
-                    throw new Error(`Data point for id '${dataId}' has other subscription`);
+                    this._onError(`Data point with id '${dataId}' is subscribed with a different callback`);
+                } else {
+                    dataPoint.onRefresh = null;
+                    this._subscriptionsChanged();
                 }
-                dataPoint.onRefresh = null;
-                this._subscriptionsChanged();
             }
 
             Read(dataId, onResponse, onError) {
                 if (!this._open) {
-                    throw new Error('Cannot Read() because not connected');
+                    onError('Cannot Read() because not connected');
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
-                    throw new Error(`Unknown data point for id '${dataId}' to Read()`);
+                    onError(`Unsupported data id for read: '${dataId}'`);
                 }
                 Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER,
                     { type: TransmissionType.ReadRequest, shortId: dataPoint.shortId },
@@ -171,7 +174,7 @@
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
-                    throw new Error(`Unknown data point for id '${dataId}' to Write()`);
+                    throw new Error(`Unsupported data id for read: '${dataId}'`);
                 }
                 Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER,
                     { type: TransmissionType.WriteRequest, shortId: dataPoint.shortId, value }
@@ -205,7 +208,7 @@
                                     }
                                     const dataPoint = this._dataPointsByDataId[dpConfByShortId.dataId];
                                     if (!dataPoint) {
-                                        this.onError(`Unknown data id '${dpConfByShortId.dataId}'`);
+                                        this.onError(`Unsupported data id '${dpConfByShortId.dataId}'`);
                                         continue;
                                     }
                                     dataPoint.value = data.values[shortId];

@@ -17,26 +17,30 @@
             this._observers = [];
             Common.validateAsDataAccessObject(this, true);
         }
+
         set OnError(value) {
             if (typeof value !== 'function') {
                 throw new Error('Set value for OnError(error) is not a function');
             }
             this._onError = value;
         }
+
         SubscribeLanguage(onLanguageChanged) {
             if (typeof onLanguageChanged !== 'function') {
                 throw new Error('onLanguageChanged(language) is not a function');
             }
             for (const observer of this._observers) {
                 if (onLanguageChanged === observer) {
-                    throw new Error('Callback onLanguageChanged(language) is already subscribed');
+                    this._onError('Callback onLanguageChanged(language) is already subscribed');
+                    return;
                 }
             }
             this._observers.push(onLanguageChanged);
         }
+
         UnsubscribeLanguage(onLanguageChanged) {
             if (typeof onLanguageChanged !== 'function') {
-                throw new Error('Value for onLanguageChanged(language) is not a function');
+                throw new Error('Callback for onLanguageChanged(language) is not a function');
             }
             for (let i = 0; i < this._observers.length; i++) {
                 if (this._observers[i] === onLanguageChanged) {
@@ -44,22 +48,22 @@
                     return;
                 }
             }
-            this._onError('onLanguageChanged(language) is not subscribed');
+            this._onError('Callback onLanguageChanged(language) is not subscribed');
         }
+
         GetType(dataId) {
             return this._isValidHTMLType(dataId) ? Core.DataType.HTML : Core.DataType.String;
         }
+
         SubscribeData(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`Invalid subscription dataId '${dataId}'`);
+                throw new Error(`Invalid subscription id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
-                throw new Error(`onRefresh(value) subscription callback for dataId '${dataId}' is not a function`);
+                throw new Error(`Subscription callback onRefresh(value) for id '${dataId}' is not a function`);
             }
-            // Use existing or create new data point, set callback and call callback passing value.
-            // Write errors to output.
-            let dataPoint = this._dataPoints[dataId];
+            const dataPoint = this._dataPoints[dataId];
             if (!dataPoint) {
-                throw new Error(`Data point '${dataId}' is not available to subscribe`);
+                throw new Error(`Language value '${dataId}' is not available to subscribe`);
             } else if (dataPoint.onRefresh !== null) {
                 this._onError(`Data id '${dataId}' is already subscribed`);
             }
@@ -70,46 +74,50 @@
                 throw new Error(`Failed calling onRefresh(value) for '${dataId}':\n${error.message}`);
             }
         }
+
         UnsubscribeData(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`Invalid unsubscription dataId '${dataId}'`);
+                throw new Error(`Invalid unsubscription id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
-                throw new Error(`onRefresh(value) unsubscription callback for dataId '${dataId}' is not a function`);
+                throw new Error(`Unsubscription callback onRefresh(value) for id '${dataId}' is not a function`);
             }
-            // If data point available reset the callback.
-            // If data id unknown delete data point.
-            // Write errors to output.
             const dataPoint = this._dataPoints[dataId];
             if (!dataPoint) {
-                throw new Error(`Data point '${dataId}' is not available to unsubscribe`);
+                throw new Error(`Language value with id '${dataId}' is not available to unsubscribe`);
             } else if (dataPoint.onRefresh === null) {
-                this._onError(`Data id '${dataId}' is not subscribed`);
+                this._onError(`Language value with id '${dataId}' is not subscribed`);
             } else if (dataPoint.onRefresh !== onRefresh) {
-                this._onError(`Data id '${dataId}' is subscribed with a different callback`);
+                this._onError(`Language value with id '${dataId}' is subscribed with a different callback`);
             } else {
                 dataPoint.onRefresh = null;
             }
         }
+
         Read(dataId, onResponse, onError) {
             const dataPoint = this._dataPoints[dataId];
-            if (dataPoint) {
-                onResponse(dataPoint.value);
-            } else {
+            if (!dataPoint) {
                 onError(`Unsupported data id for read: '${dataId}'`);
+            } else {
+                onResponse(dataPoint.value);
             }
         }
+
         Write(dataId, value) {
             throw new Error(`Write to data with id '${dataId}' is not supported`);
         }
+
         GetLanguages() {
             return this._languages.map(lang => lang);
         }
+
         GetLanguage() {
             return this._language;
         }
+
         IsAvailable(language) {
             return this._languages.indexOf(language) >= 0;
         }
+
         LoadLanguage(language, onSuccess, onError) {
             // Load all label and html values
             this._cms.GetAllForLanguage(language, values => {

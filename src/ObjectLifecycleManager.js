@@ -7220,11 +7220,11 @@
                                         }
                                     } else if (that.hmi_text) {
                                         if (typeof that.formatValue === 'function') {
-                                            var value = that.formatValue(dataId, value);
-                                            that.hmi_text(value);
+                                            const text = that.formatValue(dataId, value, type);
+                                            that.hmi_text(text);
                                         } else if (typeof value === 'number') {
-                                            var value = typeof that.factor === 'number' ? that.factor * value : value;
-                                            that.hmi_text(Utilities.formatNumber(value, typeof that.postDecimalPositions === 'number' ? that.postDecimalPositions : 0));
+                                            const text = typeof that.factor === 'number' ? that.factor * value : value;
+                                            that.hmi_text(Utilities.formatNumber(text, typeof that.postDecimalPositions === 'number' ? that.postDecimalPositions : 0));
                                         } else {
                                             that.hmi_text(value);
                                         }

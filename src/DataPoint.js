@@ -334,7 +334,7 @@
             }
             const dataPoint = this._dataPointsByDataId[dataId];
             if (!dataPoint) {
-                throw new Error(`Cannot unsubscribe for unknown dataId: ${dataId}`);
+                throw new Error(`Failed unsubscribing for unsupported id: ${dataId}`);
             }
             dataPoint.node.Unsubscribe(onRefresh); // Note: may throw an exception if unsubscription failed!
         }
