@@ -2,33 +2,23 @@
     "use strict";
 
     // create 'hmi' environment object
-    const hmi = {};
-    // debug brakeports
-    hmi.debug_breakpoint = window.debug_breakpoint;
-    // here we add our libraries
-    hmi.lib = {};
-    // load Mathematics
-    hmi.lib.Mathematics = root.Mathematics;
-    hmi.lib.JsonFX = root.JsonFX;
-    hmi.lib.exec = root.Executor;
-    hmi.lib.regex = root.Regex;
-    // here all droppables will be stored
-    hmi.droppables = {};
-
-    hmi.env = {
-        isInstance: instance => false, // TODO: Implement isInstance(instance)
-        isSimulationEnabled: () => false // TODO: Implement isSimulationEnabled()
+    const hmi = {
+        // add hmi-object-framweork
+        create: (object, element, onSuccess, onError, initData) =>
+            ObjectLifecycleManager.create(object, element, onSuccess, onError, hmi, initData),
+        kill: ObjectLifecycleManager.kill,
+        showDialog: (object, onSuccess, onError) =>
+            ObjectLifecycleManager.showDialog(hmi, object, onSuccess, onError),
+        showDefaultConfirmationDialog: (object, onSuccess, onError) =>
+            ObjectLifecycleManager.showDefaultConfirmationDialog(hmi, object, onSuccess, onError),
+        // Environment
+        env: {
+            isInstance: instance => false, // TODO: Implement isInstance(instance)
+            isSimulationEnabled: () => false // TODO: Implement isSimulationEnabled()
+        },
+        // here all droppables will be stored
+        droppables: {}
     };
-
-    // add hmi-object-framweork
-    hmi.create = (object, element, onSuccess, onError, initData) =>
-        ObjectLifecycleManager.create(object, element, onSuccess, onError, hmi, initData);
-    hmi.kill = ObjectLifecycleManager.kill;
-    hmi.showDialog = (object, onSuccess, onError) =>
-        ObjectLifecycleManager.showDialog(hmi, object, onSuccess, onError);
-    hmi.showDefaultConfirmationDialog = (object, onSuccess, onError) =>
-        ObjectLifecycleManager.showDefaultConfirmationDialog(hmi, object, onSuccess, onError);
-
     // all static files have been loaded and now we create the hmi.
     $(() => {
         const urlSearchParams = new URLSearchParams(root.location.search);
@@ -100,15 +90,14 @@
         // Provide data access from any context to any source
         tasks.push((onSuccess, onError) => {
             // Create router for delegation to language or data values 
-            const router = new DataPoint.Router();
+            const dataAccessRouter = new DataPoint.Router();
             const isValidLanguageValueId = hmi.env.cms.GetIdValidTestFunctionForLanguageValue();
-            router.GetDataAccessObject = dataId => isValidLanguageValueId(dataId) ? hmi.env.lang : dataConnector;
+            dataAccessRouter.GetDataAccessObject = dataId => isValidLanguageValueId(dataId) ? hmi.env.lang : dataConnector;
             // Create collection providing multiple subscriptions from any context
-            const accessPoint = new DataPoint.AccessPoint();
-            accessPoint.UnsubscribeDelay = config.unsubscribeDelay;
-            // collection.UnsubscribeDelay = 0; // TODO: remove this line
-            accessPoint.Source = router; // Use the router as source
-            hmi.env.data = accessPoint; // Enable access from anyhwere
+            const dataAccessPoint = new DataPoint.AccessPoint();
+            dataAccessPoint.UnsubscribeDelay = config.unsubscribeDelay;
+            dataAccessPoint.Source = dataAccessRouter; // Use the router as source
+            hmi.env.data = dataAccessPoint; // Enable access from anyhwere
             onSuccess();
         });
 
@@ -138,7 +127,6 @@
         });
         // load hmi
         Executor.run(tasks, () => {
-            Object.seal(hmi.lib);
             Object.seal(hmi.env);
             Object.seal(hmi);
             const body = $(document.body);
