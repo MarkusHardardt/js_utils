@@ -104,11 +104,11 @@
             const isValidLanguageValueId = hmi.env.cms.GetIdValidTestFunctionForLanguageValue();
             router.GetDataAccessObject = dataId => isValidLanguageValueId(dataId) ? hmi.env.lang : dataConnector;
             // Create collection providing multiple subscriptions from any context
-            const collection = new DataPoint.Collection();
-            collection.UnsubscribeDelay = config.unsubscribeDelay;
+            const accessPoint = new DataPoint.AccessPoint();
+            accessPoint.UnsubscribeDelay = config.unsubscribeDelay;
             // collection.UnsubscribeDelay = 0; // TODO: remove this line
-            collection.Source = router; // Use the router as source
-            hmi.env.data = collection; // Enable access from anyhwere
+            accessPoint.Source = router; // Use the router as source
+            hmi.env.data = accessPoint; // Enable access from anyhwere
             onSuccess();
         });
 

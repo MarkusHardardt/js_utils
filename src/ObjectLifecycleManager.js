@@ -7242,9 +7242,12 @@
                 }
             }
             if (typeof that.handleLanguageChanged === 'function') {
-                that._hmi_onLanguageChanged = language => that.handleLanguageChanged(language);
+                function onLanguageChanged(language) {
+                    that.handleLanguageChanged(language);
+                }
                 try {
-                    that.hmi.env.lang.SubscribeLanguage(that._hmi_onLanguageChanged);
+                    that.hmi.env.lang.SubscribeLanguage(onLanguageChanged);
+                    that._hmi_onLanguageChanged = onLanguageChanged;
                 } catch (error) {
                     console.error(`Failed subscribing on language:\n${error.message}`);
                 }
@@ -7292,7 +7295,7 @@
                     try {
                         that.hmi.env.data.UnsubscribeData(_watch[i], _onEventCallbacks[i]);
                     } catch (error) {
-                        console.error(`Failed unsubscribing from '${dataId}':\n${error.message}`);
+                        console.error(`Failed unsubscribing from '${_watch[i]}':\n${error.message}`);
                     }
                 }
                 _watch.splice(0, _watch.length);

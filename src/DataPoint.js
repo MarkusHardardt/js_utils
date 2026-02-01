@@ -12,7 +12,7 @@
             this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
             this._onRefresh = value => this._refresh(value);
-            this._observers = [];
+            this._subscribers = [];
             this._source = null;
             this._unsubscribeDelay = false;
             this._unsubscribeDelayTimer = null;
@@ -21,7 +21,7 @@
 
         set Source(value) {
             if (this._source !== value) {
-                if (this._source && this._observers.length > 0) {
+                if (this._source && this._subscribers.length > 0) {
                     this._source.Unsubscribe(this._onRefresh);
                 }
                 if (value) {
@@ -30,7 +30,7 @@
                 } else {
                     this._source = null;
                 }
-                if (this._source && this._observers.length > 0) {
+                if (this._source && this._subscribers.length > 0) {
                     this._source.Subscribe(this._onRefresh);
                 }
             }
@@ -63,7 +63,7 @@
         }
 
         get SubscriptionsCount() {
-            return this._observers.length;
+            return this._subscribers.length;
         }
 
         Subscribe(onRefresh) {
@@ -71,7 +71,7 @@
                 throw new Error('onRefresh(value) is not a function');
             }
             let alreadySubscribed = false;
-            for (const callback of this._observers) {
+            for (const callback of this._subscribers) {
                 if (callback === onRefresh) {
                     alreadySubscribed = true;
                     this._onError('onRefresh(value) is already subscribed');
@@ -84,16 +84,8 @@
                     throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
                 }
             } else {
-                this._observers.push(onRefresh);
-                if (!this._source || this._observers.length > 1) {
-                    // If we cannot subscribe or it is not the first subscription we fire the event manually.
-                    try {
-                        onRefresh(this._value);
-                    } catch (error) {
-                        throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
-                    }
-                } else {
-                    // If first subscription we subscribe on our parent which should result in firering the event.
+                this._subscribers.push(onRefresh);
+                if (this._source && this._subscribers.length === 1) {
                     if (this._unsubscribeDelayTimer) {
                         clearTimeout(this._unsubscribeDelayTimer);
                         this._unsubscribeDelayTimer = null;
@@ -103,7 +95,15 @@
                             throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
                         }
                     } else {
-                        this._source.Subscribe(this._onRefresh);
+                        // If first subscription we subscribe on our parent which should result in firering the refresh event
+                        this._source.Subscribe(this._onRefresh); // Note: This may throw an exception if subscription failed
+                    }
+                } else {
+                    // If we cannot subscribe or it is not the first subscription we fire the event manually
+                    try {
+                        onRefresh(this._value);
+                    } catch (error) {
+                        throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
                     }
                 }
             }
@@ -113,17 +113,21 @@
             if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh(value) is not a function');
             }
-            for (let i = 0; i < this._observers.length; i++) {
-                if (this._observers[i] === onRefresh) {
-                    this._observers.splice(i, 1);
-                    if (this._source && this._observers.length === 0) {
+            for (let i = 0; i < this._subscribers.length; i++) {
+                if (this._subscribers[i] === onRefresh) {
+                    this._subscribers.splice(i, 1);
+                    if (this._source && this._subscribers.length === 0) {
                         if (this._unsubscribeDelay) {
                             this._unsubscribeDelayTimer = setTimeout(() => {
-                                this._source.Unsubscribe(this._onRefresh);
                                 this._unsubscribeDelayTimer = null;
+                                try {
+                                    this._source.Unsubscribe(this._onRefresh);
+                                } catch (error) {
+                                    this._onError(`Failed unsubscribing: ${error}`);
+                                }
                             }, this._unsubscribeDelay);
                         } else {
-                            this._source.Unsubscribe(this._onRefresh);
+                            this._source.Unsubscribe(this._onRefresh); // Note: This may throw an exception if subscription failed
                         }
                     }
                     return;
@@ -132,10 +136,25 @@
             this._onError('onRefresh(value) is not subscribed');
         }
 
+        Dispose() {
+            if (this._unsubscribeDelayTimer) {
+                clearTimeout(this._unsubscribeDelayTimer);
+            }
+            delete this._unsubscribeDelayTimer;
+            delete this._unsubscribeDelay;
+            this._subscribers.splice(0, this._subscribers.length);
+            delete this._subscribers;
+            delete this._source;
+            delete this._value;
+            delete this._equal;
+            delete this._onError;
+            delete this._onRefresh;
+        }
+
         _refresh(value) {
-            if (!this._equal(this._value, value)) {
+            if (this._subscribers && !this._equal(this._value, value)) {
                 this._value = value;
-                for (const onRefresh of this._observers) {
+                for (const onRefresh of this._subscribers) {
                     try {
                         onRefresh(value);
                     } catch (error) {
@@ -161,35 +180,35 @@
         }
 
         GetType(dataId) {
-            return this._dao(dataId).GetType(dataId);
+            return this._dao(dataId, 'GetType:function').GetType(dataId);
         }
 
         SubscribeData(dataId, onRefresh) {
-            this._dao(dataId).SubscribeData(dataId, onRefresh);
+            this._dao(dataId, 'SubscribeData:function').SubscribeData(dataId, onRefresh);
         }
 
         UnsubscribeData(dataId, onRefresh) {
-            this._dao(dataId).UnsubscribeData(dataId, onRefresh);
+            this._dao(dataId, 'UnsubscribeData:function').UnsubscribeData(dataId, onRefresh);
         }
 
         Read(dataId, onResponse, onError) {
-            this._dao(dataId).Read(dataId, onResponse, onError);
+            this._dao(dataId, 'Read:function').Read(dataId, onResponse, onError);
         }
 
         Write(dataId, value) {
-            this._dao(dataId).Write(dataId, value);
+            this._dao(dataId, 'Write:function').Write(dataId, value);
         }
 
-        _dao(dataId) {
+        _dao(dataId, aspect) {
             if (!this._getDataAccessObject) {
                 throw new Error('Function getDataAccessObject(dataId) is not available');
             }
-            return Common.validateAsDataAccessObject(this._getDataAccessObject(dataId));
+            return Core.validateAs('DataAccessObject', this._getDataAccessObject(dataId), aspect);
         }
     }
     DataPoint.Router = Router;
 
-    class Collection {
+    class AccessPoint {
         constructor() {
             this._source = null;
             this._equal = Core.defaultEqual;
@@ -264,14 +283,20 @@
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid subscription dataId: '${dataId}'`);
             }
-            let dataPoint = this._dataPointsByDataId[dataId];
+            const dataPoints = this._dataPointsByDataId;
+            let dataPoint = dataPoints[dataId];
             if (!dataPoint) {
                 const node = new Node();
                 node.UnsubscribeDelay = this._unsubscribeDelay;
                 node.Equal = this._equal;
                 node.OnError = this._onError;
                 node.Value = null;
-                this._dataPointsByDataId[dataId] = dataPoint = {
+                function dispose() {
+                    node.Dispose();
+                    delete dataPoint.node;
+                    delete dataPoints[dataId];
+                }
+                dataPoints[dataId] = dataPoint = {
                     node,
                     // Note: The following 'onRefresh' function is the local instance inside our node created above.
                     Subscribe: onRefresh => {
@@ -279,7 +304,8 @@
                             try {
                                 this._source.SubscribeData(dataId, onRefresh);
                             } catch (error) {
-                                throw new Error(`Failed subscribing to '${dataId}':\n${error.message}`);
+                                dispose();
+                                throw error;
                             }
                         }
                     },
@@ -287,18 +313,19 @@
                         if (this._source) {
                             try {
                                 this._source.UnsubscribeData(dataId, onRefresh);
+                                dispose();
                             } catch (error) {
-                                throw new Error(`Failed unsubscribing from '${dataId}':\n${error.message}`);
+                                dispose();
+                                throw error;
                             }
+                        } else {
+                            dispose();
                         }
-                        node.Source = null;
-                        delete dataPoint.node;
-                        delete this._dataPointsByDataId[dataId];
                     }
                 };
                 node.Source = dataPoint;
             }
-            dataPoint.node.Subscribe(onRefresh);
+            dataPoint.node.Subscribe(onRefresh); // Note: may throw an exception if subscription failed!
         }
 
         UnsubscribeData(dataId, onRefresh) {
@@ -309,7 +336,7 @@
             if (!dataPoint) {
                 throw new Error(`Cannot unsubscribe for unknown dataId: ${dataId}`);
             }
-            dataPoint.node.Unsubscribe(onRefresh);
+            dataPoint.node.Unsubscribe(onRefresh); // Note: may throw an exception if unsubscription failed!
         }
 
         Read(dataId, onResponse, onError) {
@@ -330,7 +357,7 @@
             Core.validateAs('DataAccessObject', this._source, 'Write:function').Write(dataId, value);
         }
     }
-    DataPoint.Collection = Collection;
+    DataPoint.AccessPoint = AccessPoint;
 
     Object.freeze(DataPoint);
     if (isNodeJS) {
