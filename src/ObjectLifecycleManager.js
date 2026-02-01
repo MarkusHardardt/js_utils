@@ -7208,35 +7208,39 @@
                 for (var i = 0; i < _watch.length; i++) {
                     (function () {
                         const dataId = _watch[i];
-                        const type = tryGetType(dataId);
-                        const onRefresh = value => {
-                            try {
-                                if (typeof that.handleDataUpdate === 'function') {
-                                    that.handleDataUpdate(dataId, value, type);
-                                } else if (type === Core.DataType.HTML) {
-                                    if (that.hmi_html) {
-                                        that.hmi_html(value);
-                                    }
-                                } else if (that.hmi_text) {
-                                    if (typeof that.formatValue === 'function') {
-                                        var value = that.formatValue(dataId, value);
-                                        that.hmi_text(value);
-                                    } else if (typeof value === 'number') {
-                                        var value = typeof that.factor === 'number' ? that.factor * value : value;
-                                        that.hmi_text(Utilities.formatNumber(value, typeof that.postDecimalPositions === 'number' ? that.postDecimalPositions : 0));
-                                    } else {
-                                        that.hmi_text(value);
-                                    }
-                                }
-                            } catch (exc) {
-                                console.error('EXCEPTION: ' + exc);
-                            }
-                        };
-                        _onEventCallbacks.push(onRefresh);
                         try {
-                            that.hmi.env.data.SubscribeData(dataId, onRefresh);
+                            const type = that.hmi.env.data.GetType(dataId);
+                            const onRefresh = value => {
+                                try {
+                                    if (typeof that.handleDataUpdate === 'function') {
+                                        that.handleDataUpdate(dataId, value, type);
+                                    } else if (type === Core.DataType.HTML) {
+                                        if (that.hmi_html) {
+                                            that.hmi_html(value);
+                                        }
+                                    } else if (that.hmi_text) {
+                                        if (typeof that.formatValue === 'function') {
+                                            var value = that.formatValue(dataId, value);
+                                            that.hmi_text(value);
+                                        } else if (typeof value === 'number') {
+                                            var value = typeof that.factor === 'number' ? that.factor * value : value;
+                                            that.hmi_text(Utilities.formatNumber(value, typeof that.postDecimalPositions === 'number' ? that.postDecimalPositions : 0));
+                                        } else {
+                                            that.hmi_text(value);
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.error(`Failed to handle value on refresh: ${error}`);
+                                }
+                            };
+                            _onEventCallbacks.push(onRefresh);
+                            try {
+                                that.hmi.env.data.SubscribeData(dataId, onRefresh);
+                            } catch (error) {
+                                console.error(`Failed subscribing to '${dataId}':\n${error.message}`);
+                            }
                         } catch (error) {
-                            console.error(`Failed subscribing to '${dataId}':\n${error.message}`);
+                            console.error(`Failed to get type for '${dataId}':\n${error.message}`);
                         }
                     }());
                 }
