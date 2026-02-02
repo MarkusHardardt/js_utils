@@ -62,10 +62,6 @@
             this._refresh(value);
         }
 
-        get SubscriptionsCount() {
-            return this._subscribers.length;
-        }
-
         Subscribe(onRefresh) {
             if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh(value) is not a function');
@@ -123,7 +119,7 @@
                                 try {
                                     this._source.Unsubscribe(this._onRefresh);
                                 } catch (error) {
-                                    this._onError(`Failed unsubscribing: ${error}`);
+                                    this._onError(`Failed unsubscribing: ${error.message}`);
                                 }
                             }, this._unsubscribeDelay);
                         } else {
@@ -139,16 +135,9 @@
         Dispose() {
             if (this._unsubscribeDelayTimer) {
                 clearTimeout(this._unsubscribeDelayTimer);
+                this._unsubscribeDelayTimer = null;
             }
-            delete this._unsubscribeDelayTimer;
-            delete this._unsubscribeDelay;
             this._subscribers.splice(0, this._subscribers.length);
-            delete this._subscribers;
-            delete this._source;
-            delete this._value;
-            delete this._equal;
-            delete this._onError;
-            delete this._onRefresh;
         }
 
         _refresh(value) {
@@ -165,48 +154,6 @@
         }
     }
     DataPoint.Node = Node;
-
-    class Router {
-        constructor() {
-            this._getDataAccessObject = null;
-            Common.validateAsDataAccessObject(this, true);
-        }
-
-        set GetDataAccessObject(value) {
-            if (typeof value !== 'function') {
-                throw new Error('Passed getDataAccessObject(dataId) is not a function');
-            }
-            this._getDataAccessObject = value;
-        }
-
-        GetType(dataId) {
-            return this._dao(dataId, 'GetType:function').GetType(dataId);
-        }
-
-        SubscribeData(dataId, onRefresh) {
-            this._dao(dataId, 'SubscribeData:function').SubscribeData(dataId, onRefresh);
-        }
-
-        UnsubscribeData(dataId, onRefresh) {
-            this._dao(dataId, 'UnsubscribeData:function').UnsubscribeData(dataId, onRefresh);
-        }
-
-        Read(dataId, onResponse, onError) {
-            this._dao(dataId, 'Read:function').Read(dataId, onResponse, onError);
-        }
-
-        Write(dataId, value) {
-            this._dao(dataId, 'Write:function').Write(dataId, value);
-        }
-
-        _dao(dataId, aspect) {
-            if (!this._getDataAccessObject) {
-                throw new Error('Function getDataAccessObject(dataId) is not available');
-            }
-            return Core.validateAs('DataAccessObject', this._getDataAccessObject(dataId), aspect);
-        }
-    }
-    DataPoint.Router = Router;
 
     class AccessPoint {
         constructor() {
@@ -358,6 +305,157 @@
         }
     }
     DataPoint.AccessPoint = AccessPoint;
+
+    class Router {
+        constructor() {
+            this._getDataAccessObject = null;
+            Common.validateAsDataAccessObject(this, true);
+        }
+
+        set GetDataAccessObject(value) {
+            if (typeof value !== 'function') {
+                throw new Error('Passed getDataAccessObject(dataId) is not a function');
+            }
+            this._getDataAccessObject = value;
+        }
+
+        GetType(dataId) {
+            return this._dao(dataId, 'GetType:function').GetType(dataId);
+        }
+
+        SubscribeData(dataId, onRefresh) {
+            this._dao(dataId, 'SubscribeData:function').SubscribeData(dataId, onRefresh);
+        }
+
+        UnsubscribeData(dataId, onRefresh) {
+            this._dao(dataId, 'UnsubscribeData:function').UnsubscribeData(dataId, onRefresh);
+        }
+
+        Read(dataId, onResponse, onError) {
+            this._dao(dataId, 'Read:function').Read(dataId, onResponse, onError);
+        }
+
+        Write(dataId, value) {
+            this._dao(dataId, 'Write:function').Write(dataId, value);
+        }
+
+        _dao(dataId, aspect) {
+            if (!this._getDataAccessObject) {
+                throw new Error('Function getDataAccessObject(dataId) is not available');
+            }
+            return Core.validateAs('DataAccessObject', this._getDataAccessObject(dataId), aspect);
+        }
+    }
+    DataPoint.Router = Router;
+
+    const targetIdValidRegex = /^[a-z0-9_]+$/i;
+    const targetIdRegex = /^([a-z0-9_]+):.+$/i;
+    class AccessRouterHandler {
+        constructor() {
+            this._dataConnectors = [];
+            this._dataAccesObjects = {};
+            this._getDataAccessObject = dataId => {
+                const match = targetIdRegex.exec(dataId);
+                if (!match) {
+                    throw new Error(`Invalid id: '${dataId}'`);
+                }
+                const targetId = match[1];
+                const accObj = this._dataAccesObjects[targetId];
+                if (!accObj) {
+                    throw new Error(`No data access object registered for target '${targetId}' and data id: '${dataId}'`);
+                }
+                return accObj;
+            };
+        }
+
+        RegisterDataConnector(dataConnector) {
+            for (const connector in this._dataConnectors) {
+                if (dataConnector === connector) {
+                    console.error('Data connector is already registered');
+                    return;
+                }
+            }
+            this._dataConnectors.push(dataConnector);
+            const dataPoints = this._getDataPoints();
+            dataConnector.SetDataPoints(dataPoints);
+        }
+
+        UnregisterDataConnector(dataConnector) {
+            for (let i = 0; i < this._dataConnectors.length; i++) {
+                if (dataConnector === this._dataConnectors[i]) {
+                    this._dataConnectors.splice(i, 1);
+                    return;
+                }
+            }
+            console.error('Data connector is not registered');
+        }
+
+        RegisterDataAccesObject(targetId, accessObject) {
+            if (typeof targetId !== 'string') {
+                throw new Error(`Invalid target id: '${targetId}'`);
+            } else if (!targetIdValidRegex.test(targetId)) {
+                throw new Error(`Invalid target id format: '${targetId}'`);
+            } else if (this._dataAccesObjects[targetId] !== undefined) {
+                throw new Error(`Target id: '${targetId}' is already registered`);
+            } else {
+                Common.validateAsDataAccessServerObject(accessObject, true);
+                const prefixLength = targetId.length + 1;
+                function getRawDataId(dataId) {
+                    return dataId.substring(prefixLength);
+                }
+                this._dataAccesObjects[targetId] = {
+                    accessObject,
+                    GetType: dataId => accessObject.GetType(getRawDataId(dataId)),
+                    SubscribeData: (dataId, onRefresh) => accessObject.SubscribeData(getRawDataId(dataId), onRefresh),
+                    UnsubscribeData: (dataId, onRefresh) => accessObject.UnsubscribeData(getRawDataId(dataId), onRefresh),
+                    Read: (dataId, onResponse, onError) => accessObject.Read(getRawDataId(dataId), onResponse, onError),
+                    Write: (dataId, value) => accessObject.Write(getRawDataId(dataId), value)
+                }
+                this._updateDataConnectors();
+            }
+        }
+
+        UnregisterDataAccesObject(targetId, accessObject) {
+            if (typeof targetId !== 'string') {
+                throw new Error(`Invalid target id: '${targetId}'`);
+            } else if (!targetIdValidRegex.test(targetId)) {
+                throw new Error(`Invalid target id format: '${targetId}'`);
+            } else if (this._dataAccesObjects[targetId] === undefined) {
+                throw new Error(`Target id '${targetId}' is not registered`);
+            } else if (this._dataAccesObjects[targetId].accessObject !== accessObject) {
+                throw new Error(`Target id '${targetId}' is registered for different data access object`);
+            } else {
+                delete this._dataAccesObjects[targetId];
+                this._updateDataConnectors();
+            }
+        }
+
+        _updateDataConnectors() {
+            const dataPoints = this._getDataPoints();
+            for (const dataConnector of this._dataConnectors) {
+                dataConnector.SetDataPoints(dataPoints, true);
+            }
+        }
+
+        _getDataPoints() {
+            const result = [];
+            for (const targetId in this._dataAccesObjects) {
+                if (this._dataAccesObjects.hasOwnProperty(targetId)) {
+                    const object = this._dataAccesObjects[targetId];
+                    const dataPoints = object.accessObject.GetDataPoints();
+                    for (const dataPoint of dataPoints) {
+                        result.push({ id: `${targetId}:${dataPoint.id}`, type: dataPoint.type });
+                    }
+                }
+            }
+            return result;
+        }
+
+        get GetDataAccessObject() {
+            return this._getDataAccessObject;
+        }
+    }
+    DataPoint.AccessRouterHandler = AccessRouterHandler;
 
     Object.freeze(DataPoint);
     if (isNodeJS) {
