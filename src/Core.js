@@ -35,7 +35,7 @@
 
     Core.defaultEqual = (v1, v2) => v1 === v2;
 
-    Core.defaultOnError = (message, error) => console.error(message, error);
+    Core.defaultOnError = error => console.error(error);
 
     /*  Look at this sample to understand what is returned:
         object = { 

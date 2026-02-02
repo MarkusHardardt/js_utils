@@ -407,7 +407,7 @@
                 try {
                     this._onConfigChanged();
                 } catch (error) {
-                    this.onError(`Failed calling onConfigChanged(): ${error}`);
+                    this.onError(`Failed calling onConfigChanged(): ${error.message}`);
                 }
             }
         }
@@ -421,7 +421,7 @@
                 try {
                     this._onStateChanged(path, state);
                 } catch (error) {
-                    this.onError(`Failed calling onStateChanged(path, state): ${error}`);
+                    this.onError(`Failed calling onStateChanged(path, state): ${error.message}`);
                 }
             }
         }

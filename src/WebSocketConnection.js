@@ -117,7 +117,7 @@
                         cb.onResponse(localResponseUTC - cb.localRequestUTC);
                     }
                 } catch (error) {
-                    this._onError(`failed calling onResponse: ${error}`);
+                    this._onError(`failed calling onResponse: ${error.message}`);
                 }
             } else {
                 this._onError('missing ping callback');
@@ -179,9 +179,9 @@
                         });
                     } catch (error) {
                         if (this.IsConnected) {
-                            this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `failed calling receive handler '${receiver}'! error: ${error}` }));
+                            this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `failed calling receive handler '${receiver}'! error: ${error.message}` }));
                         } else {
-                            this._onError(`failed calling receive handler '${receiver}' but cannot send error response when disconnected! error: ${error}`);
+                            this._onError(`failed calling receive handler '${receiver}' but cannot send error response when disconnected! error: ${error.message}`);
                         }
                     }
                 }
@@ -190,9 +190,9 @@
                         handler(requestData);
                     } catch (error) {
                         if (this.IsConnected) {
-                            this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `failed calling receive handler '${receiver}'! error: ${error}` }));
+                            this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `failed calling receive handler '${receiver}'! error: ${error.message}` }));
                         } else {
-                            this._onError(`failed calling receive handler '${receiver}' but cannot send error response when disconnected! error: ${error}`);
+                            this._onError(`failed calling receive handler '${receiver}' but cannot send error response when disconnected! error: ${error.message}`);
                         }
                     }
                 }
@@ -213,7 +213,7 @@
                         cb.onResponse(data, Date.now() - cb.localRequestUTC);
                     }
                 } catch (error) {
-                    this._onError(`failed calling onResponse: ${error}`);
+                    this._onError(`failed calling onResponse: ${error.message}`);
                 }
             } else {
                 this._onError('missing data callback');
@@ -227,7 +227,7 @@
                     try {
                         cb.onError(error, Date.now() - cb.localRequestUTC);
                     } catch (error) {
-                        this._onError(`failed calling onError: ${error}`);
+                        this._onError(`failed calling onError: ${error.message}`);
                     }
                 } else {
                     this._onError(error);
