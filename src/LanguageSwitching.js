@@ -9,6 +9,7 @@
     class Handler {
         constructor(cms) {
             this._cms = cms;
+            this._isValidLabelType = cms.GetIdValidTestFunctionForType(ContentManager.DataType.Label);
             this._isValidHTMLType = cms.GetIdValidTestFunctionForType(ContentManager.DataType.HTML);
             this._languages = cms.GetLanguages();
             this._language = this._languages[0];
@@ -52,7 +53,13 @@
         }
 
         GetType(dataId) {
-            return this._isValidHTMLType(dataId) ? Core.DataType.HTML : Core.DataType.String;
+            if (this._isValidLabelType(dataId)) {
+                return Core.DataType.String;
+            } else if (this._isValidHTMLType(dataId)) {
+                return Core.DataType.HTML;
+            } else {
+                return Core.DataType.Unknown;
+            }
         }
 
         SubscribeData(dataId, onRefresh) {
