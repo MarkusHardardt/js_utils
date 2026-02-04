@@ -17,7 +17,6 @@
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectLifecycleManager.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataPoint.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/TargetSystem.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/LanguageSwitching.js');
@@ -45,7 +44,6 @@
         ObjectLifecycleManager: require('./src/ObjectLifecycleManager.js'),
         DataConnector: require('./src/DataConnector.js'),
         DataPoint: require('./src/DataPoint.js'),
-        TargetSystem: require('./src/TargetSystem.js'),
         WebSocketConnection: require('./src/WebSocketConnection.js'),
         ContentEditor: require('./src/ContentEditor.js'),
         LanguageSwitching: require('./src/LanguageSwitching.js'),
