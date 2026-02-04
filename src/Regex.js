@@ -5,8 +5,11 @@
 (function (root) {
     "use strict";
     const Regex = {};
-
     const isNodeJS = typeof require === 'function';
+
+    Regex.Linebreaks = /\r?\n|\r/m;
+    Regex.Comments = /(?:\(\*(?:[^*]|(?:\*+[^*\)]))*\*+\)\s*)|(?:\/\/.*\s*)/m; // for IEC61131-3 source code
+    Regex.Spaces = /\s+/m;
 
     function each(rx, text, callback, matches) {
         let match, off = 0, idx, len;
@@ -68,9 +71,7 @@
     function getNextMatch(text, elements, elementIndex, rx) {
         if (rx.global !== true) {
             throw new Error('EXCEPTION! Regex is not global: "' + rx.toString() + '"');
-        }
-        // if already at the end we have no match
-        else if (elementIndex.value >= elements.length) {
+        } else if (elementIndex.value >= elements.length) { // if already at the end we have no match
             return null;
         }
         // get the current element and set our next search start offset to
@@ -86,8 +87,7 @@
                     if (elem.code) {
                         // the match is on a code segment so we return it as valid match
                         return match;
-                    }
-                    else {
+                    } else {
                         // the match is located inside o comment so we run the search
                         // again starting at the start position of our next found code
                         // segments
@@ -99,8 +99,7 @@
                         }
                         break;
                     }
-                }
-                else {
+                } else {
                     // the match is behind our current element so we step forward
                     elementIndex.value++;
                 }
@@ -136,23 +135,20 @@
                     elements.splice(elem_idx.value, 0, id);
                     elem_idx.value++;
                     elements[elem_idx.value].start = end;
-                }
-                else {
+                } else {
                     // #2: "codeMATCH"
                     elem.end = match.index;
                     elem_idx.value++;
                     elements.splice(elem_idx.value, 0, id);
                     elem_idx.value++;
                 }
-            }
-            else {
+            } else {
                 if (end < elem.end) {
                     // #3: "MATCHcode"
                     elements.splice(elem_idx.value, 0, id);
                     elem_idx.value++;
                     elem.start = end;
-                }
-                else {
+                } else {
                     // #4: "MATCH"
                     elements.splice(elem_idx.value, 1, id);
                 }
@@ -160,19 +156,16 @@
             Regex = config.next[id];
             if (Regex === null) {
                 return id;
-            }
-            else if (Regex === undefined) {
+            } else if (Regex === undefined) {
                 throw new Error('EXCEPTION! Unexpected match: "' + match[0] + '" at index: ' + match.index);
-            }
-            else if (Regex.global !== true) {
+            } else if (Regex.global !== true) {
                 throw new Error('EXCEPTION! Regex is not global: "' + Regex.toString() + '"');
             }
         }
         if (config.finalNullRequired === true) {
             // reaching this point means we did not end successfully
             throw new Error('EXCEPTION! Unexpected end of file');
-        }
-        else {
+        } else {
             // return last match
             return id;
         }
@@ -191,8 +184,7 @@
                     end: i_end
                 });
             });
-        }
-        else {
+        } else {
             // we start with a single segment containing all
             elements.push({
                 code: true,
@@ -212,8 +204,7 @@
                 if (match && match.index < elem.end) {
                     elem.start = match.index;
                     idx++;
-                }
-                else {
+                } else {
                     elements.splice(idx, 1);
                 }
                 continue;
