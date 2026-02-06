@@ -110,10 +110,12 @@
                 }
                 dataPoint.onRefresh = onRefresh;
                 this._subscriptionsChanged();
-                try {
-                    onRefresh(dataPoint.value);
-                } catch (error) {
-                    throw new Error(`Failed calling onRefresh(value) for '${dataId}':\n${error.message}`);
+                if (dataPoint.value !== null) {
+                    try {
+                        onRefresh(dataPoint.value);
+                    } catch (error) {
+                        throw new Error(`Failed calling onRefresh(value) for '${dataId}':\n${error.message}`);
+                    }
                 }
             }
 
@@ -255,8 +257,13 @@
                 if (oldDataPointsByDataId) {
                     for (const dataId in oldDataPointsByDataId) {
                         if (oldDataPointsByDataId.hasOwnProperty(dataId)) {
-                            delete oldDataPointsByDataId[dataId].value;
-                            delete oldDataPointsByDataId[dataId];
+                            const oldDataPoint = oldDataPointsByDataId[dataId];
+                            if (oldDataPoint.onRefresh) {
+                                this._dataPointsByDataId[dataId] = oldDataPoint;
+                            } else {
+                                delete oldDataPoint.value;
+                                delete oldDataPointsByDataId[dataId];
+                            }
                         }
                     }
                 }
@@ -270,6 +277,7 @@
                     dataPoint.Unsubscribe = onRefresh => this.UnsubscribeData(dataId, onRefresh);
                 } else {
                     dataPoint.value = oldDataPoint.value;
+                    dataPoint.onRefresh = oldDataPoint.onRefresh;
                     dataPoint.Subscribe = oldDataPoint.Subscribe;
                     dataPoint.Unsubscribe = oldDataPoint.Unsubscribe;
                     delete oldDataPointsByDataId[dataId];
