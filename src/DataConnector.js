@@ -327,8 +327,9 @@
                 super();
                 this._isOpen = false;
                 this._source = null;
-                this._onEventCallbacks = {};
+                this._getNextShortId = Core.createIdGenerator(SHORT_ID_PREFIX);
                 this._dataPointConfigsByShortId = null;
+                this._onEventCallbacksByDataId = {};
                 this._dataPointsByDataId = null;
                 this._values = null;
                 this._subscribeDelay = false;
@@ -363,7 +364,6 @@
                 if (!Array.isArray(dataPointConfigs)) {
                     throw new Error('Data points must be passed as an array');
                 }
-                const getNextShortId = Core.createIdGenerator(SHORT_ID_PREFIX);
                 const dataPointConfigsByShortId = {};
                 for (const dpConf of dataPointConfigs) {
                     const dataId = dpConf.id;
@@ -373,22 +373,24 @@
                     } else if (typeof type !== 'number') {
                         throw new Error(`Data point has invalid type: ${type}`);
                     }
-                    dataPointConfigsByShortId[getNextShortId()] = { dataId, type };
+                    dataPointConfigsByShortId[this._getNextShortId()] = { dataId, type };
                 }
                 this._dataPointConfigsByShortId = dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
                 const oldDataPointsByDataId = this._dataPointsByDataId;
                 this._dataPointsByDataId = getAsDataPointsByDataId(dataPointConfigsByShortId);
-                // Clean up old data points not existing anymore
+                // Copy value and callback if old datapoint found in new data points
                 if (oldDataPointsByDataId) {
                     for (const dataId in oldDataPointsByDataId) {
                         if (oldDataPointsByDataId.hasOwnProperty(dataId)) {
-                            const oldDataPoint = oldDataPointsByDataId[dataId]; // TODO: ???
-                            /* if (oldDataPoint.onRefresh) {
+                            const oldDataPoint = oldDataPointsByDataId[dataId];
+                            const dataPoint = this._dataPointsByDataId[dataId];
+                            if (dataPoint) {
+                                dataPoint.value = oldDataPoint.value;
+                                dataPoint.onRefresh = oldDataPoint.onRefresh;
+                            } else if (oldDataPoint.onRefresh) {
                                 this._dataPointsByDataId[dataId] = oldDataPoint;
-                            } else {
-                                delete oldDataPoint.value;
-                                delete oldDataPointsByDataId[dataId];
-                            } */
+                            }
+                            delete oldDataPointsByDataId[dataId];
                         }
                     }
                 }
@@ -456,14 +458,62 @@
             _updateSubscriptions(subscriptionShorts) {
                 if (this._isOpen) {
                     Core.validateAs('DataAccessObject', this._source, ['SubscribeData:function', 'UnsubscribeData:function']);
-                    for (const dataId in this._onEventCallbacks) {
-                        if (this._onEventCallbacks.hasOwnProperty(dataId)) {
+                    for (const dataId in this._dataPointsByDataId) {
+                        if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
+                            const dataPoint = this._dataPointsByDataId[dataId];
+                            if (dataPoint.onRefresh && subscriptionShorts.indexOf(dataPoint.shortId) < 0) {
+                                try {
+                                    this._source.UnsubscribeData(dataId, dataPoint.onRefresh);
+                                } catch (error) {
+                                    this.onError(`Failed unsubscribing data point with id '${dataId}':\n${error.message}`);
+                                }
+                                dataPoint.onRefresh = null;
+                            }
+                        }
+                    }
+                    Regex.each(subscribeRequestShortIdRegex, subscriptionShorts, (start, end, match) => {
+                        // we are in a closure -> shortId/id will be available in onRefresh()
+                        const shortId = match[0];
+                        const dpConf = this._dataPointConfigsByShortId[shortId];
+                        if (dpConf) {
+                            const dataId = dpConf.dataId;
+                            const dataPoint = this._dataPointsByDataId[dataId];
+                            if (dataPoint) {
+                                if (!dataPoint.onRefresh) {
+                                    dataPoint.onRefresh = value => {
+                                        if (!this._values) {
+                                            this._values = {};
+                                        }
+                                        this._values[shortId] = value;
+                                        this._valuesChanged();
+                                    };
+                                    try {
+                                        this._source.SubscribeData(dataId, dataPoint.onRefresh);
+                                    } catch (error) {
+                                        this.onError(`Failed subscribing data point with id '${dataId}':\n${error.message}`);
+                                    }
+                                }
+                            } else {
+                                this.onError(`Cannot find data point with id '${dataId}' for short id '${shortId}'`);
+                            }
+                        } else {
+                            this.onError(`Cannot subscribe: ${shortId}`); // TODO: Why we land here after stopping a task when items are monitored?
+                        }
+                    }, true);
+                }
+            }
+
+            _updateSubscriptions_DISCARDED(subscriptionShorts) { // TODO: remove or reuse
+                if (this._isOpen) {
+                    Core.validateAs('DataAccessObject', this._source, ['SubscribeData:function', 'UnsubscribeData:function']);
+                    for (const dataId in this._onEventCallbacksByDataId) {
+                        if (this._onEventCallbacksByDataId.hasOwnProperty(dataId)) {
                             // TODO: This was 'const shortId = this._dataPointsByDataId[dataId];' but this makes no sense as _dataPointsByDataId stores objects like {shortId, type}
-                            const dataPoint = this._dataPointsByDataId[dataId]; 
+                            const dataPoint = this._dataPointsByDataId[dataId];
                             // TODO: What are we doing here?
-                            const onRefresh = dataPoint && subscriptionShorts.indexOf(dataPoint.shortId) < 0 ? this._onEventCallbacks[dataId] : false;
+                            const onRefresh = dataPoint && subscriptionShorts.indexOf(dataPoint.shortId) < 0 ? this._onEventCallbacksByDataId[dataId] : false;
                             if (onRefresh) {
-                                delete this._onEventCallbacks[dataId];
+                                delete this._onEventCallbacksByDataId[dataId];
                                 this._source.UnsubscribeData(dataId, onRefresh);
                             }
                         }
@@ -473,7 +523,7 @@
                         const shortId = match[0];
                         const dpConf = this._dataPointConfigsByShortId[shortId];
                         if (dpConf) {
-                            if (!this._onEventCallbacks[dpConf.dataId]) {
+                            if (!this._onEventCallbacksByDataId[dpConf.dataId]) {
                                 const onRefresh = value => {
                                     if (!this._values) {
                                         this._values = {};
@@ -481,7 +531,7 @@
                                     this._values[shortId] = value;
                                     this._valuesChanged();
                                 };
-                                this._onEventCallbacks[dpConf.dataId] = onRefresh;
+                                this._onEventCallbacksByDataId[dpConf.dataId] = onRefresh;
                                 this._source.SubscribeData(dpConf.dataId, onRefresh);
                             }
                         } else {
