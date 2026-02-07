@@ -56,7 +56,7 @@
             }
             this._reloadTasksTimeout = setTimeout(() => {
                 this._reloadTasksTimeout = null;
-                this._reloadTasks(() => console.log('Loaded tasks'), error => this.onError(error));
+                this._reloadTasks(() => console.log('✅ Loaded tasks'), error => this.onError(error));
             }, RELOAD_TASKS_TIMEOUT);
         }
 
@@ -80,12 +80,12 @@
                                 if (taskObject.task && taskObject.config.taskObject !== config.taskObject) {
                                     // If the actual task object has changed we must stop the running instance
                                     tasks.push((onSuc, onErr) => that._stopTask(path, () => {
-                                        console.log(`Stopped task '${path}' because actual task object has changed`);
+                                        console.warn(`⚠️ Stopped task '${path}' because actual task object has changed`);
                                         onSuc();
                                     }, error => {
-                                        const err = `Failed stopping task '${path}' because actual task object has changed: ${error}`;
-                                        console.log(err);
-                                        onErr(err);
+                                        const message = `Failed stopping task '${path}' because actual task object has changed:\n${error}`;
+                                        console.error(`❌ ${message}`);
+                                        onErr(message);
                                     }));
                                 }
                                 taskObject.config = config;
@@ -94,7 +94,6 @@
                                     config,
                                     state: ObjectLifecycleManager.LifecycleState.Idle,
                                     onLifecycleStateChanged: state => {
-                                        console.log(`onLifecycleStateChanged(task: ${path}, state: ${state})`); // TODO: Remove log
                                         taskObject.state = state;
                                         that._onLifecycleStateChanged(path, state);
                                     }
@@ -117,13 +116,13 @@
                                     // If the task is not available anymore we must stop the running instance
                                     tasks.push((onSuc, onErr) => that._stopTask(path, () => {
                                         delete that._taskObjects[path];
-                                        console.log(`Stopped task '${path}' because it is not available anymore`);
+                                        console.warn(`⚠️ Stopped task '${path}' because it is not available anymore`);
                                         onSuc();
                                     }, error => {
                                         delete that._taskObjects[path];
-                                        const err = `Failed stopping task '${path}' because it is not available anymore: ${error}`;
-                                        console.error(err);
-                                        onErr(err);
+                                        const message = `Failed stopping task '${path}' because it is not available anymore:\n${error}`;
+                                        console.error(`❌ ${message}`);
+                                        onErr(message);
                                     }));
                                 }
                             }
@@ -232,17 +231,17 @@
             } else if (taskObject.task) {
                 onError(`Task '${path}' has already been started`);
             } else {
-                hmi.env.cms.GetObject(taskObject.config.taskObject, undefined, ContentManager.PARSE, task => { // hmi.env.lang.GetLanguage()
+                hmi.env.cms.GetObject(taskObject.config.taskObject, undefined, ContentManager.PARSE, task => {
                     taskObject.task = task;
                     ObjectLifecycleManager.create(taskObject.task, null, () => {
-                        console.log(`Successfully started '${taskObject.config.taskObject}' for task '${path}'`);
+                        console.log(`✅ Started task '${path}' with object '${taskObject.config.taskObject}'`);
                         onSuccess();
                     }, error => {
-                        const err = `Failed starting '${taskObject.config.taskObject}' for task '${path}': ${error}`;
-                        console.error(err);
-                        onError(err);
+                        const message = `Failed starting task '${path}' with object '${taskObject.config.taskObject}':\n${error}`;
+                        console.error(`❌ ${message}`);
+                        onError(message);
                     }, this.hmi, undefined, undefined, undefined, undefined, undefined, undefined, taskObject.onLifecycleStateChanged);
-                }, error => onError(`Failed to load object '${taskObject.config.taskObject}' for task '${path}': ${error}`));
+                }, error => onError(`Failed loading task '${path}' object '${taskObject.config.taskObject}':\n${error}`));
             }
         }
 
@@ -256,12 +255,12 @@
                 const task = taskObject.task;
                 ObjectLifecycleManager.kill(task, () => {
                     delete taskObject.task;
-                    console.log(`Successfully stopped '${taskObject.config.taskObject}' for task '${path}'`);
+                    console.log(`✅ Stopped task '${path}' with object '${taskObject.config.taskObject}'`);
                     onSuccess();
                 }, error => {
-                    const err = `Failed stopping '${taskObject.config.taskObject}' for task '${path}': ${error}`;
-                    console.error(err);
-                    onError(err);
+                    const message = `Failed stopping task '${path}' with object '${taskObject.config.taskObject}':\n${error}`;
+                    console.error(`❌ ${message}`);
+                    onError(message);
                 }, taskObject.onLifecycleStateChanged);
             }
         }
