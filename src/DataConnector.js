@@ -217,6 +217,7 @@
                                     if (dataPoint.onRefresh && dataPoint.value !== null) {
                                         try {
                                             dataPoint.onRefresh(dataPoint.value);
+                                            console.log(`Refreshed '${dpConfByShortId.dataId}'/${shortId}: ${dataPoint.value}`);
                                         } catch (error) {
                                             this._onError(`Failed calling onRefresh(value) for id '${dpConfByShortId.dataId}':\n${error.message}`);
                                         }

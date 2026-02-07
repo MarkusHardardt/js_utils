@@ -72,7 +72,8 @@
                 const that = this;
                 this.hmi.env.cms.GetTaskObjects(response => {
                     const tasks = [];
-                    for (let config of response) {
+                    // For all task configurations from cms we reuse an existing or add a new task object.
+                    for (const config of response) {
                         (function () {
                             const path = config.path;
                             let taskObject = that._taskObjects[path];
@@ -101,10 +102,11 @@
                             }
                         }());
                     }
+                    // For all stored task objects we check if it still exists and if not we (stop and) remove.
                     for (const path in that._taskObjects) {
                         if (that._taskObjects.hasOwnProperty(path)) {
                             let available = false;
-                            for (let config of response) {
+                            for (const config of response) {
                                 if (config.path === path) {
                                     available = true;
                                     break;
@@ -124,6 +126,8 @@
                                         console.error(`❌ ${message}`);
                                         onErr(message);
                                     }));
+                                } else {
+                                    delete that._taskObjects[path];
                                 }
                             }
                         }
