@@ -7216,7 +7216,7 @@
                                         that.handleDataUpdate(dataId, value, type);
                                     } else if (type === Core.DataType.HTML) {
                                         if (that.hmi_html) {
-                                            that.hmi_html(value);
+                                            that.hmi_html(value !== null ? value : 'null');
                                         }
                                     } else if (that.hmi_text) {
                                         if (typeof that.formatValue === 'function') {
@@ -7226,7 +7226,7 @@
                                             const text = typeof that.factor === 'number' ? that.factor * value : value;
                                             that.hmi_text(Utilities.formatNumber(text, typeof that.postDecimalPositions === 'number' ? that.postDecimalPositions : 0));
                                         } else {
-                                            that.hmi_text(value);
+                                            that.hmi_text(value !== null ? value : 'null');
                                         }
                                     }
                                 } catch (error) {
