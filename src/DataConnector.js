@@ -466,7 +466,7 @@
                                 this._source.SubscribeData(dpConf.dataId, onRefresh);
                             }
                         } else {
-                            this.onError(`Cannot subscribe: ${shortId}`);
+                            this.onError(`Cannot subscribe: ${shortId}`); // TODO: Why we land here after stopping a task when items are monitored?
                         }
                     }, true);
                 }
