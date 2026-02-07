@@ -366,15 +366,32 @@
                 const getNextShortId = Core.createIdGenerator(SHORT_ID_PREFIX);
                 const dataPointConfigsByShortId = {};
                 for (const dpConf of dataPointConfigs) {
-                    if (typeof dpConf.id !== 'string') {
-                        throw new Error(`Data point has invalid data id: ${dpConf.id}`);
-                    } else if (typeof dpConf.type !== 'number') {
-                        throw new Error(`Data point has invalid type: ${dpConf.type}`);
+                    const dataId = dpConf.id;
+                    const type = dpConf.type;
+                    if (typeof dataId !== 'string') {
+                        throw new Error(`Data point has invalid data id: ${dataId}`);
+                    } else if (typeof type !== 'number') {
+                        throw new Error(`Data point has invalid type: ${type}`);
                     }
-                    dataPointConfigsByShortId[getNextShortId()] = { dataId: dpConf.id, type: dpConf.type };
+                    dataPointConfigsByShortId[getNextShortId()] = { dataId, type };
                 }
-                this._dataPointsByDataId = getAsDataPointsByDataId(dataPointConfigsByShortId);
                 this._dataPointConfigsByShortId = dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
+                const oldDataPointsByDataId = this._dataPointsByDataId;
+                this._dataPointsByDataId = getAsDataPointsByDataId(dataPointConfigsByShortId);
+                // Clean up old data points not existing anymore
+                if (oldDataPointsByDataId) {
+                    for (const dataId in oldDataPointsByDataId) {
+                        if (oldDataPointsByDataId.hasOwnProperty(dataId)) {
+                            const oldDataPoint = oldDataPointsByDataId[dataId]; // TODO: ???
+                            /* if (oldDataPoint.onRefresh) {
+                                this._dataPointsByDataId[dataId] = oldDataPoint;
+                            } else {
+                                delete oldDataPoint.value;
+                                delete oldDataPointsByDataId[dataId];
+                            } */
+                        }
+                    }
+                }
                 if (this._isOpen && send === true) {
                     Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER, { type: TransmissionType.DataPointsConfigurationRefresh, dataPointConfigsByShortId });
                 }
@@ -441,8 +458,10 @@
                     Core.validateAs('DataAccessObject', this._source, ['SubscribeData:function', 'UnsubscribeData:function']);
                     for (const dataId in this._onEventCallbacks) {
                         if (this._onEventCallbacks.hasOwnProperty(dataId)) {
-                            const shortId = this._dataPointsByDataId[dataId];
-                            const onRefresh = subscriptionShorts.indexOf(shortId) < 0 ? this._onEventCallbacks[dataId] : false;
+                            // TODO: This was 'const shortId = this._dataPointsByDataId[dataId];' but this makes no sense as _dataPointsByDataId stores objects like {shortId, type}
+                            const dataPoint = this._dataPointsByDataId[dataId]; 
+                            // TODO: What are we doing here?
+                            const onRefresh = dataPoint && subscriptionShorts.indexOf(dataPoint.shortId) < 0 ? this._onEventCallbacks[dataId] : false;
                             if (onRefresh) {
                                 delete this._onEventCallbacks[dataId];
                                 this._source.UnsubscribeData(dataId, onRefresh);
