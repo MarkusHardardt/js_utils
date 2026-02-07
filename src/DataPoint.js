@@ -74,10 +74,12 @@
                 }
             }
             if (alreadySubscribed) {
-                try {
-                    onRefresh(this._value);
-                } catch (error) {
-                    throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
+                if (this._value !== null) {
+                    try {
+                        onRefresh(this._value);
+                    } catch (error) {
+                        throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
+                    }
                 }
             } else {
                 this._subscribers.push(onRefresh);
@@ -85,10 +87,12 @@
                     if (this._unsubscribeDelayTimer) {
                         clearTimeout(this._unsubscribeDelayTimer);
                         this._unsubscribeDelayTimer = null;
-                        try {
-                            onRefresh(this._value);
-                        } catch (error) {
-                            throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
+                        if (this._value !== null) {
+                            try {
+                                onRefresh(this._value);
+                            } catch (error) {
+                                throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
+                            }
                         }
                     } else {
                         // If first subscription we subscribe on our parent which should result in firering the refresh event
@@ -96,10 +100,12 @@
                     }
                 } else {
                     // If we cannot subscribe or it is not the first subscription we fire the event manually
-                    try {
-                        onRefresh(this._value);
-                    } catch (error) {
-                        throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
+                    if (this._value !== null) {
+                        try {
+                            onRefresh(this._value);
+                        } catch (error) {
+                            throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
+                        }
                     }
                 }
             }
@@ -144,10 +150,12 @@
             if (this._subscribers && !this._equal(this._value, value)) {
                 this._value = value;
                 for (const onRefresh of this._subscribers) {
-                    try {
-                        onRefresh(value);
-                    } catch (error) {
-                        this._onError(`Failed calling onRefresh(value):\n${error.message}`);
+                    if (value !== null) {
+                        try {
+                            onRefresh(value);
+                        } catch (error) {
+                            this._onError(`Failed calling onRefresh(value):\n${error.message}`);
+                        }
                     }
                 }
             }

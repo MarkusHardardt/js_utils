@@ -157,7 +157,7 @@
                         const dataPoint = this._dataPointsByDataId[dataId];
                         if (dataPoint) {
                             dataPoint.value = value;
-                            if (dataPoint.onRefresh) {
+                            if (dataPoint.onRefresh && value !== null) {
                                 try {
                                     dataPoint.onRefresh(value);
                                 } catch (error) {
@@ -214,7 +214,7 @@
                                         continue;
                                     }
                                     dataPoint.value = data.values[shortId];
-                                    if (dataPoint.onRefresh) {
+                                    if (dataPoint.onRefresh && dataPoint.value !== null) {
                                         try {
                                             dataPoint.onRefresh(dataPoint.value);
                                         } catch (error) {
@@ -360,22 +360,26 @@
                 this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
             }
 
-            SetDataPoints(dataPointConfigs, send) {
+            SetDataPoints(dataPointConfigs, send) { // TODO: What about 'send'? When should this be true or false???
                 if (!Array.isArray(dataPointConfigs)) {
                     throw new Error('Data points must be passed as an array');
                 }
+                console.log(`### ==> SetDataPoints(${dataPointConfigs.length})`);
+                // Build object containing all datapoints stored under e new generated unique id like:
+                // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
                 const dataPointConfigsByShortId = {};
                 for (const dpConf of dataPointConfigs) {
                     const dataId = dpConf.id;
-                    const type = dpConf.type;
                     if (typeof dataId !== 'string') {
                         throw new Error(`Data point has invalid data id: ${dataId}`);
-                    } else if (typeof type !== 'number') {
+                    }
+                    const type = dpConf.type;
+                    if (typeof type !== 'number') {
                         throw new Error(`Data point has invalid type: ${type}`);
                     }
                     dataPointConfigsByShortId[this._getNextShortId()] = { dataId, type };
                 }
-                this._dataPointConfigsByShortId = dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
+                this._dataPointConfigsByShortId = dataPointConfigsByShortId;
                 const oldDataPointsByDataId = this._dataPointsByDataId;
                 this._dataPointsByDataId = getAsDataPointsByDataId(dataPointConfigsByShortId);
                 // Copy value and callback if old datapoint found in new data points
@@ -387,8 +391,10 @@
                             if (dataPoint) {
                                 dataPoint.value = oldDataPoint.value;
                                 dataPoint.onRefresh = oldDataPoint.onRefresh;
+                                console.log(`### ==> reused old datapoint items '${dataId}' (sub: ${(typeof oldDataPoint.onRefresh === 'function')}, old:${oldDataPoint.shortId}, new:${dataPoint.shortId})`);
                             } else if (oldDataPoint.onRefresh) {
                                 this._dataPointsByDataId[dataId] = oldDataPoint;
+                                console.log(`### ==> reused whole old datapoint '${dataId}' (sub: ${(typeof oldDataPoint.onRefresh === 'function')}, old:${oldDataPoint.shortId})`);
                             }
                             delete oldDataPointsByDataId[dataId];
                         }
@@ -464,6 +470,7 @@
                             if (dataPoint.onRefresh && subscriptionShorts.indexOf(dataPoint.shortId) < 0) {
                                 try {
                                     this._source.UnsubscribeData(dataId, dataPoint.onRefresh);
+                                    console.log(`### ==> unsubscribed datapoint '${dataId}' (short:${dataPoint.shortId})`);
                                 } catch (error) {
                                     this.onError(`Failed unsubscribing data point with id '${dataId}':\n${error.message}`);
                                 }
@@ -489,6 +496,7 @@
                                     };
                                     try {
                                         this._source.SubscribeData(dataId, dataPoint.onRefresh);
+                                        console.log(`### ==> subscribed datapoint '${dataId}' (short:${dataPoint.shortId})`);
                                     } catch (error) {
                                         this.onError(`Failed subscribing data point with id '${dataId}':\n${error.message}`);
                                     }
@@ -497,7 +505,7 @@
                                 this.onError(`Cannot find data point with id '${dataId}' for short id '${shortId}'`);
                             }
                         } else {
-                            this.onError(`Cannot subscribe: ${shortId}`); // TODO: Why we land here after stopping a task when items are monitored?
+                            this.onError(`Cannot subscribe unknown data point: ${shortId}, stored:${JSON.stringify(this._dataPointConfigsByShortId)}`); // TODO: Why we land here after stopping a task when items are monitored?
                         }
                     }, true);
                 }
