@@ -96,6 +96,7 @@
                         }
                     } else {
                         // If first subscription we subscribe on our parent which should result in firering the refresh event
+                        console.log('### ==> Try Node.Subscribe(onRefresh)');
                         this._source.Subscribe(this._onRefresh); // Note: This may throw an exception if subscription failed
                     }
                 } else {
@@ -123,6 +124,7 @@
                             this._unsubscribeDelayTimer = setTimeout(() => {
                                 this._unsubscribeDelayTimer = null;
                                 try {
+                                    console.log('### ==> Try Node.Unsubscribe(onRefresh)');
                                     this._source.Unsubscribe(this._onRefresh);
                                 } catch (error) {
                                     this._onError(`Failed unsubscribing: ${error.message}`);
