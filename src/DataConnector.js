@@ -197,6 +197,7 @@
                 if (this._open) {
                     switch (data.type) {
                         case TransmissionType.DataPointsConfigurationRefresh:
+                            console.log(`### ==> DataPointsConfigurationRefresh: ${JSON.stringify(data.dataPointConfigsByShortId)}`);
                             this._setDataPointConfigsByShortId(data.dataPointConfigsByShortId);
                             this._sendSubscriptionRequest();
                             break;
@@ -259,6 +260,7 @@
                     for (const dataId in oldDataPointsByDataId) {
                         if (oldDataPointsByDataId.hasOwnProperty(dataId)) {
                             const oldDataPoint = oldDataPointsByDataId[dataId];
+                            delete oldDataPoint.shortId;
                             if (oldDataPoint.onRefresh) {
                                 this._dataPointsByDataId[dataId] = oldDataPoint;
                             } else {
@@ -303,7 +305,7 @@
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                             const dataPoint = this._dataPointsByDataId[dataId];
-                            if (dataPoint.onRefresh) {
+                            if (dataPoint.shortId && dataPoint.onRefresh) {
                                 subs += dataPoint.shortId;
                             }
                         }
@@ -311,6 +313,7 @@
                     Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER,
                         { type: TransmissionType.SubscriptionRequest, subs }
                     );
+                    console.log(`### ==> SubscriptionRequest: '${subs}'`);
                 }
             }
         }
