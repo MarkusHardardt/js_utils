@@ -89,11 +89,7 @@
                     throw new Error(`Invalid data id: '${dataId}'`);
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
-                if (!dataPoint) {
-                    throw new Error(`Unknown data point for id '${dataId}' to get type`);
-                } else {
-                    return dataPoint.type;
-                }
+                return dataPoint ? dataPoint.type : Core.DataType.Unknown;
             }
 
             SubscribeData(dataId, onRefresh) {
@@ -102,11 +98,17 @@
                 } else if (typeof onRefresh !== 'function') {
                     throw new Error(`Subscription callback onRefresh(value) for id '${dataId}' is not a function`);
                 }
-                const dataPoint = this._dataPointsByDataId[dataId];
+                let dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
-                    throw new Error(`Unknown data point for id '${dataId}' for subscription`);
-                } else if (dataPoint.onRefresh) {
-                    throw new Error(`Data point for id '${dataId}' already has subscription`);
+                    dataPoint = this._dataPointsByDataId[dataId] = {
+                        value: null,
+                        Subscribe: onRefresh => this.SubscribeData(dataId, onRefresh),
+                        Unsubscribe: onRefresh => this.UnsubscribeData(dataId, onRefresh)
+                    };
+                } else if (dataPoint.onRefresh === onRefresh) {
+                    this._onError(`Data id '${dataId}' is already subscribed with this callback`);
+                } else if (dataPoint.onRefresh !== null) {
+                    this._onError(`Data id '${dataId}' is already subscribed with another callback`);
                 }
                 dataPoint.onRefresh = onRefresh;
                 this._subscriptionsChanged();
@@ -127,15 +129,18 @@
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
-                    throw new Error(`Data point with id '${dataId}' is not available to unsubscribe`);
+                    this._onError(`Data point with id '${dataId}' is not available to unsubscribe`);
+                    return;
                 } else if (dataPoint.onRefresh === null) {
                     this._onError(`Data point with id '${dataId}' is not subscribed`);
                 } else if (dataPoint.onRefresh !== onRefresh) {
-                    this._onError(`Data point with id '${dataId}' is subscribed with a different callback`);
-                } else {
-                    dataPoint.onRefresh = null;
-                    this._subscriptionsChanged();
+                    this._onError(`Data point with id '${dataId}' is subscribed with a another callback`);
                 }
+                dataPoint.onRefresh = null;
+                if (!dataPoint.shortId) { // If not exists on target system we delete
+                    delete this._dataPointsByDataId[dataId];
+                }
+                this._subscriptionsChanged();
             }
 
             Read(dataId, onResponse, onError) {
@@ -197,7 +202,7 @@
                 if (this._open) {
                     switch (data.type) {
                         case TransmissionType.DataPointsConfigurationRefresh:
-                            console.log(`### ==> DataPointsConfigurationRefresh: ${JSON.stringify(data.dataPointConfigsByShortId)}`);
+                            console.log(`### ==> DataPointsConfigurationRefresh: ${JSON.stringify(data.dataPointConfigsByShortId)}`); // TODO: Remove
                             this._setDataPointConfigsByShortId(data.dataPointConfigsByShortId);
                             this._sendSubscriptionRequest();
                             break;
@@ -247,15 +252,31 @@
 
             _setDataPointConfigsByShortId(dataPointConfigsByShortId) {
                 this._dataPointConfigsByShortId = dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
-                const oldDataPointsByDataId = this._dataPointsByDataId;
+                const that = this, oldDataPointsByDataId = this._dataPointsByDataId;
                 this._dataPointsByDataId = getAsDataPointsByDataId(dataPointConfigsByShortId);
                 // Check for all received data points if an old data point exists and if the case copy the content
                 for (const dataId in this._dataPointsByDataId) {
                     if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
-                        this._prepareDataPoint(dataId, this._dataPointsByDataId[dataId], oldDataPointsByDataId);
+                        const dataPoint = this._dataPointsByDataId[dataId];
+                        (function () {
+                            const did = dataId;
+                            const oldDataPoint = oldDataPointsByDataId ? oldDataPointsByDataId[dataId] : null;
+                            if (oldDataPoint) {
+                                dataPoint.value = oldDataPoint.value;
+                                dataPoint.onRefresh = oldDataPoint.onRefresh;
+                                dataPoint.Subscribe = oldDataPoint.Subscribe;
+                                dataPoint.Unsubscribe = oldDataPoint.Unsubscribe;
+                                delete oldDataPointsByDataId[dataId];
+                            } else {
+                                dataPoint.value = null;
+                                // Note: We must use closure 'did' here instead of 'dataId'
+                                dataPoint.Subscribe = onRefresh => that.SubscribeData(did, onRefresh);
+                                dataPoint.Unsubscribe = onRefresh => that.UnsubscribeData(did, onRefresh);
+                            }
+                        }());
                     }
                 }
-                // Clean up old data points not existing anymore
+                // Clean up old data points not existing anymore and that are not subscribed
                 if (oldDataPointsByDataId) {
                     for (const dataId in oldDataPointsByDataId) {
                         if (oldDataPointsByDataId.hasOwnProperty(dataId)) {
@@ -265,25 +286,12 @@
                                 this._dataPointsByDataId[dataId] = oldDataPoint;
                             } else {
                                 delete oldDataPoint.value;
+                                delete oldDataPoint.Subscribe;
+                                delete oldDataPoint.Unsubscribe;
                                 delete oldDataPointsByDataId[dataId];
                             }
                         }
                     }
-                }
-            }
-
-            _prepareDataPoint(dataId, dataPoint, oldDataPointsByDataId) {
-                const oldDataPoint = oldDataPointsByDataId ? oldDataPointsByDataId[dataId] : null;
-                if (!oldDataPoint) {
-                    dataPoint.value = null;
-                    dataPoint.Subscribe = onRefresh => this.SubscribeData(dataId, onRefresh);
-                    dataPoint.Unsubscribe = onRefresh => this.UnsubscribeData(dataId, onRefresh);
-                } else {
-                    dataPoint.value = oldDataPoint.value;
-                    dataPoint.onRefresh = oldDataPoint.onRefresh;
-                    dataPoint.Subscribe = oldDataPoint.Subscribe;
-                    dataPoint.Unsubscribe = oldDataPoint.Unsubscribe;
-                    delete oldDataPointsByDataId[dataId];
                 }
             }
 
