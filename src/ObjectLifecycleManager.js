@@ -8232,38 +8232,43 @@
     }
     ObjectLifecycleManager.kill = killObjectSubTree;
 
-    function refreshAllRecursive(date) {
-        for (let i = 0, l = s_root_objects.length; i < l; i++) {
-            // first we call all found user refresh functions
-            processObjectSubTree(s_root_objects[i], true, undefined, processObject => {
-                if (processObject._hmi_alive === true) {
-                    if (typeof processObject.refresh === 'function') {
-                        try {
-                            processObject.refresh(processObject, date);
-                        } catch (error) {
-                            console.error(`Failed calling refresh: '${error}' '${processObject.refresh.toString()}'`);
-                        }
+    function refreshObjectRecursive(object, date) {
+        // first we call all found user refresh functions
+        processObjectSubTree(object, true, undefined, processObject => {
+            if (processObject._hmi_alive === true) {
+                if (typeof processObject.refresh === 'function') {
+                    try {
+                        processObject.refresh(processObject, date);
+                    } catch (error) {
+                        console.error(`Failed calling refresh: '${error}' '${processObject.refresh.toString()}'`);
                     }
                 }
-            });
-            // next we call system _hmi_refreshs
-            processObjectSubTree(s_root_objects[i], true, undefined, processObject => {
-                if (processObject._hmi_alive === true) {
-                    const refreshs = processObject._hmi_refreshs;
-                    if (refreshs !== undefined && Array.isArray(refreshs)) {
-                        for (let r = 0, rl = refreshs.length; r < rl; r++) {
-                            const func = refreshs[r];
-                            if (typeof func === 'function') {
-                                try {
-                                    func(date);
-                                } catch (exc) {
-                                    console.error(`Failed calling _hmi_refresh: '${exc}' '${func.toString()}'`);
-                                }
+            }
+        });
+        // next we call system _hmi_refreshs
+        processObjectSubTree(object, true, undefined, processObject => {
+            if (processObject._hmi_alive === true) {
+                const refreshs = processObject._hmi_refreshs;
+                if (refreshs !== undefined && Array.isArray(refreshs)) {
+                    for (let r = 0, rl = refreshs.length; r < rl; r++) {
+                        const func = refreshs[r];
+                        if (typeof func === 'function') {
+                            try {
+                                func(date);
+                            } catch (exc) {
+                                console.error(`Failed calling _hmi_refresh: '${exc}' '${func.toString()}'`);
                             }
                         }
                     }
                 }
-            });
+            }
+        });
+    }
+    ObjectLifecycleManager.refreshObject = refreshObjectRecursive;
+
+    function refreshAllRecursive(date) {
+        for (const object of s_root_objects) {
+            refreshObjectRecursive(object, date);
         }
     }
     ObjectLifecycleManager.refresh = refreshAllRecursive;
