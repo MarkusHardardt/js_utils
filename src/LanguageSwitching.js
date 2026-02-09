@@ -6,6 +6,8 @@
     const Common = isNodeJS ? require('./Common.js') : root.Common;
     const ContentManager = isNodeJS ? require('./ContentManager.js') : root.ContentManager;
 
+    const DEFAULT_VALUE_FOR_NOT_EXISTS = '???';
+
     class Handler {
         constructor(cms) {
             this._cms = cms;
@@ -68,11 +70,15 @@
             } else if (typeof onRefresh !== 'function') {
                 throw new Error(`Subscription callback onRefresh(value) for id '${dataId}' is not a function`);
             }
-            const dataPoint = this._dataPoints[dataId];
+            let dataPoint = this._dataPoints[dataId];
             if (!dataPoint) {
-                throw new Error(`Language value '${dataId}' is not available to subscribe`);
+                // If no data point is available, we create a new one but mark it as non-existent.
+                // If the corresponding data point is added to the database later, the already existing callback will be called from then on automatically.
+                dataPoint = this._dataPoints[dataId] = { exists: false, value: DEFAULT_VALUE_FOR_NOT_EXISTS };
+            } else if (dataPoint.onRefresh === onRefresh) {
+                this._onError(`Data id '${dataId}' is already subscribed with this callback`);
             } else if (dataPoint.onRefresh !== null) {
-                this._onError(`Data id '${dataId}' is already subscribed`);
+                this._onError(`Data id '${dataId}' is already subscribed with another callback`);
             }
             dataPoint.onRefresh = onRefresh;
             try {
@@ -90,13 +96,16 @@
             }
             const dataPoint = this._dataPoints[dataId];
             if (!dataPoint) {
-                throw new Error(`Language value with id '${dataId}' is not available to unsubscribe`);
+                this._onError(`Language value with id '${dataId}' is not available to unsubscribe`);
+                return;
             } else if (dataPoint.onRefresh === null) {
                 this._onError(`Language value with id '${dataId}' is not subscribed`);
             } else if (dataPoint.onRefresh !== onRefresh) {
-                this._onError(`Language value with id '${dataId}' is subscribed with a different callback`);
-            } else {
-                dataPoint.onRefresh = null;
+                this._onError(`Language value with id '${dataId}' is subscribed with a another callback`);
+            }
+            dataPoint.onRefresh = null;
+            if (!dataPoint.exists) {
+                delete this._dataPoints[dataId];
             }
         }
 
@@ -139,10 +148,18 @@
                         dataPoint.value = values[dataId];
                     }
                 }
-                // Check all data points and if not available as label or html value than delete
+                // Check all data points and if not available as label or html value and also not subscribed than delete
                 for (const dataId in this._dataPoints) {
-                    if (this._dataPoints.hasOwnProperty(dataId) && values[dataId] === undefined) {
-                        delete this._dataPoints[dataId];
+                    if (this._dataPoints.hasOwnProperty(dataId)) {
+                        const dataPoint = this._dataPoints[dataId];
+                        dataPoint.exists = values[dataId] !== undefined;
+                        if (!dataPoint.exists) {
+                            if (!dataPoint.onRefresh) {
+                                delete this._dataPoints[dataId];
+                            } else {
+                                dataPoint.value = DEFAULT_VALUE_FOR_NOT_EXISTS;
+                            }
+                        }
                     }
                 }
                 // After loaded notify subscribers
