@@ -239,6 +239,17 @@
                     taskObject.task = task;
                     ObjectLifecycleManager.create(taskObject.task, null, () => {
                         console.log(`✅ Started task '${path}' with object '${taskObject.config.taskObject}'`);
+                        if (typeof taskObject.config.cycleMillis === 'number' && taskObject.config.cycleMillis > 0) {
+                            taskObject.intervalTimer = setInterval(() => {
+                                try {
+                                    ObjectLifecycleManager.refreshObject(taskObject.task, new Date());
+                                } catch (error) {
+                                    console.error(`❌ Failed refreshing task '${path}' with object '${taskObject.config.taskObject}':\n${error}`);
+                                    clearInterval(taskObject.intervalTimer);
+                                    delete taskObject.intervalTimer;
+                                }
+                            }, Math.ceil(taskObject.config.cycleMillis));
+                        }
                         onSuccess();
                     }, error => {
                         const message = `Failed starting task '${path}' with object '${taskObject.config.taskObject}':\n${error}`;
@@ -257,6 +268,10 @@
                 onError(`Task '${path}' has not been started`);
             } else {
                 const task = taskObject.task;
+                if (taskObject.intervalTimer) {
+                    clearInterval(taskObject.intervalTimer);
+                    delete taskObject.intervalTimer;
+                }
                 ObjectLifecycleManager.kill(task, () => {
                     delete taskObject.task;
                     console.log(`✅ Stopped task '${path}' with object '${taskObject.config.taskObject}'`);
