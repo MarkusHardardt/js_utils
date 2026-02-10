@@ -7909,7 +7909,7 @@
         }
     }
 
-    var s_root_objects = [];
+    const s_root_objects = [];
 
     const LifecycleLevel = Object.freeze({ Idle: 0, Initialized: 1, BaseFeaturesAdded: 2, DOMFeaturesAdded: 3, ListenersAdded: 4, Running: 5 });
     const LifecycleState = Object.freeze({
@@ -8077,7 +8077,7 @@
             onError('Invalid object');
         }
     }
-    ObjectLifecycleManager.create = createObjectSubTree;
+    ObjectLifecycleManager.createObject = createObjectSubTree;
 
     function killObjectSubTree(object, onSuccess, onError, onLifecycleStateChanged) {
         if (object === undefined || object === null || typeof object !== 'object' && Array.isArray(object)) {
@@ -8230,7 +8230,7 @@
             }, onError, () => onError(`timeout expired during 'kill' procedure (${timeout} ms)`), timeout);
         }
     }
-    ObjectLifecycleManager.kill = killObjectSubTree;
+    ObjectLifecycleManager.killObject = killObjectSubTree;
 
     function refreshObjectRecursive(object, date) {
         // first we call all found user refresh functions
@@ -8266,12 +8266,12 @@
     }
     ObjectLifecycleManager.refreshObject = refreshObjectRecursive;
 
-    function refreshAllRecursive(date) {
+    function refreshRootObjects(date) {
         for (const object of s_root_objects) {
             refreshObjectRecursive(object, date);
         }
     }
-    ObjectLifecycleManager.refresh = refreshAllRecursive;
+    ObjectLifecycleManager.refreshRootObjects = refreshRootObjects;
 
     /**
      * Add a new type to the visualization object handler.

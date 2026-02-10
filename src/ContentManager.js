@@ -2303,7 +2303,7 @@
                     }
                     adapter.AddValue(`${taskTable.name}.${taskTable.taskObjectColumn}`, SqlHelper.escape(id));
                     adapter.AddValue(`${taskTable.name}.${taskTable.flagsColumn}`, SqlHelper.escape('0'));
-                    adapter.AddValue(`${taskTable.name}.${taskTable.cycleIntervalMillisColumn}`, SqlHelper.escape('0'));
+                    adapter.AddValue(`${taskTable.name}.${taskTable.cycleIntervalMillisColumn}`, SqlHelper.escape('1000'));
                     adapter.PerformInsert(taskTable.name, () => {
                         affectedTypes[taskTable.type] = true;
                         onSuc();

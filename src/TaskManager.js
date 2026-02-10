@@ -237,18 +237,12 @@
             } else {
                 hmi.env.cms.GetObject(taskObject.config.taskObject, undefined, ContentManager.PARSE, task => {
                     taskObject.task = task;
-                    ObjectLifecycleManager.create(taskObject.task, null, () => {
-                        console.log(`✅ Started task '${path}' with object '${taskObject.config.taskObject}'`);
+                    ObjectLifecycleManager.createObject(taskObject.task, null, () => {
                         if (typeof taskObject.config.cycleMillis === 'number' && taskObject.config.cycleMillis > 0) {
-                            taskObject.intervalTimer = setInterval(() => {
-                                try {
-                                    ObjectLifecycleManager.refreshObject(taskObject.task, new Date());
-                                } catch (error) {
-                                    console.error(`❌ Failed refreshing task '${path}' with object '${taskObject.config.taskObject}':\n${error}`);
-                                    clearInterval(taskObject.intervalTimer);
-                                    delete taskObject.intervalTimer;
-                                }
-                            }, Math.ceil(taskObject.config.cycleMillis));
+                            taskObject.intervalTimer = setInterval(() => ObjectLifecycleManager.refreshObject(taskObject.task, new Date()), Math.ceil(taskObject.config.cycleMillis));
+                            console.log(`✅ Started task '${path}' with object '${taskObject.config.taskObject}' (cycles at ${taskObject.config.cycleMillis} ms)`);
+                        } else {
+                            console.log(`✅ Started task '${path}' with object '${taskObject.config.taskObject}' (no cycles)`);
                         }
                         onSuccess();
                     }, error => {
@@ -272,7 +266,7 @@
                     clearInterval(taskObject.intervalTimer);
                     delete taskObject.intervalTimer;
                 }
-                ObjectLifecycleManager.kill(task, () => {
+                ObjectLifecycleManager.killObject(task, () => {
                     delete taskObject.task;
                     console.log(`✅ Stopped task '${path}' with object '${taskObject.config.taskObject}'`);
                     onSuccess();

@@ -4,9 +4,9 @@
     // create 'hmi' environment object
     const hmi = {
         // add hmi-object-framweork
-        create: (object, element, onSuccess, onError, initData) =>
-            ObjectLifecycleManager.create(object, element, onSuccess, onError, hmi, initData),
-        kill: ObjectLifecycleManager.kill,
+        createObject: (object, element, onSuccess, onError, initData) =>
+            ObjectLifecycleManager.createObject(object, element, onSuccess, onError, hmi, initData),
+        killObject: ObjectLifecycleManager.killObject,
         showDialog: (object, onSuccess, onError) =>
             ObjectLifecycleManager.showDialog(hmi, object, onSuccess, onError),
         showDefaultConfirmationDialog: (object, onSuccess, onError) =>
@@ -122,7 +122,7 @@
             }
         });
         tasks.push((onSuccess, onError) => {
-            Client.startRefreshCycle(config.requestAnimationFrameCycle, () => ObjectLifecycleManager.refresh(new Date()));
+            Client.startRefreshCycle(config.requestAnimationFrameCycle, () => ObjectLifecycleManager.refreshRootObjects(new Date()));
             onSuccess();
         });
         // load hmi
@@ -132,8 +132,8 @@
             const body = $(document.body);
             body.empty();
             body.addClass('hmi-body');
-            hmi.create(rootObject, body, () => console.log('js hmi started'), error => console.error(error));
-            body.on('unload', () => hmi.kill(rootObject, () => console.log('js hmi stopped'), error => console.error(error)));
+            hmi.createObject(rootObject, body, () => console.log('js hmi started'), error => console.error(error));
+            body.on('unload', () => hmi.killObject(rootObject, () => console.log('js hmi stopped'), error => console.error(error)));
         }, error => console.error(error));
     });
 }(globalThis));

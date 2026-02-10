@@ -363,14 +363,14 @@
     class AccessRouterHandler {
         constructor() {
             this._dataConnectors = [];
-            this._dataAccesObjects = {};
+            this._dataAccessObjects = {};
             this._getDataAccessObject = dataId => {
                 const match = targetIdRegex.exec(dataId);
                 if (!match) {
                     throw new Error(`Invalid id: '${dataId}'`);
                 }
                 const targetId = match[1];
-                const accObj = this._dataAccesObjects[targetId];
+                const accObj = this._dataAccessObjects[targetId];
                 if (!accObj) {
                     throw new Error(`No data access object registered for target '${targetId}' and data id: '${dataId}'`);
                 }
@@ -405,7 +405,7 @@
                 throw new Error(`Invalid target id: '${targetId}'`);
             } else if (!targetIdValidRegex.test(targetId)) {
                 throw new Error(`Invalid target id format: '${targetId}'`);
-            } else if (this._dataAccesObjects[targetId] !== undefined) {
+            } else if (this._dataAccessObjects[targetId] !== undefined) {
                 throw new Error(`Target id: '${targetId}' is already registered`);
             } else {
                 Common.validateAsDataAccessServerObject(accessObject, true);
@@ -413,7 +413,7 @@
                 function getRawDataId(dataId) {
                     return dataId.substring(prefixLength);
                 }
-                this._dataAccesObjects[targetId] = {
+                this._dataAccessObjects[targetId] = {
                     accessObject,
                     GetType: dataId => accessObject.GetType(getRawDataId(dataId)),
                     SubscribeData: (dataId, onRefresh) => accessObject.SubscribeData(getRawDataId(dataId), onRefresh),
@@ -430,12 +430,12 @@
                 throw new Error(`Invalid target id: '${targetId}'`);
             } else if (!targetIdValidRegex.test(targetId)) {
                 throw new Error(`Invalid target id format: '${targetId}'`);
-            } else if (this._dataAccesObjects[targetId] === undefined) {
+            } else if (this._dataAccessObjects[targetId] === undefined) {
                 throw new Error(`Target id '${targetId}' is not registered`);
-            } else if (this._dataAccesObjects[targetId].accessObject !== accessObject) {
+            } else if (this._dataAccessObjects[targetId].accessObject !== accessObject) {
                 throw new Error(`Target id '${targetId}' is registered for different data access object`);
             } else {
-                delete this._dataAccesObjects[targetId];
+                delete this._dataAccessObjects[targetId];
                 this._updateDataConnectors();
             }
         }
@@ -449,9 +449,9 @@
 
         _getDataPoints() {
             const result = [];
-            for (const targetId in this._dataAccesObjects) {
-                if (this._dataAccesObjects.hasOwnProperty(targetId)) {
-                    const object = this._dataAccesObjects[targetId];
+            for (const targetId in this._dataAccessObjects) {
+                if (this._dataAccessObjects.hasOwnProperty(targetId)) {
+                    const object = this._dataAccessObjects[targetId];
                     const dataPoints = object.accessObject.GetDataPoints();
                     for (const dataPoint of dataPoints) {
                         result.push({ id: `${targetId}:${dataPoint.id}`, type: dataPoint.type });
