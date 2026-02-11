@@ -102,13 +102,14 @@
                 if (!dataPoint) {
                     dataPoint = this._dataPointsByDataId[dataId] = {
                         value: null,
+                        onRefresh: null,
                         Subscribe: onRefresh => this.SubscribeData(dataId, onRefresh),
                         Unsubscribe: onRefresh => this.UnsubscribeData(dataId, onRefresh)
                     };
                 } else if (dataPoint.onRefresh === onRefresh) {
-                    this._onError(`Data id '${dataId}' is already subscribed with this callback`);
+                    this.onError(`Data id '${dataId}' is already subscribed with this callback`);
                 } else if (dataPoint.onRefresh !== null) {
-                    this._onError(`Data id '${dataId}' is already subscribed with another callback`);
+                    this.onError(`Data id '${dataId}' is already subscribed with another callback`);
                 }
                 dataPoint.onRefresh = onRefresh;
                 this._subscriptionsChanged();
@@ -129,12 +130,12 @@
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
-                    this._onError(`Data point with id '${dataId}' is not available to unsubscribe`);
+                    this.onError(`Data point with id '${dataId}' is not available to unsubscribe`);
                     return;
                 } else if (dataPoint.onRefresh === null) {
-                    this._onError(`Data point with id '${dataId}' is not subscribed`);
+                    this.onError(`Data point with id '${dataId}' is not subscribed`);
                 } else if (dataPoint.onRefresh !== onRefresh) {
-                    this._onError(`Data point with id '${dataId}' is subscribed with a another callback`);
+                    this.onError(`Data point with id '${dataId}' is subscribed with a another callback`);
                 }
                 dataPoint.onRefresh = null;
                 if (!dataPoint.shortId) { // If not exists on target system we delete
@@ -157,7 +158,7 @@
                         try {
                             onResponse(value);
                         } catch (error) {
-                            this._onError(`Failed calling onResponse() for id '${dataId}':\n${error.message}`);
+                            this.onError(`Failed calling onResponse() for id '${dataId}':\n${error.message}`);
                         }
                         const dataPoint = this._dataPointsByDataId[dataId];
                         if (dataPoint) {
@@ -166,7 +167,7 @@
                                 try {
                                     dataPoint.onRefresh(value);
                                 } catch (error) {
-                                    this._onError(`Failed calling onRefresh(value) for id '${dataId}':\n${error.message}`);
+                                    this.onError(`Failed calling onRefresh(value) for id '${dataId}':\n${error.message}`);
                                 }
                             }
                         }
@@ -225,7 +226,7 @@
                                             dataPoint.onRefresh(dataPoint.value);
                                             console.log(`Refreshed '${dpConfByShortId.dataId}'/${shortId}: ${dataPoint.value}`);
                                         } catch (error) {
-                                            this._onError(`Failed calling onRefresh(value) for id '${dpConfByShortId.dataId}':\n${error.message}`);
+                                            this.onError(`Failed calling onRefresh(value) for id '${dpConfByShortId.dataId}':\n${error.message}`);
                                         }
                                     }
                                 }
@@ -269,6 +270,7 @@
                                 delete oldDataPointsByDataId[dataId];
                             } else {
                                 dataPoint.value = null;
+                                dataPoint.onRefresh = null;
                                 // Note: We must use closure 'did' here instead of 'dataId'
                                 dataPoint.Subscribe = onRefresh => that.SubscribeData(did, onRefresh);
                                 dataPoint.Unsubscribe = onRefresh => that.UnsubscribeData(did, onRefresh);
@@ -286,6 +288,7 @@
                                 this._dataPointsByDataId[dataId] = oldDataPoint;
                             } else {
                                 delete oldDataPoint.value;
+                                delete oldDataPoint.onRefresh;
                                 delete oldDataPoint.Subscribe;
                                 delete oldDataPoint.Unsubscribe;
                                 delete oldDataPointsByDataId[dataId];
@@ -518,44 +521,6 @@
                             }
                         } else {
                             this.onError(`Cannot subscribe unknown data point: ${shortId}, stored:${JSON.stringify(this._dataPointConfigsByShortId)}`); // TODO: Why we land here after stopping a task when items are monitored?
-                        }
-                    }, true);
-                }
-            }
-
-            _updateSubscriptions_DISCARDED(subscriptionShorts) { // TODO: remove or reuse
-                if (this._isOpen) {
-                    Core.validateAs('DataAccessObject', this._source, ['SubscribeData:function', 'UnsubscribeData:function']);
-                    for (const dataId in this._onEventCallbacksByDataId) {
-                        if (this._onEventCallbacksByDataId.hasOwnProperty(dataId)) {
-                            // TODO: This was 'const shortId = this._dataPointsByDataId[dataId];' but this makes no sense as _dataPointsByDataId stores objects like {shortId, type}
-                            const dataPoint = this._dataPointsByDataId[dataId];
-                            // TODO: What are we doing here?
-                            const onRefresh = dataPoint && subscriptionShorts.indexOf(dataPoint.shortId) < 0 ? this._onEventCallbacksByDataId[dataId] : false;
-                            if (onRefresh) {
-                                delete this._onEventCallbacksByDataId[dataId];
-                                this._source.UnsubscribeData(dataId, onRefresh);
-                            }
-                        }
-                    }
-                    Regex.each(subscribeRequestShortIdRegex, subscriptionShorts, (start, end, match) => {
-                        // we are in a closure -> shortId/id will be available in onRefresh()
-                        const shortId = match[0];
-                        const dpConf = this._dataPointConfigsByShortId[shortId];
-                        if (dpConf) {
-                            if (!this._onEventCallbacksByDataId[dpConf.dataId]) {
-                                const onRefresh = value => {
-                                    if (!this._values) {
-                                        this._values = {};
-                                    }
-                                    this._values[shortId] = value;
-                                    this._valuesChanged();
-                                };
-                                this._onEventCallbacksByDataId[dpConf.dataId] = onRefresh;
-                                this._source.SubscribeData(dpConf.dataId, onRefresh);
-                            }
-                        } else {
-                            this.onError(`Cannot subscribe: ${shortId}`); // TODO: Why we land here after stopping a task when items are monitored?
                         }
                     }, true);
                 }
