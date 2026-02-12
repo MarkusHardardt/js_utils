@@ -1,5 +1,4 @@
 (function (root) {
-    // ==> file: 'DataPoint.js':
     "use strict";
     const DataPoint = {};
     const isNodeJS = typeof require === 'function';
@@ -9,7 +8,6 @@
     class Node {
         constructor() {
             this._value = null;
-            this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
             this._onRefresh = value => this._refresh(value);
             this._subscribers = [];
@@ -36,13 +34,6 @@
             }
         }
 
-        set Equal(value) {
-            if (typeof value !== 'function') {
-                throw new Error('Set value for Equal(e1, e2) is not a function');
-            }
-            this._equal = value;
-        }
-
         set OnError(value) {
             if (typeof value !== 'function') {
                 throw new Error('Set value for OnError(error) is not a function');
@@ -67,14 +58,14 @@
                 throw new Error('onRefresh(value) is not a function');
             }
             let alreadySubscribed = false;
-            for (const callback of this._subscribers) {
-                if (callback === onRefresh) {
+            for (const onRef of this._subscribers) {
+                if (onRef === onRefresh) {
                     alreadySubscribed = true;
                     this._onError('onRefresh(value) is already subscribed');
                 }
             }
             if (alreadySubscribed) {
-                if (this._value !== null) {
+                if (this._value !== undefined && this._value !== null) {
                     try {
                         onRefresh(this._value);
                     } catch (error) {
@@ -83,11 +74,11 @@
                 }
             } else {
                 this._subscribers.push(onRefresh);
-                if (this._source && this._subscribers.length === 1) {
+                if (this._source && this._subscribers.length === 1) { // If the first subscription
                     if (this._unsubscribeDelayTimer) {
                         clearTimeout(this._unsubscribeDelayTimer);
                         this._unsubscribeDelayTimer = null;
-                        if (this._value !== null) {
+                        if (this._value !== undefined && this._value !== null) {
                             try {
                                 onRefresh(this._value);
                             } catch (error) {
@@ -96,12 +87,11 @@
                         }
                     } else {
                         // If first subscription we subscribe on our parent which should result in firering the refresh event
-                        console.log('### ==> Try Node.Subscribe(onRefresh)');
                         this._source.Subscribe(this._onRefresh); // Note: This may throw an exception if subscription failed
                     }
                 } else {
                     // If we cannot subscribe or it is not the first subscription we fire the event manually
-                    if (this._value !== null) {
+                    if (this._value !== undefined && this._value !== null) {
                         try {
                             onRefresh(this._value);
                         } catch (error) {
@@ -124,7 +114,6 @@
                             this._unsubscribeDelayTimer = setTimeout(() => {
                                 this._unsubscribeDelayTimer = null;
                                 try {
-                                    console.log('### ==> Try Node.Unsubscribe(onRefresh)');
                                     this._source.Unsubscribe(this._onRefresh);
                                 } catch (error) {
                                     this._onError(`Failed unsubscribing: ${error.message}`);
@@ -140,7 +129,7 @@
             this._onError('onRefresh(value) is not subscribed');
         }
 
-        Dispose() {
+        Dispose() { // TODO: Required?
             if (this._unsubscribeDelayTimer) {
                 clearTimeout(this._unsubscribeDelayTimer);
                 this._unsubscribeDelayTimer = null;
@@ -149,10 +138,10 @@
         }
 
         _refresh(value) {
-            if (this._subscribers && !this._equal(this._value, value)) {
+            if (this._subscribers) {
                 this._value = value;
-                for (const onRefresh of this._subscribers) {
-                    if (value !== null) {
+                if (value !== undefined && value !== null) {
+                    for (const onRefresh of this._subscribers) {
                         try {
                             onRefresh(value);
                         } catch (error) {
@@ -168,7 +157,6 @@
     class AccessPoint {
         constructor() {
             this._source = null;
-            this._equal = Core.defaultEqual;
             this._onError = Core.defaultOnError;
             this._unsubscribeDelay = false;
             this._dataPointsByDataId = {};
@@ -177,7 +165,7 @@
 
         set Source(value) {
             if (this._source !== value) {
-                if (this._source !== null) {
+                if (this._source !== undefined && this._source !== null) {
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                             const dataPoint = this._dataPointsByDataId[dataId];
@@ -198,18 +186,6 @@
                             dataPoint.node.Source = dataPoint;
                         }
                     }
-                }
-            }
-        }
-
-        set Equal(value) {
-            if (typeof value !== 'function') {
-                throw new Error('Set value for Equal(e1, e2) is not a function');
-            }
-            this._equal = value;
-            for (const dataId in this._dataPointsByDataId) {
-                if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
-                    this._dataPointsByDataId[dataId].node.Equal = value;
                 }
             }
         }
@@ -239,16 +215,17 @@
         SubscribeData(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid subscription dataId: '${dataId}'`);
+            } else if (typeof onRefresh !== 'function') {
+                throw new Error('onRefresh(value) is not a function');
             }
             const dataPoints = this._dataPointsByDataId;
             let dataPoint = dataPoints[dataId];
             if (!dataPoint) {
                 const node = new Node();
                 node.UnsubscribeDelay = this._unsubscribeDelay;
-                node.Equal = this._equal;
                 node.OnError = this._onError;
                 node.Value = null;
-                function dispose() {
+                function dispose() { // TODO: Is this the best???
                     node.Dispose();
                     delete dataPoint.node;
                     delete dataPoints[dataId];
@@ -261,7 +238,7 @@
                             try {
                                 this._source.SubscribeData(dataId, onRefresh);
                             } catch (error) {
-                                dispose();
+                                dispose();// TODO: Is this the best???
                                 throw error;
                             }
                         }
@@ -270,13 +247,13 @@
                         if (this._source) {
                             try {
                                 this._source.UnsubscribeData(dataId, onRefresh);
-                                dispose();
+                                dispose();// TODO: Is this the best???
                             } catch (error) {
-                                dispose();
+                                dispose();// TODO: Is this the best???
                                 throw error;
                             }
                         } else {
-                            dispose();
+                            dispose();// TODO: Is this the best???
                         }
                     }
                 };
@@ -288,6 +265,8 @@
         UnsubscribeData(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid unsubscription dataId: ${dataId}`);
+            } else if (typeof onRefresh !== 'function') {
+                throw new Error('onRefresh(value) is not a function');
             }
             const dataPoint = this._dataPointsByDataId[dataId];
             if (!dataPoint) {

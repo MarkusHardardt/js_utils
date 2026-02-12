@@ -67,7 +67,6 @@
             constructor() {
                 super();
                 this._open = false;
-                this._equal = Core.defaultEqual;
                 this._dataPointConfigsByShortId = null;
                 this._dataPointsByDataId = {};
                 this._subscribeDelay = false;
@@ -75,13 +74,6 @@
                 this._unsubscribeDelay = false;
                 Common.validateAsDataAccessObject(this, true);
                 Common.validateAsClientConnector(this, true);
-            }
-
-            set Equal(value) {
-                if (typeof value !== 'function') {
-                    throw new Error('Set value for Equal(e1, e2) is not a function');
-                }
-                this._equal = value;
             }
 
             GetType(dataId) {
