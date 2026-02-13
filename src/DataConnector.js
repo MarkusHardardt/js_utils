@@ -24,7 +24,7 @@
             }
             this._connection = null;
             this._logging = Core.defaultLogging;
-            this._onError = Core.defaultOnError;
+            this._onError = Core.defaultOnError; // TODO: Use logging instead
             this._handler = (data, onResponse, onError) => this._handleReceived(data, onResponse, onError);
         }
 
@@ -147,10 +147,12 @@
             Read(dataId, onResponse, onError) {
                 if (!this._open) {
                     onError('Cannot Read() because not connected');
+                    return;
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
-                if (!dataPoint) {
-                    onError(`Unsupported data id for read '${dataId}'`);
+                if (!dataPoint || !dataPoint.shortId) { // This means the datapoint is unknown on server side
+                    onError(`Unknown data point with id '${dataId}' for read`);
+                    return;
                 }
                 Core.validateAs('Connection', this._connection, 'Send:function').Send(RECEIVER,
                     { type: TransmissionType.ReadRequest, shortId: dataPoint.shortId },
@@ -181,8 +183,8 @@
                     throw new Error('Cannot Write() because not connected');
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
-                if (!dataPoint) {
-                    throw new Error(`Unsupported data id '${dataId}' for write`);
+                if (!dataPoint || !dataPoint.shortId) { // This means the datapoint is unknown on server side
+                    throw new Error(`Unknown data point with id '${dataId}' for write`);
                 }
                 Core.validateAs('Connection', this._connection, 'Send:function').Send(RECEIVER,
                     { type: TransmissionType.WriteRequest, shortId: dataPoint.shortId, value }
@@ -203,7 +205,7 @@
                 if (this._open) {
                     switch (data.type) {
                         case TransmissionType.DataPointsConfigurationRefresh:
-                            this._logging('info', `DataPointsConfigurationRefresh: ${JSON.stringify(data.dataPointConfigsByShortId)}`); 
+                            this._logging('info', `DataPointsConfigurationRefresh: ${JSON.stringify(data.dataPointConfigsByShortId)}`);
                             this._setDataPointConfigsByShortId(data.dataPointConfigsByShortId);
                             this._sendSubscriptionRequest();
                             break;
@@ -333,7 +335,7 @@
     if (isNodeJS) {
 
         const SHORT_ID_PREFIX = '#';
-        const subscribeRequestShortIdRegex = /#[a-z0-9]+\b/g;
+        const subscribeRequestShortIdRegex = /#[a-z0-9]+/g;
 
         class ServerDataConnector extends BaseConnector {
             constructor() {
