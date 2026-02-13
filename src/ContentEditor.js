@@ -2304,7 +2304,8 @@
                     case HmiObjectsTableColumn.QueryParameter:
                         return row.queryParameter;
                     case HmiObjectsTableColumn.Enable:
-                        return (row.flags & ContentManager.HMI_FLAG_ENABLE) !== 0 ? 'enabled' : 'disabled';
+                        // return (row.flags & ContentManager.HMI_FLAG_ENABLE) !== 0 ? 'enabled' : 'disabled';
+                        return (row.flags & ContentManager.HMI_FLAG_ENABLE) !== 0 ? '☑️' : '☐';
                     default:
                         return '';
                 }
@@ -2428,7 +2429,8 @@
                 }
                 if (flags !== selectedData.flags) {
                     selectedData.flags = flags;
-                    table.hmi_value(selectedDataIndex, HmiObjectsTableColumn.Enable, value ? 'enabled' : 'disabled');
+                    // table.hmi_value(selectedDataIndex, HmiObjectsTableColumn.Enable, value ? 'enabled' : 'disabled');
+                    table.hmi_value(selectedDataIndex, HmiObjectsTableColumn.Enable, value ? '☑️' : '☐');
                 }
             }
         }
@@ -2615,7 +2617,8 @@
                     case TaskObjectsTableColumn.CycleMillis:
                         return taskObject.config.cycleMillis;
                     case TaskObjectsTableColumn.Autorun:
-                        return (taskObject.config.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? 'enabled' : 'disabled';
+                        // return (taskObject.config.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? 'enabled' : 'disabled';
+                        return (taskObject.config.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? '☑️' : '☐';
                     case TaskObjectsTableColumn.State:
                         return ObjectLifecycleManager.formatObjectLifecycleState(taskObject.state);
                     default:
@@ -2751,7 +2754,8 @@
                 }
                 if (flags !== selectedData.config.flags) {
                     selectedData.config.flags = flags;
-                    table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.Autorun, value ? 'enabled' : 'disabled');
+                    // table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.Autorun, value ? 'enabled' : 'disabled');
+                    table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.Autorun, value ? '☑️' : '☐');
                 }
             }
         }
