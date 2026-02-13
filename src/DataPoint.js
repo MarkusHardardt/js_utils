@@ -404,7 +404,6 @@
             for (const dataConnector of this._dataConnectors) {
                 try {
                     dataConnector.SetDataPoints(dataPoints);
-                    dataConnector.SendDataPointsConfiguration();
                 } catch (error) {
                     this._onError(`Failed updating data points on connector:\n${error.message}`);
                 }

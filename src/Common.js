@@ -61,8 +61,7 @@
             'OnReopen()',
             'OnClose()',
             'OnDispose()',
-            'SetDataPoints(dataPoints)',
-            'SendDataPointsConfiguration()'
+            'SetDataPoints(dataPoints)'
         ], validateMethodArguments);
     }
     Common.validateAsServerConnector = validateAsServerConnector;
