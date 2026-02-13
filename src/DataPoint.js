@@ -265,7 +265,7 @@
     }
     DataPoint.AccessPoint = AccessPoint;
 
-    class Router {
+    class AccessRouter {
         constructor() {
             this._getDataAccessObject = null;
             Common.validateAsDataAccessObject(this, true);
@@ -305,7 +305,7 @@
             return Core.validateAs('DataAccessObject', this._getDataAccessObject(dataId), aspect);
         }
     }
-    DataPoint.Router = Router;
+    DataPoint.AccessRouter = AccessRouter;
 
     const targetIdValidRegex = /^[a-z0-9_]+$/i;
     const targetIdRegex = /^([a-z0-9_]+):.+$/i;
@@ -390,7 +390,7 @@
             } else if (this._dataAccessObjects[targetId] === undefined) {
                 throw new Error(`Target id '${targetId}' is not registered`);
             } else if (this._dataAccessObjects[targetId].accessObject !== accessObject) {
-                throw new Error(`Target id '${targetId}' is registered for different data access object`);
+                throw new Error(`Target id '${targetId}' is registered for another data access object`);
             } else {
                 delete this._dataAccessObjects[targetId];
                 this._updateDataConnectors();
