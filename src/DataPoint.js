@@ -335,7 +335,8 @@
             this._onError = value;
         }
 
-        RegisterDataConnector(dataConnector) {
+        // This will be called on server side when a new web socket connection has opened or an existing has reopened
+        RegisterDataConnector(dataConnector) { 
             for (const connector in this._dataConnectors) {
                 if (dataConnector === connector) {
                     this._onError('Data connector is already registered');
@@ -347,6 +348,7 @@
             dataConnector.SetDataPoints(dataPoints);
         }
 
+        // This will be called on server side when a web socket connection has been closed
         UnregisterDataConnector(dataConnector) {
             for (let i = 0; i < this._dataConnectors.length; i++) {
                 if (dataConnector === this._dataConnectors[i]) {
@@ -357,7 +359,7 @@
             this._onError('Data connector is not registered');
         }
 
-        RegisterDataAccesObject(targetId, accessObject) {
+        RegisterDataAccessObject(targetId, accessObject) {
             if (typeof targetId !== 'string') {
                 throw new Error(`Invalid target id '${targetId}'`);
             } else if (!targetIdValidRegex.test(targetId)) {
@@ -382,7 +384,7 @@
             }
         }
 
-        UnregisterDataAccesObject(targetId, accessObject) {
+        UnregisterDataAccessObject(targetId, accessObject) {
             if (typeof targetId !== 'string') {
                 throw new Error(`Invalid target id: '${targetId}'`);
             } else if (!targetIdValidRegex.test(targetId)) {
@@ -400,7 +402,8 @@
         _updateDataConnectors() {
             const dataPoints = this._getDataPoints();
             for (const dataConnector of this._dataConnectors) {
-                dataConnector.SetDataPoints(dataPoints, true);
+                dataConnector.SetDataPoints(dataPoints);
+                dataConnector.SendDataPointsConfiguration();
             }
         }
 

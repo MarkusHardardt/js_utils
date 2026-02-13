@@ -40,7 +40,7 @@
     const errorLogModeRegex = /^e(?:rr(?:or)?)?$/i;
     const warnLogModeRegex = /^w(?:a(?:rn)?)?$/i;
     const infoLogModeRegex = /^i(?:n(?:fo?)?)?$/i;
-    function defaultLogging() {
+    function defaultLog() {
         if (arguments.length === 1) {
             console.log(arguments[0]);
         } else if (arguments.length >= 2) {
@@ -59,7 +59,7 @@
             }
         }
     }
-    Core.defaultLogging = defaultLogging;
+    Core.defaultLog = defaultLog;
 
     /*  Look at this sample to understand what is returned:
         object = { 
