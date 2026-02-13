@@ -6,20 +6,24 @@
     const Common = isNodeJS ? require('./Common.js') : root.Common;
 
     class Node {
-        constructor() {
+        constructor(onUnsubscribed) {
+            if (typeof onUnsubscribed !== 'function') {
+                throw new Error('onUnsubscribed() is not a function');
+            }
+            this._onUnsubscribed = onUnsubscribed;
             this._value = null;
             this._onError = Core.defaultOnError;
             this._onRefresh = value => this._refresh(value);
-            this._subscribers = [];
+            this._onRefreshCallbacks = [];
             this._source = null;
             this._unsubscribeDelay = false;
-            this._unsubscribeDelayTimer = null;
+            this._unsubscribeTimer = null;
             Common.validateAsObservable(this, true);
         }
 
         set Source(value) {
             if (this._source !== value) {
-                if (this._source && this._subscribers.length > 0) {
+                if (this._source && this._onRefreshCallbacks.length > 0) {
                     this._source.Unsubscribe(this._onRefresh);
                 }
                 if (value) {
@@ -28,7 +32,7 @@
                 } else {
                     this._source = null;
                 }
-                if (this._source && this._subscribers.length > 0) {
+                if (this._source && this._onRefreshCallbacks.length > 0) {
                     this._source.Subscribe(this._onRefresh);
                 }
             }
@@ -57,40 +61,10 @@
             if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh(value) is not a function');
             }
-            let alreadySubscribed = false;
-            for (const onRef of this._subscribers) {
+            // If already stored and if we just call for refresh and return
+            for (const onRef of this._onRefreshCallbacks) {
                 if (onRef === onRefresh) {
-                    alreadySubscribed = true;
                     this._onError('onRefresh(value) is already subscribed');
-                }
-            }
-            if (alreadySubscribed) {
-                if (this._value !== undefined && this._value !== null) {
-                    try {
-                        onRefresh(this._value);
-                    } catch (error) {
-                        throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
-                    }
-                }
-            } else {
-                this._subscribers.push(onRefresh);
-                if (this._source && this._subscribers.length === 1) { // If the first subscription
-                    if (this._unsubscribeDelayTimer) {
-                        clearTimeout(this._unsubscribeDelayTimer);
-                        this._unsubscribeDelayTimer = null;
-                        if (this._value !== undefined && this._value !== null) {
-                            try {
-                                onRefresh(this._value);
-                            } catch (error) {
-                                throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
-                            }
-                        }
-                    } else {
-                        // If first subscription we subscribe on our parent which should result in firering the refresh event
-                        this._source.Subscribe(this._onRefresh); // Note: This may throw an exception if subscription failed
-                    }
-                } else {
-                    // If we cannot subscribe or it is not the first subscription we fire the event manually
                     if (this._value !== undefined && this._value !== null) {
                         try {
                             onRefresh(this._value);
@@ -98,6 +72,24 @@
                             throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
                         }
                     }
+                    return;
+                }
+            }
+            this._onRefreshCallbacks.push(onRefresh);
+            if (this._source && this._onRefreshCallbacks.length === 1) { // If the first subscription
+                if (this._unsubscribeTimer) { // If still subscribed we just kill the unsubscribe timer
+                    clearTimeout(this._unsubscribeTimer);
+                    this._unsubscribeTimer = null;
+                } else { // We subscribe on the source which should result in firering the refresh event and return
+                    this._source.Subscribe(this._onRefresh); // Note: This may throw an exception if subscription failed
+                    return;
+                }
+            }
+            if (this._value !== undefined && this._value !== null) { // Refresh if value is available
+                try {
+                    onRefresh(this._value);
+                } catch (error) {
+                    throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
                 }
             }
         }
@@ -106,21 +98,28 @@
             if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh(value) is not a function');
             }
-            for (let i = 0; i < this._subscribers.length; i++) {
-                if (this._subscribers[i] === onRefresh) {
-                    this._subscribers.splice(i, 1);
-                    if (this._source && this._subscribers.length === 0) {
+            for (let i = 0; i < this._onRefreshCallbacks.length; i++) {
+                if (this._onRefreshCallbacks[i] === onRefresh) {
+                    this._onRefreshCallbacks.splice(i, 1);
+                    if (this._source && this._onRefreshCallbacks.length === 0) { // If the last subscriber has unsubscribed
                         if (this._unsubscribeDelay) {
-                            this._unsubscribeDelayTimer = setTimeout(() => {
-                                this._unsubscribeDelayTimer = null;
+                            this._unsubscribeTimer = setTimeout(() => {
+                                this._unsubscribeTimer = null;
                                 try {
                                     this._source.Unsubscribe(this._onRefresh);
                                 } catch (error) {
                                     this._onError(`Failed unsubscribing: ${error.message}`);
                                 }
+                                this._onUnsubscribed();
                             }, this._unsubscribeDelay);
                         } else {
-                            this._source.Unsubscribe(this._onRefresh); // Note: This may throw an exception if subscription failed
+                            try {
+                                this._source.Unsubscribe(this._onRefresh); // Note: This may throw an exception if subscription failed
+                                this._onUnsubscribed();
+                            } catch (error) {
+                                this._onUnsubscribed();
+                                throw error;
+                            }
                         }
                     }
                     return;
@@ -129,30 +128,19 @@
             this._onError('onRefresh(value) is not subscribed');
         }
 
-        Dispose() { // TODO: Required?
-            if (this._unsubscribeDelayTimer) {
-                clearTimeout(this._unsubscribeDelayTimer);
-                this._unsubscribeDelayTimer = null;
-            }
-            this._subscribers.splice(0, this._subscribers.length);
-        }
-
         _refresh(value) {
-            if (this._subscribers) {
-                this._value = value;
-                if (value !== undefined && value !== null) {
-                    for (const onRefresh of this._subscribers) {
-                        try {
-                            onRefresh(value);
-                        } catch (error) {
-                            this._onError(`Failed calling onRefresh(value):\n${error.message}`);
-                        }
+            this._value = value;
+            if (this._onRefreshCallbacks && value !== undefined && value !== null) {
+                for (const onRefresh of this._onRefreshCallbacks) {
+                    try {
+                        onRefresh(value);
+                    } catch (error) {
+                        this._onError(`Failed calling onRefresh(value):\n${error.message}`);
                     }
                 }
             }
         }
     }
-    DataPoint.Node = Node;
 
     class AccessPoint {
         constructor() {
@@ -169,7 +157,7 @@
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                             const dataPoint = this._dataPointsByDataId[dataId];
-                            dataPoint.node.Source = null;
+                            dataPoint.node.Source = null; // TODO: Is this neccessary?
                         }
                     }
                 }
@@ -183,7 +171,7 @@
                     for (const dataId in this._dataPointsByDataId) {
                         if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                             const dataPoint = this._dataPointsByDataId[dataId];
-                            dataPoint.node.Source = dataPoint;
+                            dataPoint.node.Source = dataPoint; // TODO: See above...
                         }
                     }
                 }
@@ -214,46 +202,28 @@
 
         SubscribeData(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`Invalid subscription dataId: '${dataId}'`);
+                throw new Error(`Invalid subscription dataId '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh(value) is not a function');
             }
-            const dataPoints = this._dataPointsByDataId;
-            let dataPoint = dataPoints[dataId];
+            let dataPoint = this._dataPointsByDataId[dataId];
             if (!dataPoint) {
-                const node = new Node();
-                node.UnsubscribeDelay = this._unsubscribeDelay;
-                node.OnError = this._onError;
-                node.Value = null;
-                function dispose() { // TODO: Is this the best???
-                    node.Dispose();
+                const node = new Node(() => {
                     delete dataPoint.node;
-                    delete dataPoints[dataId];
-                }
-                dataPoints[dataId] = dataPoint = {
+                    delete this._dataPointsByDataId[dataId];
+                });
+                node.OnError = this._onError;
+                node.UnsubscribeDelay = this._unsubscribeDelay;
+                this._dataPointsByDataId[dataId] = dataPoint = {
                     node,
-                    // Note: The following 'onRefresh' function is the local instance inside our node created above.
                     Subscribe: onRefresh => {
                         if (this._source) {
-                            try {
-                                this._source.SubscribeData(dataId, onRefresh);
-                            } catch (error) {
-                                dispose();// TODO: Is this the best???
-                                throw error;
-                            }
+                            this._source.SubscribeData(dataId, onRefresh);
                         }
                     },
                     Unsubscribe: onRefresh => {
                         if (this._source) {
-                            try {
-                                this._source.UnsubscribeData(dataId, onRefresh);
-                                dispose();// TODO: Is this the best???
-                            } catch (error) {
-                                dispose();// TODO: Is this the best???
-                                throw error;
-                            }
-                        } else {
-                            dispose();// TODO: Is this the best???
+                            this._source.UnsubscribeData(dataId, onRefresh);
                         }
                     }
                 };
@@ -264,13 +234,13 @@
 
         UnsubscribeData(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`Invalid unsubscription dataId: ${dataId}`);
+                throw new Error(`Invalid unsubscription dataId '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh(value) is not a function');
             }
             const dataPoint = this._dataPointsByDataId[dataId];
             if (!dataPoint) {
-                throw new Error(`Failed unsubscribing for unsupported id: ${dataId}`);
+                throw new Error(`Failed unsubscribing for unsupported id '${dataId}'`);
             }
             dataPoint.node.Unsubscribe(onRefresh); // Note: may throw an exception if unsubscription failed!
         }
@@ -280,7 +250,7 @@
                 try {
                     onResponse(value);
                 } catch (error) {
-                    this._onError(`Failed calling onResponse(${value}) for dataId: '${dataId}':\n${error.message}`);
+                    this._onError(`Failed calling onResponse(${value}) for dataId '${dataId}':\n${error.message}`);
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (dataPoint) {
@@ -341,6 +311,7 @@
     const targetIdRegex = /^([a-z0-9_]+):.+$/i;
     class AccessRouterHandler {
         constructor() {
+            this._onError = Core.defaultOnError;
             this._dataConnectors = [];
             this._dataAccessObjects = {};
             this._getDataAccessObject = dataId => {
@@ -351,16 +322,23 @@
                 const targetId = match[1];
                 const accObj = this._dataAccessObjects[targetId];
                 if (!accObj) {
-                    throw new Error(`No data access object registered for target '${targetId}' and data id: '${dataId}'`);
+                    throw new Error(`No data access object registered for target '${targetId}' and data id '${dataId}'`);
                 }
                 return accObj;
             };
         }
 
+        set OnError(value) {
+            if (typeof value !== 'function') {
+                throw new Error('Set value for OnError(error) is not a function');
+            }
+            this._onError = value;
+        }
+
         RegisterDataConnector(dataConnector) {
             for (const connector in this._dataConnectors) {
                 if (dataConnector === connector) {
-                    console.error('Data connector is already registered');
+                    this._onError('Data connector is already registered');
                     return;
                 }
             }
@@ -376,16 +354,16 @@
                     return;
                 }
             }
-            console.error('Data connector is not registered');
+            this._onError('Data connector is not registered');
         }
 
         RegisterDataAccesObject(targetId, accessObject) {
             if (typeof targetId !== 'string') {
-                throw new Error(`Invalid target id: '${targetId}'`);
+                throw new Error(`Invalid target id '${targetId}'`);
             } else if (!targetIdValidRegex.test(targetId)) {
-                throw new Error(`Invalid target id format: '${targetId}'`);
+                throw new Error(`Invalid target id format '${targetId}'`);
             } else if (this._dataAccessObjects[targetId] !== undefined) {
-                throw new Error(`Target id: '${targetId}' is already registered`);
+                throw new Error(`Target id '${targetId}' is already registered`);
             } else {
                 Common.validateAsDataAccessServerObject(accessObject, true);
                 const prefixLength = targetId.length + 1;
@@ -408,7 +386,7 @@
             if (typeof targetId !== 'string') {
                 throw new Error(`Invalid target id: '${targetId}'`);
             } else if (!targetIdValidRegex.test(targetId)) {
-                throw new Error(`Invalid target id format: '${targetId}'`);
+                throw new Error(`Invalid target id format '${targetId}'`);
             } else if (this._dataAccessObjects[targetId] === undefined) {
                 throw new Error(`Target id '${targetId}' is not registered`);
             } else if (this._dataAccessObjects[targetId].accessObject !== accessObject) {
