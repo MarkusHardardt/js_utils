@@ -12,6 +12,11 @@
     const ALARM_COLOR = '#ff0000';
     const VALID_COLOR = '#000000';
     const SEPARATOR = 4;
+    const CHECKBOX_ON = '☑️';
+    const CHECKBOX_OFF = '☐';
+    function checkboxChar(on) {
+        return on === true ? CHECKBOX_ON : CHECKBOX_OFF;
+    }
 
     // ///////////////////////////////////////////////////////////////////////////////////////////////
     // DIVERSE
@@ -2304,8 +2309,7 @@
                     case HmiObjectsTableColumn.QueryParameter:
                         return row.queryParameter;
                     case HmiObjectsTableColumn.Enable:
-                        // return (row.flags & ContentManager.HMI_FLAG_ENABLE) !== 0 ? 'enabled' : 'disabled';
-                        return (row.flags & ContentManager.HMI_FLAG_ENABLE) !== 0 ? '☑️' : '☐';
+                        return checkboxChar((row.flags & ContentManager.HMI_FLAG_ENABLE) !== 0);
                     default:
                         return '';
                 }
@@ -2429,8 +2433,7 @@
                 }
                 if (flags !== selectedData.flags) {
                     selectedData.flags = flags;
-                    // table.hmi_value(selectedDataIndex, HmiObjectsTableColumn.Enable, value ? 'enabled' : 'disabled');
-                    table.hmi_value(selectedDataIndex, HmiObjectsTableColumn.Enable, value ? '☑️' : '☐');
+                    table.hmi_value(selectedDataIndex, HmiObjectsTableColumn.Enable, checkboxChar(value));
                 }
             }
         }
@@ -2617,8 +2620,7 @@
                     case TaskObjectsTableColumn.CycleMillis:
                         return taskObject.config.cycleMillis;
                     case TaskObjectsTableColumn.Autorun:
-                        // return (taskObject.config.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? 'enabled' : 'disabled';
-                        return (taskObject.config.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0 ? '☑️' : '☐';
+                        return checkboxChar((taskObject.config.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0);
                     case TaskObjectsTableColumn.State:
                         return ObjectLifecycleManager.formatObjectLifecycleState(taskObject.state);
                     default:
@@ -2754,8 +2756,7 @@
                 }
                 if (flags !== selectedData.config.flags) {
                     selectedData.config.flags = flags;
-                    // table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.Autorun, value ? 'enabled' : 'disabled');
-                    table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.Autorun, value ? '☑️' : '☐');
+                    table.hmi_value(selectedDataIndex, TaskObjectsTableColumn.Autorun, checkboxChar(value));
                 }
             }
         }
