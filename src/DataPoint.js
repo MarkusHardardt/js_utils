@@ -336,7 +336,7 @@
         }
 
         // This will be called on server side when a new web socket connection has opened or an existing has reopened
-        RegisterDataConnector(dataConnector) { 
+        RegisterDataConnector(dataConnector) {
             for (const connector in this._dataConnectors) {
                 if (dataConnector === connector) {
                     this._onError('Data connector is already registered');
@@ -402,8 +402,12 @@
         _updateDataConnectors() {
             const dataPoints = this._getDataPoints();
             for (const dataConnector of this._dataConnectors) {
-                dataConnector.SetDataPoints(dataPoints);
-                dataConnector.SendDataPointsConfiguration();
+                try {
+                    dataConnector.SetDataPoints(dataPoints);
+                    dataConnector.SendDataPointsConfiguration();
+                } catch (error) {
+                    this._onError(`Failed updating data points on connector:\n${error.message}`);
+                }
             }
         }
 

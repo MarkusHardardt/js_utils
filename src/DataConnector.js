@@ -205,8 +205,8 @@
                 if (this._open) {
                     switch (data.type) {
                         case TransmissionType.DataPointsConfigurationRefresh:
-                            this._log('info', `DataPointsConfigurationRefresh: ${JSON.stringify(data.dataPointConfigsByShortId)}`);
-                            this._setDataPointConfigsByShortId(data.dataPointConfigsByShortId);
+                            this._log('info', `DataPointsConfigurationRefresh: ${JSON.stringify(data.dpcfg)}`);
+                            this._setDataPointConfigsByShortId(data.dpcfg);
                             this._sendSubscriptionRequest();
                             break;
                         case TransmissionType.DataRefresh:
@@ -419,7 +419,9 @@
 
             SendDataPointsConfiguration() {
                 if (this._isOpen) {
-                    Core.validateAs('Connection', this._connection, 'Send:function').Send(RECEIVER, { type: TransmissionType.DataPointsConfigurationRefresh, dataPointConfigsByShortId });
+                    Core.validateAs('Connection', this._connection, 'Send:function').Send(RECEIVER,
+                        { type: TransmissionType.DataPointsConfigurationRefresh, dpcfg: this._dataPointConfigsByShortId }
+                    );
                 } else {
                     throw new Error('Connection has been closed');
                 }
