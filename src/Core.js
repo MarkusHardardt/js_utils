@@ -37,6 +37,30 @@
 
     Core.defaultOnError = error => console.error(error);
 
+    const errorLogModeRegex = /^e(?:rr(?:or)?)?$/i;
+    const warnLogModeRegex = /^w(?:a(?:rn)?)?$/i;
+    const infoLogModeRegex = /^i(?:n(?:fo?)?)?$/i;
+    function defaultLogging() {
+        if (arguments.length === 1) {
+            console.log(arguments[0]);
+        } else if (arguments.length >= 2) {
+            if (errorLogModeRegex.test(arguments[0])) {
+                if (arguments.length == 2) {
+                    console.error(`❌ ${arguments[1]}`);
+                } else {
+                    console.error(`❌ ${arguments[1]}`, arguments[2]);
+                }
+            } else if (warnLogModeRegex.test(arguments[0])) {
+                console.warn(`⚠️ ${arguments[1]}`);
+            } else if (infoLogModeRegex.test(arguments[0])) {
+                console.info(`ℹ️ ${arguments[1]}`);
+            } else {
+                console.log(arguments[1]);
+            }
+        }
+    }
+    Core.defaultLogging = defaultLogging;
+
     /*  Look at this sample to understand what is returned:
         object = { 
             'a': '1',
