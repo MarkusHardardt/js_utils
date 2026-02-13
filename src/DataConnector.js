@@ -22,23 +22,23 @@
             if (this.constructor === BaseConnector) {
                 throw new Error('The abstract base class BaseConnector cannot be instantiated.')
             }
-            this.connection = null;
-            this.onError = Core.defaultOnError;
-            this._handler = (data, onResponse, onError) => this.handleReceived(data, onResponse, onError);
+            this._connection = null;
+            this._onError = Core.defaultOnError;
+            this._handler = (data, onResponse, onError) => this._handleReceived(data, onResponse, onError);
         }
 
         set Connection(value) {
             if (value) {
-                if (this.connection) {
-                    this.connection.Unregister(RECEIVER);
-                    this.connection = null;
+                if (this._connection) {
+                    this._connection.Unregister(RECEIVER);
+                    this._connection = null;
                 }
                 Common.validateAsConnection(value, true);
-                this.connection = value;
-                this.connection.Register(RECEIVER, this._handler);
-            } else if (this.connection) {
-                this.connection.Unregister(RECEIVER);
-                this.connection = null;
+                this._connection = value;
+                this._connection.Register(RECEIVER, this._handler);
+            } else if (this._connection) {
+                this._connection.Unregister(RECEIVER);
+                this._connection = null;
             }
         }
 
@@ -46,11 +46,11 @@
             if (typeof value !== 'function') {
                 throw new Error('Set value for OnError() is not a function');
             }
-            this.onError = value;
+            this._onError = value;
         }
 
-        handleReceived(data, onResponse, onError) {
-            throw new Error('Not implemented in base class: handleReceived(data, onResponse, onError)')
+        _handleReceived(data, onResponse, onError) {
+            throw new Error('Not implemented in base class: _handleReceived(data, onResponse, onError)')
         }
     }
 
@@ -70,7 +70,7 @@
                 this._dataPointConfigsByShortId = null;
                 this._dataPointsByDataId = {};
                 this._subscribeDelay = false;
-                this._subscribeDelayTimer = null;
+                this._subscribeTimer = null;
                 this._unsubscribeDelay = false;
                 Common.validateAsDataAccessObject(this, true);
                 Common.validateAsClientConnector(this, true);
@@ -99,13 +99,13 @@
                         Unsubscribe: onRefresh => this.UnsubscribeData(dataId, onRefresh)
                     };
                 } else if (dataPoint.onRefresh === onRefresh) {
-                    this.onError(`Data id '${dataId}' is already subscribed with this callback`);
+                    this._onError(`Data id '${dataId}' is already subscribed with this callback`);
                 } else if (dataPoint.onRefresh !== null) {
-                    this.onError(`Data id '${dataId}' is already subscribed with another callback`);
+                    this._onError(`Data id '${dataId}' is already subscribed with another callback`);
                 }
                 dataPoint.onRefresh = onRefresh;
                 this._subscriptionsChanged();
-                if (dataPoint.value !== null) {
+                if (dataPoint.value !== undefined && dataPoint.value !== null) {
                     try {
                         onRefresh(dataPoint.value);
                     } catch (error) {
@@ -122,12 +122,12 @@
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
-                    this.onError(`Data point with id '${dataId}' is not available to unsubscribe`);
+                    this._onError(`Data point with id '${dataId}' is not available to unsubscribe`);
                     return;
                 } else if (dataPoint.onRefresh === null) {
-                    this.onError(`Data point with id '${dataId}' is not subscribed`);
+                    this._onError(`Data point with id '${dataId}' is not subscribed`);
                 } else if (dataPoint.onRefresh !== onRefresh) {
-                    this.onError(`Data point with id '${dataId}' is subscribed with a another callback`);
+                    this._onError(`Data point with id '${dataId}' is subscribed with a another callback`);
                 }
                 dataPoint.onRefresh = null;
                 if (!dataPoint.shortId) { // If not exists on target system we delete
@@ -142,24 +142,24 @@
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
-                    onError(`Unsupported data id for read: '${dataId}'`);
+                    onError(`Unsupported data id for read '${dataId}'`);
                 }
-                Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER,
+                Core.validateAs('Connection', this._connection, 'Send:function').Send(RECEIVER,
                     { type: TransmissionType.ReadRequest, shortId: dataPoint.shortId },
                     value => {
                         try {
                             onResponse(value);
                         } catch (error) {
-                            this.onError(`Failed calling onResponse() for id '${dataId}':\n${error.message}`);
+                            this._onError(`Failed calling onResponse() for id '${dataId}':\n${error.message}`);
                         }
                         const dataPoint = this._dataPointsByDataId[dataId];
                         if (dataPoint) {
                             dataPoint.value = value;
-                            if (dataPoint.onRefresh && value !== null) {
+                            if (dataPoint.onRefresh && value !== undefined && value !== null) {
                                 try {
                                     dataPoint.onRefresh(value);
                                 } catch (error) {
-                                    this.onError(`Failed calling onRefresh(value) for id '${dataId}':\n${error.message}`);
+                                    this._onError(`Failed calling onRefresh(value) for id '${dataId}':\n${error.message}`);
                                 }
                             }
                         }
@@ -174,9 +174,9 @@
                 }
                 const dataPoint = this._dataPointsByDataId[dataId];
                 if (!dataPoint) {
-                    throw new Error(`Unsupported data id for read: '${dataId}'`);
+                    throw new Error(`Unsupported data id '${dataId}' for write`);
                 }
-                Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER,
+                Core.validateAs('Connection', this._connection, 'Send:function').Send(RECEIVER,
                     { type: TransmissionType.WriteRequest, shortId: dataPoint.shortId, value }
                 );
             }
@@ -187,15 +187,14 @@
 
             OnClose() {
                 this._open = false;
-                clearTimeout(this._subscribeDelayTimer);
-                this._subscribeDelayTimer = null;
+                clearTimeout(this._subscribeTimer);
+                this._subscribeTimer = null;
             }
 
-            handleReceived(data, onResponse, onError) {
+            _handleReceived(data, onResponse, onError) {
                 if (this._open) {
                     switch (data.type) {
                         case TransmissionType.DataPointsConfigurationRefresh:
-                            console.log(`### ==> DataPointsConfigurationRefresh: ${JSON.stringify(data.dataPointConfigsByShortId)}`); // TODO: Remove
                             this._setDataPointConfigsByShortId(data.dataPointConfigsByShortId);
                             this._sendSubscriptionRequest();
                             break;
@@ -204,34 +203,33 @@
                                 if (data.values.hasOwnProperty(shortId)) {
                                     const dpConfByShortId = this._dataPointConfigsByShortId[shortId];
                                     if (!dpConfByShortId) {
-                                        this.onError(`Unexpected short id '${shortId}'`);
+                                        this._onError(`Unexpected short id '${shortId}'`);
                                         continue;
                                     }
                                     const dataPoint = this._dataPointsByDataId[dpConfByShortId.dataId];
                                     if (!dataPoint) {
-                                        this.onError(`Unsupported data id '${dpConfByShortId.dataId}'`);
+                                        this._onError(`Unsupported data id '${dpConfByShortId.dataId}'`);
                                         continue;
                                     }
                                     dataPoint.value = data.values[shortId];
-                                    if (dataPoint.onRefresh && dataPoint.value !== null) {
+                                    if (dataPoint.onRefresh && dataPoint.value !== undefined && dataPoint.value !== null) {
                                         try {
                                             dataPoint.onRefresh(dataPoint.value);
-                                            console.log(`Refreshed '${dpConfByShortId.dataId}'/${shortId}: ${dataPoint.value}`);
                                         } catch (error) {
-                                            this.onError(`Failed calling onRefresh(value) for id '${dpConfByShortId.dataId}':\n${error.message}`);
+                                            this._onError(`Failed calling onRefresh(value) for id '${dpConfByShortId.dataId}':\n${error.message}`);
                                         }
                                     }
                                 }
                             }
                             break;
                         default:
-                            this.onError(`Invalid transmission type: ${data.type}`);
+                            this._onError(`Invalid transmission type: ${data.type}`);
                     }
                 }
             }
 
             _loadConfiguration() {
-                Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER, { type: TransmissionType.ConfigurationRequest }, config => {
+                Core.validateAs('Connection', this._connection, 'Send:function').Send(RECEIVER, { type: TransmissionType.ConfigurationRequest }, config => {
                     this._subscribeDelay = typeof config.subscribeDelay === 'number' && config.subscribeDelay > 0 ? config.subscribeDelay : false;
                     this._unsubscribeDelay = typeof config.unsubscribeDelay === 'number' && config.unsubscribeDelay > 0 ? config.unsubscribeDelay : false;
                     this._setDataPointConfigsByShortId(config.dataPointConfigsByShortId);
@@ -239,7 +237,7 @@
                     this._sendSubscriptionRequest();
                 }, error => {
                     this._open = false;
-                    this.onError(error);
+                    this._onError(error);
                 });
             }
 
@@ -248,11 +246,11 @@
                 const that = this, oldDataPointsByDataId = this._dataPointsByDataId;
                 this._dataPointsByDataId = getAsDataPointsByDataId(dataPointConfigsByShortId);
                 // Check for all received data points if an old data point exists and if the case copy the content
-                for (const dataId in this._dataPointsByDataId) {
-                    if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
-                        const dataPoint = this._dataPointsByDataId[dataId];
-                        (function () {
-                            const did = dataId;
+                for (const did in this._dataPointsByDataId) {
+                    if (this._dataPointsByDataId.hasOwnProperty(did)) {
+                        const dataPoint = this._dataPointsByDataId[did];
+                        (function () { // We need a closure here to store dataId
+                            const dataId = did;
                             const oldDataPoint = oldDataPointsByDataId ? oldDataPointsByDataId[dataId] : null;
                             if (oldDataPoint) {
                                 dataPoint.value = oldDataPoint.value;
@@ -263,9 +261,8 @@
                             } else {
                                 dataPoint.value = null;
                                 dataPoint.onRefresh = null;
-                                // Note: We must use closure 'did' here instead of 'dataId'
-                                dataPoint.Subscribe = onRefresh => that.SubscribeData(did, onRefresh);
-                                dataPoint.Unsubscribe = onRefresh => that.UnsubscribeData(did, onRefresh);
+                                dataPoint.Subscribe = onRefresh => that.SubscribeData(dataId, onRefresh);
+                                dataPoint.Unsubscribe = onRefresh => that.UnsubscribeData(dataId, onRefresh);
                             }
                         }());
                     }
@@ -293,10 +290,10 @@
             _subscriptionsChanged() {
                 if (!this._subscribeDelay) {
                     this._sendSubscriptionRequest();
-                } else if (!this._subscribeDelayTimer) {
-                    this._subscribeDelayTimer = setTimeout(() => {
+                } else if (!this._subscribeTimer) {
+                    this._subscribeTimer = setTimeout(() => {
                         this._sendSubscriptionRequest();
-                        this._subscribeDelayTimer = null;
+                        this._subscribeTimer = null;
                     }, this._subscribeDelay);
                 }
             }
@@ -313,10 +310,9 @@
                             }
                         }
                     }
-                    Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER,
+                    Core.validateAs('Connection', this._connection, 'Send:function').Send(RECEIVER,
                         { type: TransmissionType.SubscriptionRequest, subs }
                     );
-                    console.log(`### ==> SubscriptionRequest: '${subs}'`);
                 }
             }
         }
@@ -338,11 +334,11 @@
                 this._dataPointConfigsByShortId = null;
                 this._onEventCallbacksByDataId = {};
                 this._dataPointsByDataId = null;
-                this._values = null;
                 this._subscribeDelay = false;
                 this._unsubscribeDelay = false;
+                this._valuesToSend = null;
                 this._sendDelay = false;
-                this._sendDelayTimer = null;
+                this._sendTimer = null;
                 Common.validateAsServerConnector(this, true);
             }
 
@@ -371,7 +367,6 @@
                 if (!Array.isArray(dataPointConfigs)) {
                     throw new Error('Data points must be passed as an array');
                 }
-                console.log(`### ==> SetDataPoints(${dataPointConfigs.length})`);
                 // Build object containing all datapoints stored under e new generated unique id like:
                 // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
                 const dataPointConfigsByShortId = {};
@@ -398,17 +393,15 @@
                             if (dataPoint) {
                                 dataPoint.value = oldDataPoint.value;
                                 dataPoint.onRefresh = oldDataPoint.onRefresh;
-                                console.log(`### ==> reused old datapoint items '${dataId}' (sub: ${(typeof oldDataPoint.onRefresh === 'function')}, old:${oldDataPoint.shortId}, new:${dataPoint.shortId})`);
                             } else if (oldDataPoint.onRefresh) {
                                 this._dataPointsByDataId[dataId] = oldDataPoint;
-                                console.log(`### ==> reused whole old datapoint '${dataId}' (sub: ${(typeof oldDataPoint.onRefresh === 'function')}, old:${oldDataPoint.shortId})`);
                             }
                             delete oldDataPointsByDataId[dataId];
                         }
                     }
                 }
                 if (this._isOpen && send === true) {
-                    Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER, { type: TransmissionType.DataPointsConfigurationRefresh, dataPointConfigsByShortId });
+                    Core.validateAs('Connection', this._connection, 'Send:function').Send(RECEIVER, { type: TransmissionType.DataPointsConfigurationRefresh, dataPointConfigsByShortId });
                 }
             }
 
@@ -423,8 +416,8 @@
 
             OnClose() {
                 this._isOpen = false;
-                clearTimeout(this._sendDelayTimer);
-                this._sendDelayTimer = null;
+                clearTimeout(this._sendTimer);
+                this._sendTimer = null;
                 this._updateSubscriptions('');
             }
 
@@ -433,7 +426,7 @@
                 // TODO: Clean up
             }
 
-            handleReceived(data, onResponse, onError) {
+            _handleReceived(data, onResponse, onError) {
                 if (this._isOpen) {
                     switch (data.type) {
                         case TransmissionType.ConfigurationRequest:
@@ -449,7 +442,7 @@
                         case TransmissionType.ReadRequest:
                             let readDPConf = this._dataPointConfigsByShortId[data.shortId];
                             if (!readDPConf) {
-                                this.onError('Unknown data point for read request');
+                                this._onError('Unknown data point for read request');
                                 return;
                             }
                             Core.validateAs('DataAccessObject', this._source, 'Read:function').Read(readDPConf.dataId, onResponse, onError);
@@ -457,13 +450,13 @@
                         case TransmissionType.WriteRequest:
                             let writeDPConf = this._dataPointConfigsByShortId[data.shortId];
                             if (!writeDPConf) {
-                                this.onError('Unknown data point for write request');
+                                this._onError('Unknown data point for write request');
                                 return;
                             }
                             Core.validateAs('DataAccessObject', this._source, 'Write:function').Write(writeDPConf.dataId, data.value);
                             break;
                         default:
-                            this.onError(`Invalid transmission type: ${data.type}`);
+                            this._onError(`Invalid transmission type: ${data.type}`);
                     }
                 }
             }
@@ -477,9 +470,8 @@
                             if (dataPoint.onRefresh && subscriptionShorts.indexOf(dataPoint.shortId) < 0) {
                                 try {
                                     this._source.UnsubscribeData(dataId, dataPoint.onRefresh);
-                                    console.log(`### ==> unsubscribed datapoint '${dataId}' (short:${dataPoint.shortId})`);
                                 } catch (error) {
-                                    this.onError(`Failed unsubscribing data point with id '${dataId}':\n${error.message}`);
+                                    this._onError(`Failed unsubscribing data point with id '${dataId}':\n${error.message}`);
                                 }
                                 dataPoint.onRefresh = null;
                             }
@@ -495,24 +487,23 @@
                             if (dataPoint) {
                                 if (!dataPoint.onRefresh) {
                                     dataPoint.onRefresh = value => {
-                                        if (!this._values) {
-                                            this._values = {};
+                                        if (!this._valuesToSend) {
+                                            this._valuesToSend = {};
                                         }
-                                        this._values[shortId] = value;
+                                        this._valuesToSend[shortId] = value;
                                         this._valuesChanged();
                                     };
                                     try {
                                         this._source.SubscribeData(dataId, dataPoint.onRefresh);
-                                        console.log(`### ==> subscribed datapoint '${dataId}' (short:${dataPoint.shortId})`);
                                     } catch (error) {
-                                        this.onError(`Failed subscribing data point with id '${dataId}':\n${error.message}`);
+                                        this._onError(`Failed subscribing data point with id '${dataId}':\n${error.message}`);
                                     }
                                 }
                             } else {
-                                this.onError(`Cannot find data point with id '${dataId}' for short id '${shortId}'`);
+                                this._onError(`Cannot find data point with id '${dataId}' for short id '${shortId}'`);
                             }
                         } else {
-                            this.onError(`Cannot subscribe unknown data point: ${shortId}, stored:${JSON.stringify(this._dataPointConfigsByShortId)}`); // TODO: Why we land here after stopping a task when items are monitored?
+                            this._onError(`Cannot subscribe unknown data point: ${shortId}, stored:${JSON.stringify(this._dataPointConfigsByShortId)}`); // TODO: Why we land here after stopping a task when items are monitored?
                         }
                     }, true);
                 }
@@ -521,20 +512,20 @@
             _valuesChanged() {
                 if (!this._sendDelay) {
                     this._sendValues();
-                } else if (!this._sendDelayTimer) {
-                    this._sendDelayTimer = setTimeout(() => {
+                } else if (!this._sendTimer) {
+                    this._sendTimer = setTimeout(() => {
+                        this._sendTimer = null;
                         this._sendValues();
-                        this._sendDelayTimer = null;
                     }, this._sendDelay);
                 }
             }
 
             _sendValues() {
-                if (this._isOpen && this._values) {
-                    Core.validateAs('Connection', this.connection, 'Send:function').Send(RECEIVER,
-                        { type: TransmissionType.DataRefresh, values: this._values }
+                if (this._isOpen && this._valuesToSend) {
+                    Core.validateAs('Connection', this._connection, 'Send:function').Send(RECEIVER,
+                        { type: TransmissionType.DataRefresh, values: this._valuesToSend }
                     );
-                    this._values = null;
+                    this._valuesToSend = null;
                 }
             }
         }
