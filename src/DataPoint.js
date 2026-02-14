@@ -322,7 +322,7 @@
                 const targetId = match[1];
                 const accObj = this._dataAccessObjects[targetId];
                 if (!accObj) {
-                    throw new Error(`No data access object registered for target '${targetId}' and data id '${dataId}'`);
+                    throw new Error(`No data access object registered for data id '${dataId}'`);
                 }
                 return accObj;
             };

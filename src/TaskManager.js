@@ -246,7 +246,7 @@
                 onError(`Task '${path}' has not been started`);
             } else {
                 const task = taskObject.task;
-                delete taskObject.task;
+                delete taskObject.task; // TODO: Should we delete the reference in the success/error callbacks?
                 if (taskObject.intervalTimer) {
                     clearInterval(taskObject.intervalTimer);
                     delete taskObject.intervalTimer;

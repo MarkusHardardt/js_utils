@@ -95,7 +95,7 @@
             dataAccessRouter.GetDataAccessObject = dataId => isValidLanguageValueId(dataId) ? hmi.env.lang : dataConnector;
             // Create collection providing multiple subscriptions from any context
             const dataAccessPoint = new DataPoint.AccessPoint();
-            dataAccessPoint.UnsubscribeDelay = config.unsubscribeDelay;
+            dataAccessPoint.UnsubscribeDelay = config.accessPointUnsubscribeDelay;
             dataAccessPoint.Source = dataAccessRouter; // Use the router as source
             hmi.env.data = dataAccessPoint; // Enable access from anyhwere
             onSuccess();
