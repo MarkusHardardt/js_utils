@@ -128,11 +128,11 @@
                         const dataId = config.dataId;
                         let dataPoint = that._dataPointsByDataId[dataId];
                         if (dataPoint) {
-                            that._log('info', `Update existing data point '${dataId}' (isSubscribed: ${dataPoint.isSubscribed}, shortId: ${dataPoint.shortId} -> ${shortId})`);
+                            that._log('info', `Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.isSubscribed ? '' : '!'}subscribed)`);
                             dataPoint.shortId = shortId;
                             dataPoint.type = config.type;
                         } else {
-                            that._log('info', `Create new data point '${dataId}' (shortId: ${shortId})`);
+                            that._log('info', `Create data point ${shortId}:'${dataId}'`);
                             that._dataPointsByDataId[dataId] = dataPoint = {
                                 shortId,
                                 type: config.type,
@@ -153,22 +153,22 @@
             for (const dataId in this._dataPointsByDataId) {
                 if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                     const dataPoint = this._dataPointsByDataId[dataId];
-                    let available = false;
+                    let exists = false;
                     for (const shortId in dataPointConfigsByShortId) {
                         if (dataPointConfigsByShortId.hasOwnProperty(shortId)) {
                             const config = dataPointConfigsByShortId[shortId];
                             if (config.dataId === dataId) {
-                                available = true;
+                                exists = true;
                                 break;
                             }
                         }
                     }
-                    if (!available) {
+                    if (!exists) {
                         if (dataPoint.isSubscribed) {
-                            this._log('info', `Delete shortId '${dataPoint.shortId}' from subscribed data point '${dataId}' not available anymore`);
+                            this._log('info', `Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && subscribed)`);
                             delete dataPoint.shortId;
                         } else {
-                            this._log('info', `Delete data point '${dataId}' not available anymore`);
+                            this._log('info', `Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !subscribed)`);
                             delete this._dataPointsByDataId[dataId];
                         }
                     };
@@ -504,11 +504,11 @@
                         const dataId = config.dataId;
                         let dataPoint = that._dataPointsByDataId[dataId];
                         if (dataPoint) {
-                            that._log('info', `Update existing data point '${dataId}' (isSubscribed: ${dataPoint.onRefresh !== null}, shortId: ${dataPoint.shortId} -> ${shortId})`);
+                            that._log('info', `Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.onRefresh !== null ? '' : '!'}subscribed)`);
                             dataPoint.shortId = shortId;
                             dataPoint.type = config.type;
                         } else {
-                            that._log('info', `Create new data point '${dataId}' (shortId: ${shortId})`);
+                            that._log('info', `Create data point ${shortId}:'${dataId}'`);
                             that._dataPointsByDataId[dataId] = dataPoint = {
                                 shortId,
                                 type: config.type,
@@ -525,22 +525,22 @@
             for (const dataId in this._dataPointsByDataId) {
                 if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                     const dataPoint = this._dataPointsByDataId[dataId];
-                    let available = false;
+                    let exists = false;
                     for (const shortId in dataPointConfigsByShortId) {
                         if (dataPointConfigsByShortId.hasOwnProperty(shortId)) {
                             const config = dataPointConfigsByShortId[shortId];
                             if (config.dataId === dataId) {
-                                available = true;
+                                exists = true;
                                 break;
                             }
                         }
                     }
-                    if (!available) {
+                    if (!exists) {
                         if (dataPoint.onRefresh) {
-                            this._log('info', `Delete shortId '${dataPoint.shortId}' from subscribed data point '${dataId}' not available anymore`);
+                            this._log('info', `Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && subscribed)`);
                             delete dataPoint.shortId;
                         } else {
-                            this._log('info', `Delete data point '${dataId}' not available anymore`);
+                            this._log('info', `Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !subscribed)`);
                             delete this._dataPointsByDataId[dataId];
                         }
                     };
