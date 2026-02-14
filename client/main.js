@@ -27,7 +27,7 @@
         const tasks = [];
         tasks.parallel = false;
 
-        const dataConnector = new DataConnector.ClientConnector();
+        const dataConnector = DataConnector.getInstance();
 
         const taskManager = TaskManager.getInstance(hmi);
         hmi.env.tasks = taskManager;

@@ -72,7 +72,7 @@
                 const that = this;
                 this.hmi.env.cms.GetTaskObjects(response => {
                     const tasks = [];
-                    // For all task configurations from cms we reuse an existing or add a new task object.
+                    // For all task configurations from cms we ether reuse an existing or add a new task object.
                     for (const config of response) {
                         (function () {
                             const path = config.path;
@@ -166,22 +166,6 @@
         }
 
         OnOpen(connection) {
-            this._onOpen(connection);
-        }
-
-        OnReopen(connection) {
-            this._onOpen(connection);
-        }
-
-        OnClose(connection) {
-            this._onClose(connection);
-        }
-
-        OnDispose(connection) {
-            this._onClose(connection);
-        }
-
-        _onOpen(connection) {
             const sessionId = connection.SessionId;
             if (this._connections[sessionId] === undefined) {
                 const con = this._connections[sessionId] = {
@@ -192,7 +176,7 @@
             }
         }
 
-        _onClose(connection) {
+        OnClose(connection) {
             const sessionId = connection.SessionId;
             if (this._connections[sessionId] !== undefined) {
                 connection.Unregister(TASK_MANAGER_RECEIVER);

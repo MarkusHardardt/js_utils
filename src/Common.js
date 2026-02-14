@@ -45,24 +45,19 @@
     }
     Common.validateAsConnection = validateAsConnection;
 
-    /*  ClientConnector inferface */
-    function validateAsClientConnector(instance, validateMethodArguments) {
-        return Core.validateAs('ClientConnector', instance, [
+    /*  Connector inferface */
+    function validateAsConnector(instance, validateMethodArguments) {
+        return Core.validateAs('Connector', instance, [
             'OnOpen()',
             'OnClose()'
         ], validateMethodArguments);
     }
-    Common.validateAsClientConnector = validateAsClientConnector;
+    Common.validateAsConnector = validateAsConnector;
 
     /*  ServerConnector inferface  */
     function validateAsServerConnector(instance, validateMethodArguments) {
-        return Core.validateAs('ServerConnector', instance, [
-            'OnOpen()',
-            'OnReopen()',
-            'OnClose()',
-            'OnDispose()',
-            'SetDataPoints(dataPoints)'
-        ], validateMethodArguments);
+        validateAsConnector(instance, validateMethodArguments);
+        return Core.validateAs('ServerConnector', instance, 'SetDataPoints(dataPoints)', validateMethodArguments);
     }
     Common.validateAsServerConnector = validateAsServerConnector;
 

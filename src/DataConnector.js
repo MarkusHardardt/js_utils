@@ -61,13 +61,6 @@
         }
     }
 
-    function getAsDataPointsByDataId(dataPointConfigsByShortId) {
-        return Core.getTransformedObject(dataPointConfigsByShortId,
-            (shortId, config) => config.dataId,
-            (shortId, dataPoint) => { return { shortId, type: dataPoint.type }; }
-        );
-    }
-
     const SHORT_ID_PREFIX = '#';
     const subscribeRequestShortIdRegex = /#[a-z0-9]+/g;
     class ServerDataConnector extends BaseConnector {
@@ -77,11 +70,9 @@
             this._source = null;
             this._getNextShortId = Core.createIdGenerator(SHORT_ID_PREFIX);
             this._dataPointConfigsByShortId = null;
-            this._onEventCallbacksByDataId = {};
-            this._dataPointsByDataId = null;
+            this._dataPointsByDataId = {};
             this._subscribeDelay = false;
             this._unsubscribeDelay = false;
-            this._valuesToSend = null;
             this._sendDelay = false;
             this._sendTimer = null;
             Common.validateAsServerConnector(this, true);
@@ -128,52 +119,59 @@
                 dataPointConfigsByShortId[this._getNextShortId()] = { dataId, type };
             }
             this._dataPointConfigsByShortId = dataPointConfigsByShortId;
-            const that = this, oldDataPointsByDataId = this._dataPointsByDataId;
-            this._dataPointsByDataId = getAsDataPointsByDataId(dataPointConfigsByShortId);
-            // Check for all received data points if an old data point exists and if the case copy the content
-            for (const did in this._dataPointsByDataId) {
-                if (this._dataPointsByDataId.hasOwnProperty(did)) {
-                    const dataPoint = this._dataPointsByDataId[did];
-                    (function () { // We need a closure here to store dataId
-                        const dataId = did;
-                        const shortId = dataPoint.shortId;
-                        const oldDataPoint = oldDataPointsByDataId ? oldDataPointsByDataId[dataId] : null;
-                        if (oldDataPoint) {
-                            dataPoint.value = oldDataPoint.value;
-                            dataPoint.onRefresh = oldDataPoint.onRefresh;
-                            dataPoint.isSubscribed = oldDataPoint.isSubscribed;
-                            delete oldDataPointsByDataId[dataId];
-                            that._log('info', `Reused old datapoint items '${dataId}' (sub: ${oldDataPoint.isSubscribed}, old:${oldDataPoint.shortId}, new:${dataPoint.shortId})`);
+            const that = this;
+            // For all data point configurations we ether reuse an existing or add a new data point.
+            for (const shortId in dataPointConfigsByShortId) {
+                if (dataPointConfigsByShortId.hasOwnProperty(shortId)) {
+                    const config = dataPointConfigsByShortId[shortId];
+                    (function () { // We need a closure here to get access to the data point in onRefresh
+                        const dataId = config.dataId;
+                        let dataPoint = that._dataPointsByDataId[dataId];
+                        if (dataPoint) {
+                            that._log('info', `Update existing data point '${dataId}' (isSubscribed: ${dataPoint.isSubscribed}, shortId: ${dataPoint.shortId} -> ${shortId})`);
+                            dataPoint.shortId = shortId;
+                            dataPoint.type = config.type;
                         } else {
-                            dataPoint.value = null;
-                            dataPoint.onRefresh = value => {
-                                if (!that._valuesToSend) {
-                                    that._valuesToSend = {};
-                                }
-                                that._valuesToSend[shortId] = value;
-                                that._valuesChanged();
+                            that._log('info', `Create new data point '${dataId}' (shortId: ${shortId})`);
+                            that._dataPointsByDataId[dataId] = dataPoint = {
+                                shortId,
+                                type: config.type,
+                                value: null,
+                                onRefresh: value => {
+                                    dataPoint.value = value;
+                                    dataPoint.hasBeenRefreshed = true;
+                                    that._valuesChanged();
+                                },
+                                hasBeenRefreshed: false,
+                                isSubscribed: false
                             };
-                            dataPoint.isSubscribed = false;
                         }
                     }());
                 }
             }
-            // Clean up old data points not existing anymore and that are not subscribed
-            if (oldDataPointsByDataId) {
-                for (const dataId in oldDataPointsByDataId) {
-                    if (oldDataPointsByDataId.hasOwnProperty(dataId)) {
-                        const oldDataPoint = oldDataPointsByDataId[dataId];
-                        delete oldDataPointsByDataId[dataId];
-                        delete oldDataPoint.shortId;
-                        if (oldDataPoint.isSubscribed) {
-                            this._dataPointsByDataId[dataId] = oldDataPoint;
-                            this._log('info', `Reused whole old datapoint '${dataId}'`);
-                        } else {
-                            delete oldDataPoint.value;
-                            delete oldDataPoint.onRefresh;
-                            delete oldDataPoint.isSubscribed;
+            // For all stored and unsubscribed data points we check if it still exists and if not we remove.
+            for (const dataId in this._dataPointsByDataId) {
+                if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
+                    const dataPoint = this._dataPointsByDataId[dataId];
+                    let available = false;
+                    for (const shortId in dataPointConfigsByShortId) {
+                        if (dataPointConfigsByShortId.hasOwnProperty(shortId)) {
+                            const config = dataPointConfigsByShortId[shortId];
+                            if (config.dataId === dataId) {
+                                available = true;
+                                break;
+                            }
                         }
                     }
+                    if (!available) {
+                        if (dataPoint.isSubscribed) {
+                            this._log('info', `Delete shortId '${dataPoint.shortId}' from subscribed data point '${dataId}' not available anymore`);
+                            delete dataPoint.shortId;
+                        } else {
+                            this._log('info', `Delete data point '${dataId}' not available anymore`);
+                            delete this._dataPointsByDataId[dataId];
+                        }
+                    };
                 }
             }
             if (this._isOpen) {
@@ -182,28 +180,12 @@
         }
 
         OnOpen() {
-            this._onOpen();
-        }
-
-        OnReopen() {
-            this._onOpen();
-        }
-
-        OnClose() {
-            this._onClose();
-        }
-
-        OnDispose() {
-            this._onClose();
-        }
-
-        _onOpen() {
             this._isOpen = true;
             this._sendConfiguration();
             this._sendValues();
         }
 
-        _onClose() {
+        OnClose() {
             this._isOpen = false;
             clearTimeout(this._sendTimer);
             this._sendTimer = null;
@@ -261,7 +243,7 @@
             for (const dataId in this._dataPointsByDataId) {
                 if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                     const dataPoint = this._dataPointsByDataId[dataId];
-                    if (dataPoint.isSubscribed && subscriptionShorts.indexOf(dataPoint.shortId) < 0) {
+                    if (dataPoint.isSubscribed && (!dataPoint.shortId || subscriptionShorts.indexOf(dataPoint.shortId) < 0)) {
                         try {
                             this._source.UnsubscribeData(dataId, dataPoint.onRefresh);
                             this._log('info', `Unsubscribed datapoint '${dataId}' (short:${dataPoint.shortId})`);
@@ -310,16 +292,32 @@
         }
 
         _sendValues() {
-            if (this._isOpen && this._valuesToSend) {
-                Core.validateAs('Connection', this._connection, 'Send:function').Send(RECEIVER,
-                    { type: TransmissionType.DataRefresh, values: this._valuesToSend }
-                );
-                this._valuesToSend = null;
+            if (this._isOpen) {
+                const values = {};
+                let available = false;
+                for (const dataId in this._dataPointsByDataId) {
+                    if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
+                        const dataPoint = this._dataPointsByDataId[dataId];
+                        if (dataPoint.shortId && dataPoint.hasBeenRefreshed) {
+                            dataPoint.hasBeenRefreshed = false;
+                            if (dataPoint.value !== undefined && dataPoint.value !== null) {
+                                values[dataPoint.shortId] = dataPoint.value;
+                                available = true;
+                            }
+                        }
+                    }
+                }
+                if (available) {
+                    try {
+                        Core.validateAs('Connection', this._connection, 'Send:function').Send(RECEIVER,
+                            { type: TransmissionType.DataRefresh, values }
+                        );
+                    } catch (error) {
+                        this._onError(`Failed to send refreshed values:\n${error.message}`);
+                    }
+                }
             }
         }
-    }
-    if (isNodeJS) {
-        DataConnector.ServerConnector = ServerDataConnector;
     }
 
     class ClientDataConnector extends BaseConnector {
@@ -332,7 +330,7 @@
             this._subscribeTimer = null;
             this._unsubscribeDelay = false;
             Common.validateAsDataAccessObject(this, true);
-            Common.validateAsClientConnector(this, true);
+            Common.validateAsConnector(this, true);
         }
 
         GetType(dataId) {
@@ -497,46 +495,55 @@
 
         _setDataPointConfigsByShortId(dataPointConfigsByShortId) {
             this._dataPointConfigsByShortId = dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
-            const that = this, oldDataPointsByDataId = this._dataPointsByDataId;
-            this._dataPointsByDataId = getAsDataPointsByDataId(dataPointConfigsByShortId);
-            // Check for all received data points if an old data point exists and if the case copy the content
-            for (const did in this._dataPointsByDataId) {
-                if (this._dataPointsByDataId.hasOwnProperty(did)) {
-                    const dataPoint = this._dataPointsByDataId[did];
-                    (function () { // We need a closure here to store dataId
-                        const dataId = did;
-                        const oldDataPoint = oldDataPointsByDataId ? oldDataPointsByDataId[dataId] : null;
-                        if (oldDataPoint) {
-                            dataPoint.value = oldDataPoint.value;
-                            dataPoint.onRefresh = oldDataPoint.onRefresh;
-                            dataPoint.Subscribe = oldDataPoint.Subscribe;
-                            dataPoint.Unsubscribe = oldDataPoint.Unsubscribe;
-                            delete oldDataPointsByDataId[dataId];
+            const that = this;
+            // For all data point configurations we ether reuse an existing or add a new data point.
+            for (const shortId in dataPointConfigsByShortId) {
+                if (dataPointConfigsByShortId.hasOwnProperty(shortId)) {
+                    const config = dataPointConfigsByShortId[shortId];
+                    (function () { // We need a closure here to get access to the data point in onRefresh
+                        const dataId = config.dataId;
+                        let dataPoint = that._dataPointsByDataId[dataId];
+                        if (dataPoint) {
+                            that._log('info', `Update existing data point '${dataId}' (isSubscribed: ${dataPoint.onRefresh !== null}, shortId: ${dataPoint.shortId} -> ${shortId})`);
+                            dataPoint.shortId = shortId;
+                            dataPoint.type = config.type;
                         } else {
-                            dataPoint.value = null;
-                            dataPoint.onRefresh = null;
-                            dataPoint.Subscribe = onRefresh => that.SubscribeData(dataId, onRefresh);
-                            dataPoint.Unsubscribe = onRefresh => that.UnsubscribeData(dataId, onRefresh);
+                            that._log('info', `Create new data point '${dataId}' (shortId: ${shortId})`);
+                            that._dataPointsByDataId[dataId] = dataPoint = {
+                                shortId,
+                                type: config.type,
+                                value: null,
+                                onRefresh: null,
+                                Subscribe: onRefresh => that.SubscribeData(dataId, onRefresh),
+                                Unsubscribe: onRefresh => that.UnsubscribeData(dataId, onRefresh)
+                            };
                         }
                     }());
                 }
             }
-            // Clean up old data points not existing anymore and that are not subscribed
-            if (oldDataPointsByDataId) {
-                for (const dataId in oldDataPointsByDataId) {
-                    if (oldDataPointsByDataId.hasOwnProperty(dataId)) {
-                        const oldDataPoint = oldDataPointsByDataId[dataId];
-                        delete oldDataPointsByDataId[dataId];
-                        delete oldDataPoint.shortId;
-                        if (oldDataPoint.onRefresh) {
-                            this._dataPointsByDataId[dataId] = oldDataPoint;
-                        } else {
-                            delete oldDataPoint.value;
-                            delete oldDataPoint.onRefresh;
-                            delete oldDataPoint.Subscribe;
-                            delete oldDataPoint.Unsubscribe;
+            // For all stored and unsubscribed data points we check if it still exists and if not we remove.
+            for (const dataId in this._dataPointsByDataId) {
+                if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
+                    const dataPoint = this._dataPointsByDataId[dataId];
+                    let available = false;
+                    for (const shortId in dataPointConfigsByShortId) {
+                        if (dataPointConfigsByShortId.hasOwnProperty(shortId)) {
+                            const config = dataPointConfigsByShortId[shortId];
+                            if (config.dataId === dataId) {
+                                available = true;
+                                break;
+                            }
                         }
                     }
+                    if (!available) {
+                        if (dataPoint.onRefresh) {
+                            this._log('info', `Delete shortId '${dataPoint.shortId}' from subscribed data point '${dataId}' not available anymore`);
+                            delete dataPoint.shortId;
+                        } else {
+                            this._log('info', `Delete data point '${dataId}' not available anymore`);
+                            delete this._dataPointsByDataId[dataId];
+                        }
+                    };
                 }
             }
         }
@@ -570,9 +577,8 @@
             }
         }
     }
-    if (!isNodeJS) {
-        DataConnector.ClientConnector = ClientDataConnector;
-    }
+
+    DataConnector.getInstance = () => isNodeJS ? new ServerDataConnector() : new ClientDataConnector();
 
     Object.freeze(DataConnector);
     if (isNodeJS) {
