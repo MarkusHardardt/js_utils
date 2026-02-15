@@ -431,13 +431,12 @@
             } else if (this._dataAccessObjects[targetId].accessObject !== accessObject) {
                 throw new Error(`Target id '${targetId}' is registered for another data access object`);
             } else {
+                this._updateDataConnectors(targetId);
                 delete this._dataAccessObjects[targetId];
-                this._updateDataConnectors();
             }
         }
 
-        _updateDataConnectors() {
-            const dataPoints = this._getDataPoints();
+        _updateDataConnectors(excludeTargetId = null) {
             if (this._onBeforeUpdateDataConnectors) {
                 try {
                     this._onBeforeUpdateDataConnectors();
@@ -445,6 +444,7 @@
                     this._onError(`Failed calling onBeforeUpdateDataConnectors():\n${error.message}`);
                 }
             }
+            const dataPoints = this._getDataPoints(excludeTargetId);
             for (const dataConnector of this._dataConnectors) {
                 try {
                     dataConnector.SetDataPoints(dataPoints);
@@ -461,10 +461,10 @@
             }
         }
 
-        _getDataPoints() {
+        _getDataPoints(excludeTargetId = null) {
             const result = [];
             for (const targetId in this._dataAccessObjects) {
-                if (this._dataAccessObjects.hasOwnProperty(targetId)) {
+                if (this._dataAccessObjects.hasOwnProperty(targetId) && targetId !== excludeTargetId) {
                     const object = this._dataAccessObjects[targetId];
                     const dataPoints = object.accessObject.GetDataPoints();
                     for (const dataPoint of dataPoints) {
