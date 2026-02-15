@@ -61,6 +61,27 @@
         }
     }
 
+    function getDataPointConfigsByShortId(dataPoints, getNextShortId) {
+        // Build object containing all datapoints stored under e new generated unique id like:
+        // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
+        if (!Array.isArray(dataPoints)) {
+            throw new Error('Data points must be passed as an array');
+        }
+        const dataPointConfigsByShortId = {};
+        for (const dpConf of dataPoints) {
+            const dataId = dpConf.id;
+            if (typeof dataId !== 'string') {
+                throw new Error(`Data point has invalid data id: ${dataId}`);
+            }
+            const type = dpConf.type;
+            if (typeof type !== 'number') {
+                throw new Error(`Data point has invalid type: ${type}`);
+            }
+            dataPointConfigsByShortId[getNextShortId()] = { dataId, type };
+        }
+        return dataPointConfigsByShortId;
+    }
+
     const SHORT_ID_PREFIX = '#';
     const subscribeRequestShortIdRegex = /#[a-z0-9]+/g;
     class ServerDataConnector extends BaseConnector {
@@ -99,26 +120,9 @@
             this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
         }
 
-        SetDataPoints(dataPoints) {
-            if (!Array.isArray(dataPoints)) {
-                throw new Error('Data points must be passed as an array');
-            }
+        SetDataPoints(dataPoints) { // TODO: Unsubscribe data points that not exist anymore immediately
             this._log('info', `SetDataPoints(${dataPoints.length})`);
-            // Build object containing all datapoints stored under e new generated unique id like:
-            // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
-            const dataPointConfigsByShortId = {};
-            for (const dpConf of dataPoints) {
-                const dataId = dpConf.id;
-                if (typeof dataId !== 'string') {
-                    throw new Error(`Data point has invalid data id: ${dataId}`);
-                }
-                const type = dpConf.type;
-                if (typeof type !== 'number') {
-                    throw new Error(`Data point has invalid type: ${type}`);
-                }
-                dataPointConfigsByShortId[this._getNextShortId()] = { dataId, type };
-            }
-            this._dataPointConfigsByShortId = dataPointConfigsByShortId;
+            const dataPointConfigsByShortId = this._dataPointConfigsByShortId = getDataPointConfigsByShortId(dataPoints, this._getNextShortId);
             const that = this;
             // For all data point configurations we ether reuse an existing or add a new data point.
             for (const shortId in dataPointConfigsByShortId) {
@@ -165,6 +169,15 @@
                     if (!exists) {
                         const dataPoint = this._dataPointsByDataId[dataId];
                         if (dataPoint.isSubscribed) {
+                            if (this._source) {
+                                try {
+                                    this._source.UnsubscribeData(dataId, dataPoint.onRefresh);
+                                    this._log('info', `Unsubscribed datapoint ${dataPoint.shortId}:'${dataId}' (!exists && subscribed)`);
+                                } catch (error) {
+                                    this._onError(`Failed unsubscribing data point with id ${dataPoint.shortId}:'${dataId}':\n${error.message}`);
+                                }
+                                dataPoint.isSubscribed = false;
+                            }
                             this._log('info', `Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && subscribed)`);
                             delete dataPoint.shortId; // Note: Only data points with a short id exists!
                         } else {
@@ -189,6 +202,7 @@
             this._isOpen = false;
             clearTimeout(this._sendTimer);
             this._sendTimer = null;
+            this._log('info', 'Reset all subscribsions onClose()');
             this._updateSubscriptions('');
         }
 
@@ -205,6 +219,7 @@
             if (this._isOpen) {
                 switch (data.type) {
                     case TransmissionType.SubscriptionRequest:
+                        this._log('info', `Update subscriptions from client: [${data.subs}]`);
                         this._updateSubscriptions(data.subs);
                         break;
                     case TransmissionType.ReadRequest:

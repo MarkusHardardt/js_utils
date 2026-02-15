@@ -46,7 +46,24 @@
         }
 
         set UnsubscribeDelay(value) {
-            this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
+            if (typeof value === 'number' && value > 0) {
+                this._unsubscribeDelay = Math.ceil(value);
+            } else {
+                this._unsubscribeDelay = false;
+                if (this._unsubscribeTimer) {
+                    clearTimeout(this._unsubscribeTimer);
+                    this._unsubscribeTimer = null;
+                    if (this._source) {
+                        try {
+                            this._source.Unsubscribe(this._onRefresh);
+                        } catch (error) {
+                            this._onError(`Failed unsubscribing node: ${error.message}`);
+                        }
+                        this._onUnsubscribed();
+                    }
+                }
+            }
+            typeof value === 'number' && value > 0 ? value : false;
         }
 
         get Value() {
@@ -108,7 +125,7 @@
                                 try {
                                     this._source.Unsubscribe(this._onRefresh);
                                 } catch (error) {
-                                    this._onError(`Failed unsubscribing: ${error.message}`);
+                                    this._onError(`Failed unsubscribing on node: ${error.message}`);
                                 }
                                 this._onUnsubscribed();
                             }, this._unsubscribeDelay);
@@ -188,10 +205,14 @@
         }
 
         set UnsubscribeDelay(value) {
-            this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
+            this._unsubscribeDelay = typeof value === 'number' && value > 0 ? Math.ceil(value) : false;
+            this._setUnsubscribeDelayOnNodes(this._unsubscribeDelay);
+        }
+
+        _setUnsubscribeDelayOnNodes(delay) {
             for (const dataId in this._dataPointsByDataId) {
                 if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
-                    this._dataPointsByDataId[dataId].node.UnsubscribeDelay = value;
+                    this._dataPointsByDataId[dataId].node.UnsubscribeDelay = delay;
                 }
             }
         }
@@ -326,6 +347,8 @@
                 }
                 return accObj;
             };
+            this._onBeforeUpdateDataConnectors = null;
+            this._onAfterUpdateDataConnectors = null;
         }
 
         set OnError(value) {
@@ -333,6 +356,20 @@
                 throw new Error('Set value for OnError(error) is not a function');
             }
             this._onError = value;
+        }
+
+        set OnBeforeUpdateDataConnectors(value) {
+            if (typeof value !== 'function') {
+                throw new Error('Set value for onBeforeUpdateDataConnectors() is not a function');
+            }
+            this._onBeforeUpdateDataConnectors = value;
+        }
+
+        set OnAfterUpdateDataConnectors(value) {
+            if (typeof value !== 'function') {
+                throw new Error('Set value for onAfterUpdateDataConnectors() is not a function');
+            }
+            this._onAfterUpdateDataConnectors = value;
         }
 
         // This will be called on server side when a new web socket connection has opened or an existing has reopened
@@ -401,11 +438,25 @@
 
         _updateDataConnectors() {
             const dataPoints = this._getDataPoints();
+            if (this._onBeforeUpdateDataConnectors) {
+                try {
+                    this._onBeforeUpdateDataConnectors();
+                } catch (error) {
+                    this._onError(`Failed calling onBeforeUpdateDataConnectors():\n${error.message}`);
+                }
+            }
             for (const dataConnector of this._dataConnectors) {
                 try {
                     dataConnector.SetDataPoints(dataPoints);
                 } catch (error) {
                     this._onError(`Failed updating data points on connector:\n${error.message}`);
+                }
+            }
+            if (this._onAfterUpdateDataConnectors) {
+                try {
+                    this._onAfterUpdateDataConnectors();
+                } catch (error) {
+                    this._onError(`Failed calling onAfterUpdateDataConnectors():\n${error.message}`);
                 }
             }
         }
