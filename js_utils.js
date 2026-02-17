@@ -17,12 +17,13 @@
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectLifecycleManager.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataPoint.js');
+        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Logger.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/LanguageSwitching.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/TaskManager.js');
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/ext/md5.js'); // external
-        // And last but not least our client side 'main' program using all of the previously added files 
+        // And last but not least add client side 'main' program using the previously added files:
         server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/client/main.js');
     }
     const js_utils = {
@@ -44,6 +45,7 @@
         ObjectLifecycleManager: require('./src/ObjectLifecycleManager.js'),
         DataConnector: require('./src/DataConnector.js'),
         DataPoint: require('./src/DataPoint.js'),
+        Logger: require('./src/Logger.js'),
         WebSocketConnection: require('./src/WebSocketConnection.js'),
         ContentEditor: require('./src/ContentEditor.js'),
         LanguageSwitching: require('./src/LanguageSwitching.js'),
