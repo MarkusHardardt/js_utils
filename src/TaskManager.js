@@ -22,15 +22,8 @@
             if (this.constructor === BaseManager) {
                 throw new Error('The abstract base class BaseManager cannot be instantiated.')
             }
-            this.hmi = hmi;
-            this.onError = Core.defaultOnError;
-        }
-
-        set OnError(value) {
-            if (typeof value !== 'function') {
-                throw new Error('Set value for OnError() is not a function');
-            }
-            this.onError = value;
+            this._hmi = hmi;
+            this._logger = hmi.env.logger;
         }
     }
 
@@ -56,7 +49,7 @@
             }
             this._reloadTasksTimeout = setTimeout(() => {
                 this._reloadTasksTimeout = null;
-                this._reloadTasks(() => console.log('✅ Loaded tasks'), error => this.onError(error));
+                this._reloadTasks(() => this._logger.Info('Loaded tasks'), error => this._logger.Error(error));
             }, RELOAD_TASKS_TIMEOUT);
         }
 
@@ -70,7 +63,7 @@
             } else {
                 this._reloadingTasks = true;
                 const that = this;
-                this.hmi.env.cms.GetTaskObjects(response => {
+                this._hmi.env.cms.GetTaskObjects(response => {
                     const tasks = [];
                     // For all task configurations from cms we ether reuse an existing or add a new task object.
                     for (const config of response) {
@@ -81,11 +74,11 @@
                                 if (taskObject.task && taskObject.config.taskObject !== config.taskObject) {
                                     // If the actual task object has changed we must stop the running instance
                                     tasks.push((onSuc, onErr) => that._stopTask(path, () => {
-                                        console.warn(`⚠️ Stopped task '${path}' because actual task object has changed`);
+                                        this._logger.Warn(`Stopped task '${path}' because actual task object has changed`);
                                         onSuc();
                                     }, error => {
                                         const message = `Failed stopping task '${path}' because actual task object has changed:\n${error}`;
-                                        console.error(`❌ ${message}`);
+                                        this._logger.Error(message);
                                         onErr(message);
                                     }));
                                 }
@@ -118,12 +111,12 @@
                                     // If the task is not available anymore we must stop the running instance
                                     tasks.push((onSuc, onErr) => that._stopTask(path, () => {
                                         delete that._taskObjects[path];
-                                        console.warn(`⚠️ Stopped task '${path}' because it is not available anymore`);
+                                        this._logger.Warn(`Stopped task '${path}' because it is not available anymore`);
                                         onSuc();
                                     }, error => {
                                         delete that._taskObjects[path];
                                         const message = `Failed stopping task '${path}' because it is not available anymore:\n${error}`;
-                                        console.error(`❌ ${message}`);
+                                        this._logger.Error(message);
                                         onErr(message);
                                     }));
                                 } else {
@@ -196,7 +189,7 @@
                     this._stopTask(data.path, onResponse, onError);
                     break;
                 default:
-                    this.onError(`Invalid transmission type: ${data.type}`);
+                    this._logger.Error(`Invalid transmission type: ${data.type}`);
             }
         }
 
@@ -212,7 +205,7 @@
         }
 
         _startTask(path, onSuccess, onError) {
-            const hmi = this.hmi;
+            const hmi = this._hmi;
             const taskObject = this._taskObjects[path];
             if (!taskObject) {
                 onError(`Unknown task: '${path}'`);
@@ -224,16 +217,16 @@
                     ObjectLifecycleManager.createObject(taskObject.task, null, () => {
                         if (typeof taskObject.config.cycleMillis === 'number' && taskObject.config.cycleMillis > 0) {
                             taskObject.intervalTimer = setInterval(() => ObjectLifecycleManager.refreshObject(taskObject.task, new Date()), Math.ceil(taskObject.config.cycleMillis));
-                            console.log(`✅ Started task '${path}' with object '${taskObject.config.taskObject}' (cycles at ${taskObject.config.cycleMillis} ms)`);
+                            this._logger.Info(`Started task '${path}' with object '${taskObject.config.taskObject}' (cycles at ${taskObject.config.cycleMillis} ms)`);
                         } else {
-                            console.log(`✅ Started task '${path}' with object '${taskObject.config.taskObject}' (no cycles)`);
+                            this._logger.Info(`Started task '${path}' with object '${taskObject.config.taskObject}' (no cycles)`);
                         }
                         onSuccess();
                     }, error => {
                         const message = `Failed starting task '${path}' with object '${taskObject.config.taskObject}':\n${error}`;
-                        console.error(`❌ ${message}`);
+                        this._logger.Error(message);
                         onError(message);
-                    }, this.hmi, undefined, undefined, undefined, undefined, undefined, undefined, taskObject.onLifecycleStateChanged);
+                    }, this._hmi, undefined, undefined, undefined, undefined, undefined, undefined, taskObject.onLifecycleStateChanged);
                 }, error => onError(`Failed loading task '${path}' object '${taskObject.config.taskObject}':\n${error}`));
             }
         }
@@ -252,11 +245,11 @@
                     delete taskObject.intervalTimer;
                 }
                 ObjectLifecycleManager.killObject(task, () => {
-                    console.log(`✅ Stopped task '${path}' with object '${taskObject.config.taskObject}'`);
+                    this._logger.Info(`Stopped task '${path}' with object '${taskObject.config.taskObject}'`);
                     onSuccess();
                 }, error => {
                     const message = `Failed stopping task '${path}' with object '${taskObject.config.taskObject}':\n${error}`;
-                    console.error(`❌ ${message}`);
+                    this._logger.Error(message);
                     onError(message);
                 }, taskObject.onLifecycleStateChanged);
             }
@@ -361,7 +354,7 @@
                     this._updateTaskState(data.path, data.state);
                     break;
                 default:
-                    this.onError(`Invalid transmission type: ${data.type}`);
+                    this._logger.Error(`Invalid transmission type: ${data.type}`);
             }
         }
 
@@ -370,7 +363,7 @@
                 TASK_MANAGER_RECEIVER,
                 { type: TransmissionType.ConfigurationRequest },
                 response => this._updateConfiguration(response),
-                error => this.onError(error)
+                error => this._logger.Error(error)
             );
         }
 
@@ -403,7 +396,7 @@
                 try {
                     this._onConfigChanged();
                 } catch (error) {
-                    this.onError(`Failed calling onConfigChanged(): ${error.message}`);
+                    this._logger.Error(`Failed calling onConfigChanged(): ${error.message}`);
                 }
             }
         }
@@ -417,7 +410,7 @@
                 try {
                     this._onStateChanged(path, state);
                 } catch (error) {
-                    this.onError(`Failed calling onStateChanged(path, state): ${error.message}`);
+                    this._logger.Error(`Failed calling onStateChanged(path, state): ${error.message}`);
                 }
             }
         }

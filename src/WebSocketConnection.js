@@ -36,7 +36,8 @@
         - Unregister(): unregisters receiver for data
         - Send(): sends data to receiver on other side an waits optionally for response (pong)    */
     class Connection {
-        constructor(sessionId, options) {
+        constructor(logger, sessionId, options) {
+            this._logger = Common.validateAsLogger(logger, true);
             this._sessionId = sessionId;
             this._handlers = {};
             this._callbacks = {};
@@ -45,7 +46,7 @@
                     try {
                         options.OnOpen();
                     } catch (error) {
-                        console.error(`failed calling OnOpen: ${error}`);
+                        this._logger.Error(`Failed calling OnOpen: ${error.message}`);
                     }
                 }
             };
@@ -54,16 +55,7 @@
                     try {
                         options.OnClose();
                     } catch (error) {
-                        console.error(`failed calling OnClose: ${error}`);
-                    }
-                }
-            };
-            this._onError = error => {
-                if (typeof options.OnError === 'function') {
-                    try {
-                        options.OnError(error);
-                    } catch (error) {
-                        console.error(`failed calling OnError: ${error}`);
+                        this._logger.Error(`failed calling OnClose: ${error.message}`);
                     }
                 }
             };
@@ -94,7 +86,7 @@
             if (this.IsConnected) {
                 this._webSocket.send(JSON.stringify({ type: TelegramType.PingResponse, callback, utc: Date.now() }));
             } else {
-                this._onError('cannot send ping reponse when disconnected');
+                this._logger.Error('Cannot send ping reponse when disconnected');
             }
         }
         _handlePingResponse(callback, remoteMediumUTC) {
@@ -117,10 +109,10 @@
                         cb.onResponse(localResponseUTC - cb.localRequestUTC);
                     }
                 } catch (error) {
-                    this._onError(`failed calling onResponse: ${error.message}`);
+                    this._logger.Error(`Failed calling onResponse: ${error.message}`);
                 }
             } else {
-                this._onError('missing ping callback');
+                this._logger.Error('Missing ping callback');
             }
         }
         get RemoteUTC() {
@@ -168,20 +160,20 @@
                             if (this.IsConnected) {
                                 this._webSocket.send(JSON.stringify({ type: TelegramType.DataResponse, callback, data: responseData }));
                             } else {
-                                this._onError('cannot send data response when disconnected');
+                                this._logger.Error('Cannot send data response when disconnected');
                             }
                         }, error => {
                             if (this.IsConnected) {
                                 this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: error ? error : true }));
                             } else {
-                                this._onError(`cannot send error response when disconnected (error: ${error})`);
+                                this._logger.Error(`Cannot send error response when disconnected (error: ${error})`);
                             }
                         });
                     } catch (error) {
                         if (this.IsConnected) {
                             this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `failed calling receive handler '${receiver}'! error: ${error.message}` }));
                         } else {
-                            this._onError(`failed calling receive handler '${receiver}' but cannot send error response when disconnected! error: ${error.message}`);
+                            this._logger.Error(`Failed calling receive handler '${receiver}' but cannot send error response when disconnected! error: ${error.message}`);
                         }
                     }
                 }
@@ -192,7 +184,7 @@
                         if (this.IsConnected) {
                             this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `failed calling receive handler '${receiver}'! error: ${error.message}` }));
                         } else {
-                            this._onError(`failed calling receive handler '${receiver}' but cannot send error response when disconnected! error: ${error.message}`);
+                            this._logger.Error(`Failed calling receive handler '${receiver}' but cannot send error response when disconnected! error: ${error.message}`);
                         }
                     }
                 }
@@ -200,7 +192,7 @@
                 if (this.IsConnected) {
                     this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `unknown receiver: '${receiver}'` }));
                 } else {
-                    this._onError(`cannot send error response for unknown receiver: '${receiver}' when disconnected`);
+                    this._logger.Error(`Cannot send error response for unknown receiver: '${receiver}' when disconnected`);
                 }
             }
         }
@@ -213,10 +205,10 @@
                         cb.onResponse(data, Date.now() - cb.localRequestUTC);
                     }
                 } catch (error) {
-                    this._onError(`failed calling onResponse: ${error.message}`);
+                    this._logger.Error(`Failed calling onResponse: ${error.message}`);
                 }
             } else {
-                this._onError('missing data callback');
+                this._logger.Error('Missing data callback');
             }
         }
         _handleError(callback, error) {
@@ -227,13 +219,13 @@
                     try {
                         cb.onError(error, Date.now() - cb.localRequestUTC);
                     } catch (error) {
-                        this._onError(`failed calling onError: ${error.message}`);
+                        this._logger.Error(`Failed calling onError: ${error.message}`);
                     }
                 } else {
-                    this._onError(error);
+                    this._logger.Error(error);
                 }
             } else {
-                this._onError(error);
+                this._logger.Error(error);
             }
         }
         _handleTelegram(telegram) {
@@ -254,7 +246,7 @@
                     this._handleError(telegram.callback, telegram.error);
                     break;
                 default:
-                    this._onError(`Received invalid telegram type: ${telegram.type}`);
+                    this._logger.Error(`Received invalid telegram type: ${telegram.type}`);
                     break;
             }
         }
@@ -297,8 +289,8 @@
             - Stop(): triggers disconnection
             Read comment for Connection for more properties and methods.    */
         class WebSocketClientConnection extends Connection {
-            constructor(hostname, config, options = {}) {
-                super(config.sessionId, options);
+            constructor(logger, hostname, config, options = {}) {
+                super(logger, config.sessionId, options);
                 this._url = `${(config.secure ? 'wss' : 'ws')}://${hostname}:${config.port}?sessionId=${config.sessionId}`;
                 this._socket = null;
                 this._heartbeatInterval = options.heartbeatInterval ?? DEFAULT_HEARTBEAT_INTERVAL;
@@ -364,7 +356,7 @@
                 this._socket.onmessage = message => this._handleTelegram(JSON.parse(message.data));
                 this._socket.onerror = error => {
                     this._socket.close();
-                    this._onError(error);
+                    this._logger.Error(error);
                 };
                 this._socket.onclose = () => {
                     if (this._state !== ClientState.Idle) {
@@ -378,10 +370,10 @@
                         this.Ping(millis => {
                             clearTimeout(this._heartbeatTimeoutTimer);
                         }, error => {
-                            this._onError(`heartbeat monitoring failed: ${error}`);
+                            this._logger.Error(`Heartbeat monitoring failed: ${error}`);
                         });
                         this._heartbeatTimeoutTimer = setTimeout(() => {
-                            this._onError('heartbeat monitoring timeout expired -> close socket');
+                            this._logger.Error('Heartbeat monitoring timeout expired -> close socket');
                             this._socket.close();
                         }, this._heartbeatTimeout);
                     }
@@ -417,8 +409,8 @@
               }
             Read comment for Connection for more properties and methods.    */
         class WebSocketServerConnection extends Connection {
-            constructor(sessionId, options) {
-                super(sessionId, options);
+            constructor(logger, sessionId, options) {
+                super(logger, sessionId, options);
                 this._socket = null;
                 this._online = false;
             }
@@ -438,7 +430,7 @@
                 this._socket.onerror = error => {
                     this._online = false;
                     this._socket.close();
-                    this._onError(error);
+                    this._logger.Error(error);
                 };
                 this._socket.onclose = () => {
                     this._online = false;
@@ -467,7 +459,8 @@
             A server has the following public interface:    
             - CreateSessionConfig(): returns a configuration object containing the port and a new unique session id    */
         class WebSocketServer {
-            constructor(port, options = {}) {
+            constructor(logger, port, options = {}) {
+                this._logger = Common.validateAsLogger(logger, true);
                 this._port = port;
                 this._options = options;
                 this._instances = {};
@@ -482,9 +475,9 @@
                         if (isUTC) {
                             instance.createdUTC = createdUTC;
                         } else {
-                            console.warn(`web socket connected with unknown session id: '${formatSesionId(sessionId)}'`)
+                            this._logger.Warn(`Web socket connected with unknown session id: '${formatSesionId(sessionId)}'`)
                         }
-                        instance.connection = new WebSocketServerConnection(sessionId, {
+                        instance.connection = new WebSocketServerConnection(logger, sessionId, {
                             OnOpen: () => {
                                 const isFirstOpen = instance.openedUTC === undefined;
                                 instance.openedUTC = Date.now();
@@ -493,10 +486,10 @@
                                         try {
                                             options.OnOpen(instance.connection);
                                         } catch (error) {
-                                            console.error(`failed calling OnOpen: ${error}`);
+                                            this._logger.Error(`Failed calling OnOpen: ${error.message}`);
                                         }
                                     } else {
-                                        console.log(`connection opened with session id: '${formatSesionId(sessionId)}'`);
+                                        this._logger.Info(`Connection opened with session id: '${formatSesionId(sessionId)}'`);
                                     }
                                 } else {
                                     clearTimeout(instance.disposeTimeoutTimer);
@@ -504,10 +497,10 @@
                                         try {
                                             options.OnReopen(instance.connection);
                                         } catch (error) {
-                                            console.error(`failed calling OnReopen: ${error}`);
+                                            this._logger.Error(`Failed calling OnReopen: ${error.message}`);
                                         }
                                     } else {
-                                        console.log(`connection reopened with session id: '${formatSesionId(sessionId)}'`);
+                                        this._logger.Info(`Connection reopened with session id: '${formatSesionId(sessionId)}'`);
                                     }
                                 }
                             },
@@ -517,10 +510,10 @@
                                     try {
                                         options.OnClose(instance.connection);
                                     } catch (error) {
-                                        console.error(`failed calling OnClose: ${error}`);
+                                        this._logger.Error(`Failed calling OnClose: ${error.message}`);
                                     }
                                 } else {
-                                    console.log(`connection closed with session id: '${formatSesionId(sessionId)}'`);
+                                    this._logger.Info(`Connection closed with session id: '${formatSesionId(sessionId)}'`);
                                 }
                                 instance.disposeTimeoutTimer = setTimeout(() => {
                                     delete this._instances[sessionId];
@@ -528,10 +521,10 @@
                                         try {
                                             options.OnDispose(instance.connection);
                                         } catch (error) {
-                                            console.error(`failed calling OnDispose: ${error}`);
+                                            this._logger.Error(`Failed calling OnDispose: ${error.message}`);
                                         }
                                     } else {
-                                        console.log(`connection diposed with session id: '${formatSesionId(sessionId)}'`);
+                                        this._logger.Info(`Connection diposed with session id: '${formatSesionId(sessionId)}'`);
                                     }
                                 }, options.closedConnectionDisposeTimeout ?? DEFAULT_CLOSED_CONNECTION_DISPOSE_TIMEOUT);
                             },
@@ -540,10 +533,10 @@
                                     try {
                                         options.OnError(instance.connection, error);
                                     } catch (error) {
-                                        console.error(`failed calling OnError for error: ${error}: ${error}`);
+                                        this._logger.Error(`Failed calling OnError for error: ${error.match}`);
                                     }
                                 } else {
-                                    console.error(`error in connection with session id: '${formatSesionId(sessionId)}': ${error}`);
+                                    this._logger.Error(`Error in connection with session id: '${formatSesionId(sessionId)}': ${error}`);
                                 }
                             }
                         });

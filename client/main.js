@@ -11,8 +11,25 @@
             ObjectLifecycleManager.showDialog(hmi, object, onSuccess, onError),
         showDefaultConfirmationDialog: (object, onSuccess, onError) =>
             ObjectLifecycleManager.showDefaultConfirmationDialog(hmi, object, onSuccess, onError),
+        utils: {
+            Executor,
+            HashLists,
+            JsonFX,
+            Mathematics,
+            Regex,
+            Client,
+            Sorting,
+            Utilities,
+            Core,
+            Common,
+            ContentManager,
+            ObjectLifecycleManager,
+            DataPoint,
+            Logger
+        },
         // Environment
         env: {
+            logger: new Logger('js_utils'),
             isInstance: instance => false, // TODO: Implement isInstance(instance)
             isSimulationEnabled: () => false // TODO: Implement isSimulationEnabled()
         },
@@ -27,7 +44,7 @@
         const tasks = [];
         tasks.parallel = false;
 
-        const dataConnector = DataConnector.getInstance();
+        const dataConnector = DataConnector.getInstance(hmi.env.logger);
 
         const taskManager = TaskManager.getInstance(hmi);
         hmi.env.tasks = taskManager;
@@ -35,7 +52,7 @@
         // prepare content management system
         tasks.push((onSuccess, onError) => hmi.env.cms = new ContentManager.Instance(onSuccess, onError));
         tasks.push((onSuccess, onError) => {
-            const languages = hmi.env.lang = LanguageSwitching.getInstance(hmi.env.cms);
+            const languages = hmi.env.lang = LanguageSwitching.getInstance(hmi.env.logger, hmi.env.cms);
             const language = languages.IsAvailable(languageQueryParameterValue) ? languageQueryParameterValue : languages.GetLanguage();
             languages.LoadLanguage(language, onSuccess, onError);
         });
@@ -52,7 +69,7 @@
         let webSocketConnection = undefined;
         tasks.push((onSuccess, onError) => {
             try {
-                webSocketConnection = new WebSocketConnection.ClientConnection(document.location.hostname, webSocketSessionConfig, {
+                webSocketConnection = new WebSocketConnection.ClientConnection(hmi.env.logger, document.location.hostname, webSocketSessionConfig, {
                     heartbeatInterval: 2000,
                     heartbeatTimeout: 1000,
                     reconnectStart: 1000,
@@ -94,7 +111,7 @@
             const isValidLanguageValueId = hmi.env.cms.GetIdValidTestFunctionForLanguageValue();
             dataAccessRouter.GetDataAccessObject = dataId => isValidLanguageValueId(dataId) ? hmi.env.lang : dataConnector;
             // Create collection providing multiple subscriptions from any context
-            const dataAccessPoint = new DataPoint.AccessPoint();
+            const dataAccessPoint = new DataPoint.AccessPoint(hmi.env.logger);
             dataAccessPoint.UnsubscribeDelay = config.accessPointUnsubscribeDelay;
             dataAccessPoint.Source = dataAccessRouter; // Use the router as source
             hmi.env.data = dataAccessPoint; // Enable access from anyhwere

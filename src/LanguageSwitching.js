@@ -9,23 +9,16 @@
     const DEFAULT_VALUE_FOR_NOT_EXISTS = '???';
 
     class Handler {
-        constructor(cms) {
+        constructor(logger, cms) {
+            this._logger = Common.validateAsLogger(logger, true);
             this._cms = cms;
             this._isValidLabelType = cms.GetIdValidTestFunctionForType(ContentManager.DataType.Label);
             this._isValidHTMLType = cms.GetIdValidTestFunctionForType(ContentManager.DataType.HTML);
             this._languages = cms.GetLanguages();
             this._language = this._languages[0];
-            this._onError = Core.defaultOnError;
             this._dataPoints = {};
             this._observers = [];
             Common.validateAsDataAccessObject(this, true);
-        }
-
-        set OnError(value) {
-            if (typeof value !== 'function') {
-                throw new Error('Set value for OnError(error) is not a function');
-            }
-            this._onError = value;
         }
 
         SubscribeLanguage(onLanguageChanged) {
@@ -34,7 +27,7 @@
             }
             for (const observer of this._observers) {
                 if (onLanguageChanged === observer) {
-                    this._onError('Callback onLanguageChanged(language) is already subscribed');
+                    this._logger.Warn('Callback onLanguageChanged(language) is already subscribed');
                     return;
                 }
             }
@@ -51,7 +44,7 @@
                     return;
                 }
             }
-            this._onError('Callback onLanguageChanged(language) is not subscribed');
+            this._logger.Warn('Callback onLanguageChanged(language) is not subscribed');
         }
 
         GetType(dataId) {
@@ -76,9 +69,9 @@
                 // If the corresponding data point is added to the database later, the already existing callback will be called from then on automatically.
                 dataPoint = this._dataPoints[dataId] = { exists: false, value: DEFAULT_VALUE_FOR_NOT_EXISTS };
             } else if (dataPoint.onRefresh === onRefresh) {
-                this._onError(`Data id '${dataId}' is already subscribed with this callback`);
+                this._logger.Warn(`Data id '${dataId}' is already subscribed with this callback`);
             } else if (dataPoint.onRefresh !== null) {
-                this._onError(`Data id '${dataId}' is already subscribed with another callback`);
+                this._logger.Warn(`Data id '${dataId}' is already subscribed with another callback`);
             }
             dataPoint.onRefresh = onRefresh;
             try {
@@ -96,12 +89,12 @@
             }
             const dataPoint = this._dataPoints[dataId];
             if (!dataPoint) {
-                this._onError(`Language value with id '${dataId}' is not available to unsubscribe`);
+                this._logger.Error(`Language value with id '${dataId}' is not available to unsubscribe`);
                 return;
             } else if (dataPoint.onRefresh === null) {
-                this._onError(`Language value with id '${dataId}' is not subscribed`);
+                this._logger.Warn(`Language value with id '${dataId}' is not subscribed`);
             } else if (dataPoint.onRefresh !== onRefresh) {
-                this._onError(`Language value with id '${dataId}' is subscribed with a another callback`);
+                this._logger.Warn(`Language value with id '${dataId}' is subscribed with a another callback`);
             }
             dataPoint.onRefresh = null;
             if (!dataPoint.exists) {
@@ -170,7 +163,7 @@
                             try {
                                 dataPoint.onRefresh(dataPoint.value);
                             } catch (error) {
-                                this._onError(`Failed calling onRefresh(value) for data id '${dataId}':\n${error.message}`);
+                                this._logger.Error(`Failed calling onRefresh(value) for data id '${dataId}':\n${error.message}`);
                             }
                         }
                     }
@@ -179,14 +172,14 @@
                     try {
                         observer(language);
                     } catch (error) {
-                        this._onError(`Failed calling onLanguageChanged('${language}'):\n${error.message}`);
+                        this._logger.Error(`Failed calling onLanguageChanged('${language}'):\n${error.message}`);
                     }
                 }
                 onSuccess();
             }, onError)
         }
     }
-    LanguageSwitching.getInstance = cms => new Handler(cms);
+    LanguageSwitching.getInstance = (logger, cms) => new Handler(logger, cms);
 
     Object.freeze(LanguageSwitching);
     if (isNodeJS) {
