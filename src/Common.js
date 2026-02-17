@@ -4,6 +4,20 @@
     const isNodeJS = typeof require === 'function';
     const Core = isNodeJS ? require('./Core.js') : root.Core;
 
+    /* Logger interface */
+    function validateAsLogger(instance, validateMethodArguments) {
+        return Core.validateAs('Logger', instance, [
+            'SetLevel(level)',
+            'Trace:function',
+            'Debug:function',
+            'Info:function',
+            'Warn:function',
+            'Error:function',
+            'Fatal:function'
+        ], validateMethodArguments);
+    }
+    Common.validateAsLogger = validateAsLogger;
+
     /*  Observable inferface  */
     function validateAsObservable(instance, validateMethodArguments) {
         return Core.validateAs('Observable', instance, [
