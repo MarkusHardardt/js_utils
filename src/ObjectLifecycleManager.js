@@ -2404,7 +2404,7 @@
                 var column = that.columns[i];
                 var cell = $('#' + _columns[i]._id);
                 if (typeof column.labelId === 'string' && column.labelId.length > 0) {
-                    cell.text(that.hmi.env.data.Get(column.labelId));
+                    cell.text(that.hmi.env.data.Get(column.labelId)); // TODO: Get() not exists!
                 }
                 else if (typeof column.text === 'string' && column.text.length > 0) {
                     cell.text(column.text);
@@ -2434,7 +2434,7 @@
                 txt += _columns[i]._id;
                 txt += '">';
                 // TODO
-                txt += that.hmi.env.data.Get(column.labelId);
+                txt += that.hmi.env.data.Get(column.labelId); // TODO: Get() not exists!
                 txt += '</b>';
             }
             else if (typeof column.text === 'string' && column.text.length > 0) {
@@ -7197,7 +7197,7 @@
             _watch = get_watch(that.watch);
             if (Array.isArray(_watch)) {
                 _onEventCallbacks = [];
-                function tryGetType(dataId) {
+                function tryGetType(dataId) { // TODO: Use or remove
                     try {
                         return that.hmi.env.data.GetType(dataId);
                     } catch (error) {
@@ -7502,25 +7502,25 @@
         const buttons = [];
         if (typeof config.ok === 'function') {
             buttons.push({
-                text: typeof config.okLabelId === 'string' ? that.hmi.env.data.Get(config.okLabelId) : 'OK',
+                text: typeof config.okLabelId === 'string' ? that.hmi.env.data.Get(config.okLabelId) : 'OK', // TODO: Get() not exists!
                 click: close => perform(config.ok, close)
             });
         }
         if (typeof config.yes === 'function') {
             buttons.push({
-                text: typeof config.yesLabelId === 'string' ? that.hmi.env.data.Get(config.yesLabelId) : 'Yes',
+                text: typeof config.yesLabelId === 'string' ? that.hmi.env.data.Get(config.yesLabelId) : 'Yes', // TODO: Get() not exists!
                 click: close => perform(config.yes, close)
             });
         }
         if (typeof config.no === 'function') {
             buttons.push({
-                text: typeof config.noLabelId === 'string' ? that.hmi.env.data.Get(config.noLabelId) : 'No',
+                text: typeof config.noLabelId === 'string' ? that.hmi.env.data.Get(config.noLabelId) : 'No', // TODO: Get() not exists!
                 click: close => perform(config.no, close)
             });
         }
         if (typeof config.cancel === 'function') {
             buttons.push({
-                text: typeof config.cancelLabelId === 'string' ? that.hmi.env.data.Get(config.cancelLabelId) : 'Cancel',
+                text: typeof config.cancelLabelId === 'string' ? that.hmi.env.data.Get(config.cancelLabelId) : 'Cancel', // TODO: Get() not exists!
                 click: close => perform(config.cancel, close)
             });
         }
