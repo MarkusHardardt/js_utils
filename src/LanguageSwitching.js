@@ -27,7 +27,7 @@
             }
             for (const observer of this._observers) {
                 if (onLanguageChanged === observer) {
-                    this._logger.Warn('Callback onLanguageChanged(language) is already observed');
+                    this._logger.warn('Callback onLanguageChanged(language) is already observed');
                     return;
                 }
             }
@@ -44,7 +44,7 @@
                     return;
                 }
             }
-            this._logger.Warn('Callback onLanguageChanged(language) is not observed');
+            this._logger.warn('Callback onLanguageChanged(language) is not observed');
         }
 
         GetType(dataId) {
@@ -69,9 +69,9 @@
                 // If the corresponding data point is added to the database later, the already existing callback will be called from then on automatically.
                 dataPoint = this._dataPoints[dataId] = { exists: false, value: DEFAULT_VALUE_FOR_NOT_EXISTS };
             } else if (dataPoint.onRefresh === onRefresh) {
-                this._logger.Warn(`Data id '${dataId}' is already observed with this callback`);
+                this._logger.warn(`Data id '${dataId}' is already observed with this callback`);
             } else if (dataPoint.onRefresh !== null) {
-                this._logger.Warn(`Data id '${dataId}' is already observed with another callback`);
+                this._logger.warn(`Data id '${dataId}' is already observed with another callback`);
             }
             dataPoint.onRefresh = onRefresh;
             try {
@@ -92,9 +92,9 @@
                 this._logger.Error(`Language value with id '${dataId}' is not available to unsubscribe`);
                 return;
             } else if (dataPoint.onRefresh === null) {
-                this._logger.Warn(`Language value with id '${dataId}' is not observed`);
+                this._logger.warn(`Language value with id '${dataId}' is not observed`);
             } else if (dataPoint.onRefresh !== onRefresh) {
-                this._logger.Warn(`Language value with id '${dataId}' is observed with a another callback`);
+                this._logger.warn(`Language value with id '${dataId}' is observed with a another callback`);
             }
             dataPoint.onRefresh = null;
             if (!dataPoint.exists) {

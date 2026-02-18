@@ -108,9 +108,9 @@
         tasks.push((onSuccess, onError) => {
             // Create router for delegation to language or data values 
             const isValidLanguageValueId = hmi.env.cms.GetIdValidTestFunctionForLanguageValue();
-            const dataAccessRouter = new DataPoint.AccessRouter(dataId => isValidLanguageValueId(dataId) ? hmi.env.lang : dataConnector);
+            const dataAccessSwitch = new DataPoint.Switch(dataId => isValidLanguageValueId(dataId) ? hmi.env.lang : dataConnector);
             // Create collection providing multiple subscriptions from any context
-            const dataAccessPoint = new DataPoint.AccessPoint(hmi.env.logger, dataAccessRouter); // Use the router as source
+            const dataAccessPoint = new DataPoint.AccessPoint(hmi.env.logger, dataAccessSwitch); // Use the router as source
             dataAccessPoint.RemoveObserverDelay = config.accessPointUnsubscribeDelay;
             hmi.env.data = dataAccessPoint; // Enable access from anyhwere
             onSuccess();

@@ -7,12 +7,12 @@
     /* Logger interface */
     function validateAsLogger(instance, validateMethodArguments) {
         return Core.validateAs('Logger', instance, [
-            'SetLevel(level)',
-            'Trace:function',
-            'Debug:function',
-            'Info:function',
-            'Warn:function',
-            'Error:function',
+            'setLevel(level)',
+            'trace:function',
+            'debug:function',
+            'info:function',
+            'warn:function',
+            'error:function',
             'Fatal:function'
         ], validateMethodArguments);
     }

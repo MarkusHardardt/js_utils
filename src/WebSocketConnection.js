@@ -475,7 +475,7 @@
                         if (isUTC) {
                             instance.createdUTC = createdUTC;
                         } else {
-                            this._logger.Warn(`Web socket connected with unknown session id: '${formatSesionId(sessionId)}'`)
+                            this._logger.warn(`Web socket connected with unknown session id: '${formatSesionId(sessionId)}'`)
                         }
                         instance.connection = new WebSocketServerConnection(logger, sessionId, {
                             OnOpen: () => {
@@ -489,7 +489,7 @@
                                             this._logger.Error(`Failed calling OnOpen: ${error.message}`);
                                         }
                                     } else {
-                                        this._logger.Info(`Connection opened with session id: '${formatSesionId(sessionId)}'`);
+                                        this._logger.info(`Connection opened with session id: '${formatSesionId(sessionId)}'`);
                                     }
                                 } else {
                                     clearTimeout(instance.disposeTimeoutTimer);
@@ -500,7 +500,7 @@
                                             this._logger.Error(`Failed calling OnReopen: ${error.message}`);
                                         }
                                     } else {
-                                        this._logger.Info(`Connection reopened with session id: '${formatSesionId(sessionId)}'`);
+                                        this._logger.info(`Connection reopened with session id: '${formatSesionId(sessionId)}'`);
                                     }
                                 }
                             },
@@ -513,7 +513,7 @@
                                         this._logger.Error(`Failed calling OnClose: ${error.message}`);
                                     }
                                 } else {
-                                    this._logger.Info(`Connection closed with session id: '${formatSesionId(sessionId)}'`);
+                                    this._logger.info(`Connection closed with session id: '${formatSesionId(sessionId)}'`);
                                 }
                                 instance.disposeTimeoutTimer = setTimeout(() => {
                                     delete this._instances[sessionId];
@@ -524,7 +524,7 @@
                                             this._logger.Error(`Failed calling OnDispose: ${error.message}`);
                                         }
                                     } else {
-                                        this._logger.Info(`Connection diposed with session id: '${formatSesionId(sessionId)}'`);
+                                        this._logger.info(`Connection diposed with session id: '${formatSesionId(sessionId)}'`);
                                     }
                                 }, options.closedConnectionDisposeTimeout ?? DEFAULT_CLOSED_CONNECTION_DISPOSE_TIMEOUT);
                             },

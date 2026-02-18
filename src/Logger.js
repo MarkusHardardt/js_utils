@@ -10,24 +10,24 @@
 
         static Level = Object.freeze({
             Off: 0,
-            Trace: 1,
-            Debug: 2,
-            Info: 3,
-            Warn: 4,
+            trace: 1,
+            debug: 2,
+            info: 3,
+            warn: 4,
             Error: 5,
             Fatal: 6
         });
 
         static LevelName = Object.freeze({
-            1: 'Trace',
-            2: 'Debug',
-            3: 'Info',
-            4: 'Warn',
+            1: 'trace',
+            2: 'debug',
+            3: 'info',
+            4: 'warn',
             5: 'Error',
             6: 'Fatal'
         });
 
-        static #globalLevel = Logger.Level.Info;
+        static #globalLevel = Logger.Level.trace; // TODO: Reuse Logger.Level.warn;
         static #transports = [];
 
         // Default transport → console
@@ -36,7 +36,7 @@
                 const { level, formattedArgs } = entry;
                 if (level >= Logger.Level.Error) {
                     console.error(...formattedArgs);
-                } else if (level >= Logger.Level.Warn) {
+                } else if (level >= Logger.Level.warn) {
                     console.warn(...formattedArgs);
                 } else {
                     console.log(...formattedArgs);
@@ -48,7 +48,7 @@
         // Static API
         // ─────────────────────────────
 
-        static SetLevel(level) {
+        static setLevel(level) {
             this.#globalLevel = level;
         }
 
@@ -77,7 +77,7 @@
             Common.validateAsLogger(this, true);
         }
 
-        SetLevel(level) {
+        setLevel(level) {
             this.#level = level;
         }
 
@@ -127,10 +127,10 @@
 
         #colorForLevel(level) {
             switch (level) {
-                case Logger.Level.Trace: return 'gray';
-                case Logger.Level.Debug: return 'blue';
-                case Logger.Level.Info: return 'green';
-                case Logger.Level.Warn: return 'orange';
+                case Logger.Level.trace: return 'gray';
+                case Logger.Level.debug: return 'blue';
+                case Logger.Level.info: return 'green';
+                case Logger.Level.warn: return 'orange';
                 case Logger.Level.Error: return 'red';
                 case Logger.Level.Fatal: return 'darkred';
                 default: return 'black';
@@ -139,10 +139,10 @@
 
         #ansiColor(level) {
             switch (level) {
-                case Logger.Level.Trace: return '\x1b[90m';
-                case Logger.Level.Debug: return '\x1b[34m';
-                case Logger.Level.Info: return '\x1b[32m';
-                case Logger.Level.Warn: return '\x1b[33m';
+                case Logger.Level.trace: return '\x1b[90m';
+                case Logger.Level.debug: return '\x1b[34m';
+                case Logger.Level.info: return '\x1b[32m';
+                case Logger.Level.warn: return '\x1b[33m';
                 case Logger.Level.Error: return '\x1b[31m';
                 case Logger.Level.Fatal: return '\x1b[41m';
                 default: return '';
@@ -152,20 +152,20 @@
         // ─────────────────────────────
         // Public Logging Methods
         // ─────────────────────────────
-        Trace(...args) {
-            this.#log(Logger.Level.Trace, args);
+        trace(...args) {
+            this.#log(Logger.Level.trace, args);
         }
 
-        Debug(...args) {
-            this.#log(Logger.Level.Debug, args);
+        debug(...args) {
+            this.#log(Logger.Level.debug, args);
         }
 
-        Info(...args) {
-            this.#log(Logger.Level.Info, args);
+        info(...args) {
+            this.#log(Logger.Level.info, args);
         }
 
-        Warn(...args) {
-            this.#log(Logger.Level.Warn, args);
+        warn(...args) {
+            this.#log(Logger.Level.warn, args);
         }
 
         Error(...args) {

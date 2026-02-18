@@ -49,7 +49,7 @@
             }
             this._reloadTasksTimeout = setTimeout(() => {
                 this._reloadTasksTimeout = null;
-                this._reloadTasks(() => this._logger.Info('Loaded tasks'), error => this._logger.Error(error));
+                this._reloadTasks(() => this._logger.info('Loaded tasks'), error => this._logger.Error(error));
             }, RELOAD_TASKS_TIMEOUT);
         }
 
@@ -74,7 +74,7 @@
                                 if (taskObject.task && taskObject.config.taskObject !== config.taskObject) {
                                     // If the actual task object has changed we must stop the running instance
                                     tasks.push((onSuc, onErr) => that._stopTask(path, () => {
-                                        this._logger.Warn(`Stopped task '${path}' because actual task object has changed`);
+                                        this._logger.warn(`Stopped task '${path}' because actual task object has changed`);
                                         onSuc();
                                     }, error => {
                                         const message = `Failed stopping task '${path}' because actual task object has changed:\n${error}`;
@@ -111,7 +111,7 @@
                                     // If the task is not available anymore we must stop the running instance
                                     tasks.push((onSuc, onErr) => that._stopTask(path, () => {
                                         delete that._taskObjects[path];
-                                        this._logger.Warn(`Stopped task '${path}' because it is not available anymore`);
+                                        this._logger.warn(`Stopped task '${path}' because it is not available anymore`);
                                         onSuc();
                                     }, error => {
                                         delete that._taskObjects[path];
@@ -217,9 +217,9 @@
                     ObjectLifecycleManager.createObject(taskObject.task, null, () => {
                         if (typeof taskObject.config.cycleMillis === 'number' && taskObject.config.cycleMillis > 0) {
                             taskObject.intervalTimer = setInterval(() => ObjectLifecycleManager.refreshObject(taskObject.task, new Date()), Math.ceil(taskObject.config.cycleMillis));
-                            this._logger.Info(`Started task '${path}' with object '${taskObject.config.taskObject}' (cycles at ${taskObject.config.cycleMillis} ms)`);
+                            this._logger.info(`Started task '${path}' with object '${taskObject.config.taskObject}' (cycles at ${taskObject.config.cycleMillis} ms)`);
                         } else {
-                            this._logger.Info(`Started task '${path}' with object '${taskObject.config.taskObject}' (no cycles)`);
+                            this._logger.info(`Started task '${path}' with object '${taskObject.config.taskObject}' (no cycles)`);
                         }
                         onSuccess();
                     }, error => {
@@ -245,7 +245,7 @@
                     delete taskObject.intervalTimer;
                 }
                 ObjectLifecycleManager.killObject(task, () => {
-                    this._logger.Info(`Stopped task '${path}' with object '${taskObject.config.taskObject}'`);
+                    this._logger.info(`Stopped task '${path}' with object '${taskObject.config.taskObject}'`);
                     onSuccess();
                 }, error => {
                     const message = `Failed stopping task '${path}' with object '${taskObject.config.taskObject}':\n${error}`;
