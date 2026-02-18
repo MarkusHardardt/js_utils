@@ -130,7 +130,7 @@
                             const configData = { type: TransmissionType.ConfigurationRefresh, tasksConfigAndState: that._getTasksConfigAndState() };
                             for (const sessionId in this._connections) {
                                 if (this._connections.hasOwnProperty(sessionId)) {
-                                    this._connections[sessionId].connection.Send(TASK_MANAGER_RECEIVER, configData);
+                                    this._connections[sessionId].connection.send(TASK_MANAGER_RECEIVER, configData);
                                 }
                             }
                             onSuc();
@@ -153,26 +153,26 @@
             const data = { type: TransmissionType.StateRefresh, path, state };
             for (const sessionId in this._connections) {
                 if (this._connections.hasOwnProperty(sessionId)) {
-                    this._connections[sessionId].connection.Send(TASK_MANAGER_RECEIVER, data);
+                    this._connections[sessionId].connection.send(TASK_MANAGER_RECEIVER, data);
                 }
             }
         }
 
-        OnOpen(connection) {
+        onOpen(connection) {
             const sessionId = connection.SessionId;
             if (this._connections[sessionId] === undefined) {
                 const con = this._connections[sessionId] = {
                     connection,
                     handler: (data, onResponse, onError) => this._handleReceived(data, onResponse, onError)
                 };
-                connection.Register(TASK_MANAGER_RECEIVER, con.handler);
+                connection.register(TASK_MANAGER_RECEIVER, con.handler);
             }
         }
 
-        OnClose(connection) {
+        onClose(connection) {
             const sessionId = connection.SessionId;
             if (this._connections[sessionId] !== undefined) {
-                connection.Unregister(TASK_MANAGER_RECEIVER);
+                connection.unregister(TASK_MANAGER_RECEIVER);
                 delete this._connections[sessionId];
             }
         }
@@ -302,14 +302,14 @@
         set Connection(value) {
             if (value) {
                 if (this._connection) {
-                    this._connection.Unregister(TASK_MANAGER_RECEIVER);
+                    this._connection.unregister(TASK_MANAGER_RECEIVER);
                     this._connection = null;
                 }
                 Common.validateAsConnection(value, true);
                 this._connection = value;
-                this._connection.Register(TASK_MANAGER_RECEIVER, this._handler);
+                this._connection.register(TASK_MANAGER_RECEIVER, this._handler);
             } else if (this._connection) {
-                this._connection.Unregister(TASK_MANAGER_RECEIVER);
+                this._connection.unregister(TASK_MANAGER_RECEIVER);
                 this._connection = null;
             }
         }
@@ -336,12 +336,12 @@
             }
         }
 
-        OnOpen() {
+        onOpen() {
             this._open = true;
             this._loadConfiguration();
         }
 
-        OnClose() {
+        onClose() {
             this._open = false;
         }
 
@@ -359,7 +359,7 @@
         }
 
         _loadConfiguration() {
-            Core.validateAs('Connection', this._connection, 'Send:function').Send(
+            Core.validateAs('Connection', this._connection, 'send:function').send(
                 TASK_MANAGER_RECEIVER,
                 { type: TransmissionType.ConfigurationRequest },
                 response => this._updateConfiguration(response),
@@ -435,7 +435,7 @@
             } else if (!this._open) {
                 onError('Web socket connection is closed');
             } else {
-                this._connection.Send(TASK_MANAGER_RECEIVER, { type: TransmissionType.StartTask, path }, onResponse, onError);
+                this._connection.send(TASK_MANAGER_RECEIVER, { type: TransmissionType.StartTask, path }, onResponse, onError);
             }
         }
 
@@ -445,7 +445,7 @@
             } else if (!this._open) {
                 onError('Web socket connection is closed');
             } else {
-                this._connection.Send(TASK_MANAGER_RECEIVER, { type: TransmissionType.StopTask, path }, onResponse, onError);
+                this._connection.send(TASK_MANAGER_RECEIVER, { type: TransmissionType.StopTask, path }, onResponse, onError);
             }
         }
     }

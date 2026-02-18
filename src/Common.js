@@ -13,7 +13,7 @@
             'info:function',
             'warn:function',
             'error:function',
-            'Fatal:function'
+            'fatal:function'
         ], validateMethodArguments);
     }
     Common.validateAsLogger = validateAsLogger;
@@ -21,8 +21,8 @@
     /*  Observable inferface  */
     function validateAsObservable(instance, validateMethodArguments) {
         return Core.validateAs('Observable', instance, [
-            'AddObserver(onRefresh)',
-            'RemoveObserver(onRefresh)',
+            'addObserver(onRefresh)',
+            'removeObserver(onRefresh)',
         ], validateMethodArguments);
     }
     Common.validateAsObservable = validateAsObservable;
@@ -30,11 +30,11 @@
     /*  DataAccessObject inferface  */
     function validateAsDataAccessObject(instance, validateMethodArguments) {
         return Core.validateAs('DataAccessObject', instance, [
-            'GetType(dataId)',
-            'AddObserver(dataId, onRefresh)',
-            'RemoveObserver(dataId, onRefresh)',
-            'Read(dataId, onResponse, onError)',
-            'Write(dataId, value)'
+            'getType(dataId)',
+            'addObserver(dataId, onRefresh)',
+            'removeObserver(dataId, onRefresh)',
+            'read(dataId, onResponse, onError)',
+            'write(dataId, value)'
         ], validateMethodArguments);
     }
     Common.validateAsDataAccessObject = validateAsDataAccessObject;
@@ -43,7 +43,7 @@
     function validateAsDataAccessServerObject(instance, validateMethodArguments) {
         validateAsDataAccessObject(instance, validateMethodArguments);
         return Core.validateAs('DataAccessServerObject', instance, [
-            'GetDataPoints()'
+            'getDataPoints()'
         ], validateMethodArguments);
     }
     Common.validateAsDataAccessServerObject = validateAsDataAccessServerObject;
@@ -51,10 +51,10 @@
     /*  Connection inferface  */
     function validateAsConnection(instance, validateMethodArguments) {
         return Core.validateAs('Connection', instance, [
-            'Ping(onResponse, onError)',
-            'Register(receiver, handler)',
-            'Unregister(receiver)',
-            'Send(receiver, data, onResponse, onError)'
+            'ping(onResponse, onError)',
+            'register(receiver, handler)',
+            'unregister(receiver)',
+            'send(receiver, data, onResponse, onError)'
         ], validateMethodArguments);
     }
     Common.validateAsConnection = validateAsConnection;
@@ -62,8 +62,8 @@
     /*  Connector inferface */
     function validateAsConnector(instance, validateMethodArguments) {
         return Core.validateAs('Connector', instance, [
-            'OnOpen()',
-            'OnClose()'
+            'onOpen()',
+            'onClose()'
         ], validateMethodArguments);
     }
     Common.validateAsConnector = validateAsConnector;
@@ -71,7 +71,7 @@
     /*  ServerConnector inferface  */
     function validateAsServerConnector(instance, validateMethodArguments) {
         validateAsConnector(instance, validateMethodArguments);
-        return Core.validateAs('ServerConnector', instance, 'SetDataPoints(dataPoints)', validateMethodArguments);
+        return Core.validateAs('ServerConnector', instance, 'setDataPoints(dataPoints)', validateMethodArguments);
     }
     Common.validateAsServerConnector = validateAsServerConnector;
 

@@ -47,7 +47,7 @@
             this._logger.warn('Callback onLanguageChanged(language) is not observed');
         }
 
-        GetType(dataId) {
+        getType(dataId) {
             if (this._isValidLabelType(dataId)) {
                 return Core.DataType.String;
             } else if (this._isValidHTMLType(dataId)) {
@@ -57,7 +57,7 @@
             }
         }
 
-        AddObserver(dataId, onRefresh) {
+        addObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
@@ -81,7 +81,7 @@
             }
         }
 
-        RemoveObserver(dataId, onRefresh) {
+        removeObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
@@ -102,7 +102,7 @@
             }
         }
 
-        Read(dataId, onResponse, onError) {
+        read(dataId, onResponse, onError) {
             const dataPoint = this._dataPoints[dataId];
             if (!dataPoint) {
                 onError(`Unsupported data id for read: '${dataId}'`);
@@ -111,8 +111,8 @@
             }
         }
 
-        Write(dataId, value) {
-            throw new Error(`Write to data with id '${dataId}' is not supported`);
+        write(dataId, value) {
+            throw new Error(`write to data with id '${dataId}' is not supported`);
         }
 
         GetLanguages() {

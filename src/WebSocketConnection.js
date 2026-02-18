@@ -24,17 +24,17 @@
     /*  The Connection constructor requires the following arguments:
         - sessionId: received from web server (using ajax)
         - options: {
-            OnOpen(): will be called when socket connection has been established
-            OnClose(): will be called when socket connection has been lost
+            onOpen(): will be called when socket connection has been established
+            onClose(): will be called when socket connection has been lost
             OnError(error): will be called when an error occurred
           }
         A connection has the following public interface:
         - SessionId: The session id
         - IsConnected: true if connected
-        - Ping(): sends ping to other an waits for response (pong)
-        - Register(): registers receiver for data
-        - Unregister(): unregisters receiver for data
-        - Send(): sends data to receiver on other side an waits optionally for response (pong)    */
+        - ping(): sends ping to other an waits for response (pong)
+        - register(): registers receiver for data
+        - unregister(): unregisters receiver for data
+        - send(): sends data to receiver on other side an waits optionally for response (pong)    */
     class Connection {
         constructor(logger, sessionId, options) {
             this._logger = Common.validateAsLogger(logger, true);
@@ -42,20 +42,20 @@
             this._handlers = {};
             this._callbacks = {};
             this._onOpen = () => {
-                if (typeof options.OnOpen === 'function') {
+                if (typeof options.onOpen === 'function') {
                     try {
-                        options.OnOpen();
+                        options.onOpen();
                     } catch (error) {
-                        this._logger.Error(`Failed calling OnOpen: ${error.message}`);
+                        this._logger.Error(`Failed calling onOpen: ${error.message}`);
                     }
                 }
             };
             this._onClose = () => {
-                if (typeof options.OnClose === 'function') {
+                if (typeof options.onClose === 'function') {
                     try {
-                        options.OnClose();
+                        options.onClose();
                     } catch (error) {
-                        this._logger.Error(`failed calling OnClose: ${error.message}`);
+                        this._logger.Error(`failed calling onClose: ${error.message}`);
                     }
                 }
             };
@@ -73,13 +73,13 @@
         get _webSocket() {
             return null;
         }
-        Ping(onResponse, onError) {
+        ping(onResponse, onError) {
             if (this.IsConnected) {
                 const telegram = { type: TelegramType.PingRequest };
                 this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC: Date.now(), onResponse, onError };
                 this._webSocket.send(JSON.stringify(telegram));
             } else {
-                throw new Error('Connection.Ping(): cannot send ping request when disconnected!');
+                throw new Error('Connection.ping(): cannot send ping request when disconnected!');
             }
         }
         _handlePingRequest(callback) {
@@ -119,27 +119,27 @@
             const now = Date.now();
             return this._remoteToLocalOffsetMillis !== 0 ? Math.ceil(now + this._remoteToLocalOffsetMillis) : now;
         }
-        Register(receiver, handler) {
+        register(receiver, handler) {
             if (typeof receiver !== 'string') {
-                throw new Error('Connection.Register(receiver, handler): receiver must be a string!');
+                throw new Error('Connection.register(receiver, handler): receiver must be a string!');
             } else if (typeof handler !== 'function') {
-                throw new Error('Connection.Register(receiver, handler): handler must be a function!');
+                throw new Error('Connection.register(receiver, handler): handler must be a function!');
             } else if (this._handlers[receiver]) {
-                throw new Error(`Connection.Register(receiver, handler): handler "${receiver}" already registered!`);
+                throw new Error(`Connection.register(receiver, handler): handler "${receiver}" already registered!`);
             } else {
                 this._handlers[receiver] = handler;
             }
         }
-        Unregister(receiver) {
+        unregister(receiver) {
             if (typeof receiver !== 'string') {
-                throw new Error('Connection.Unregister(receiver): receiver must be a string!');
+                throw new Error('Connection.unregister(receiver): receiver must be a string!');
             } else if (this._handlers[receiver] === undefined) {
-                throw new Error(`Connection.Unregister(receiver): "${receiver}" not registered!`);
+                throw new Error(`Connection.unregister(receiver): "${receiver}" not registered!`);
             } else {
                 delete this._handlers[receiver];
             }
         }
-        Send(receiver, data, onResponse, onError) {
+        send(receiver, data, onResponse, onError) {
             if (this.IsConnected) {
                 const telegram = { type: TelegramType.DataRequest, receiver, data };
                 if (typeof onResponse === 'function' || typeof onError === 'function') {
@@ -148,7 +148,7 @@
                 this._webSocket.send(JSON.stringify(telegram));
                 return true;
             } else {
-                throw new Error('Connection.Send(): cannot send data request when disconnected!');
+                throw new Error('Connection.send(): cannot send data request when disconnected!');
             }
         }
         _handleDataRequest(callback, requestData, receiver) {
@@ -280,14 +280,14 @@
                 heartbeatTimeout: timeout before disconnect [ms]
                 reconnectStart: timeout before first reconnect attempt [ms] (will be doubled on each try until max is reached)
                 reconnectMax: max timeout before next reconnect attempt [ms]
-                OnOpen(): will be called when socket connection has been established
-                OnClose(): will be called when socket connection has been lost
+                onOpen(): will be called when socket connection has been established
+                onClose(): will be called when socket connection has been lost
                 OnError(error): will be called when an error occurred
               }
             A client connection has the following public interface:
             - Start(): triggers connection attempts
             - Stop(): triggers disconnection
-            Read comment for Connection for more properties and methods.    */
+            read comment for Connection for more properties and methods.    */
         class WebSocketClientConnection extends Connection {
             constructor(logger, hostname, config, options = {}) {
                 super(logger, config.sessionId, options);
@@ -367,7 +367,7 @@
             _startHeartbeatMonitoring() {
                 this._heartbeatTimer = setInterval(() => {
                     if (this._state === ClientState.Online) {
-                        this.Ping(millis => {
+                        this.ping(millis => {
                             clearTimeout(this._heartbeatTimeoutTimer);
                         }, error => {
                             this._logger.Error(`Heartbeat monitoring failed: ${error}`);
@@ -403,11 +403,11 @@
         /*  WebSocketServerConnection extends Connection and the constructor requires the following arguments:
             - sessionId: received from web server (using ajax)
             - options: {
-                OnOpen(): will be called when socket connection has been established
-                OnClose(): will be called when socket connection has been lost
+                onOpen(): will be called when socket connection has been established
+                onClose(): will be called when socket connection has been lost
                 OnError(error): will be called when an error occurred
               }
-            Read comment for Connection for more properties and methods.    */
+            read comment for Connection for more properties and methods.    */
         class WebSocketServerConnection extends Connection {
             constructor(logger, sessionId, options) {
                 super(logger, sessionId, options);
@@ -438,7 +438,7 @@
                 };
                 // Note:
                 // Since this method is called with an already connected and open socket, it is not possible to react to 'socket.onopen' because it is no longer triggered.
-                // Instead, the online status is set directly and the 'OnOpen' method is triggered manually.
+                // Instead, the online status is set directly and the 'onOpen' method is triggered manually.
                 this._online = true;
                 this._onOpen(this);
             }
@@ -450,9 +450,9 @@
             - port: the port for the socket server
             - options: {
                 closedConnectionDisposeTimeout: timeout before a closed connection is disposed [ms]
-                OnOpen(connection): will be called when socket connection has been established the first time
+                onOpen(connection): will be called when socket connection has been established the first time
                 OnReopen(connection): will be called when socket connection has been established again
-                OnClose(connection): will be called when socket connection has been lost
+                onClose(connection): will be called when socket connection has been lost
                 OnDispose(connection): will be called when socket connection has been lost and not established again before the timeout has expired
                 OnError(connection, error): will be called when an error occurred
               }   
@@ -478,15 +478,15 @@
                             this._logger.warn(`Web socket connected with unknown session id: '${formatSesionId(sessionId)}'`)
                         }
                         instance.connection = new WebSocketServerConnection(logger, sessionId, {
-                            OnOpen: () => {
+                            onOpen: () => {
                                 const isFirstOpen = instance.openedUTC === undefined;
                                 instance.openedUTC = Date.now();
                                 if (isFirstOpen) {
-                                    if (typeof options.OnOpen === 'function') {
+                                    if (typeof options.onOpen === 'function') {
                                         try {
-                                            options.OnOpen(instance.connection);
+                                            options.onOpen(instance.connection);
                                         } catch (error) {
-                                            this._logger.Error(`Failed calling OnOpen: ${error.message}`);
+                                            this._logger.Error(`Failed calling onOpen: ${error.message}`);
                                         }
                                     } else {
                                         this._logger.info(`Connection opened with session id: '${formatSesionId(sessionId)}'`);
@@ -504,13 +504,13 @@
                                     }
                                 }
                             },
-                            OnClose: () => {
+                            onClose: () => {
                                 instance.closedUTC = Date.now();
-                                if (typeof options.OnClose === 'function') {
+                                if (typeof options.onClose === 'function') {
                                     try {
-                                        options.OnClose(instance.connection);
+                                        options.onClose(instance.connection);
                                     } catch (error) {
-                                        this._logger.Error(`Failed calling OnClose: ${error.message}`);
+                                        this._logger.Error(`Failed calling onClose: ${error.message}`);
                                     }
                                 } else {
                                     this._logger.info(`Connection closed with session id: '${formatSesionId(sessionId)}'`);

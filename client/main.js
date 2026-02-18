@@ -74,15 +74,15 @@
                     heartbeatTimeout: 1000,
                     reconnectStart: 1000,
                     reconnectMax: 32000,
-                    OnOpen: () => {
+                    onOpen: () => {
                         console.log(`web socket client opened (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.SessionId)}')`);
-                        taskManager.OnOpen();
-                        dataConnector.OnOpen();
+                        taskManager.onOpen();
+                        dataConnector.onOpen();
                     },
-                    OnClose: () => {
+                    onClose: () => {
                         console.log(`web socket client closed (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.SessionId)}')`);
-                        taskManager.OnClose();
-                        dataConnector.OnClose();
+                        taskManager.onClose();
+                        dataConnector.onClose();
 
                     },
                     OnError: error => {

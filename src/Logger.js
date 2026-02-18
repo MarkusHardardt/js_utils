@@ -9,34 +9,34 @@
         // ─────────────────────────────
 
         static Level = Object.freeze({
-            Off: 0,
-            trace: 1,
-            debug: 2,
-            info: 3,
-            warn: 4,
-            Error: 5,
-            Fatal: 6
+            FATAL: 1,
+            ERROR: 2,
+            WARN: 3,
+            INFO: 4,
+            DEBUG: 5,
+            TRACE: 6,
+            OFF: 0
         });
 
         static LevelName = Object.freeze({
-            1: 'trace',
-            2: 'debug',
-            3: 'info',
-            4: 'warn',
-            5: 'Error',
-            6: 'Fatal'
+            1: 'FATAL',
+            2: 'ERROR',
+            3: 'WARN',
+            4: 'INFO',
+            5: 'DEBUG',
+            6: 'TRACE'
         });
 
-        static #globalLevel = Logger.Level.trace; // TODO: Reuse Logger.Level.warn;
+        static #globalLevel = Logger.Level.TRACE; // TODO: Reuse Logger.Level.WARN;
         static #transports = [];
 
         // Default transport → console
         static {
-            Logger.AddTransport(entry => {
+            Logger.addTransport(entry => {
                 const { level, formattedArgs } = entry;
-                if (level >= Logger.Level.Error) {
+                if (level <= Logger.Level.ERROR) {
                     console.error(...formattedArgs);
-                } else if (level >= Logger.Level.warn) {
+                } else if (level <= Logger.Level.WARN) {
                     console.warn(...formattedArgs);
                 } else {
                     console.log(...formattedArgs);
@@ -52,15 +52,15 @@
             this.#globalLevel = level;
         }
 
-        static AddTransport(fn) {
+        static addTransport(fn) {
             this.#transports.push(fn);
         }
 
-        static ClearTransports() {
+        static clearTransports() {
             this.#transports = [];
         }
 
-        static Child(context) {
+        static child(context) {
             return new Logger(context);
         }
 
@@ -127,24 +127,24 @@
 
         #colorForLevel(level) {
             switch (level) {
-                case Logger.Level.trace: return 'gray';
-                case Logger.Level.debug: return 'blue';
-                case Logger.Level.info: return 'green';
-                case Logger.Level.warn: return 'orange';
-                case Logger.Level.Error: return 'red';
-                case Logger.Level.Fatal: return 'darkred';
+                case Logger.Level.FATAL: return 'darkred';
+                case Logger.Level.ERROR: return 'red';
+                case Logger.Level.WARN: return 'orange';
+                case Logger.Level.INFO: return 'green';
+                case Logger.Level.DEBUG: return 'blue';
+                case Logger.Level.TRACE: return 'gray';
                 default: return 'black';
             }
         }
 
         #ansiColor(level) {
             switch (level) {
-                case Logger.Level.trace: return '\x1b[90m';
-                case Logger.Level.debug: return '\x1b[34m';
-                case Logger.Level.info: return '\x1b[32m';
-                case Logger.Level.warn: return '\x1b[33m';
-                case Logger.Level.Error: return '\x1b[31m';
-                case Logger.Level.Fatal: return '\x1b[41m';
+                case Logger.Level.FATAL: return '\x1b[41m';
+                case Logger.Level.ERROR: return '\x1b[31m';
+                case Logger.Level.WARN: return '\x1b[33m';
+                case Logger.Level.INFO: return '\x1b[32m';
+                case Logger.Level.DEBUG: return '\x1b[34m';
+                case Logger.Level.TRACE: return '\x1b[90m';
                 default: return '';
             }
         }
@@ -152,28 +152,29 @@
         // ─────────────────────────────
         // Public Logging Methods
         // ─────────────────────────────
-        trace(...args) {
-            this.#log(Logger.Level.trace, args);
+
+        fatal(...args) {
+            this.#log(Logger.Level.FATAL, args);
         }
 
-        debug(...args) {
-            this.#log(Logger.Level.debug, args);
-        }
-
-        info(...args) {
-            this.#log(Logger.Level.info, args);
+        error(...args) {
+            this.#log(Logger.Level.ERROR, args);
         }
 
         warn(...args) {
-            this.#log(Logger.Level.warn, args);
+            this.#log(Logger.Level.WARN, args);
         }
 
-        Error(...args) {
-            this.#log(Logger.Level.Error, args);
+        info(...args) {
+            this.#log(Logger.Level.INFO, args);
         }
 
-        Fatal(...args) {
-            this.#log(Logger.Level.Fatal, args);
+        debug(...args) {
+            this.#log(Logger.Level.DEBUG, args);
+        }
+
+        trace(...args) {
+            this.#log(Logger.Level.TRACE, args);
         }
     }
 

@@ -7199,9 +7199,9 @@
                 _onEventCallbacks = [];
                 function tryGetType(dataId) { // TODO: Use or remove
                     try {
-                        return that.hmi.env.data.GetType(dataId);
+                        return that.hmi.env.data.getType(dataId);
                     } catch (error) {
-                        console.error(`Failed calling GetType('${dataId}'):\n${error.message}`);
+                        console.error(`Failed calling getType('${dataId}'):\n${error.message}`);
                         return Core.DataType.Unknown;
                     }
                 }
@@ -7209,7 +7209,7 @@
                     (function () {
                         const dataId = _watch[i];
                         try {
-                            const type = that.hmi.env.data.GetType(dataId);
+                            const type = that.hmi.env.data.getType(dataId);
                             const onRefresh = value => {
                                 try {
                                     if (typeof that.handleDataUpdate === 'function') {
@@ -7235,7 +7235,7 @@
                             };
                             _onEventCallbacks.push(onRefresh);
                             try {
-                                that.hmi.env.data.AddObserver(dataId, onRefresh);
+                                that.hmi.env.data.addObserver(dataId, onRefresh);
                             } catch (error) {
                                 console.error(`Failed subscribing to '${dataId}':\n${error.message}`);
                             }
@@ -7297,7 +7297,7 @@
             if (Array.isArray(_watch)) {
                 for (var i = _watch.length - 1; i >= 0; i--) {
                     try {
-                        that.hmi.env.data.RemoveObserver(_watch[i], _onEventCallbacks[i]);
+                        that.hmi.env.data.removeObserver(_watch[i], _onEventCallbacks[i]);
                     } catch (error) {
                         console.error(`Failed unsubscribing from '${_watch[i]}':\n${error.message}`);
                     }
