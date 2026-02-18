@@ -30,38 +30,43 @@
     const RELOAD_TASKS_TIMEOUT = 1000;
 
     class ServerManager extends BaseManager {
+        #connections;
+        #taskObjects;
+        #onTasksChanged;
+        #reloadingTasks;
+        #reloadTasksTimeout
         constructor(hmi) {
             super(hmi);
-            this._connections = {};
-            this._taskObjects = {};
-            this._onTasksChanged = () => this._handleTasksChanged();
-            this._reloadingTasks = false;
-            this._reloadTasksTimeout = null;
+            this.#connections = {};
+            this.#taskObjects = {};
+            this.#onTasksChanged = () => this.#handleTasksChanged();
+            this.#reloadingTasks = false;
+            this.#reloadTasksTimeout = null;
         }
 
-        get OnTasksChanged() {
-            return this._onTasksChanged;
+        get onTasksChanged() {
+            return this.#onTasksChanged;
         }
 
-        _handleTasksChanged() {
-            if (this._reloadTasksTimeout) {
-                clearTimeout(this._reloadTasksTimeout);
+        #handleTasksChanged() {
+            if (this.#reloadTasksTimeout) {
+                clearTimeout(this.#reloadTasksTimeout);
             }
-            this._reloadTasksTimeout = setTimeout(() => {
-                this._reloadTasksTimeout = null;
-                this._reloadTasks(() => this._logger.info('Loaded tasks'), error => this._logger.Error(error));
+            this.#reloadTasksTimeout = setTimeout(() => {
+                this.#reloadTasksTimeout = null;
+                this.#reloadTasks(() => this._logger.info('Loaded tasks'), error => this._logger.error(error));
             }, RELOAD_TASKS_TIMEOUT);
         }
 
-        Initialize(onSuccess, onError) {
-            this._reloadTasks(onSuccess, onError);
+        initialize(onSuccess, onError) {
+            this.#reloadTasks(onSuccess, onError);
         }
 
-        _reloadTasks(onSuccess, onError) {
-            if (this._reloadingTasks) {
+        #reloadTasks(onSuccess, onError) {
+            if (this.#reloadingTasks) {
                 onError('Reloading tasks is already in progress');
             } else {
-                this._reloadingTasks = true;
+                this.#reloadingTasks = true;
                 const that = this;
                 this._hmi.env.cms.GetTaskObjects(response => {
                     const tasks = [];
@@ -69,35 +74,35 @@
                     for (const config of response) {
                         (function () {
                             const path = config.path;
-                            let taskObject = that._taskObjects[path];
+                            let taskObject = that.#taskObjects[path];
                             if (taskObject) {
                                 if (taskObject.task && taskObject.config.taskObject !== config.taskObject) {
                                     // If the actual task object has changed we must stop the running instance
-                                    tasks.push((onSuc, onErr) => that._stopTask(path, () => {
+                                    tasks.push((onSuc, onErr) => that.#stopTask(path, () => {
                                         this._logger.warn(`Stopped task '${path}' because actual task object has changed`);
                                         onSuc();
                                     }, error => {
                                         const message = `Failed stopping task '${path}' because actual task object has changed:\n${error}`;
-                                        this._logger.Error(message);
+                                        this._logger.error(message);
                                         onErr(message);
                                     }));
                                 }
                                 taskObject.config = config;
                             } else {
-                                that._taskObjects[path] = taskObject = {
+                                that.#taskObjects[path] = taskObject = {
                                     config,
                                     state: ObjectLifecycleManager.LifecycleState.Idle,
                                     onLifecycleStateChanged: state => {
                                         taskObject.state = state;
-                                        that._onLifecycleStateChanged(path, state);
+                                        that.#onLifecycleStateChanged(path, state);
                                     }
                                 };
                             }
                         }());
                     }
                     // For all stored task objects we check if it still exists and if not we (stop and) remove.
-                    for (const path in that._taskObjects) {
-                        if (that._taskObjects.hasOwnProperty(path)) {
+                    for (const path in that.#taskObjects) {
+                        if (that.#taskObjects.hasOwnProperty(path)) {
                             let available = false;
                             for (const config of response) {
                                 if (config.path === path) {
@@ -106,31 +111,31 @@
                                 }
                             }
                             if (!available) {
-                                const taskObject = that._taskObjects[path];
+                                const taskObject = that.#taskObjects[path];
                                 if (taskObject.task) {
                                     // If the task is not available anymore we must stop the running instance
-                                    tasks.push((onSuc, onErr) => that._stopTask(path, () => {
-                                        delete that._taskObjects[path];
+                                    tasks.push((onSuc, onErr) => that.#stopTask(path, () => {
+                                        delete that.#taskObjects[path];
                                         this._logger.warn(`Stopped task '${path}' because it is not available anymore`);
                                         onSuc();
                                     }, error => {
-                                        delete that._taskObjects[path];
+                                        delete that.#taskObjects[path];
                                         const message = `Failed stopping task '${path}' because it is not available anymore:\n${error}`;
-                                        this._logger.Error(message);
+                                        this._logger.error(message);
                                         onErr(message);
                                     }));
                                 } else {
-                                    delete that._taskObjects[path];
+                                    delete that.#taskObjects[path];
                                 }
                             }
                         }
                     }
                     tasks.push((onSuc, onErr) => {
                         try {
-                            const configData = { type: TransmissionType.ConfigurationRefresh, tasksConfigAndState: that._getTasksConfigAndState() };
-                            for (const sessionId in this._connections) {
-                                if (this._connections.hasOwnProperty(sessionId)) {
-                                    this._connections[sessionId].connection.send(TASK_MANAGER_RECEIVER, configData);
+                            const configData = { type: TransmissionType.ConfigurationRefresh, tasksConfigAndState: that.#getTasksConfigAndState() };
+                            for (const sessionId in this.#connections) {
+                                if (this.#connections.hasOwnProperty(sessionId)) {
+                                    this.#connections[sessionId].connection.send(TASK_MANAGER_RECEIVER, configData);
                                 }
                             }
                             onSuc();
@@ -139,31 +144,31 @@
                         }
                     });
                     Executor.run(tasks, () => {
-                        that._reloadingTasks = false;
+                        that.#reloadingTasks = false;
                         onSuccess();
                     }, error => {
-                        that._reloadingTasks = false;
+                        that.#reloadingTasks = false;
                         onError(error);
                     });
                 }, onError);
             }
         }
 
-        _onLifecycleStateChanged(path, state) {
+        #onLifecycleStateChanged(path, state) {
             const data = { type: TransmissionType.StateRefresh, path, state };
-            for (const sessionId in this._connections) {
-                if (this._connections.hasOwnProperty(sessionId)) {
-                    this._connections[sessionId].connection.send(TASK_MANAGER_RECEIVER, data);
+            for (const sessionId in this.#connections) {
+                if (this.#connections.hasOwnProperty(sessionId)) {
+                    this.#connections[sessionId].connection.send(TASK_MANAGER_RECEIVER, data);
                 }
             }
         }
 
         onOpen(connection) {
             const sessionId = connection.SessionId;
-            if (this._connections[sessionId] === undefined) {
-                const con = this._connections[sessionId] = {
+            if (this.#connections[sessionId] === undefined) {
+                const con = this.#connections[sessionId] = {
                     connection,
-                    handler: (data, onResponse, onError) => this._handleReceived(data, onResponse, onError)
+                    handler: (data, onResponse, onError) => this.#handleReceived(data, onResponse, onError)
                 };
                 connection.register(TASK_MANAGER_RECEIVER, con.handler);
             }
@@ -171,42 +176,42 @@
 
         onClose(connection) {
             const sessionId = connection.SessionId;
-            if (this._connections[sessionId] !== undefined) {
+            if (this.#connections[sessionId] !== undefined) {
                 connection.unregister(TASK_MANAGER_RECEIVER);
-                delete this._connections[sessionId];
+                delete this.#connections[sessionId];
             }
         }
 
-        _handleReceived(data, onResponse, onError) {
+        #handleReceived(data, onResponse, onError) {
             switch (data.type) {
                 case TransmissionType.ConfigurationRequest:
-                    onResponse(this._getTasksConfigAndState());
+                    onResponse(this.#getTasksConfigAndState());
                     break;
                 case TransmissionType.StartTask:
-                    this._startTask(data.path, onResponse, onError);
+                    this.#startTask(data.path, onResponse, onError);
                     break;
                 case TransmissionType.StopTask:
-                    this._stopTask(data.path, onResponse, onError);
+                    this.#stopTask(data.path, onResponse, onError);
                     break;
                 default:
-                    this._logger.Error(`Invalid transmission type: ${data.type}`);
+                    this._logger.error(`Invalid transmission type: ${data.type}`);
             }
         }
 
-        _getTasksConfigAndState() {
+        #getTasksConfigAndState() {
             const configs = [];
-            for (const path in this._taskObjects) {
-                if (this._taskObjects.hasOwnProperty(path)) {
-                    const taskObject = this._taskObjects[path];
+            for (const path in this.#taskObjects) {
+                if (this.#taskObjects.hasOwnProperty(path)) {
+                    const taskObject = this.#taskObjects[path];
                     configs.push({ config: taskObject.config, state: taskObject.state });
                 }
             }
             return configs;
         }
 
-        _startTask(path, onSuccess, onError) {
+        #startTask(path, onSuccess, onError) {
             const hmi = this._hmi;
-            const taskObject = this._taskObjects[path];
+            const taskObject = this.#taskObjects[path];
             if (!taskObject) {
                 onError(`Unknown task: '${path}'`);
             } else if (taskObject.task) {
@@ -224,15 +229,15 @@
                         onSuccess();
                     }, error => {
                         const message = `Failed starting task '${path}' with object '${taskObject.config.taskObject}':\n${error}`;
-                        this._logger.Error(message);
+                        this._logger.error(message);
                         onError(message);
                     }, this._hmi, undefined, undefined, undefined, undefined, undefined, undefined, taskObject.onLifecycleStateChanged);
                 }, error => onError(`Failed loading task '${path}' object '${taskObject.config.taskObject}':\n${error}`));
             }
         }
 
-        _stopTask(path, onSuccess, onError) {
-            const taskObject = this._taskObjects[path];
+        #stopTask(path, onSuccess, onError) {
+            const taskObject = this.#taskObjects[path];
             if (!taskObject) {
                 onError(`Unknown task: '${path}'`);
             } else if (!taskObject.task) {
@@ -249,20 +254,20 @@
                     onSuccess();
                 }, error => {
                     const message = `Failed stopping task '${path}' with object '${taskObject.config.taskObject}':\n${error}`;
-                    this._logger.Error(message);
+                    this._logger.error(message);
                     onError(message);
                 }, taskObject.onLifecycleStateChanged);
             }
         }
 
-        StartAutorunTasks(onSuccess, onError) {
-            const that = this, taskObjects = this._taskObjects, tasks = [];
+        startAutorunTasks(onSuccess, onError) {
+            const that = this, taskObjects = this.#taskObjects, tasks = [];
             for (const path in taskObjects) {
                 if (taskObjects.hasOwnProperty(path)) {
                     (function () {
                         const taskObject = taskObjects[path];
                         if ((taskObject.config.flags & ContentManager.TASK_FLAG_AUTORUN) !== 0) {
-                            tasks.push((onSuc, onErr) => that._startTask(path, onSuc, onErr));
+                            tasks.push((onSuc, onErr) => that.#startTask(path, onSuc, onErr));
                         }
                     }());
                 }
@@ -271,14 +276,14 @@
             Executor.run(tasks, onSuccess, onError);
         }
 
-        Shutdown(onSuccess, onError) {
-            const that = this, taskObjects = this._taskObjects, tasks = [];
+        shutdown(onSuccess, onError) {
+            const that = this, taskObjects = this.#taskObjects, tasks = [];
             for (const path in taskObjects) {
                 if (taskObjects.hasOwnProperty(path)) {
                     (function () {
                         const taskObject = taskObjects[path];
                         if (taskObject.task) {
-                            tasks.push((onSuc, onErr) => that._stopTask(path, onSuc, onErr));
+                            tasks.push((onSuc, onErr) => that.#stopTask(path, onSuc, onErr));
                         }
                     }());
                 }
@@ -289,97 +294,103 @@
     }
 
     class ClientManager extends BaseManager {
+        #open;
+        #connection;
+        #taskObjects;
+        #handler;
+        #onConfigChanged;
+        #onStateChanged;
         constructor(hmi) {
             super(hmi);
-            this._open = false;
-            this._connection = null;
-            this._taskObjects = {};
-            this._handler = (data, onResponse, onError) => this._handleReceived(data, onResponse, onError);
-            this._onConfigChanged = null;
-            this._onStateChanged = null;
+            this.#open = false;
+            this.#connection = null;
+            this.#taskObjects = {};
+            this.#handler = (data, onResponse, onError) => this.#handleReceived(data, onResponse, onError);
+            this.#onConfigChanged = null;
+            this.#onStateChanged = null;
         }
 
-        set Connection(value) {
+        set connection(value) {
             if (value) {
-                if (this._connection) {
-                    this._connection.unregister(TASK_MANAGER_RECEIVER);
-                    this._connection = null;
+                if (this.#connection) {
+                    this.#connection.unregister(TASK_MANAGER_RECEIVER);
+                    this.#connection = null;
                 }
                 Common.validateAsConnection(value, true);
-                this._connection = value;
-                this._connection.register(TASK_MANAGER_RECEIVER, this._handler);
-            } else if (this._connection) {
-                this._connection.unregister(TASK_MANAGER_RECEIVER);
-                this._connection = null;
+                this.#connection = value;
+                this.#connection.register(TASK_MANAGER_RECEIVER, this.#handler);
+            } else if (this.#connection) {
+                this.#connection.unregister(TASK_MANAGER_RECEIVER);
+                this.#connection = null;
             }
         }
 
-        set OnConfigChanged(value) {
+        set onConfigChanged(value) {
             if (value) {
                 if (typeof value !== 'function') {
                     throw new Error('Value for onConfigChanged() is not a function');
                 }
-                this._onConfigChanged = value;
+                this.#onConfigChanged = value;
             } else {
-                this._onConfigChanged = null;
+                this.#onConfigChanged = null;
             }
         }
 
-        set OnStateChanged(value) {
+        set onStateChanged(value) {
             if (value) {
                 if (typeof value !== 'function') {
                     throw new Error('Value for onStateChanged(path, state) is not a function');
                 }
-                this._onStateChanged = value;
+                this.#onStateChanged = value;
             } else {
-                this._onStateChanged = null;
+                this.#onStateChanged = null;
             }
         }
 
         onOpen() {
-            this._open = true;
-            this._loadConfiguration();
+            this.#open = true;
+            this.#loadConfiguration();
         }
 
         onClose() {
-            this._open = false;
+            this.#open = false;
         }
 
-        _handleReceived(data, onResponse, onError) {
+        #handleReceived(data, onResponse, onError) {
             switch (data.type) {
                 case TransmissionType.ConfigurationRefresh:
-                    this._updateConfiguration(data.tasksConfigAndState);
+                    this.#updateConfiguration(data.tasksConfigAndState);
                     break;
                 case TransmissionType.StateRefresh:
-                    this._updateTaskState(data.path, data.state);
+                    this.#updateTaskState(data.path, data.state);
                     break;
                 default:
-                    this._logger.Error(`Invalid transmission type: ${data.type}`);
+                    this._logger.error(`Invalid transmission type: ${data.type}`);
             }
         }
 
-        _loadConfiguration() {
-            Core.validateAs('Connection', this._connection, 'send:function').send(
+        #loadConfiguration() {
+            Core.validateAs('Connection', this.#connection, 'send:function').send(
                 TASK_MANAGER_RECEIVER,
                 { type: TransmissionType.ConfigurationRequest },
-                response => this._updateConfiguration(response),
-                error => this._logger.Error(error)
+                response => this.#updateConfiguration(response),
+                error => this._logger.error(error)
             );
         }
 
-        _updateConfiguration(tasksConfigAndState) {
+        #updateConfiguration(tasksConfigAndState) {
             for (let configAndState of tasksConfigAndState) {
                 const path = configAndState.config.path;
-                const taskObject = this._taskObjects[path];
+                const taskObject = this.#taskObjects[path];
                 if (taskObject) {
                     taskObject.config = configAndState.config;
                     taskObject.state = configAndState.state;
                 } else {
-                    this._taskObjects[path] = { config: configAndState.config, state: configAndState.state };
+                    this.#taskObjects[path] = { config: configAndState.config, state: configAndState.state };
                 }
             }
-            for (const path in this._taskObjects) {
-                if (this._taskObjects.hasOwnProperty(path)) {
+            for (const path in this.#taskObjects) {
+                if (this.#taskObjects.hasOwnProperty(path)) {
                     let available = false;
                     for (let configAndState of tasksConfigAndState) {
                         if (configAndState.config.path === path) {
@@ -388,38 +399,38 @@
                         }
                     }
                     if (!available) {
-                        delete this._taskObjects[path];
+                        delete this.#taskObjects[path];
                     }
                 }
             }
-            if (this._onConfigChanged) {
+            if (this.#onConfigChanged) {
                 try {
-                    this._onConfigChanged();
+                    this.#onConfigChanged();
                 } catch (error) {
-                    this._logger.Error(`Failed calling onConfigChanged(): ${error.message}`);
+                    this._logger.error('Failed calling onConfigChanged()', error);
                 }
             }
         }
 
-        _updateTaskState(path, state) {
-            const taskObject = this._taskObjects[path];
+        #updateTaskState(path, state) {
+            const taskObject = this.#taskObjects[path];
             if (taskObject) {
                 taskObject.state = state;
             }
-            if (this._onStateChanged) {
+            if (this.#onStateChanged) {
                 try {
-                    this._onStateChanged(path, state);
+                    this.#onStateChanged(path, state);
                 } catch (error) {
-                    this._logger.Error(`Failed calling onStateChanged(path, state): ${error.message}`);
+                    this._logger.error('Failed calling onStateChanged(path, state)', error);
                 }
             }
         }
 
-        GetTasks() {
+        getTasks() {
             const result = [];
-            for (const path in this._taskObjects) {
-                if (this._taskObjects.hasOwnProperty(path)) {
-                    const taskObject = this._taskObjects[path];
+            for (const path in this.#taskObjects) {
+                if (this.#taskObjects.hasOwnProperty(path)) {
+                    const taskObject = this.#taskObjects[path];
                     result.push({
                         config: JSON.parse(JSON.stringify(taskObject.config)),
                         state: taskObject.state
@@ -429,27 +440,26 @@
             return result;
         }
 
-        StartTask(path, onResponse, onError) {
-            if (!this._connection) {
+        startTask(path, onResponse, onError) {
+            if (!this.#connection) {
                 onError('Web socket connection is not available');
-            } else if (!this._open) {
+            } else if (!this.#open) {
                 onError('Web socket connection is closed');
             } else {
-                this._connection.send(TASK_MANAGER_RECEIVER, { type: TransmissionType.StartTask, path }, onResponse, onError);
+                this.#connection.send(TASK_MANAGER_RECEIVER, { type: TransmissionType.StartTask, path }, onResponse, onError);
             }
         }
 
-        StopTask(path, onResponse, onError) {
-            if (!this._connection) {
+        stopTask(path, onResponse, onError) {
+            if (!this.#connection) {
                 onError('Web socket connection is not available');
-            } else if (!this._open) {
+            } else if (!this.#open) {
                 onError('Web socket connection is closed');
             } else {
-                this._connection.send(TASK_MANAGER_RECEIVER, { type: TransmissionType.StopTask, path }, onResponse, onError);
+                this.#connection.send(TASK_MANAGER_RECEIVER, { type: TransmissionType.StopTask, path }, onResponse, onError);
             }
         }
     }
-
     TaskManager.getInstance = hmi => isNodeJS ? new ServerManager(hmi) : new ClientManager(hmi);
 
     Object.freeze(TaskManager);

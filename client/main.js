@@ -53,8 +53,8 @@
         tasks.push((onSuccess, onError) => hmi.env.cms = new ContentManager.Instance(onSuccess, onError));
         tasks.push((onSuccess, onError) => {
             const languages = hmi.env.lang = LanguageSwitching.getInstance(hmi.env.logger, hmi.env.cms);
-            const language = languages.IsAvailable(languageQueryParameterValue) ? languageQueryParameterValue : languages.GetLanguage();
-            languages.LoadLanguage(language, onSuccess, onError);
+            const language = languages.isAvailable(languageQueryParameterValue) ? languageQueryParameterValue : languages.getLanguage();
+            languages.loadLanguage(language, onSuccess, onError);
         });
         let webSocketSessionConfig = undefined;
         // Load web socket session config from server
@@ -89,8 +89,8 @@
                         console.error(`error in connection (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.SessionId)}') to server: ${error}`);
                     }
                 });
-                taskManager.Connection = webSocketConnection;
-                dataConnector.Connection = webSocketConnection;
+                taskManager.connection = webSocketConnection;
+                dataConnector.connection = webSocketConnection;
                 onSuccess();
             } catch (error) {
                 onError(error);
@@ -119,7 +119,7 @@
         let rootObject = null;
         tasks.push((onSuccess, onError) => {
             if (hmiQueryParameterValue) {
-                hmi.env.cms.GetHMIObject(hmiQueryParameterValue, hmi.env.lang.GetLanguage(), object => {
+                hmi.env.cms.GetHMIObject(hmiQueryParameterValue, hmi.env.lang.getLanguage(), object => {
                     if (object !== null && typeof object === 'object' && !Array.isArray(object)) {
                         rootObject = object;
                     } else {

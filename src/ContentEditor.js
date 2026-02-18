@@ -345,8 +345,8 @@
 
     function getLanguageSelector(hmi, adapter) {
         const languageSwitching = hmi.env.lang;
-        const langs = languageSwitching.GetLanguages(), columns = [1];
-        let language = languageSwitching.GetLanguage();
+        const langs = languageSwitching.getLanguages(), columns = [1];
+        let language = languageSwitching.getLanguage();
         const children = [{
             x: 0,
             y: 0,
@@ -359,7 +359,7 @@
                 button.hmi_setSelected(button === btn);
             }
             language = btn.text;
-            languageSwitching.LoadLanguage(language, () => {
+            languageSwitching.loadLanguage(language, () => {
                 console.log(`loaded language '${language}'`);
                 adapter.languageChanged(language);
             }, error => {

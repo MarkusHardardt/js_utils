@@ -87,7 +87,7 @@
 
         #log(level, args) {
             const effectiveLevel = this.#level ?? Logger.#globalLevel;
-            if (level < effectiveLevel) return;
+            if (level > effectiveLevel) return;
 
             const timestamp = new Date().toISOString();
             const levelName = Logger.LevelName[level];

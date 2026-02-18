@@ -46,7 +46,7 @@
                     try {
                         options.onOpen();
                     } catch (error) {
-                        this._logger.Error(`Failed calling onOpen: ${error.message}`);
+                        this._logger.error('Failed calling onOpen()', error);
                     }
                 }
             };
@@ -55,7 +55,7 @@
                     try {
                         options.onClose();
                     } catch (error) {
-                        this._logger.Error(`failed calling onClose: ${error.message}`);
+                        this._logger.error('Failed calling onClose()', error);
                     }
                 }
             };
@@ -64,17 +64,21 @@
             this._remoteToLocalOffsetMillis = 0;
             Common.validateAsConnection(this, true);
         }
+
         get SessionId() {
             return this._sessionId;
         }
-        get IsConnected() {
+
+        get isConnected() {
             return false;
         }
+
         get _webSocket() {
             return null;
         }
+
         ping(onResponse, onError) {
-            if (this.IsConnected) {
+            if (this.isConnected) {
                 const telegram = { type: TelegramType.PingRequest };
                 this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC: Date.now(), onResponse, onError };
                 this._webSocket.send(JSON.stringify(telegram));
@@ -82,14 +86,16 @@
                 throw new Error('Connection.ping(): cannot send ping request when disconnected!');
             }
         }
-        _handlePingRequest(callback) {
-            if (this.IsConnected) {
+
+        #handlePingRequest(callback) {
+            if (this.isConnected) {
                 this._webSocket.send(JSON.stringify({ type: TelegramType.PingResponse, callback, utc: Date.now() }));
             } else {
-                this._logger.Error('Cannot send ping reponse when disconnected');
+                this._logger.error('Cannot send ping reponse when disconnected');
             }
         }
-        _handlePingResponse(callback, remoteMediumUTC) {
+
+        #handlePingResponse(callback, remoteMediumUTC) {
             this._remoteMediumUTC = remoteMediumUTC;
             const cb = this._callbacks[callback];
             if (cb) {
@@ -109,16 +115,18 @@
                         cb.onResponse(localResponseUTC - cb.localRequestUTC);
                     }
                 } catch (error) {
-                    this._logger.Error(`Failed calling onResponse: ${error.message}`);
+                    this._logger.error('Failed calling onResponse()', error);
                 }
             } else {
-                this._logger.Error('Missing ping callback');
+                this._logger.error('Missing ping callback');
             }
         }
-        get RemoteUTC() {
+
+        get remoteUTC() {
             const now = Date.now();
             return this._remoteToLocalOffsetMillis !== 0 ? Math.ceil(now + this._remoteToLocalOffsetMillis) : now;
         }
+
         register(receiver, handler) {
             if (typeof receiver !== 'string') {
                 throw new Error('Connection.register(receiver, handler): receiver must be a string!');
@@ -130,6 +138,7 @@
                 this._handlers[receiver] = handler;
             }
         }
+
         unregister(receiver) {
             if (typeof receiver !== 'string') {
                 throw new Error('Connection.unregister(receiver): receiver must be a string!');
@@ -139,8 +148,9 @@
                 delete this._handlers[receiver];
             }
         }
+
         send(receiver, data, onResponse, onError) {
-            if (this.IsConnected) {
+            if (this.isConnected) {
                 const telegram = { type: TelegramType.DataRequest, receiver, data };
                 if (typeof onResponse === 'function' || typeof onError === 'function') {
                     this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC: Date.now(), onResponse, onError };
@@ -151,29 +161,30 @@
                 throw new Error('Connection.send(): cannot send data request when disconnected!');
             }
         }
-        _handleDataRequest(callback, requestData, receiver) {
+
+        #handleDataRequest(callback, requestData, receiver) {
             const handler = this._handlers[receiver];
             if (handler) {
                 if (callback !== undefined) {
                     try {
                         handler(requestData, responseData => {
-                            if (this.IsConnected) {
+                            if (this.isConnected) {
                                 this._webSocket.send(JSON.stringify({ type: TelegramType.DataResponse, callback, data: responseData }));
                             } else {
-                                this._logger.Error('Cannot send data response when disconnected');
+                                this._logger.error('Cannot send data response when disconnected');
                             }
                         }, error => {
-                            if (this.IsConnected) {
+                            if (this.isConnected) {
                                 this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: error ? error : true }));
                             } else {
-                                this._logger.Error(`Cannot send error response when disconnected (error: ${error})`);
+                                this._logger.error(`Cannot send error response when disconnected (error: ${error})`);
                             }
                         });
                     } catch (error) {
-                        if (this.IsConnected) {
+                        if (this.isConnected) {
                             this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `failed calling receive handler '${receiver}'! error: ${error.message}` }));
                         } else {
-                            this._logger.Error(`Failed calling receive handler '${receiver}' but cannot send error response when disconnected! error: ${error.message}`);
+                            this._logger.error(`Failed calling receive handler '${receiver}' but cannot send error response when disconnected! error: ${error.message}`);
                         }
                     }
                 }
@@ -181,22 +192,23 @@
                     try {
                         handler(requestData);
                     } catch (error) {
-                        if (this.IsConnected) {
+                        if (this.isConnected) {
                             this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `failed calling receive handler '${receiver}'! error: ${error.message}` }));
                         } else {
-                            this._logger.Error(`Failed calling receive handler '${receiver}' but cannot send error response when disconnected! error: ${error.message}`);
+                            this._logger.error(`Failed calling receive handler '${receiver}' but cannot send error response when disconnected`, error);
                         }
                     }
                 }
             } else {
-                if (this.IsConnected) {
+                if (this.isConnected) {
                     this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `unknown receiver: '${receiver}'` }));
                 } else {
-                    this._logger.Error(`Cannot send error response for unknown receiver: '${receiver}' when disconnected`);
+                    this._logger.error(`Cannot send error response for unknown receiver: '${receiver}' when disconnected`);
                 }
             }
         }
-        _handleDataResponse(callback, data) {
+
+        #handleDataResponse(callback, data) {
             const cb = this._callbacks[callback];
             if (cb) {
                 delete this._callbacks[callback];
@@ -205,13 +217,14 @@
                         cb.onResponse(data, Date.now() - cb.localRequestUTC);
                     }
                 } catch (error) {
-                    this._logger.Error(`Failed calling onResponse: ${error.message}`);
+                    this._logger.error('Failed calling onResponse()', error);
                 }
             } else {
-                this._logger.Error('Missing data callback');
+                this._logger.error('Missing data callback');
             }
         }
-        _handleError(callback, error) {
+
+        #handleError(callback, error) {
             const cb = callback !== undefined ? this._callbacks[callback] : false;
             if (cb) {
                 delete this._callbacks[callback];
@@ -219,34 +232,35 @@
                     try {
                         cb.onError(error, Date.now() - cb.localRequestUTC);
                     } catch (error) {
-                        this._logger.Error(`Failed calling onError: ${error.message}`);
+                        this._logger.error('Failed calling onError()', error);
                     }
                 } else {
-                    this._logger.Error(error);
+                    this._logger.error(error);
                 }
             } else {
-                this._logger.Error(error);
+                this._logger.error(error);
             }
         }
+
         _handleTelegram(telegram) {
             switch (telegram.type) {
                 case TelegramType.PingRequest:
-                    this._handlePingRequest(telegram.callback);
+                    this.#handlePingRequest(telegram.callback);
                     break;
                 case TelegramType.PingResponse:
-                    this._handlePingResponse(telegram.callback, telegram.utc);
+                    this.#handlePingResponse(telegram.callback, telegram.utc);
                     break;
                 case TelegramType.DataRequest:
-                    this._handleDataRequest(telegram.callback, telegram.data, telegram.receiver);
+                    this.#handleDataRequest(telegram.callback, telegram.data, telegram.receiver);
                     break;
                 case TelegramType.DataResponse:
-                    this._handleDataResponse(telegram.callback, telegram.data);
+                    this.#handleDataResponse(telegram.callback, telegram.data);
                     break;
                 case TelegramType.ErrorResponse:
-                    this._handleError(telegram.callback, telegram.error);
+                    this.#handleError(telegram.callback, telegram.error);
                     break;
                 default:
-                    this._logger.Error(`Received invalid telegram type: ${telegram.type}`);
+                    this._logger.error(`Received invalid telegram type: ${telegram.type}`);
                     break;
             }
         }
@@ -289,109 +303,128 @@
             - Stop(): triggers disconnection
             read comment for Connection for more properties and methods.    */
         class WebSocketClientConnection extends Connection {
+            #url;
+            #socket;
+            #heartbeatInterval;
+            #heartbeatTimeout;
+            #reconnectStart;
+            #reconnectMax;
+            #heartbeatTimer;
+            #heartbeatTimeoutTimer;
+            #state;
+            #retryDelay;
             constructor(logger, hostname, config, options = {}) {
                 super(logger, config.sessionId, options);
-                this._url = `${(config.secure ? 'wss' : 'ws')}://${hostname}:${config.port}?sessionId=${config.sessionId}`;
-                this._socket = null;
-                this._heartbeatInterval = options.heartbeatInterval ?? DEFAULT_HEARTBEAT_INTERVAL;
-                this._heartbeatTimeout = options.heartbeatTimeout ?? DEFAULT_HEARTBEAT_TIMEOUT;
-                this._reconnectStart = options.reconnectStart ?? DEFAULT_RECONNECT_START_INTERVAL;
-                this._reconnectMax = options.reconnectMax ?? DEFAULT_RECONNECT_MAX_INTERVAL;
-                this._heartbeatTimer = null;
-                this._heartbeatTimeoutTimer = null;
-                this._transition(config.autoConnect === true ? ClientState.Connecting : ClientState.Idle);
+                this.#url = `${(config.secure ? 'wss' : 'ws')}://${hostname}:${config.port}?sessionId=${config.sessionId}`;
+                this.#socket = null;
+                this.#heartbeatInterval = options.heartbeatInterval ?? DEFAULT_HEARTBEAT_INTERVAL;
+                this.#heartbeatTimeout = options.heartbeatTimeout ?? DEFAULT_HEARTBEAT_TIMEOUT;
+                this.#reconnectStart = options.reconnectStart ?? DEFAULT_RECONNECT_START_INTERVAL;
+                this.#reconnectMax = options.reconnectMax ?? DEFAULT_RECONNECT_MAX_INTERVAL;
+                this.#heartbeatTimer = null;
+                this.#heartbeatTimeoutTimer = null;
+                this.#transition(config.autoConnect === true ? ClientState.Connecting : ClientState.Idle);
             }
-            get IsConnected() {
-                return this._state === ClientState.Online;
+
+            get isConnected() {
+                return this.#state === ClientState.Online;
             }
+
             get _webSocket() {
-                return this._socket;
+                return this.#socket;
             }
-            Start() {
-                if (this._state === ClientState.Idle) {
-                    this._transition(ClientState.Connecting);
+
+            start() {
+                if (this.#state === ClientState.Idle) {
+                    this.#transition(ClientState.Connecting);
                 }
             }
-            Stop() {
-                if (this._state !== ClientState.Idle) {
-                    this._transition(ClientState.Idle);
-                    if (this._socket) {
-                        this._socket.close();
+
+            stop() {
+                if (this.#state !== ClientState.Idle) {
+                    this.#transition(ClientState.Idle);
+                    if (this.#socket) {
+                        this.#socket.close();
                         this._onClose();
                     }
                 }
             }
-            _transition(state) {
-                this._state = state;
+
+            #transition(state) {
+                this.#state = state;
                 switch (state) {
                     case ClientState.Idle:
-                        this._stopHeartbeatMonitoring();
+                        this.#stopHeartbeatMonitoring();
                         break;
 
                     case ClientState.Connecting:
                     case ClientState.Reconnecting:
-                        this._connect();
+                        this.#connect();
                         break;
 
                     case ClientState.Online:
-                        this._startHeartbeatMonitoring();
-                        this._retryDelay = this._reconnectStart;
+                        this.#startHeartbeatMonitoring();
+                        this.#retryDelay = this.#reconnectStart;
                         this._onOpen();
                         break;
 
                     case ClientState.Disconnected:
-                        this._stopHeartbeatMonitoring();
-                        this._scheduleReconnect();
+                        this.#stopHeartbeatMonitoring();
+                        this.#scheduleReconnect();
                         this._onClose();
                         break;
                 }
             }
-            _connect() {
-                if (this._socket) {
+
+            #connect() {
+                if (this.#socket) {
                     // If connected before we remove all event handlers
-                    this._socket.onopen = this._socket.onmessage = this._socket.onerror = this._socket.onclose = null;
+                    this.#socket.onopen = this.#socket.onmessage = this.#socket.onerror = this.#socket.onclose = null;
                 }
-                this._socket = new WebSocket(this._url);
-                this._socket.onopen = () => this._transition(ClientState.Online);
-                this._socket.onmessage = message => this._handleTelegram(JSON.parse(message.data));
-                this._socket.onerror = error => {
-                    this._socket.close();
-                    this._logger.Error(error);
+                this.#socket = new WebSocket(this.#url);
+                this.#socket.onopen = () => this.#transition(ClientState.Online);
+                this.#socket.onmessage = message => this._handleTelegram(JSON.parse(message.data));
+                this.#socket.onerror = error => {
+                    this.#socket.close();
+                    this._logger.error(error);
                 };
-                this._socket.onclose = () => {
-                    if (this._state !== ClientState.Idle) {
-                        this._transition(ClientState.Disconnected);
+                this.#socket.onclose = () => {
+                    if (this.#state !== ClientState.Idle) {
+                        this.#transition(ClientState.Disconnected);
                     }
                 };
             }
-            _startHeartbeatMonitoring() {
-                this._heartbeatTimer = setInterval(() => {
-                    if (this._state === ClientState.Online) {
+
+            #startHeartbeatMonitoring() {
+                this.#heartbeatTimer = setInterval(() => {
+                    if (this.#state === ClientState.Online) {
                         this.ping(millis => {
-                            clearTimeout(this._heartbeatTimeoutTimer);
+                            clearTimeout(this.#heartbeatTimeoutTimer);
                         }, error => {
-                            this._logger.Error(`Heartbeat monitoring failed: ${error}`);
+                            this._logger.error('Heartbeat monitoring failed', error);
                         });
-                        this._heartbeatTimeoutTimer = setTimeout(() => {
-                            this._logger.Error('Heartbeat monitoring timeout expired -> close socket');
-                            this._socket.close();
-                        }, this._heartbeatTimeout);
+                        this.#heartbeatTimeoutTimer = setTimeout(() => {
+                            this._logger.error('Heartbeat monitoring timeout expired -> close socket');
+                            this.#socket.close();
+                        }, this.#heartbeatTimeout);
                     }
-                }, this._heartbeatInterval);
+                }, this.#heartbeatInterval);
             }
-            _stopHeartbeatMonitoring() {
-                clearInterval(this._heartbeatTimer);
-                clearTimeout(this._heartbeatTimeoutTimer);
+
+            #stopHeartbeatMonitoring() {
+                clearInterval(this.#heartbeatTimer);
+                clearTimeout(this.#heartbeatTimeoutTimer);
             }
-            _scheduleReconnect() {
+
+            #scheduleReconnect() {
                 setTimeout(() => {
-                    if (this._state === ClientState.Disconnected) {
-                        this._transition(ClientState.Reconnecting);
+                    if (this.#state === ClientState.Disconnected) {
+                        this.#transition(ClientState.Reconnecting);
                     }
-                }, this._retryDelay);
-                this._retryDelay = Math.min(
-                    this._retryDelay * 2,
-                    this._reconnectMax
+                }, this.#retryDelay);
+                this.#retryDelay = Math.min(
+                    this.#retryDelay * 2,
+                    this.#reconnectMax
                 );
             }
         }
@@ -409,37 +442,42 @@
               }
             read comment for Connection for more properties and methods.    */
         class WebSocketServerConnection extends Connection {
+            #socket;
+            #online;
             constructor(logger, sessionId, options) {
                 super(logger, sessionId, options);
-                this._socket = null;
-                this._online = false;
+                this.#socket = null;
+                this.#online = false;
             }
-            get IsConnected() {
-                return this._online;
+
+            get isConnected() {
+                return this.#online;
             }
+
             get _webSocket() {
-                return this._socket;
+                return this.#socket;
             }
+
             setAlreadyConnectedAndOpenSocket(socket) {
-                if (this._socket) {
+                if (this.#socket) {
                     // If connected before we remove all event handlers
-                    this._socket.onopen = this._socket.onmessage = this._socket.onerror = this._socket.onclose = null;
+                    this.#socket.onopen = this.#socket.onmessage = this.#socket.onerror = this.#socket.onclose = null;
                 }
-                this._socket = socket;
-                this._socket.onmessage = message => this._handleTelegram(JSON.parse(message.data));
-                this._socket.onerror = error => {
-                    this._online = false;
-                    this._socket.close();
-                    this._logger.Error(error);
+                this.#socket = socket;
+                this.#socket.onmessage = message => this._handleTelegram(JSON.parse(message.data));
+                this.#socket.onerror = error => {
+                    this.#online = false;
+                    this.#socket.close();
+                    this._logger.error(error);
                 };
-                this._socket.onclose = () => {
-                    this._online = false;
+                this.#socket.onclose = () => {
+                    this.#online = false;
                     this._onClose();
                 };
                 // Note:
                 // Since this method is called with an already connected and open socket, it is not possible to react to 'socket.onopen' because it is no longer triggered.
                 // Instead, the online status is set directly and the 'onOpen' method is triggered manually.
-                this._online = true;
+                this.#online = true;
                 this._onOpen(this);
             }
         }
@@ -459,23 +497,28 @@
             A server has the following public interface:    
             - CreateSessionConfig(): returns a configuration object containing the port and a new unique session id    */
         class WebSocketServer {
+            #logger;
+            #port;
+            #options;
+            #instances;
+            #server;
             constructor(logger, port, options = {}) {
-                this._logger = Common.validateAsLogger(logger, true);
-                this._port = port;
-                this._options = options;
-                this._instances = {};
-                this._server = new WebSocket.Server({ port });
-                this._server.on('connection', (socket, request) => {
-                    const sessionId = this._getSessionIdFromURL(request.url);
-                    let instance = this._instances[sessionId];
+                this.#logger = Common.validateAsLogger(logger, true);
+                this.#port = port;
+                this.#options = options;
+                this.#instances = {};
+                this.#server = new WebSocket.Server({ port });
+                this.#server.on('connection', (socket, request) => {
+                    const sessionId = this.#getSessionIdFromURL(request.url);
+                    let instance = this.#instances[sessionId];
                     const isUTC = typeof instance === 'number'; // If UTC from creation we know that the id came from here (see below)
                     const createdUTC = isUTC ? instance : undefined;
                     if (isUTC || instance === undefined) {
-                        this._instances[sessionId] = instance = {};
+                        this.#instances[sessionId] = instance = {};
                         if (isUTC) {
                             instance.createdUTC = createdUTC;
                         } else {
-                            this._logger.warn(`Web socket connected with unknown session id: '${formatSesionId(sessionId)}'`)
+                            this.#logger.warn(`Web socket connected with unknown session id: '${formatSesionId(sessionId)}'`)
                         }
                         instance.connection = new WebSocketServerConnection(logger, sessionId, {
                             onOpen: () => {
@@ -486,21 +529,21 @@
                                         try {
                                             options.onOpen(instance.connection);
                                         } catch (error) {
-                                            this._logger.Error(`Failed calling onOpen: ${error.message}`);
+                                            this.#logger.error('Failed calling onOpen()', error);
                                         }
                                     } else {
-                                        this._logger.info(`Connection opened with session id: '${formatSesionId(sessionId)}'`);
+                                        this.#logger.info(`Connection opened with session id: '${formatSesionId(sessionId)}'`);
                                     }
                                 } else {
                                     clearTimeout(instance.disposeTimeoutTimer);
-                                    if (typeof options.OnReopen === 'function') {
+                                    if (typeof options.onReopen === 'function') {
                                         try {
-                                            options.OnReopen(instance.connection);
+                                            options.onReopen(instance.connection);
                                         } catch (error) {
-                                            this._logger.Error(`Failed calling OnReopen: ${error.message}`);
+                                            this.#logger.error('Failed calling OnReopen()', error);
                                         }
                                     } else {
-                                        this._logger.info(`Connection reopened with session id: '${formatSesionId(sessionId)}'`);
+                                        this.#logger.info(`Connection reopened with session id: '${formatSesionId(sessionId)}'`);
                                     }
                                 }
                             },
@@ -510,33 +553,33 @@
                                     try {
                                         options.onClose(instance.connection);
                                     } catch (error) {
-                                        this._logger.Error(`Failed calling onClose: ${error.message}`);
+                                        this.#logger.error('Failed calling onClose()', error);
                                     }
                                 } else {
-                                    this._logger.info(`Connection closed with session id: '${formatSesionId(sessionId)}'`);
+                                    this.#logger.info(`Connection closed with session id: '${formatSesionId(sessionId)}'`);
                                 }
                                 instance.disposeTimeoutTimer = setTimeout(() => {
-                                    delete this._instances[sessionId];
-                                    if (typeof options.OnDispose === 'function') {
+                                    delete this.#instances[sessionId];
+                                    if (typeof options.onDispose === 'function') {
                                         try {
-                                            options.OnDispose(instance.connection);
+                                            options.onDispose(instance.connection);
                                         } catch (error) {
-                                            this._logger.Error(`Failed calling OnDispose: ${error.message}`);
+                                            this.#logger.error('Failed calling OnDispose()', error);
                                         }
                                     } else {
-                                        this._logger.info(`Connection diposed with session id: '${formatSesionId(sessionId)}'`);
+                                        this.#logger.info(`Connection diposed with session id: '${formatSesionId(sessionId)}'`);
                                     }
                                 }, options.closedConnectionDisposeTimeout ?? DEFAULT_CLOSED_CONNECTION_DISPOSE_TIMEOUT);
                             },
-                            OnError: error => {
-                                if (typeof options.OnError === 'function') {
+                            onError: error => {
+                                if (typeof options.onError === 'function') {
                                     try {
-                                        options.OnError(instance.connection, error);
+                                        options.onError(instance.connection, error);
                                     } catch (error) {
-                                        this._logger.Error(`Failed calling OnError for error: ${error.match}`);
+                                        this.#logger.error('Failed calling OnError()', error);
                                     }
                                 } else {
-                                    this._logger.Error(`Error in connection with session id: '${formatSesionId(sessionId)}': ${error}`);
+                                    this.#logger.error(`Error in connection with session id: '${formatSesionId(sessionId)}': ${error}`);
                                 }
                             }
                         });
@@ -544,22 +587,25 @@
                     instance.connection.setAlreadyConnectedAndOpenSocket(socket);
                 });
             }
-            CreateSessionConfig() {
-                const sessionId = this._createUniqueSessionId();
-                this._instances[sessionId] = Date.now(); // By storing the current UTC we know on connect that the id came from here (see above)
+
+            createSessionConfig() {
+                const sessionId = this.#createUniqueSessionId();
+                this.#instances[sessionId] = Date.now(); // By storing the current UTC we know on connect that the id came from here (see above)
                 return {
                     sessionId,
-                    port: this._port,
-                    secure: this._options.secure === true,
-                    autoConnect: this._options.autoConnect === true
+                    port: this.#port,
+                    secure: this.#options.secure === true,
+                    autoConnect: this.#options.autoConnect === true
                 };
             }
+
             // Returns a 64-character hexadecimal string, which should be fairly likely to be unique by using the current time and random values. 
-            _createUniqueSessionId() {
+            #createUniqueSessionId() {
                 return Server.createSHA256(`#${Math.E * Math.random()}&${Date.now()}%${Math.PI * Math.random()}@`);
             }
+
             // Extracts the session ID generated by the above function from the URL.
-            _getSessionIdFromURL(url) {
+            #getSessionIdFromURL(url) {
                 const match = /\bsessionId=([0-9a-f]{64})$/.exec(url);
                 return match ? match[1] : '';
             }

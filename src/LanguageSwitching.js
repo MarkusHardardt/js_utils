@@ -9,48 +9,56 @@
     const DEFAULT_VALUE_FOR_NOT_EXISTS = '???';
 
     class Handler {
+        #logger;
+        #cms;
+        #isValidLabelType;
+        #isValidHTMLType;
+        #languages;
+        #language;
+        #dataPoints;
+        #languageObservers;
         constructor(logger, cms) {
-            this._logger = Common.validateAsLogger(logger, true);
-            this._cms = cms;
-            this._isValidLabelType = cms.GetIdValidTestFunctionForType(ContentManager.DataType.Label);
-            this._isValidHTMLType = cms.GetIdValidTestFunctionForType(ContentManager.DataType.HTML);
-            this._languages = cms.GetLanguages();
-            this._language = this._languages[0];
-            this._dataPoints = {};
-            this._observers = [];
+            this.#logger = Common.validateAsLogger(logger, true);
+            this.#cms = cms;
+            this.#isValidLabelType = cms.GetIdValidTestFunctionForType(ContentManager.DataType.Label);
+            this.#isValidHTMLType = cms.GetIdValidTestFunctionForType(ContentManager.DataType.HTML);
+            this.#languages = cms.GetLanguages();
+            this.#language = this.#languages[0];
+            this.#dataPoints = {};
+            this.#languageObservers = [];
             Common.validateAsDataAccessObject(this, true);
         }
 
-        SubscribeLanguage(onLanguageChanged) {
+        addLanguageObserver(onLanguageChanged) {
             if (typeof onLanguageChanged !== 'function') {
                 throw new Error('onLanguageChanged(language) is not a function');
             }
-            for (const observer of this._observers) {
+            for (const observer of this.#languageObservers) {
                 if (onLanguageChanged === observer) {
-                    this._logger.warn('Callback onLanguageChanged(language) is already observed');
+                    this.#logger.warn('Callback onLanguageChanged(language) is already observed');
                     return;
                 }
             }
-            this._observers.push(onLanguageChanged);
+            this.#languageObservers.push(onLanguageChanged);
         }
 
-        UnsubscribeLanguage(onLanguageChanged) {
+        removeLanguageObserver(onLanguageChanged) {
             if (typeof onLanguageChanged !== 'function') {
                 throw new Error('Callback for onLanguageChanged(language) is not a function');
             }
-            for (let i = 0; i < this._observers.length; i++) {
-                if (this._observers[i] === onLanguageChanged) {
-                    this._observers.splice(i, 1);
+            for (let i = 0; i < this.#languageObservers.length; i++) {
+                if (this.#languageObservers[i] === onLanguageChanged) {
+                    this.#languageObservers.splice(i, 1);
                     return;
                 }
             }
-            this._logger.warn('Callback onLanguageChanged(language) is not observed');
+            this.#logger.warn('Callback onLanguageChanged(language) is not observed');
         }
 
         getType(dataId) {
-            if (this._isValidLabelType(dataId)) {
+            if (this.#isValidLabelType(dataId)) {
                 return Core.DataType.String;
-            } else if (this._isValidHTMLType(dataId)) {
+            } else if (this.#isValidHTMLType(dataId)) {
                 return Core.DataType.HTML;
             } else {
                 return Core.DataType.Unknown;
@@ -63,15 +71,15 @@
             } else if (typeof onRefresh !== 'function') {
                 throw new Error(`Observer onRefresh(value) for id '${dataId}' is not a function`);
             }
-            let dataPoint = this._dataPoints[dataId];
+            let dataPoint = this.#dataPoints[dataId];
             if (!dataPoint) {
                 // If no data point is available, we create a new one but mark it as non-existent.
                 // If the corresponding data point is added to the database later, the already existing callback will be called from then on automatically.
-                dataPoint = this._dataPoints[dataId] = { exists: false, value: DEFAULT_VALUE_FOR_NOT_EXISTS };
+                dataPoint = this.#dataPoints[dataId] = { exists: false, value: DEFAULT_VALUE_FOR_NOT_EXISTS };
             } else if (dataPoint.onRefresh === onRefresh) {
-                this._logger.warn(`Data id '${dataId}' is already observed with this callback`);
+                this.#logger.warn(`Data id '${dataId}' is already observed with this callback`);
             } else if (dataPoint.onRefresh !== null) {
-                this._logger.warn(`Data id '${dataId}' is already observed with another callback`);
+                this.#logger.warn(`Data id '${dataId}' is already observed with another callback`);
             }
             dataPoint.onRefresh = onRefresh;
             try {
@@ -87,23 +95,23 @@
             } else if (typeof onRefresh !== 'function') {
                 throw new Error(`Observer onRefresh(value) for id '${dataId}' is not a function`);
             }
-            const dataPoint = this._dataPoints[dataId];
+            const dataPoint = this.#dataPoints[dataId];
             if (!dataPoint) {
-                this._logger.Error(`Language value with id '${dataId}' is not available to unsubscribe`);
+                this.#logger.error(`Language value with id '${dataId}' is not available to unsubscribe`);
                 return;
             } else if (dataPoint.onRefresh === null) {
-                this._logger.warn(`Language value with id '${dataId}' is not observed`);
+                this.#logger.warn(`Language value with id '${dataId}' is not observed`);
             } else if (dataPoint.onRefresh !== onRefresh) {
-                this._logger.warn(`Language value with id '${dataId}' is observed with a another callback`);
+                this.#logger.warn(`Language value with id '${dataId}' is observed with a another callback`);
             }
             dataPoint.onRefresh = null;
             if (!dataPoint.exists) {
-                delete this._dataPoints[dataId];
+                delete this.#dataPoints[dataId];
             }
         }
 
         read(dataId, onResponse, onError) {
-            const dataPoint = this._dataPoints[dataId];
+            const dataPoint = this.#dataPoints[dataId];
             if (!dataPoint) {
                 onError(`Unsupported data id for read: '${dataId}'`);
             } else {
@@ -115,40 +123,40 @@
             throw new Error(`write to data with id '${dataId}' is not supported`);
         }
 
-        GetLanguages() {
-            return this._languages.map(lang => lang);
+        getLanguages() {
+            return this.#languages.map(lang => lang);
         }
 
-        GetLanguage() {
-            return this._language;
+        getLanguage() {
+            return this.#language;
         }
 
-        IsAvailable(language) {
-            return this._languages.indexOf(language) >= 0;
+        isAvailable(language) {
+            return this.#languages.indexOf(language) >= 0;
         }
 
-        LoadLanguage(language, onSuccess, onError) {
+        loadLanguage(language, onSuccess, onError) {
             // Load all label and html values
-            this._cms.GetAllForLanguage(language, values => {
-                this._language = language;
+            this.#cms.GetAllForLanguage(language, values => {
+                this.#language = language;
                 // Use existing or create new data point and store value.
                 for (const dataId in values) {
                     if (values.hasOwnProperty(dataId)) {
-                        let dataPoint = this._dataPoints[dataId];
+                        let dataPoint = this.#dataPoints[dataId];
                         if (!dataPoint) {
-                            dataPoint = this._dataPoints[dataId] = { onRefresh: null };
+                            dataPoint = this.#dataPoints[dataId] = { onRefresh: null };
                         }
                         dataPoint.value = values[dataId];
                     }
                 }
                 // Check all data points and if not available as label or html value and also not observed than delete
-                for (const dataId in this._dataPoints) {
-                    if (this._dataPoints.hasOwnProperty(dataId)) {
-                        const dataPoint = this._dataPoints[dataId];
+                for (const dataId in this.#dataPoints) {
+                    if (this.#dataPoints.hasOwnProperty(dataId)) {
+                        const dataPoint = this.#dataPoints[dataId];
                         dataPoint.exists = values[dataId] !== undefined;
                         if (!dataPoint.exists) {
                             if (!dataPoint.onRefresh) {
-                                delete this._dataPoints[dataId];
+                                delete this.#dataPoints[dataId];
                             } else {
                                 dataPoint.value = DEFAULT_VALUE_FOR_NOT_EXISTS;
                             }
@@ -156,23 +164,23 @@
                     }
                 }
                 // After loaded notify subscribers
-                for (const dataId in this._dataPoints) {
-                    if (this._dataPoints.hasOwnProperty(dataId)) {
-                        const dataPoint = this._dataPoints[dataId];
+                for (const dataId in this.#dataPoints) {
+                    if (this.#dataPoints.hasOwnProperty(dataId)) {
+                        const dataPoint = this.#dataPoints[dataId];
                         if (dataPoint.onRefresh) {
                             try {
                                 dataPoint.onRefresh(dataPoint.value);
                             } catch (error) {
-                                this._logger.Error(`Failed calling onRefresh(value) for data id '${dataId}':\n${error.message}`);
+                                this.#logger.error(`Failed calling onRefresh(value) for data id '${dataId}'`, error);
                             }
                         }
                     }
                 }
-                for (const observer of this._observers) {
+                for (const observer of this.#languageObservers) {
                     try {
                         observer(language);
                     } catch (error) {
-                        this._logger.Error(`Failed calling onLanguageChanged('${language}'):\n${error.message}`);
+                        this.#logger.error(`Failed calling onLanguageChanged('${language}')`, error);
                     }
                 }
                 onSuccess();
