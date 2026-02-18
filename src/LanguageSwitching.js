@@ -27,7 +27,7 @@
             }
             for (const observer of this._observers) {
                 if (onLanguageChanged === observer) {
-                    this._logger.Warn('Callback onLanguageChanged(language) is already subscribed');
+                    this._logger.Warn('Callback onLanguageChanged(language) is already observed');
                     return;
                 }
             }
@@ -44,7 +44,7 @@
                     return;
                 }
             }
-            this._logger.Warn('Callback onLanguageChanged(language) is not subscribed');
+            this._logger.Warn('Callback onLanguageChanged(language) is not observed');
         }
 
         GetType(dataId) {
@@ -57,11 +57,11 @@
             }
         }
 
-        SubscribeData(dataId, onRefresh) {
+        AddObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`Invalid subscription id '${dataId}'`);
+                throw new Error(`Invalid id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
-                throw new Error(`Subscription callback onRefresh(value) for id '${dataId}' is not a function`);
+                throw new Error(`Observer onRefresh(value) for id '${dataId}' is not a function`);
             }
             let dataPoint = this._dataPoints[dataId];
             if (!dataPoint) {
@@ -69,9 +69,9 @@
                 // If the corresponding data point is added to the database later, the already existing callback will be called from then on automatically.
                 dataPoint = this._dataPoints[dataId] = { exists: false, value: DEFAULT_VALUE_FOR_NOT_EXISTS };
             } else if (dataPoint.onRefresh === onRefresh) {
-                this._logger.Warn(`Data id '${dataId}' is already subscribed with this callback`);
+                this._logger.Warn(`Data id '${dataId}' is already observed with this callback`);
             } else if (dataPoint.onRefresh !== null) {
-                this._logger.Warn(`Data id '${dataId}' is already subscribed with another callback`);
+                this._logger.Warn(`Data id '${dataId}' is already observed with another callback`);
             }
             dataPoint.onRefresh = onRefresh;
             try {
@@ -81,20 +81,20 @@
             }
         }
 
-        UnsubscribeData(dataId, onRefresh) {
+        RemoveObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`Invalid unsubscription id '${dataId}'`);
+                throw new Error(`Invalid id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
-                throw new Error(`Unsubscription callback onRefresh(value) for id '${dataId}' is not a function`);
+                throw new Error(`Observer onRefresh(value) for id '${dataId}' is not a function`);
             }
             const dataPoint = this._dataPoints[dataId];
             if (!dataPoint) {
                 this._logger.Error(`Language value with id '${dataId}' is not available to unsubscribe`);
                 return;
             } else if (dataPoint.onRefresh === null) {
-                this._logger.Warn(`Language value with id '${dataId}' is not subscribed`);
+                this._logger.Warn(`Language value with id '${dataId}' is not observed`);
             } else if (dataPoint.onRefresh !== onRefresh) {
-                this._logger.Warn(`Language value with id '${dataId}' is subscribed with a another callback`);
+                this._logger.Warn(`Language value with id '${dataId}' is observed with a another callback`);
             }
             dataPoint.onRefresh = null;
             if (!dataPoint.exists) {
@@ -141,7 +141,7 @@
                         dataPoint.value = values[dataId];
                     }
                 }
-                // Check all data points and if not available as label or html value and also not subscribed than delete
+                // Check all data points and if not available as label or html value and also not observed than delete
                 for (const dataId in this._dataPoints) {
                     if (this._dataPoints.hasOwnProperty(dataId)) {
                         const dataPoint = this._dataPoints[dataId];

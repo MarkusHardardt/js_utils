@@ -10,7 +10,7 @@
 
     const TransmissionType = Object.freeze({
         ConfigurationRefresh: 1,
-        SubscriptionRequest: 2,
+        ObserverRequest: 2,
         DataRefresh: 3,
         ReadRequest: 4,
         WriteRequest: 5
@@ -101,11 +101,11 @@
             this._subscribeDelay = typeof value === 'number' && value > 0 ? value : false;
         }
 
-        set UnsubscribeDelay(value) {
+        set RemoveObserverDelay(value) {
             this._unsubscribeDelay = typeof value === 'number' && value > 0 ? value : false;
         }
 
-        SetDataPoints(dataPoints) { // TODO: Unsubscribe data points that not exist anymore immediately
+        SetDataPoints(dataPoints) { // TODO: RemoveObserver data points that not exist anymore immediately
             this._logger.Info(`SetDataPoints(${dataPoints.length})`);
             const dataPointConfigsByShortId = this._dataPointConfigsByShortId = getDataPointConfigsByShortId(dataPoints, this._getNextShortId);
             const that = this;
@@ -117,7 +117,7 @@
                         const dataId = config.dataId;
                         let dataPoint = that._dataPointsByDataId[dataId];
                         if (dataPoint) {
-                            that._logger.Info(`Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.isSubscribed ? '' : '!'}subscribed)`);
+                            that._logger.Info(`Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.isObserved ? '' : '!'}observed)`);
                             dataPoint.shortId = shortId; // Note: Only data points with a short id exists!
                             dataPoint.type = config.type;
                         } else {
@@ -132,7 +132,7 @@
                                     that._valuesChanged();
                                 },
                                 hasBeenRefreshed: false,
-                                isSubscribed: false
+                                isObserved: false
                             };
                         }
                     }());
@@ -153,20 +153,20 @@
                     }
                     if (!exists) {
                         const dataPoint = this._dataPointsByDataId[dataId];
-                        if (dataPoint.isSubscribed) {
+                        if (dataPoint.isObserved) {
                             if (this._source) {
                                 try {
-                                    this._source.UnsubscribeData(dataId, dataPoint.onRefresh);
-                                    this._logger.Info(`Unsubscribed datapoint ${dataPoint.shortId}:'${dataId}' (!exists && subscribed)`);
+                                    this._source.RemoveObserver(dataId, dataPoint.onRefresh);
+                                    this._logger.Info(`Removed observer for data point ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
                                 } catch (error) {
-                                    this._logger.Error(`Failed unsubscribing data point with id ${dataPoint.shortId}:'${dataId}':\n${error.message}`);
+                                    this._logger.Error(`Failed removing observer for data point with id ${dataPoint.shortId}:'${dataId}': ${error.message}`);
                                 }
-                                dataPoint.isSubscribed = false;
+                                dataPoint.isObserved = false;
                             }
-                            this._logger.Info(`Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && subscribed)`);
+                            this._logger.Info(`Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
                             delete dataPoint.shortId; // Note: Only data points with a short id exists!
                         } else {
-                            this._logger.Info(`Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !subscribed)`);
+                            this._logger.Info(`Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !observed)`);
                             delete this._dataPointsByDataId[dataId];
                         }
                     };
@@ -187,8 +187,8 @@
             this._isOpen = false;
             clearTimeout(this._sendTimer);
             this._sendTimer = null;
-            this._logger.Info('Reset all subscribsions onClose()');
-            this._updateSubscriptions('');
+            this._logger.Info('Reset all observers onClose()');
+            this._updateObservations('');
         }
 
         _sendConfiguration() {
@@ -203,9 +203,9 @@
         _handleReceived(data, onResponse, onError) {
             if (this._isOpen) {
                 switch (data.type) {
-                    case TransmissionType.SubscriptionRequest:
-                        this._logger.Info(`Update subscriptions from client: [${data.subs}]`);
-                        this._updateSubscriptions(data.subs);
+                    case TransmissionType.ObserverRequest:
+                        this._logger.Info(`Update observers from client: [${data.observations}]`);
+                        this._updateObservations(data.observations);
                         break;
                     case TransmissionType.ReadRequest:
                         let readDPConf = this._dataPointConfigsByShortId[data.shortId];
@@ -237,25 +237,25 @@
             }
         }
 
-        _updateSubscriptions(subscriptionShorts) {
-            Core.validateAs('DataAccessObject', this._source, ['SubscribeData:function', 'UnsubscribeData:function']);
-            // First we unsubscribe all that have been subscribed but are no longer requested
+        _updateObservations(observationShorts) {
+            Core.validateAs('DataAccessObject', this._source, ['AddObserver:function', 'RemoveObserver:function']);
+            // First we unsubscribe all that have been observed but are no longer requested
             for (const dataId in this._dataPointsByDataId) {
                 if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                     const dataPoint = this._dataPointsByDataId[dataId];
                     // Note: Only data points with a short id exists!
-                    if (dataPoint.isSubscribed && (!dataPoint.shortId || subscriptionShorts.indexOf(dataPoint.shortId) < 0)) {
+                    if (dataPoint.isObserved && (!dataPoint.shortId || observationShorts.indexOf(dataPoint.shortId) < 0)) {
                         try {
-                            this._source.UnsubscribeData(dataId, dataPoint.onRefresh);
+                            this._source.RemoveObserver(dataId, dataPoint.onRefresh);
                             this._logger.Info(`Unsubscribed datapoint ${dataPoint.shortId}:'${dataId}'`);
                         } catch (error) {
                             this._logger.Error(`Failed unsubscribing data point with id ${dataPoint.shortId}:'${dataId}':\n${error.message}`);
                         }
-                        dataPoint.isSubscribed = false;
+                        dataPoint.isObserved = false;
                     }
                 }
             }
-            Regex.each(subscribeRequestShortIdRegex, subscriptionShorts, (start, end, match) => {
+            Regex.each(subscribeRequestShortIdRegex, observationShorts, (start, end, match) => {
                 // we are in a closure -> shortId/id will be available in onRefresh()
                 const shortId = match[0];
                 const dpConf = this._dataPointConfigsByShortId[shortId];
@@ -263,13 +263,13 @@
                     const dataId = dpConf.dataId;
                     const dataPoint = this._dataPointsByDataId[dataId];
                     if (dataPoint) {
-                        if (!dataPoint.isSubscribed) {
+                        if (!dataPoint.isObserved) {
                             try {
-                                this._source.SubscribeData(dataId, dataPoint.onRefresh);
-                                dataPoint.isSubscribed = true;
-                                this._logger.Info(`Subscribed datapoint ${shortId}:'${dataId}'`);
+                                this._source.AddObserver(dataId, dataPoint.onRefresh);
+                                dataPoint.isObserved = true;
+                                this._logger.Info(`Observed data point ${shortId}:'${dataId}'`);
                             } catch (error) {
-                                this._logger.Error(`Failed subscribing data point with id ${shortId}:'${dataId}':\n${error.message}`);
+                                this._logger.Error(`Failed observing data point with id ${shortId}:'${dataId}':\n${error.message}`);
                             }
                         }
                     } else {
@@ -277,7 +277,7 @@
                     }
                 } else {
                     // TODO: Why we land here after stopping a task when items are monitored?
-                    this._logger.Error(`Cannot subscribe unknown data point with short id ${shortId}, stored:${JSON.stringify(this._dataPointConfigsByShortId)}`);
+                    this._logger.Error(`Cannot observe unknown data point with short id ${shortId}, stored:${JSON.stringify(this._dataPointConfigsByShortId)}`);
                 }
             }, true);
         }
@@ -343,28 +343,28 @@
             return dataPoint ? dataPoint.type : Core.DataType.Unknown;
         }
 
-        SubscribeData(dataId, onRefresh) {
+        AddObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`Invalid subscription id '${dataId}'`);
+                throw new Error(`Invalid id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
-                throw new Error(`Subscription callback onRefresh(value) for id '${dataId}' is not a function`);
+                throw new Error(`Observer callback onRefresh(value) for id '${dataId}' is not a function`);
             }
             let dataPoint = this._dataPointsByDataId[dataId];
             if (!dataPoint) {
                 dataPoint = this._dataPointsByDataId[dataId] = {
                     value: null,
                     onRefresh: null,
-                    // Note: SubscribeData(dataId, onRefresh) is a closure for dataId!
-                    Subscribe: onRefresh => this.SubscribeData(dataId, onRefresh),
-                    Unsubscribe: onRefresh => this.UnsubscribeData(dataId, onRefresh)
+                    // Note: AddObserver(dataId, onRefresh) is a closure for dataId!
+                    AddObserver: onRefresh => this.AddObserver(dataId, onRefresh),
+                    RemoveObserver: onRefresh => this.RemoveObserver(dataId, onRefresh)
                 };
             } else if (dataPoint.onRefresh === onRefresh) {
-                this._logger.Error(`Data id '${dataId}' is already subscribed with this callback`);
+                this._logger.Error(`Data id '${dataId}' is already observed with this callback`);
             } else if (dataPoint.onRefresh !== null) {
-                this._logger.Error(`Data id '${dataId}' is already subscribed with another callback`);
+                this._logger.Error(`Data id '${dataId}' is already observed with another callback`);
             }
             dataPoint.onRefresh = onRefresh;
-            this._subscriptionsChanged();
+            this._observationsChanged();
             if (dataPoint.value !== undefined && dataPoint.value !== null) {
                 try {
                     onRefresh(dataPoint.value);
@@ -374,26 +374,26 @@
             }
         }
 
-        UnsubscribeData(dataId, onRefresh) {
+        RemoveObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid unsubscription id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
-                throw new Error(`Unsubscription callback onRefresh(value) for id '${dataId}' is not a function`);
+                throw new Error(`Observer callback onRefresh(value) for id '${dataId}' is not a function`);
             }
             const dataPoint = this._dataPointsByDataId[dataId];
             if (!dataPoint) {
-                this._logger.Error(`Data point with id '${dataId}' is not available to unsubscribe`);
+                this._logger.Error(`Data point with id '${dataId}' is not available to observe`);
                 return;
             } else if (dataPoint.onRefresh === null) {
-                this._logger.Error(`Data point with id '${dataId}' is not subscribed`);
+                this._logger.Error(`Data point with id '${dataId}' is not observed`);
             } else if (dataPoint.onRefresh !== onRefresh) {
-                this._logger.Error(`Data point with id '${dataId}' is subscribed with a another callback`);
+                this._logger.Error(`Data point with id '${dataId}' is observed with a another callback`);
             }
             dataPoint.onRefresh = null;
             if (!dataPoint.shortId) { // If not exists on target system we delete
                 delete this._dataPointsByDataId[dataId];
             }
-            this._subscriptionsChanged();
+            this._observationsChanged();
         }
 
         Read(dataId, onResponse, onError) {
@@ -463,7 +463,7 @@
                         this._subscribeDelay = typeof data.subscribeDelay === 'number' && data.subscribeDelay > 0 ? data.subscribeDelay : false;
                         this._unsubscribeDelay = typeof data.unsubscribeDelay === 'number' && data.unsubscribeDelay > 0 ? data.unsubscribeDelay : false;
                         this._setDataPointConfigsByShortId(data.dataPointConfigsByShortId);
-                        this._sendSubscriptionRequest();
+                        this._sendObservationRequest();
                         break;
                     case TransmissionType.DataRefresh:
                         this._refresh(data.values);
@@ -485,7 +485,7 @@
                         const dataId = config.dataId;
                         let dataPoint = that._dataPointsByDataId[dataId];
                         if (dataPoint) {
-                            that._logger.Info(`Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.onRefresh !== null ? '' : '!'}subscribed)`);
+                            that._logger.Info(`Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.onRefresh !== null ? '' : '!'}observed)`);
                             dataPoint.shortId = shortId;
                             dataPoint.type = config.type;
                         } else {
@@ -495,8 +495,8 @@
                                 type: config.type,
                                 value: null,
                                 onRefresh: null,
-                                Subscribe: onRefresh => that.SubscribeData(dataId, onRefresh),
-                                Unsubscribe: onRefresh => that.UnsubscribeData(dataId, onRefresh)
+                                AddObserver: onRefresh => that.AddObserver(dataId, onRefresh),
+                                RemoveObserver: onRefresh => that.RemoveObserver(dataId, onRefresh)
                             };
                         }
                     }());
@@ -518,10 +518,10 @@
                     if (!exists) {
                         const dataPoint = this._dataPointsByDataId[dataId];
                         if (dataPoint.onRefresh) {
-                            this._logger.Info(`Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && subscribed)`);
+                            this._logger.Info(`Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
                             delete dataPoint.shortId;
                         } else {
-                            this._logger.Info(`Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !subscribed)`);
+                            this._logger.Info(`Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !observed)`);
                             delete this._dataPointsByDataId[dataId];
                         }
                     };
@@ -529,31 +529,31 @@
             }
         }
 
-        _subscriptionsChanged() {
+        _observationsChanged() {
             if (!this._subscribeDelay) {
-                this._sendSubscriptionRequest();
+                this._sendObservationRequest();
             } else if (!this._subscribeTimer) {
                 this._subscribeTimer = setTimeout(() => {
-                    this._sendSubscriptionRequest();
+                    this._sendObservationRequest();
                     this._subscribeTimer = null;
                 }, this._subscribeDelay);
             }
         }
 
-        _sendSubscriptionRequest() {
+        _sendObservationRequest() {
             if (this._open) {
-                // Build a string with all short ids of the currently subscribed data point and send to server
-                let subs = '';
+                // Build a string with all short ids of the currently observed data point and send to server
+                let observations = '';
                 for (const dataId in this._dataPointsByDataId) {
                     if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
                         const dataPoint = this._dataPointsByDataId[dataId];
                         if (dataPoint.shortId && dataPoint.onRefresh) {
-                            subs += dataPoint.shortId;
+                            observations += dataPoint.shortId;
                         }
                     }
                 }
                 Core.validateAs('Connection', this._connection, 'Send:function').Send(RECEIVER,
-                    { type: TransmissionType.SubscriptionRequest, subs }
+                    { type: TransmissionType.ObserverRequest, observations }
                 );
             }
         }

@@ -6,54 +6,37 @@
     const Common = isNodeJS ? require('./Common.js') : root.Common;
 
     class Node {
-        constructor(logger, onUnsubscribed) {
+        constructor(logger, source, onObserverRemoved) {
             this._logger = Common.validateAsLogger(logger, true);
-            if (typeof onUnsubscribed !== 'function') {
-                throw new Error('onUnsubscribed() is not a function');
+            this._source = Common.validateAsObservable(source, true);
+            if (typeof onObserverRemoved !== 'function') {
+                throw new Error('onObserverRemoved() is not a function');
             }
-            this._onUnsubscribed = onUnsubscribed;
+            this._onObserverRemoved = onObserverRemoved;
+            this._isObserved = false;
             this._value = null;
             this._onRefresh = value => this._refresh(value);
-            this._onRefreshCallbacks = [];
-            this._source = null;
-            this._unsubscribeDelay = false;
-            this._unsubscribeTimer = null;
+            this._observers = [];
+            this._removeObserverDelay = false;
+            this._removeObserverTimer = null;
             Common.validateAsObservable(this, true);
         }
 
-        set Source(value) {
-            if (this._source !== value) {
-                if (this._source && this._onRefreshCallbacks.length > 0) {
-                    this._source.Unsubscribe(this._onRefresh);
-                }
-                if (value) {
-                    Common.validateAsObservable(value, true);
-                    this._source = value;
-                } else {
-                    this._source = null;
-                }
-                if (this._source && this._onRefreshCallbacks.length > 0) {
-                    this._source.Subscribe(this._onRefresh);
-                }
-            }
-        }
-
-        set UnsubscribeDelay(value) {
+        set RemoveObserverDelay(value) {
             if (typeof value === 'number' && value > 0) {
-                this._unsubscribeDelay = Math.ceil(value);
+                this._removeObserverDelay = Math.ceil(value);
             } else {
-                this._unsubscribeDelay = false;
-                if (this._unsubscribeTimer) {
-                    clearTimeout(this._unsubscribeTimer);
-                    this._unsubscribeTimer = null;
-                    if (this._source) {
-                        try {
-                            this._source.Unsubscribe(this._onRefresh);
-                        } catch (error) {
-                            this._logger.Error(`Failed unsubscribing node: ${error.message}`);
-                        }
-                        this._onUnsubscribed();
+                this._removeObserverDelay = false;
+                if (this._removeObserverTimer) {
+                    clearTimeout(this._removeObserverTimer);
+                    this._removeObserverTimer = null;
+                    try {
+                        this._source.RemoveObserver(this._onRefresh);
+                    } catch (error) {
+                        this._logger.Error(`Failed removing observer: ${error.message}`);
                     }
+                    this._isObserved = false;
+                    this._onObserverRemoved();
                 }
             }
             typeof value === 'number' && value > 0 ? value : false;
@@ -67,31 +50,36 @@
             this._refresh(value);
         }
 
-        Subscribe(onRefresh) {
+        AddObserver(onRefresh) {
             if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh(value) is not a function');
             }
             // If already stored and if we just call for refresh and return
-            for (const onRef of this._onRefreshCallbacks) {
+            for (const onRef of this._observers) {
                 if (onRef === onRefresh) {
-                    this._logger.Warn('onRefresh(value) is already subscribed');
+                    this._logger.Warn('onRefresh(value) has already been added');
                     if (this._value !== undefined && this._value !== null) {
                         try {
                             onRefresh(this._value);
                         } catch (error) {
-                            throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
+                            this._logger.Error(`Failed calling onRefresh(value): ${error.message}`);
                         }
                     }
                     return;
                 }
             }
-            this._onRefreshCallbacks.push(onRefresh);
-            if (this._source && this._onRefreshCallbacks.length === 1) { // If the first subscription
-                if (this._unsubscribeTimer) { // If still subscribed we just kill the unsubscribe timer
-                    clearTimeout(this._unsubscribeTimer);
-                    this._unsubscribeTimer = null;
+            this._observers.push(onRefresh);
+            if (!this._isObserved && this._observers.length === 1) { // If not observerd and the first add
+                if (this._removeObserverTimer) { // If still observed we just kill the timer
+                    clearTimeout(this._removeObserverTimer);
+                    this._removeObserverTimer = null;
                 } else { // We subscribe on the source which should result in firering the refresh event
-                    this._source.Subscribe(this._onRefresh); // Note: This may throw an exception if subscription failed
+                    try {
+                        this._source.AddObserver(this._onRefresh); // Note: This may throw an exception if adding failed
+                        this._isObserved = true;
+                    } catch (error) {
+                        this._logger.Error(`Failed adding observer on node: ${error.message}`);
+                    }
                     return;
                 }
             }
@@ -99,49 +87,83 @@
                 try {
                     onRefresh(this._value);
                 } catch (error) {
-                    throw new Error(`Failed calling onRefresh(value):\n${error.message}`);
+                    this._logger.Error(`Failed calling onRefresh(value): ${error.message}`);
                 }
             }
         }
 
-        Unsubscribe(onRefresh) {
+        RemoveObserver(onRefresh) {
             if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh(value) is not a function');
             }
-            for (let i = 0; i < this._onRefreshCallbacks.length; i++) {
-                if (this._onRefreshCallbacks[i] === onRefresh) {
-                    this._onRefreshCallbacks.splice(i, 1);
-                    if (this._source && this._onRefreshCallbacks.length === 0) { // If the last subscriber has unsubscribed
-                        if (this._unsubscribeDelay) {
-                            this._unsubscribeTimer = setTimeout(() => {
-                                this._unsubscribeTimer = null;
+            for (let i = 0; i < this._observers.length; i++) {
+                if (this._observers[i] === onRefresh) {
+                    this._observers.splice(i, 1);
+                    if (this._isObserved && this._observers.length === 0) { // If observed and the last observer has been removed
+                        if (this._removeObserverDelay) {
+                            this._removeObserverTimer = setTimeout(() => {
+                                this._removeObserverTimer = null;
                                 try {
-                                    this._source.Unsubscribe(this._onRefresh);
+                                    this._source.RemoveObserver(this._onRefresh);
                                 } catch (error) {
-                                    this._logger.Error(`Failed unsubscribing on node: ${error.message}`);
+                                    this._logger.Error(`Failed removing observer on node: ${error.message}`);
                                 }
-                                this._onUnsubscribed();
-                            }, this._unsubscribeDelay);
+                                this._isObserved = false;
+                                this._onObserverRemoved();
+                            }, this._removeObserverDelay);
                         } else {
                             try {
-                                this._source.Unsubscribe(this._onRefresh); // Note: This may throw an exception if subscription failed
-                                this._onUnsubscribed();
+                                this._source.RemoveObserver(this._onRefresh); // Note: This may throw an exception if removing failed
                             } catch (error) {
-                                this._onUnsubscribed();
+                                this._logger.Error(`Failed removing observer on node: ${error.message}`);
                                 throw error;
                             }
+                            this._isObserved = false;
+                            this._onObserverRemoved();
                         }
                     }
                     return;
                 }
             }
-            this._logger.Warn('onRefresh(value) is not subscribed');
+            this._logger.Warn('onRefresh(value) has already been removed');
+        }
+
+        AddObserverToSource() {
+            if (this._removeObserverTimer) { // If still observed we kill the timer
+                clearTimeout(this._removeObserverTimer);
+                this._removeObserverTimer = null;
+            }
+            if (!this._isObserved && this._observers.length > 0) {
+                try {
+                    this._source.AddObserver(this._onRefresh); // Note: This may throw an exception if adding failed
+                    this._isObserved = true;
+                } catch (error) {
+                    this._logger.Error(`Failed adding observer on node: ${error.message}`);
+                }
+            }
+        }
+
+        RemoveObserverFromSource() {
+            if (this._removeObserverTimer) { // If still observed we kill the timer
+                clearTimeout(this._removeObserverTimer);
+                this._removeObserverTimer = null;
+            }
+            if (this._isObserved) {
+                try {
+                    this._source.RemoveObserver(this._onRefresh); // Note: This may throw an exception if removing failed
+                } catch (error) {
+                    this._logger.Error(`Failed removing observer on node: ${error.message}`);
+                    throw error;
+                }
+                this._isObserved = false;
+                this._onObserverRemoved();
+            }
         }
 
         _refresh(value) {
             this._value = value;
-            if (this._onRefreshCallbacks && value !== undefined && value !== null) {
-                for (const onRefresh of this._onRefreshCallbacks) {
+            if (this._observers && value !== undefined && value !== null) {
+                for (const onRefresh of this._observers) {
                     try {
                         onRefresh(value);
                     } catch (error) {
@@ -153,104 +175,85 @@
     }
 
     class AccessPoint {
-        constructor(logger) {
+        constructor(logger, source) {
             this._logger = Common.validateAsLogger(logger, true);
-            this._source = null;
-            this._unsubscribeDelay = false;
+            this._source = Common.validateAsDataAccessObject(source, true);
+            this._removeObserverDelay = false;
             this._dataPointsByDataId = {};
             Common.validateAsDataAccessObject(this, true);
         }
 
-        set Source(value) {
-            if (this._source !== value) {
-                if (this._source !== undefined && this._source !== null) {
-                    for (const dataId in this._dataPointsByDataId) {
-                        if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
-                            const dataPoint = this._dataPointsByDataId[dataId];
-                            dataPoint.node.Source = null; // TODO: Is this neccessary?
-                        }
-                    }
-                }
-                if (value) {
-                    Common.validateAsDataAccessObject(value, true);
-                    this._source = value;
-                } else {
-                    this._source = null;
-                }
-                if (this._source !== null) {
-                    for (const dataId in this._dataPointsByDataId) {
-                        if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
-                            const dataPoint = this._dataPointsByDataId[dataId];
-                            dataPoint.node.Source = dataPoint; // TODO: See above...
-                        }
-                    }
-                }
-            }
+        set RemoveObserverDelay(value) {
+            this._removeObserverDelay = typeof value === 'number' && value > 0 ? Math.ceil(value) : false;
+            this._setRemoveObserverDelayOnNodes(this._removeObserverDelay);
         }
 
-        set UnsubscribeDelay(value) {
-            this._unsubscribeDelay = typeof value === 'number' && value > 0 ? Math.ceil(value) : false;
-            this._setUnsubscribeDelayOnNodes(this._unsubscribeDelay);
-        }
-
-        _setUnsubscribeDelayOnNodes(delay) {
+        _setRemoveObserverDelayOnNodes(delay) {
             for (const dataId in this._dataPointsByDataId) {
                 if (this._dataPointsByDataId.hasOwnProperty(dataId)) {
-                    this._dataPointsByDataId[dataId].node.UnsubscribeDelay = delay;
+                    this._dataPointsByDataId[dataId].node.RemoveObserverDelay = delay;
                 }
             }
         }
 
         GetType(dataId) {
-            return Core.validateAs('DataAccessObject', this._source, 'GetType:function').GetType(dataId);
+            return this._source.GetType(dataId);
         }
 
-        SubscribeData(dataId, onRefresh) {
+        AddObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`Invalid subscription dataId '${dataId}'`);
+                throw new Error(`Invalid dataId '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh(value) is not a function');
             }
             let dataPoint = this._dataPointsByDataId[dataId];
             if (!dataPoint) {
-                const node = new Node(this._logger, () => {
+                this._dataPointsByDataId[dataId] = dataPoint = {
+                    AddObserver: onRefresh => this._source.AddObserver(dataId, onRefresh),
+                    RemoveObserver: onRefresh => this._source.RemoveObserver(dataId, onRefresh)
+                };
+                const node = dataPoint.node = new Node(this._logger, dataPoint, () => {
                     delete dataPoint.node;
                     delete this._dataPointsByDataId[dataId];
                 });
-                node.UnsubscribeDelay = this._unsubscribeDelay;
-                this._dataPointsByDataId[dataId] = dataPoint = {
-                    node,
-                    Subscribe: onRefresh => {
-                        if (this._source) {
-                            this._source.SubscribeData(dataId, onRefresh);
-                        }
-                    },
-                    Unsubscribe: onRefresh => {
-                        if (this._source) {
-                            this._source.UnsubscribeData(dataId, onRefresh);
-                        }
-                    }
-                };
-                node.Source = dataPoint;
+                node.RemoveObserverDelay = this._removeObserverDelay;
             }
-            dataPoint.node.Subscribe(onRefresh); // Note: may throw an exception if subscription failed!
+            dataPoint.node.AddObserver(onRefresh); // Note: may throw an exception if adding failed!
         }
 
-        UnsubscribeData(dataId, onRefresh) {
+        RemoveObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`Invalid unsubscription dataId '${dataId}'`);
+                throw new Error(`Invalid dataId '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh(value) is not a function');
             }
             const dataPoint = this._dataPointsByDataId[dataId];
             if (!dataPoint) {
-                throw new Error(`Failed unsubscribing for unsupported id '${dataId}'`);
+                throw new Error(`Failed removing observer for unsupported id '${dataId}'`);
             }
-            dataPoint.node.Unsubscribe(onRefresh); // Note: may throw an exception if unsubscription failed!
+            dataPoint.node.RemoveObserver(onRefresh); // Note: may throw an exception if removing failed!
+        }
+
+        AddObserverToSource(filter) {
+            for (const dataId in this._dataPointsByDataId) {
+                if (this._dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
+                    const dataPoint = this._dataPointsByDataId[dataId];
+                    dataPoint.AddObserverToSource();
+                }
+            }
+        }
+
+        RemoveObserverFromSource(filter) {
+            for (const dataId in this._dataPointsByDataId) {
+                if (this._dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
+                    const dataPoint = this._dataPointsByDataId[dataId];
+                    dataPoint.RemoveObserverFromSource();
+                }
+            }
         }
 
         Read(dataId, onResponse, onError) {
-            Core.validateAs('DataAccessObject', this._source, 'Read:function').Read(dataId, value => {
+            this._source.Read(dataId, value => {
                 try {
                     onResponse(value);
                 } catch (error) {
@@ -264,34 +267,30 @@
         }
 
         Write(dataId, value) {
-            Core.validateAs('DataAccessObject', this._source, 'Write:function').Write(dataId, value);
+            this._source.Write(dataId, value);
         }
     }
     DataPoint.AccessPoint = AccessPoint;
 
     class AccessRouter {
-        constructor() {
-            this._getDataAccessObject = null;
-            Common.validateAsDataAccessObject(this, true);
-        }
-
-        set GetDataAccessObject(value) {
-            if (typeof value !== 'function') {
+        constructor(getDataAccessObject) {
+            if (typeof getDataAccessObject !== 'function') {
                 throw new Error('Passed getDataAccessObject(dataId) is not a function');
             }
-            this._getDataAccessObject = value;
+            this._getDataAccessObject = getDataAccessObject;
+            Common.validateAsDataAccessObject(this, true);
         }
 
         GetType(dataId) {
             return this._dao(dataId, 'GetType:function').GetType(dataId);
         }
 
-        SubscribeData(dataId, onRefresh) {
-            this._dao(dataId, 'SubscribeData:function').SubscribeData(dataId, onRefresh);
+        AddObserver(dataId, onRefresh) {
+            this._dao(dataId, 'AddObserver:function').AddObserver(dataId, onRefresh);
         }
 
-        UnsubscribeData(dataId, onRefresh) {
-            this._dao(dataId, 'UnsubscribeData:function').UnsubscribeData(dataId, onRefresh);
+        RemoveObserver(dataId, onRefresh) {
+            this._dao(dataId, 'RemoveObserver:function').RemoveObserver(dataId, onRefresh);
         }
 
         Read(dataId, onResponse, onError) {
@@ -389,8 +388,8 @@
                 this._dataAccessObjects[targetId] = {
                     accessObject,
                     GetType: dataId => accessObject.GetType(getRawDataId(dataId)),
-                    SubscribeData: (dataId, onRefresh) => accessObject.SubscribeData(getRawDataId(dataId), onRefresh),
-                    UnsubscribeData: (dataId, onRefresh) => accessObject.UnsubscribeData(getRawDataId(dataId), onRefresh),
+                    AddObserver: (dataId, onRefresh) => accessObject.AddObserver(getRawDataId(dataId), onRefresh),
+                    RemoveObserver: (dataId, onRefresh) => accessObject.RemoveObserver(getRawDataId(dataId), onRefresh),
                     Read: (dataId, onResponse, onError) => accessObject.Read(getRawDataId(dataId), onResponse, onError),
                     Write: (dataId, value) => accessObject.Write(getRawDataId(dataId), value)
                 }
@@ -414,6 +413,31 @@
         }
 
         _updateDataConnectors(excludeTargetId = null) {
+            if (this._onBeforeUpdateDataConnectors) {
+                try {
+                    this._onBeforeUpdateDataConnectors();
+                } catch (error) {
+                    this._logger.Error(`Failed calling onBeforeUpdateDataConnectors():\n${error.message}`);
+                }
+            }
+            const dataPoints = this._getDataPoints(excludeTargetId);
+            for (const dataConnector of this._dataConnectors) {
+                try {
+                    dataConnector.SetDataPoints(dataPoints);
+                } catch (error) {
+                    this._logger.Error(`Failed updating data points on connector:\n${error.message}`);
+                }
+            }
+            if (this._onAfterUpdateDataConnectors) {
+                try {
+                    this._onAfterUpdateDataConnectors();
+                } catch (error) {
+                    this._logger.Error(`Failed calling onAfterUpdateDataConnectors():\n${error.message}`);
+                }
+            }
+        }
+
+        _updateDataConnectors_DISCARDED(excludeTargetId = null) { // TODO: Reuse or remove
             if (this._onBeforeUpdateDataConnectors) {
                 try {
                     this._onBeforeUpdateDataConnectors();

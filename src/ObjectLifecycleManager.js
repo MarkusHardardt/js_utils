@@ -7235,7 +7235,7 @@
                             };
                             _onEventCallbacks.push(onRefresh);
                             try {
-                                that.hmi.env.data.SubscribeData(dataId, onRefresh);
+                                that.hmi.env.data.AddObserver(dataId, onRefresh);
                             } catch (error) {
                                 console.error(`Failed subscribing to '${dataId}':\n${error.message}`);
                             }
@@ -7297,7 +7297,7 @@
             if (Array.isArray(_watch)) {
                 for (var i = _watch.length - 1; i >= 0; i--) {
                     try {
-                        that.hmi.env.data.UnsubscribeData(_watch[i], _onEventCallbacks[i]);
+                        that.hmi.env.data.RemoveObserver(_watch[i], _onEventCallbacks[i]);
                     } catch (error) {
                         console.error(`Failed unsubscribing from '${_watch[i]}':\n${error.message}`);
                     }
