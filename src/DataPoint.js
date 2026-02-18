@@ -31,7 +31,7 @@
             Common.validateAsObservable(this, true);
         }
 
-        set RemoveObserverDelay(value) {
+        set removeObserverDelay(value) {
             if (typeof value === 'number' && value > 0) {
                 this.#removeObserverDelay = Math.ceil(value);
             } else {
@@ -42,7 +42,7 @@
                     try {
                         this.#source.removeObserver(this.#onRefresh);
                     } catch (error) {
-                        this.#logger.Error(`Failed removing observer: ${error.message}`);
+                        this.#logger.error('Failed removing observer', error);
                     }
                     this.#isObserved = false;
                     this.#onObserverRemoved();
@@ -50,11 +50,11 @@
             }
         }
 
-        get Value() {
+        get value() {
             return this.#value;
         }
 
-        set Value(value) {
+        set value(value) {
             this.#refresh(value);
         }
 
@@ -70,7 +70,7 @@
                         try {
                             onRefresh(this.#value);
                         } catch (error) {
-                            this.#logger.Error(`Failed calling onRefresh(value): ${error.message}`);
+                            this.#logger.error('Failed calling onRefresh(value)', error);
                         }
                     }
                     return;
@@ -86,7 +86,7 @@
                         this.#source.addObserver(this.#onRefresh); // Note: This may throw an exception if adding failed
                         this.#isObserved = true;
                     } catch (error) {
-                        this.#logger.Error(`Failed adding observer on node: ${error.message}`);
+                        this.#logger.error('Failed adding observer on node', error);
                     }
                     return;
                 }
@@ -95,7 +95,7 @@
                 try {
                     onRefresh(this.#value);
                 } catch (error) {
-                    this.#logger.Error(`Failed calling onRefresh(value): ${error.message}`);
+                    this.#logger.error('Failed calling onRefresh(value)', error);
                 }
             }
         }
@@ -123,8 +123,7 @@
                             try {
                                 this.#source.removeObserver(this.#onRefresh); // Note: This may throw an exception if removing failed
                             } catch (error) {
-                                this.#logger.Error(`Failed removing observer on node: ${error.message}`);
-                                throw error;
+                                this.#logger.error('Failed removing observer on node', error);
                             }
                             this.#isObserved = false;
                             this.#onObserverRemoved();
@@ -136,7 +135,7 @@
             this.#logger.warn('onRefresh(value) has already been removed');
         }
 
-        AddObserverToSource() {
+        addObserverToSource() {
             if (this.#removeObserverTimer) { // If still observed we kill the timer
                 clearTimeout(this.#removeObserverTimer);
                 this.#removeObserverTimer = null;
@@ -146,12 +145,12 @@
                     this.#source.addObserver(this.#onRefresh); // Note: This may throw an exception if adding failed
                     this.#isObserved = true;
                 } catch (error) {
-                    this.#logger.Error(`Failed adding observer on node: ${error.message}`);
+                    this.#logger.error('Failed adding observer on node', error);
                 }
             }
         }
 
-        RemoveObserverFromSource() {
+        removeObserverFromSource() {
             if (this.#removeObserverTimer) { // If still observed we kill the timer
                 clearTimeout(this.#removeObserverTimer);
                 this.#removeObserverTimer = null;
@@ -160,7 +159,7 @@
                 try {
                     this.#source.removeObserver(this.#onRefresh); // Note: This may throw an exception if removing failed
                 } catch (error) {
-                    this.#logger.Error(`Failed removing observer on node: ${error.message}`);
+                    this.#logger.error('Failed removing observer on node', error);
                     throw error;
                 }
                 this.#isObserved = false;
@@ -175,7 +174,7 @@
                     try {
                         onRefresh(value);
                     } catch (error) {
-                        this.#logger.Error(`Failed calling onRefresh(value):\n${error.message}`);
+                        this.#logger.error('Failed calling onRefresh(value)', error);
                     }
                 }
             }
@@ -195,15 +194,15 @@
             Common.validateAsDataAccessObject(this, true);
         }
 
-        set RemoveObserverDelay(value) {
+        set removeObserverDelay(value) {
             this.#removeObserverDelay = typeof value === 'number' && value > 0 ? Math.ceil(value) : false;
-            this._setRemoveObserverDelayOnNodes(this.#removeObserverDelay);
+            this.#setRemoveObserverDelayOnNodes(this.#removeObserverDelay);
         }
 
-        _setRemoveObserverDelayOnNodes(delay) {
+        #setRemoveObserverDelayOnNodes(delay) {
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId)) {
-                    this.#dataPointsByDataId[dataId].node.RemoveObserverDelay = delay;
+                    this.#dataPointsByDataId[dataId].node.removeObserverDelay = delay;
                 }
             }
         }
@@ -228,7 +227,7 @@
                     delete dataPoint.node;
                     delete this.#dataPointsByDataId[dataId];
                 });
-                node.RemoveObserverDelay = this.#removeObserverDelay;
+                node.removeObserverDelay = this.#removeObserverDelay;
             }
             dataPoint.node.addObserver(onRefresh); // Note: may throw an exception if adding failed!
         }
@@ -246,20 +245,20 @@
             dataPoint.node.removeObserver(onRefresh); // Note: may throw an exception if removing failed!
         }
 
-        AddObserverToSource(filter) {
+        addObserverToSource(filter) {
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
                     const dataPoint = this.#dataPointsByDataId[dataId];
-                    dataPoint.AddObserverToSource();
+                    dataPoint.addObserverToSource();
                 }
             }
         }
 
-        RemoveObserverFromSource(filter) {
+        removeObserverFromSource(filter) {
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
                     const dataPoint = this.#dataPointsByDataId[dataId];
-                    dataPoint.RemoveObserverFromSource();
+                    dataPoint.removeObserverFromSource();
                 }
             }
         }
@@ -269,7 +268,7 @@
                 try {
                     onResponse(value);
                 } catch (error) {
-                    this.#logger.Error(`Failed calling onResponse(${value}) for dataId '${dataId}':\n${error.message}`);
+                    this.#logger.error(`Failed calling onResponse(${value}) for dataId '${dataId}'`, error);
                 }
                 const dataPoint = this.#dataPointsByDataId[dataId];
                 if (dataPoint) {
@@ -368,7 +367,7 @@
         }
 
         // This will be called on server side when a new web socket connection has opened or an existing has reopened
-        RegisterDataConnector(dataConnector) {
+        registerDataConnector(dataConnector) {
             for (const connector in this.#dataConnectors) {
                 if (dataConnector === connector) {
                     this.#logger.warn('Data connector is already registered');
@@ -376,12 +375,12 @@
                 }
             }
             this.#dataConnectors.push(dataConnector);
-            const dataPoints = this._getDataPoints();
+            const dataPoints = this.#getDataPoints();
             dataConnector.setDataPoints(dataPoints);
         }
 
         // This will be called on server side when a web socket connection has been closed
-        UnregisterDataConnector(dataConnector) {
+        unregisterDataConnector(dataConnector) {
             for (let i = 0; i < this.#dataConnectors.length; i++) {
                 if (dataConnector === this.#dataConnectors[i]) {
                     this.#dataConnectors.splice(i, 1);
@@ -391,7 +390,7 @@
             this.#logger.warn('Data connector is not registered');
         }
 
-        RegisterDataAccessObject(targetId, accessObject) {
+        registerDataAccessObject(targetId, accessObject) {
             if (typeof targetId !== 'string') {
                 throw new Error(`Invalid target id '${targetId}'`);
             } else if (!targetIdValidRegex.test(targetId)) {
@@ -412,11 +411,11 @@
                     read: (dataId, onResponse, onError) => accessObject.read(getRawDataId(dataId), onResponse, onError),
                     write: (dataId, value) => accessObject.write(getRawDataId(dataId), value)
                 }
-                this._updateDataConnectors();
+                this.#updateDataConnectors();
             }
         }
 
-        UnregisterDataAccessObject(targetId, accessObject) {
+        unregisterDataAccessObject(targetId, accessObject) {
             if (typeof targetId !== 'string') {
                 throw new Error(`Invalid target id: '${targetId}'`);
             } else if (!targetIdValidRegex.test(targetId)) {
@@ -426,62 +425,37 @@
             } else if (this.#dataAccessObjects[targetId].accessObject !== accessObject) {
                 throw new Error(`Target id '${targetId}' is registered for another data access object`);
             } else {
-                this._updateDataConnectors(targetId);
+                this.#updateDataConnectors(targetId);
                 delete this.#dataAccessObjects[targetId];
             }
         }
 
-        _updateDataConnectors(excludeTargetId = null) {
+        #updateDataConnectors(excludeTargetId = null) {
             if (this.#onBeforeUpdateDataConnectors) {
                 try {
                     this.#onBeforeUpdateDataConnectors();
                 } catch (error) {
-                    this.#logger.Error(`Failed calling onBeforeUpdateDataConnectors():\n${error.message}`);
+                    this.#logger.error('Failed calling onBeforeUpdateDataConnectors()', error);
                 }
             }
-            const dataPoints = this._getDataPoints(excludeTargetId);
+            const dataPoints = this.#getDataPoints(excludeTargetId);
             for (const dataConnector of this.#dataConnectors) {
                 try {
                     dataConnector.setDataPoints(dataPoints);
                 } catch (error) {
-                    this.#logger.Error(`Failed updating data points on connector:\n${error.message}`);
+                    this.#logger.error('Failed updating data points on connector', error);
                 }
             }
             if (this.#onAfterUpdateDataConnectors) {
                 try {
                     this.#onAfterUpdateDataConnectors();
                 } catch (error) {
-                    this.#logger.Error(`Failed calling onAfterUpdateDataConnectors():\n${error.message}`);
+                    this.#logger.error('Failed calling onAfterUpdateDataConnectors()', error);
                 }
             }
         }
 
-        _updateDataConnectors_DISCARDED(excludeTargetId = null) { // TODO: Reuse or remove
-            if (this.#onBeforeUpdateDataConnectors) {
-                try {
-                    this.#onBeforeUpdateDataConnectors();
-                } catch (error) {
-                    this.#logger.Error(`Failed calling onBeforeUpdateDataConnectors():\n${error.message}`);
-                }
-            }
-            const dataPoints = this._getDataPoints(excludeTargetId);
-            for (const dataConnector of this.#dataConnectors) {
-                try {
-                    dataConnector.setDataPoints(dataPoints);
-                } catch (error) {
-                    this.#logger.Error(`Failed updating data points on connector:\n${error.message}`);
-                }
-            }
-            if (this.#onAfterUpdateDataConnectors) {
-                try {
-                    this.#onAfterUpdateDataConnectors();
-                } catch (error) {
-                    this.#logger.Error(`Failed calling onAfterUpdateDataConnectors():\n${error.message}`);
-                }
-            }
-        }
-
-        _getDataPoints(excludeTargetId = null) {
+        #getDataPoints(excludeTargetId = null) {
             const result = [];
             for (const targetId in this.#dataAccessObjects) {
                 if (this.#dataAccessObjects.hasOwnProperty(targetId) && targetId !== excludeTargetId) {
@@ -495,7 +469,7 @@
             return result;
         }
 
-        get GetDataAccessObject() {
+        get getDataAccessObject() {
             return this.#getDataAccessObject;
         }
     }
