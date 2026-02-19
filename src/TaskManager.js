@@ -68,7 +68,7 @@
             } else {
                 this.#reloadingTasks = true;
                 const that = this;
-                this._hmi.env.cms.GetTaskObjects(response => {
+                this._hmi.env.cms.getTaskObjects(response => {
                     const tasks = [];
                     // For all task configurations from cms we ether reuse an existing or add a new task object.
                     for (const config of response) {
@@ -164,7 +164,7 @@
         }
 
         onOpen(connection) {
-            const sessionId = connection.SessionId;
+            const sessionId = connection.sessionId;
             if (this.#connections[sessionId] === undefined) {
                 const con = this.#connections[sessionId] = {
                     connection,
@@ -175,7 +175,7 @@
         }
 
         onClose(connection) {
-            const sessionId = connection.SessionId;
+            const sessionId = connection.sessionId;
             if (this.#connections[sessionId] !== undefined) {
                 connection.unregister(TASK_MANAGER_RECEIVER);
                 delete this.#connections[sessionId];
@@ -217,7 +217,7 @@
             } else if (taskObject.task) {
                 onError(`Task '${path}' has already been started`);
             } else {
-                hmi.env.cms.GetObject(taskObject.config.taskObject, undefined, ContentManager.PARSE, task => {
+                hmi.env.cms.getObject(taskObject.config.taskObject, undefined, ContentManager.PARSE, task => {
                     taskObject.task = task;
                     ObjectLifecycleManager.createObject(taskObject.task, null, () => {
                         if (typeof taskObject.config.cycleMillis === 'number' && taskObject.config.cycleMillis > 0) {

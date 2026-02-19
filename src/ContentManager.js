@@ -15,32 +15,32 @@
     /*  ContentManager inferface  */
     function validateAsContentManager(instance, validateMethodArguments) {
         return Core.validateAs('ContentManager', instance, [
-            'GetExchangeHandler()',
-            'GetLanguages(array)',
-            'IsValidIdForType(id, type)',
-            'GetIdValidTestFunctionForType(type)',
-            'GetIdValidTestFunctionForLanguageValue()',
-            'AnalyzeId(id)',
-            'GetExtensionForType(type)',
-            'GetIcon(id)',
-            'CompareIds(id1, id2)',
-            'Exists(id, onResponse, onError)',
-            'GetChecksum(id, onResponse, onError)',
-            'GetObject(id, language, mode, onResponse, onError)',
-            'GetModificationParams(id, language, value, onResponse, onError)',
-            'SetObject(id, language, value, checksum, onResponse, onError)',
-            'GetRefactoringParams(source, target, action, onResponse, onError)',
-            'PerformRefactoring(source, target, action, checksum, onResponse, onError)',
-            'GetSearchResults(key, value, onResponse, onError)',
-            'GetIdKeyValues(id, onResponse, onError)',
-            'GetAllIdsForType(type, onResponse, onError)',
-            'GetAllForLanguage(language, onResponse, onError)',
-            'IsHMIObject(id, onResponse, onError)',
-            'AddDefaultHMIObject(id, onResponse, onError)',
-            'GetHMIObject(queryParameterValue, language, onResponse, onError)',
-            'GetHMIObjects(onResponse, onError)',
-            'IsTaskObject(id, onResponse, onError)',
-            'AddDefaultTaskObject(id, onResponse, onError)'
+            'getExchangeHandler()',
+            'getLanguages(array)',
+            'isValidIdForType(id, type)',
+            'getIdValidTestFunctionForType(type)',
+            'getIdValidTestFunctionForLanguageValue()',
+            'analyzeId(id)',
+            'getExtensionForType(type)',
+            'getIcon(id)',
+            'compareIds(id1, id2)',
+            'exists(id, onResponse, onError)',
+            'getChecksum(id, onResponse, onError)',
+            'getObject(id, language, mode, onResponse, onError)',
+            'getModificationParams(id, language, value, onResponse, onError)',
+            'setObject(id, language, value, checksum, onResponse, onError)',
+            'getRefactoringParams(source, target, action, onResponse, onError)',
+            'performRefactoring(source, target, action, checksum, onResponse, onError)',
+            'getSearchResults(key, value, onResponse, onError)',
+            'getIdKeyValues(id, onResponse, onError)',
+            'getAllIdsForType(type, onResponse, onError)',
+            'getAllForLanguage(language, onResponse, onError)',
+            'isHMIObject(id, onResponse, onError)',
+            'addDefaultHMIObject(id, onResponse, onError)',
+            'getHMIObject(queryParameterValue, language, onResponse, onError)',
+            'getHMIObjects(onResponse, onError)',
+            'isTaskObject(id, onResponse, onError)',
+            'addDefaultTaskObject(id, onResponse, onError)'
         ], validateMethodArguments);
     }
     ContentManager.validateAsContentManager = validateAsContentManager;
@@ -48,9 +48,9 @@
     function validateAsContentManagerOnServer(instance, validateMethodArguments) {
         validateAsContentManager(instance, validateMethodArguments);
         return Core.validateAs('ContentManager', instance, [
-            'GetTaskObjects(onResponse, onError)',
-            'RegisterAffectedTypesListener(type, onChanged)',
-            'RegisterOnWebServer(webServer)' // Registers web server 'POST' and 'GET' (for fancy tree) handling
+            'getTaskObjects(onResponse, onError)',
+            'registerAffectedTypesListener(type, onChanged)',
+            'registerOnWebServer(webServer)' // Registers web server 'POST' and 'GET' (for fancy tree) handling
         ], validateMethodArguments);
     }
     ContentManager.validateAsContentManagerOnServer = validateAsContentManagerOnServer;
@@ -188,13 +188,16 @@
                 throw new Error('The abstract base class ContentManagerBase cannot be instantiated.')
             }
         }
-        GetExchangeHandler() {
+
+        getExchangeHandler() {
             return new ExchangeHandler(this);
         }
-        GetLanguages(array) {
+
+        getLanguages(array) {
             return Utilities.copyArray(this._config.languages, array);
         }
-        IsValidIdForType(id, type) {
+
+        isValidIdForType(id, type) {
             const regex = this._validIdForTypeRegex[type];
             if (regex) {
                 return regex.test(id);
@@ -202,7 +205,8 @@
                 throw new Error(`Unsupported type: '${type}'`);
             }
         }
-        GetIdValidTestFunctionForType(type) {
+
+        getIdValidTestFunctionForType(type) {
             const regex = this._validIdForTypeRegex[type];
             if (regex) {
                 return id => regex.test(id);
@@ -210,14 +214,16 @@
                 throw new Error(`Unsupported type: '${type}'`);
             }
         }
-        GetIdValidTestFunctionForLanguageValue() {
+
+        getIdValidTestFunctionForLanguageValue() {
             const regex = this._validIdForLanguageValueRegex;
             return id => regex.test(id);
         }
-        AnalyzeId(id) {
+
+        analyzeId(id) {
             let match = this._contentTablesKeyRegex.exec(id);
             if (match) {
-                return this._getDescriptor(match[2], { id, path: match[1], file: id, extension: match[2] });
+                return this.#getDescriptor(match[2], { id, path: match[1], file: id, extension: match[2] });
             }
             match = FOLDER_REGEX.exec(id);
             if (match) {
@@ -225,7 +231,8 @@
             }
             return { id };
         }
-        _getDescriptor(extension, description) {
+
+        #getDescriptor(extension, description) {
             const table = this._contentTablesByExtension[extension];
             if (table) {
                 const desc = description || {};
@@ -235,10 +242,12 @@
                 return false;
             }
         }
-        GetExtensionForType(type) {
+
+        getExtensionForType(type) {
             return this._extensionsForType[type];
         }
-        GetIcon(id) {
+
+        getIcon(id) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
                 for (const extension in this._contentTablesByExtension) {
@@ -253,7 +262,8 @@
                 return false;
             }
         }
-        CompareIds(id1, id2) {
+
+        compareIds(id1, id2) {
             if (FOLDER_REGEX.test(id1)) {
                 return FOLDER_REGEX.test(id2) ? Sorting.compareTextsAndNumbers(id1, id2, false, false) : -1;
             } else {
@@ -265,22 +275,27 @@
     const compareKeys = Sorting.getTextsAndNumbersCompareFunction(false, false, true);
 
     class ServerManager extends ContentManagerBase {
+        #getSqlAdapter;
+        #parallel;
+        #affectedTypesListeners;
+        #hmiTable;
+        #taskTable;
         constructor(getSqlAdapter, iconDirectory, config) {
             super();
             if (typeof getSqlAdapter !== 'function') {
                 throw new Error('No database access provider available!');
             }
-            this._getSqlAdapter = getSqlAdapter;
+            this.#getSqlAdapter = getSqlAdapter;
             this._iconDirectory = `/${iconDirectory}/`;
             const db_config = require(typeof config === 'string' ? config : '../cfg/db_config.json');
             this._config = db_config;
-            this._parallel = typeof db_config.maxParallelQueries === 'number' && db_config.maxParallelQueries > 0 ? db_config.maxParallelQueries : true;
+            this.#parallel = typeof db_config.maxParallelQueries === 'number' && db_config.maxParallelQueries > 0 ? db_config.maxParallelQueries : true;
             this._contentTablesByExtension = {};
             this._extensionsForType = {};
-            this._affectedTypesListeners = {};
+            this.#affectedTypesListeners = {};
             for (const type in DataType) {
                 if (DataType.hasOwnProperty(type)) {
-                    this._affectedTypesListeners[type] = [];
+                    this.#affectedTypesListeners[type] = [];
                 }
             }
             this._validIdForTypeRegex = {};
@@ -319,8 +334,7 @@
                             }
                             table.valueColumn = {};
                             for (let language of db_config.languages) {
-                                table.
-                                    valueColumn[language] = tableConfig.valueColumnPrefix + language;
+                                table.valueColumn[language] = tableConfig.valueColumnPrefix + language;
                             }
                             tableLanguageExtensions.push(extension);
                             break;
@@ -340,7 +354,7 @@
                                 queryParameterColumn: tableConfig.queryParameterColumn,
                                 flagsColumn: tableConfig.flagsColumn
                             };
-                            this._hmiTable = table;
+                            this.#hmiTable = table;
                             break;
                         case DataType.Task:
                             if (typeof tableConfig.taskObjectColumn !== 'string') {
@@ -358,7 +372,7 @@
                                 flagsColumn: tableConfig.flagsColumn,
                                 cycleIntervalMillisColumn: tableConfig.cycleIntervalMillisColumn
                             };
-                            this._taskTable = table;
+                            this.#taskTable = table;
                             break;
                         default:
                             throw new Error(`Unsupported table type: '${type}'`);
@@ -375,15 +389,16 @@
             this._contentTablesKeyRegex = new RegExp(`^\\$((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?)\\.(${tabexts})$`);
             this._refactoring_match = `((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?\\.(?:${tabexts}))\\b`;
             this._include_regex_build = new RegExp(`(\'|")?include:\\$((?:${VALID_NAME_CHAR}+\\/)*${VALID_NAME_CHAR}+?)\\.(${tabexts})\\b\\1`, 'g');
-            this.exchangeHeaderRegex = new RegExp(`\\[\\{\\((${tabexts}|language|${Regex.escape(EXCHANGE_HEADER)})<>([a-f0-9]{32})\\)\\}\\]\\n(.*)\\n`, 'g');
+            this._exchangeHeaderRegex = new RegExp(`\\[\\{\\((${tabexts}|language|${Regex.escape(EXCHANGE_HEADER)})<>([a-f0-9]{32})\\)\\}\\]\\n(.*)\\n`, 'g');
             validateAsContentManagerOnServer(this, true);
         }
-        _getRawString(adapter, table, rawKey, language, onResponse, onError) {
+
+        #getRawString(adapter, table, rawKey, language, onResponse, onError) {
             const valueColumn = table.valueColumn, column = typeof valueColumn === 'string' ? valueColumn : valueColumn[language];
             if (typeof column === 'string') {
-                adapter.AddColumn(`${table.name}.${column} AS ${column}`);
-                adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
-                adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
+                adapter.addColumn(`${table.name}.${column} AS ${column}`);
+                adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
+                adapter.performSelect(table.name, undefined, undefined, 1, (results, fields) => {
                     // in case of an result we are dealing with an existing key, but
                     // the
                     // data for the requested language may not be available anyway
@@ -398,7 +413,8 @@
                 onError(`Invalid value column for table '${table.name}' and language '${language}'`);
             }
         }
-        Exists(id, onResponse, onError) {
+
+        exists(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
                 const table = this._contentTablesByExtension[match[2]];
@@ -406,23 +422,25 @@
                     onError(`Invalid table: ${id}`);
                     return;
                 }
-                this._getSqlAdapter(adapter => this._exists(adapter, table, match[1], exists => {
-                    adapter.Close();
+                this.#getSqlAdapter(adapter => this.#exists(adapter, table, match[1], exists => {
+                    adapter.close();
                     onResponse(exists);
                 }, error => {
-                    adapter.Close();
+                    adapter.close();
                     onError(error);
                 }), onError);
             } else {
                 onResponse(false);
             }
         }
-        _exists(adapter, table, rawKey, onResponse, onError) {
-            adapter.AddColumn('COUNT(*) AS cnt');
-            adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
-            adapter.PerformSelect(table.name, undefined, undefined, undefined, result => onResponse(result[0].cnt > 0), onError);
+
+        #exists(adapter, table, rawKey, onResponse, onError) {
+            adapter.addColumn('COUNT(*) AS cnt');
+            adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
+            adapter.performSelect(table.name, undefined, undefined, undefined, result => onResponse(result[0].cnt > 0), onError);
         }
-        GetChecksum(id, onResponse, onError) {
+
+        getChecksum(id, onResponse, onError) {
             // first we try to get table object matching to the given key
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
@@ -435,15 +453,15 @@
                 return;
             }
             const that = this;
-            this._getSqlAdapter(adapter => {
+            this.#getSqlAdapter(adapter => {
                 const rawKey = match[1];
                 let raw = id;
                 function success() {
-                    adapter.Close();
+                    adapter.close();
                     onResponse(Utilities.md5(raw));
                 }
                 function error(err) {
-                    adapter.Close();
+                    adapter.close();
                     onError(err);
                 };
                 // if JsonFX or plain text is available we decode the string and
@@ -452,7 +470,7 @@
                     case DataType.JsonFX:
                     case DataType.Text:
                         // note: no language required here because we got only one anyway
-                        that._getRawString(adapter, table, rawKey, undefined, rawString => {
+                        that.#getRawString(adapter, table, rawKey, undefined, rawString => {
                             if (rawString !== false) {
                                 raw += ':';
                                 raw += rawString;
@@ -466,11 +484,11 @@
                     case DataType.Task:
                         for (const attr in table.valueColumn) {
                             if (table.valueColumn.hasOwnProperty(attr)) {
-                                adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${attr}`);
+                                adapter.addColumn(`${table.name}.${table.valueColumn[attr]} AS ${attr}`);
                             }
                         }
-                        adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
-                        adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
+                        adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
+                        adapter.performSelect(table.name, undefined, undefined, 1, (results, fields) => {
                             if (results.length === 1) {
                                 const object = results[0];
                                 for (const attr in table.valueColumn) {
@@ -485,7 +503,8 @@
                 }
             }, onError);
         }
-        GetObject(id, language, mode, onResponse, onError) {
+
+        getObject(id, language, mode, onResponse, onError) {
             // This method works in four modes:
             // 1. JsonFX-object: build object and return
             // 2. plain text (utf-8): build text and return
@@ -502,15 +521,16 @@
                 onError(`Invalid table name: '${id}'`);
                 return;
             }
-            this._getSqlAdapter(adapter => this._getObject(adapter, id, match[1], table, language, mode, response => {
-                adapter.Close();
+            this.#getSqlAdapter(adapter => this.#getObject(adapter, id, match[1], table, language, mode, response => {
+                adapter.close();
                 onResponse(response);
             }, error => {
-                adapter.Close(); // TODO: Why we have an exception calling this?
+                adapter.close(); // TODO: Why we have an exception calling this?
                 onError(error);
             }), onError);
         }
-        _getObject(adapter, id, rawKey, table, language, mode, onResponse, onError) {
+
+        #getObject(adapter, id, rawKey, table, language, mode, onResponse, onError) {
             const that = this;
             const parse = mode === ContentManager.PARSE, include = parse || mode === ContentManager.INCLUDE;
             function success(response) {
@@ -537,13 +557,13 @@
                 case DataType.JsonFX:
                 case DataType.Text:
                     // note: no language required here because we got only one anyway
-                    that._getRawString(adapter, table, rawKey, undefined, rawString => {
+                    that.#getRawString(adapter, table, rawKey, undefined, rawString => {
                         if (rawString !== false) {
                             const object = table.type === DataType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
                             if (include) {
                                 const ids = {};
                                 ids[id] = true;
-                                that._include(adapter, object, ids, language, success, onError);
+                                that.#include(adapter, object, ids, language, success, onError);
                             } else {
                                 success(object);
                             }
@@ -557,12 +577,12 @@
                     if (typeof language === 'string') {
                         // if selection is available we return string with or without all
                         // includes included
-                        that._getRawString(adapter, table, rawKey, language, rawString => {
+                        that.#getRawString(adapter, table, rawKey, language, rawString => {
                             if (rawString !== false) {
                                 if (include) {
                                     const ids = {};
                                     ids[id] = true;
-                                    that._include(adapter, rawString, ids, language, success, onError);
+                                    that.#include(adapter, rawString, ids, language, success, onError);
                                 } else {
                                     success(rawString);
                                 }
@@ -573,11 +593,11 @@
                     } else {
                         for (const attr in table.valueColumn) {
                             if (table.valueColumn.hasOwnProperty(attr)) {
-                                adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${attr}`);
+                                adapter.addColumn(`${table.name}.${table.valueColumn[attr]} AS ${attr}`);
                             }
                         }
-                        adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
-                        adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
+                        adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
+                        adapter.performSelect(table.name, undefined, undefined, 1, (results, fields) => {
                             if (results.length === 1) {
                                 const object = results[0];
                                 if (include) {
@@ -589,7 +609,7 @@
                                                 const ids = {};
                                                 ids[id] = true;
                                                 tasks.push((onSuc, onErr) => {
-                                                    that._include(adapter, object[language], ids, language, response => {
+                                                    that.#include(adapter, object[language], ids, language, response => {
                                                         object[language] = response;
                                                         onSuc();
                                                     }, onErr);
@@ -597,7 +617,7 @@
                                             }());
                                         }
                                     }
-                                    tasks.parallel = that._parallel;
+                                    tasks.parallel = that.#parallel;
                                     Executor.run(tasks, () => success(object), onError);
                                 } else {
                                     success(object);
@@ -612,11 +632,11 @@
                 case DataType.Task:
                     for (const attr in table.valueColumn) {
                         if (table.valueColumn.hasOwnProperty(attr)) {
-                            adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${attr}`);
+                            adapter.addColumn(`${table.name}.${table.valueColumn[attr]} AS ${attr}`);
                         }
                     }
-                    adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
-                    adapter.PerformSelect(table.name, undefined, undefined, 1, (results, fields) => {
+                    adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
+                    adapter.performSelect(table.name, undefined, undefined, 1, (results, fields) => {
                         if (results.length === 1) {
                             success(results[0]);
                         } else {
@@ -628,33 +648,34 @@
                     onError(`Cannot get object for unsupported type: ${table.type}`);
             }
         }
-        _include(adapter, object, ids, language, onResponse, onError) {
+
+        #include(adapter, object, ids, language, onResponse, onError) {
             const that = this;
             if (Array.isArray(object)) {
-                this._buildProperties(adapter, object, ids, language, onResponse, onError);
+                this.#buildProperties(adapter, object, ids, language, onResponse, onError);
             } else if (typeof object === 'object' && object !== null) {
                 const includeKey = object.include;
                 const match = typeof includeKey === 'string' && !ids[includeKey] ? this._contentTablesKeyRegex.exec(includeKey) : false;
                 if (!match) {
-                    this._buildProperties(adapter, object, ids, language, onResponse, onError);
+                    this.#buildProperties(adapter, object, ids, language, onResponse, onError);
                     return;
                 }
                 const table = this._contentTablesByExtension[match[2]];
                 if (!table) {
-                    this._buildProperties(adapter, object, ids, language, onResponse, onError);
+                    this.#buildProperties(adapter, object, ids, language, onResponse, onError);
                     return;
                 }
-                this._getRawString(adapter, table, match[1], language, rawString => {
+                this.#getRawString(adapter, table, match[1], language, rawString => {
                     if (rawString !== false) {
                         ids[includeKey] = true;
                         const includedObject = table.type === DataType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
-                        that._include(adapter, includedObject, ids, language, inclObj => {
+                        that.#include(adapter, includedObject, ids, language, inclObj => {
                             delete ids[includeKey];
                             if (typeof inclObj === 'object' && inclObj !== null) {
                                 // if we included an object all attributes except
                                 // include must be copied
                                 delete object.include;
-                                that._buildProperties(adapter, object, ids, language, () => {
+                                that.#buildProperties(adapter, object, ids, language, () => {
                                     // with a true "source"-flag we keep all replaced
                                     // attributes stored inside a source object
                                     if (object.source === true) {
@@ -686,7 +707,7 @@
                     } else {
                         // no string available so just step on with building the object
                         // properties
-                        that._buildProperties(adapter, object, ids, language, onResponse, onError);
+                        that.#buildProperties(adapter, object, ids, language, onResponse, onError);
                     }
                 }, onError);
             } else if ((typeof object === 'string')) {
@@ -708,11 +729,11 @@
                             (function () {
                                 let idx = i, orig = match[0], includeKey = `$${match[2]}.${match[3]}`, table = tab, rawKey = match[2];
                                 tasks.push((onSuc, onErr) => {
-                                    that._getRawString(adapter, table, rawKey, language, rawString => {
+                                    that.#getRawString(adapter, table, rawKey, language, rawString => {
                                         if (rawString !== false) {
                                             ids[includeKey] = true;
                                             const object = table.type === DataType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
-                                            that._include(adapter, object, ids, language, build => {
+                                            that.#include(adapter, object, ids, language, build => {
                                                 delete ids[includeKey];
                                                 array[idx] = table.type === DataType.JsonFX && array.length > 1 ? JsonFX.stringify(build, false) : build;
                                                 onSuc();
@@ -729,7 +750,7 @@
                         }
                     }
                 }
-                tasks.parallel = that._parallel;
+                tasks.parallel = that.#parallel;
                 // if our string contains just one single element we return this as is.
                 Executor.run(tasks, () => onResponse(array.length === 1 ? array[0] : array.join('')), onError);
             } else {
@@ -738,7 +759,8 @@
                 onResponse(object);
             }
         }
-        _buildProperties(adapter, object, ids, language, onResponse, onError) {
+
+        #buildProperties(adapter, object, ids, language, onResponse, onError) {
             const that = this;
             const tasks = [];
             for (const a in object) {
@@ -746,7 +768,7 @@
                     (function () {
                         const p = a;
                         tasks.push((onSuc, onErr) => {
-                            that._include(adapter, object[p], ids, language, objectProperty => {
+                            that.#include(adapter, object[p], ids, language, objectProperty => {
                                 object[p] = objectProperty;
                                 onSuc();
                             }, onErr);
@@ -754,10 +776,11 @@
                     }());
                 }
             }
-            tasks.parallel = this._parallel;
+            tasks.parallel = this.#parallel;
             Executor.run(tasks, () => onResponse(object), onError);
         }
-        _getModificationParams(adapter, id, language, value, onResponse, onError) {
+
+        #getModificationParams(adapter, id, language, value, onResponse, onError) {
             // here we store the result
             const params = {};
             // check id
@@ -780,7 +803,7 @@
             switch (table.type) {
                 case DataType.JsonFX:
                 case DataType.Text:
-                    adapter.AddColumn(`${table.name}.${table.valueColumn} AS ${table.valueColumn}`);
+                    adapter.addColumn(`${table.name}.${table.valueColumn} AS ${table.valueColumn}`);
                     break;
                 case DataType.Label:
                 case DataType.HTML:
@@ -793,7 +816,7 @@
                     }
                     for (const attr in table.valueColumn) {
                         if (table.valueColumn.hasOwnProperty(attr)) {
-                            adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${table.valueColumn[attr]}`);
+                            adapter.addColumn(`${table.name}.${table.valueColumn[attr]} AS ${table.valueColumn[attr]}`);
                         }
                     }
                     break;
@@ -801,7 +824,7 @@
                 case DataType.Task:
                     for (const attr in table.valueColumn) {
                         if (table.valueColumn.hasOwnProperty(attr)) {
-                            adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${table.valueColumn[attr]}`);
+                            adapter.addColumn(`${table.name}.${table.valueColumn[attr]} AS ${table.valueColumn[attr]}`);
                         }
                     }
                     break;
@@ -809,8 +832,8 @@
                     onError(`Unsupported type for modification: '${table.type}'`);
                     return;
             }
-            adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(match[1])}`);
-            adapter.PerformSelect(table.name, undefined, undefined, 1, (result, fields) => {
+            adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(match[1])}`);
+            adapter.performSelect(table.name, undefined, undefined, 1, (result, fields) => {
                 const currentData = result.length === 1 ? result[0] : undefined;
                 // here we store the conditions
                 let stillNotEmpty = false;
@@ -913,32 +936,34 @@
                 onResponse(params);
             }, onError);
         }
-        GetModificationParams(id, language, value, onResponse, onError) {
+
+        getModificationParams(id, language, value, onResponse, onError) {
             const that = this;
-            this._getSqlAdapter(adapter => {
-                that._getModificationParams(adapter, id, language, value, params => {
+            this.#getSqlAdapter(adapter => {
+                that.#getModificationParams(adapter, id, language, value, params => {
                     if (!params.error && params.action === ContentManager.DELETE) {
-                        that._getReferencesFromObjectWithId(adapter, id, referencesFrom => {
+                        that.#getReferencesFromObjectWithId(adapter, id, referencesFrom => {
                             if (referencesFrom.length > 0) {
                                 params.externalUsers = referencesFrom;
                             }
-                            adapter.Close();
+                            adapter.close();
                             onResponse(params);
                         }, err => {
-                            adapter.Close();
+                            adapter.close();
                             onError(err);
                         });
                     } else {
-                        adapter.Close();
+                        adapter.close();
                         onResponse(params);
                     }
                 }, err => {
-                    adapter.Close();
+                    adapter.close();
                     onError(err);
                 });
             }, onError);
         }
-        SetObject(id, language, value, checksum, onResponse, onError) {
+
+        setObject(id, language, value, checksum, onResponse, onError) {
             const that = this, match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
@@ -950,12 +975,12 @@
                 return;
             }
             const rawKey = match[1];
-            this._getSqlAdapter(adapter => {
+            this.#getSqlAdapter(adapter => {
                 const tasks = [], affectedTypes = {};
                 tasks.parallel = false;
-                tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
+                tasks.push((onSuc, onErr) => adapter.startTransaction(onSuc, onErr));
                 tasks.push((onSuc, onErr) => {
-                    that._getModificationParams(adapter, id, language, value, params => {
+                    that.#getModificationParams(adapter, id, language, value, params => {
                         if (params.error !== undefined) {
                             onErr(params.error);
                         } else if (params.checksum !== checksum) {
@@ -963,14 +988,14 @@
                         } else if (params.action === ContentManager.NONE) {
                             onErr('No action to perform!');
                         } else if (params.action === ContentManager.INSERT) {
-                            adapter.AddValue(`${table.name}.${table.keyColumn}`, SqlHelper.escape(rawKey));
+                            adapter.addValue(`${table.name}.${table.keyColumn}`, SqlHelper.escape(rawKey));
                             switch (table.type) {
                                 case DataType.JsonFX:
                                 case DataType.Text:
                                     {
                                         const value = params.values[table.valueColumn];
                                         if (value.changed) {
-                                            adapter.AddValue(`${table.name}.${table.valueColumn}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                            adapter.addValue(`${table.name}.${table.valueColumn}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                         }
                                     }
                                     break;
@@ -982,7 +1007,7 @@
                                         if (table.valueColumn.hasOwnProperty(attr)) {
                                             const value = params.values[attr];
                                             if (value.changed) {
-                                                adapter.AddValue(`${table.name}.${table.valueColumn[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                                adapter.addValue(`${table.name}.${table.valueColumn[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                             }
                                         }
                                     }
@@ -991,7 +1016,7 @@
                                     onErr(`Cannot insert unsupported type: ${table.type}`);
                                     return;
                             }
-                            adapter.PerformInsert(table.name, () => {
+                            adapter.performInsert(table.name, () => {
                                 affectedTypes[table.type] = true;
                                 onSuc();
                             }, onErr);
@@ -1002,7 +1027,7 @@
                                     {
                                         const value = params.values[table.valueColumn];
                                         if (value.changed) {
-                                            adapter.AddValue(`${table.name}.${table.valueColumn}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                            adapter.addValue(`${table.name}.${table.valueColumn}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                         }
                                     }
                                     break;
@@ -1014,7 +1039,7 @@
                                         if (table.valueColumn.hasOwnProperty(attr)) {
                                             const value = params.values[attr];
                                             if (value.changed) {
-                                                adapter.AddValue(`${table.name}.${table.valueColumn[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
+                                                adapter.addValue(`${table.name}.${table.valueColumn[attr]}`, typeof value.string === 'string' ? SqlHelper.escape(value.string) : null);
                                             }
                                         }
                                     }
@@ -1023,14 +1048,14 @@
                                     onErr(`Cannot update unsupported type: ${table.type}`);
                                     return;
                             }
-                            adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
-                            adapter.PerformUpdate(table.name, undefined, 1, () => {
+                            adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
+                            adapter.performUpdate(table.name, undefined, 1, () => {
                                 affectedTypes[table.type] = true;
                                 onSuc();
                             }, onErr);
                         } else if (params.action === ContentManager.DELETE) {
-                            adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
-                            adapter.PerformDelete(table.name, undefined, 1, () => {
+                            adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
+                            adapter.performDelete(table.name, undefined, 1, () => {
                                 affectedTypes[table.type] = true;
                                 onSuc();
                             }, onErr);
@@ -1040,26 +1065,27 @@
                     }, onErr);
                 });
                 Executor.run(tasks, () => {
-                    adapter.CommitTransaction(() => {
-                        adapter.Close();
+                    adapter.commitTransaction(() => {
+                        adapter.close();
                         onResponse();
-                        this._nofifyAffectedTypes(affectedTypes);
+                        this.#nofifyAffectedTypes(affectedTypes);
                     }, err => {
-                        adapter.Close();
+                        adapter.close();
                         onError(err);
                     });
                 }, err => {
-                    adapter.RollbackTransaction(() => {
-                        adapter.Close();
+                    adapter.rollbackTransaction(() => {
+                        adapter.close();
                         onError(err);
                     }, ee => {
-                        adapter.Close();
+                        adapter.close();
                         onError(ee);
                     });
                 });
             }, onError);
         }
-        _getRefactoringParams(adapter, source, target, action, onResponse, onError) {
+
+        #getRefactoringParams(adapter, source, target, action, onResponse, onError) {
             // here we store the result
             const params = {};
             // check action
@@ -1173,10 +1199,10 @@
                                 const ext = extension;
                                 const table = that._contentTablesByExtension[extension];
                                 tasks.push((os, oe) => {
-                                    adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
+                                    adapter.addColumn(`${table.name}.${table.keyColumn} AS path`);
                                     // select all paths within the range
-                                    adapter.AddWhere(`LOCATE(${SqlHelper.escape(srcTabKey)},${table.name}.${table.keyColumn}) = 1`);
-                                    adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
+                                    adapter.addWhere(`LOCATE(${SqlHelper.escape(srcTabKey)},${table.name}.${table.keyColumn}) = 1`);
+                                    adapter.performSelect(table.name, undefined, undefined, undefined, result => {
                                         for (let i = 0, l = result.length; i < l; i++) {
                                             srcKeysObj[`$${result[i].path}.${ext}`] = true;
                                         }
@@ -1186,7 +1212,7 @@
                             }());
                         }
                     }
-                    tasks.parallel = that._parallel;
+                    tasks.parallel = that.#parallel;
                     Executor.run(tasks, onSuc, onErr);
                 } else {
                     srcKeysObj[source] = true;
@@ -1242,9 +1268,9 @@
                             const table = that._contentTablesByExtension[match[2]];
                             const tabKeyEsc = SqlHelper.escape(match[1]);
                             tasks.push((os, or) => {
-                                adapter.AddColumn('COUNT(*) AS cnt');
-                                adapter.AddWhere(`${table.name}.${table.keyColumn} = ${tabKeyEsc}`);
-                                adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
+                                adapter.addColumn('COUNT(*) AS cnt');
+                                adapter.addWhere(`${table.name}.${table.keyColumn} = ${tabKeyEsc}`);
+                                adapter.performSelect(table.name, undefined, undefined, undefined, result => {
                                     if (result[0].cnt > 0) {
                                         tgtExObj[tgt] = true;
                                     }
@@ -1264,7 +1290,7 @@
                     }
                 }
                 params.objects = objects;
-                tasks.parallel = that._parallel;
+                tasks.parallel = that.#parallel;
                 Executor.run(tasks, onSuc, onErr);
             });
             main.push(function (onSuc, onErr) {
@@ -1292,7 +1318,7 @@
                         (function () {
                             const source = srcKeysArr[i];
                             tasks.push((os, or) => {
-                                that._getReferencesFromObjectWithId(adapter, source, referencesFrom => {
+                                that.#getReferencesFromObjectWithId(adapter, source, referencesFrom => {
                                     for (let r = 0; r < referencesFrom.length; r++) {
                                         const key = referencesFrom[r];
                                         if (srcKeysObj[key] === undefined) {
@@ -1305,7 +1331,7 @@
                         }());
                     }
                 }
-                tasks.parallel = that._parallel;
+                tasks.parallel = that.#parallel;
                 Executor.run(tasks, onSuc, onErr);
             });
             Executor.run(main, () => {
@@ -1327,21 +1353,23 @@
                 onResponse(params);
             }, onError);
         }
-        GetRefactoringParams(source, target, action, onResponse, onError) {
+
+        getRefactoringParams(source, target, action, onResponse, onError) {
             const that = this;
-            this._getSqlAdapter(adapter => {
-                that._getRefactoringParams(adapter, source, target, action, params => {
-                    adapter.Close();
+            this.#getSqlAdapter(adapter => {
+                that.#getRefactoringParams(adapter, source, target, action, params => {
+                    adapter.close();
                     onResponse(params);
                 }, err => {
-                    adapter.Close();
+                    adapter.close();
                     onError(err);
                 });
             }, onError);
         }
-        PerformRefactoring(source, target, action, checksum, onResponse, onError) {
+
+        performRefactoring(source, target, action, checksum, onResponse, onError) {
             const that = this;
-            this._getSqlAdapter(adapter => {
+            this.#getSqlAdapter(adapter => {
                 const main = [], affectedTypes = {};
                 // the main action has to be processed in a sequence wo we do not run
                 // in
@@ -1349,9 +1377,9 @@
                 main.parallel = false;
                 // we run this as a transaction wo enable rollbacks (just in case
                 // something unexpected happens)
-                main.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
+                main.push((onSuc, onErr) => adapter.startTransaction(onSuc, onErr));
                 main.push((onSuc, onErr) => {
-                    that._getRefactoringParams(adapter, source, target, action, params => {
+                    that.#getRefactoringParams(adapter, source, target, action, params => {
                         if (params.error !== undefined) {
                             onErr(params.error);
                         } else if (params.checksum !== checksum) {
@@ -1371,7 +1399,7 @@
                                     if (objects.hasOwnProperty(attr)) {
                                         (function () {
                                             const src = attr;
-                                            tasks.push((os, oe) => that._performRefactoring(adapter, src, params, replace, affectedTypes, os, oe));
+                                            tasks.push((os, oe) => that.#performRefactoring(adapter, src, params, replace, affectedTypes, os, oe));
                                         }());
                                     }
                                 }
@@ -1383,8 +1411,8 @@
                                             (function () {
                                                 const table = that._contentTablesByExtension[attr];
                                                 tasks.push((os, oe) => {
-                                                    adapter.AddWhere(`LOCATE(${srcTabKey},${table.name}.${table.keyColumn}) = 1`);
-                                                    adapter.PerformDelete(table.name, undefined, undefined, () => {
+                                                    adapter.addWhere(`LOCATE(${srcTabKey},${table.name}.${table.keyColumn}) = 1`);
+                                                    adapter.performDelete(table.name, undefined, undefined, () => {
                                                         affectedTypes[table.type] = true;
                                                         os();
                                                     }, oe);
@@ -1396,8 +1424,8 @@
                                     const match = that._contentTablesKeyRegex.exec(source);
                                     const table = that._contentTablesByExtension[match[2]], srcTabKey = SqlHelper.escape(match[1]);
                                     tasks.push((os, oe) => {
-                                        adapter.AddWhere(`${table.name}.${table.keyColumn} = ${srcTabKey}`);
-                                        adapter.PerformDelete(table.name, undefined, 1, () => {
+                                        adapter.addWhere(`${table.name}.${table.keyColumn} = ${srcTabKey}`);
+                                        adapter.performDelete(table.name, undefined, 1, () => {
                                             affectedTypes[table.type] = true;
                                             os();
                                         }, oe);
@@ -1409,26 +1437,27 @@
                     }, onErr);
                 });
                 Executor.run(main, () => {
-                    adapter.CommitTransaction(() => {
-                        adapter.Close();
+                    adapter.commitTransaction(() => {
+                        adapter.close();
                         onResponse();
-                        this._nofifyAffectedTypes(affectedTypes);
+                        this.#nofifyAffectedTypes(affectedTypes);
                     }, err => {
-                        adapter.Close();
+                        adapter.close();
                         onError(err);
                     });
                 }, err => {
-                    adapter.RollbackTransaction(() => {
-                        adapter.Close();
+                    adapter.rollbackTransaction(() => {
+                        adapter.close();
                         onError(err);
                     }, er => {
-                        adapter.Close();
+                        adapter.close();
                         onError(er);
                     });
                 });
             }, onError);
         }
-        _performRefactoring(adapter, source, params, getReplacement, affectedTypes, onResponse, onError) {
+
+        #performRefactoring(adapter, source, params, getReplacement, affectedTypes, onResponse, onError) {
             const that = this;
             const match = this._contentTablesKeyRegex.exec(source);
             const table = this._contentTablesByExtension[match[2]];
@@ -1443,7 +1472,7 @@
                     switch (table.type) {
                         case DataType.JsonFX:
                         case DataType.Text:
-                            adapter.AddColumn(`${table.name}.${table.valueColumn}`);
+                            adapter.addColumn(`${table.name}.${table.valueColumn}`);
                             break;
                         case DataType.Label:
                         case DataType.HTML:
@@ -1451,13 +1480,13 @@
                         case DataType.Task:
                             for (const attr in table.valueColumn) {
                                 if (table.valueColumn.hasOwnProperty(attr)) {
-                                    adapter.AddColumn(`${table.name}.${table.valueColumn[attr]}`);
+                                    adapter.addColumn(`${table.name}.${table.valueColumn[attr]}`);
                                 }
                             }
                             break;
                     }
-                    adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(srcTabKey)}`);
-                    adapter.PerformSelect(table.name, undefined, undefined, 1, results => {
+                    adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(srcTabKey)}`);
+                    adapter.performSelect(table.name, undefined, undefined, 1, results => {
                         const values = results[0];
                         // replace internal cross references and prepare database
                         // update or insert value
@@ -1467,7 +1496,7 @@
                                 let string = values[table.valueColumn];
                                 if (typeof string === 'string' && string.length > 0) {
                                     string = getReplacement(string);
-                                    adapter.AddValue(`${table.name}.${table.valueColumn}`, SqlHelper.escape(string));
+                                    adapter.addValue(`${table.name}.${table.valueColumn}`, SqlHelper.escape(string));
                                 }
                                 break;
                             case DataType.Label:
@@ -1479,10 +1508,10 @@
                                         const value = values[table.valueColumn[attr]];
                                         if (typeof value === 'string' && value.length > 0) {
                                             const string = getReplacement(value);
-                                            adapter.AddValue(`${table.name}.${table.valueColumn[attr]}`, SqlHelper.escape(string));
+                                            adapter.addValue(`${table.name}.${table.valueColumn[attr]}`, SqlHelper.escape(string));
                                         } else if (value !== undefined && value !== null) {
                                             const string = value.toString();
-                                            adapter.AddValue(`${table.name}.${table.valueColumn[attr]}`, SqlHelper.escape(string));
+                                            adapter.addValue(`${table.name}.${table.valueColumn[attr]}`, SqlHelper.escape(string));
                                         }
                                     }
                                 }
@@ -1492,8 +1521,8 @@
                         const tgtTabKey = match[1];
                         function success() {
                             if (targetAlreadyExists && params.action === ContentManager.MOVE) {
-                                adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(srcTabKey)}`);
-                                adapter.PerformDelete(table.name, undefined, 1, () => {
+                                adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(srcTabKey)}`);
+                                adapter.performDelete(table.name, undefined, 1, () => {
                                     affectedTypes[table.type] = true;
                                     onSuc();
                                 }, onErr);
@@ -1503,15 +1532,15 @@
                             }
                         };
                         if (targetAlreadyExists) {
-                            adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(tgtTabKey)}`);
-                            adapter.PerformUpdate(table.name, undefined, 1, success, onErr);
+                            adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(tgtTabKey)}`);
+                            adapter.performUpdate(table.name, undefined, 1, success, onErr);
                         } else {
-                            adapter.AddValue(`${table.name}.${table.keyColumn}`, SqlHelper.escape(tgtTabKey));
+                            adapter.addValue(`${table.name}.${table.keyColumn}`, SqlHelper.escape(tgtTabKey));
                             if (params.action === ContentManager.MOVE) {
-                                adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(srcTabKey)}`);
-                                adapter.PerformUpdate(table.name, undefined, 1, success, onErr);
+                                adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(srcTabKey)}`);
+                                adapter.performUpdate(table.name, undefined, 1, success, onErr);
                             } else {
-                                adapter.PerformInsert(table.name, success, onErr);
+                                adapter.performInsert(table.name, success, onErr);
                             }
                         }
                     }, onErr);
@@ -1521,7 +1550,7 @@
                 main.push((onSuc, onErr) => {
                     // In move mode we got to update all external users with the
                     // moved reference
-                    that._getReferencesFromObjectWithId(adapter, source, referencesFrom => {
+                    that.#getReferencesFromObjectWithId(adapter, source, referencesFrom => {
                         const tasks = [], jl = referencesFrom.length;
                         tasks.parallel = false;
                         for (let j = 0; j < jl; j++) {
@@ -1535,7 +1564,7 @@
                                         switch (table.type) {
                                             case DataType.JsonFX:
                                             case DataType.Text:
-                                                adapter.AddColumn(`${table.name}.${table.valueColumn} AS ${table.valueColumn}`);
+                                                adapter.addColumn(`${table.name}.${table.valueColumn} AS ${table.valueColumn}`);
                                                 break;
                                             case DataType.Label:
                                             case DataType.HTML:
@@ -1543,13 +1572,13 @@
                                             case DataType.Task:
                                                 for (const attr in table.valueColumn) {
                                                     if (table.valueColumn.hasOwnProperty(attr)) {
-                                                        adapter.AddColumn(`${table.name}.${table.valueColumn[attr]} AS ${table.valueColumn[attr]}`);
+                                                        adapter.addColumn(`${table.name}.${table.valueColumn[attr]} AS ${table.valueColumn[attr]}`);
                                                     }
                                                 }
                                                 break;
                                         }
-                                        adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(usrKey)}`);
-                                        adapter.PerformSelect(table.name, undefined, undefined, 1, result => {
+                                        adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(usrKey)}`);
+                                        adapter.performSelect(table.name, undefined, undefined, 1, result => {
                                             // replace in all existing value strings all occurrences
                                             // of
                                             // any source path with the resulting target path and
@@ -1561,7 +1590,7 @@
                                                     let string = values[table.valueColumn];
                                                     if (typeof string === 'string' && string.length > 0) {
                                                         string = getReplacement(string);
-                                                        adapter.AddValue(`${table.name}.${table.valueColumn}`, SqlHelper.escape(string));
+                                                        adapter.addValue(`${table.name}.${table.valueColumn}`, SqlHelper.escape(string));
                                                     }
                                                     break;
                                                 case DataType.Label:
@@ -1573,14 +1602,14 @@
                                                             let string = values[table.valueColumn[attr]];
                                                             if (typeof string === 'string' && string.length > 0) {
                                                                 string = getReplacement(string);
-                                                                adapter.AddValue(`${table.name}.${table.valueColumn[attr]}`, SqlHelper.escape(string));
+                                                                adapter.addValue(`${table.name}.${table.valueColumn[attr]}`, SqlHelper.escape(string));
                                                             }
                                                         }
                                                     }
                                                     break;
                                             }
-                                            adapter.AddWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(usrKey)}`);
-                                            adapter.PerformUpdate(table.name, undefined, 1, () => {
+                                            adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(usrKey)}`);
+                                            adapter.performUpdate(table.name, undefined, 1, () => {
                                                 affectedTypes[table.type] = true;
                                                 os();
                                             }, oe);
@@ -1595,8 +1624,9 @@
             }
             Executor.run(main, onResponse, onError);
         }
-        RegisterAffectedTypesListener(type, onChanged) {
-            const listeners = this._affectedTypesListeners[type];
+
+        registerAffectedTypesListener(type, onChanged) {
+            const listeners = this.#affectedTypesListeners[type];
             if (listeners === undefined) {
                 throw new Error(`Failed to register listener for unknown type: '${type}'`);
             } else if (typeof onChanged !== 'function') {
@@ -1610,10 +1640,11 @@
                 listeners.push(onChanged);
             }
         }
-        _nofifyAffectedTypes(affectedTypes) {
+
+        #nofifyAffectedTypes(affectedTypes) {
             for (const type in affectedTypes) {
                 if (affectedTypes.hasOwnProperty(type) && affectedTypes[type] === true) {
-                    const listeners = this._affectedTypesListeners[type];
+                    const listeners = this.#affectedTypesListeners[type];
                     for (let onChanged of listeners) {
                         try {
                             onChanged();
@@ -1624,7 +1655,8 @@
                 }
             }
         }
-        _getReferencesTo(id, onResponse, onError) {
+
+        #getReferencesTo(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
                 const user = this._contentTablesByExtension[match[2]];
@@ -1633,7 +1665,7 @@
                     return;
                 }
                 const that = this;
-                this._getSqlAdapter(adapter => {
+                this.#getSqlAdapter(adapter => {
                     const rawKey = SqlHelper.escape(match[1]);
                     const keys = {};
                     const tasks = [];
@@ -1643,10 +1675,10 @@
                                 const ext = extension;
                                 const used = that._contentTablesByExtension[extension];
                                 tasks.push((onSuc, onErr) => {
-                                    adapter.AddColumn(`tab.${used.keyColumn} AS path`);
-                                    adapter.AddWhere(`${user.name}.${user.keyColumn} = ${rawKey}`);
-                                    adapter.AddJoin(formatReferencesToCondition(user.name, user.valueColumn, used.name, 'tab', ext, used.keyColumn));
-                                    adapter.PerformSelect(user.name, undefined, undefined, undefined, result => {
+                                    adapter.addColumn(`tab.${used.keyColumn} AS path`);
+                                    adapter.addWhere(`${user.name}.${user.keyColumn} = ${rawKey}`);
+                                    adapter.addJoin(formatReferencesToCondition(user.name, user.valueColumn, used.name, 'tab', ext, used.keyColumn));
+                                    adapter.performSelect(user.name, undefined, undefined, undefined, result => {
                                         for (let i = 0, l = result.length; i < l; i++) {
                                             keys[`$${result[i].path}.${ext}`] = true;
                                         }
@@ -1656,7 +1688,7 @@
                             }());
                         }
                     }
-                    tasks.parallel = that._parallel;
+                    tasks.parallel = that.#parallel;
                     Executor.run(tasks, () => {
                         const array = [];
                         for (const key in keys) {
@@ -1664,10 +1696,10 @@
                                 array.push(key);
                             }
                         }
-                        adapter.Close();
+                        adapter.close();
                         onResponse(array);
                     }, err => {
-                        adapter.Close();
+                        adapter.close();
                         onError(err);
                     });
                 }, onError);
@@ -1677,7 +1709,8 @@
                 onResponse([]);
             }
         }
-        _getReferencesToCount(id, onResponse, onError) {
+
+        #getReferencesToCount(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
                 const user = this._contentTablesByExtension[match[2]];
@@ -1686,7 +1719,7 @@
                     return;
                 }
                 const that = this;
-                this._getSqlAdapter(adapter => {
+                this.#getSqlAdapter(adapter => {
                     const rawKey = SqlHelper.escape(match[1]);
                     const tasks = [];
                     let result = 0;
@@ -1696,10 +1729,10 @@
                                 const ext = extension;
                                 const used = that._contentTablesByExtension[extension];
                                 tasks.push((onSuc, onErr) => {
-                                    adapter.AddColumn('COUNT(*) AS cnt');
-                                    adapter.AddWhere(`${user.name}.${user.keyColumn} = ${rawKey}`);
-                                    adapter.AddJoin(formatReferencesToCondition(user.name, user.valueColumn, used.name, 'tab', ext, used.keyColumn));
-                                    adapter.PerformSelect(user.name, undefined, undefined, undefined, response => {
+                                    adapter.addColumn('COUNT(*) AS cnt');
+                                    adapter.addWhere(`${user.name}.${user.keyColumn} = ${rawKey}`);
+                                    adapter.addJoin(formatReferencesToCondition(user.name, user.valueColumn, used.name, 'tab', ext, used.keyColumn));
+                                    adapter.performSelect(user.name, undefined, undefined, undefined, response => {
                                         result += response[0].cnt;
                                         onSuc();
                                     }, onErr);
@@ -1707,12 +1740,12 @@
                             }());
                         }
                     }
-                    tasks.parallel = that._parallel;
+                    tasks.parallel = that.#parallel;
                     Executor.run(tasks, () => {
-                        adapter.Close();
+                        adapter.close();
                         onResponse(result);
                     }, err => {
-                        adapter.Close();
+                        adapter.close();
                         onError(err);
                     });
                 }, onError);
@@ -1721,7 +1754,8 @@
                 onResponse(0);
             }
         }
-        _getReferencesFromObjectWithId(adapter, id, onResponse, onError) {
+
+        #getReferencesFromObjectWithId(adapter, id, onResponse, onError) {
             const that = this, key = SqlHelper.escape(id), keys = {}, tasks = [];
             for (const extension in this._contentTablesByExtension) {
                 if (this._contentTablesByExtension.hasOwnProperty(extension)) {
@@ -1729,11 +1763,11 @@
                         const ext = extension;
                         const table = that._contentTablesByExtension[extension];
                         tasks.push((onSuc, onErr) => {
-                            adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
+                            adapter.addColumn(`${table.name}.${table.keyColumn} AS path`);
                             switch (table.type) {
                                 case DataType.JsonFX:
                                 case DataType.Text:
-                                    adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn}`), false);
+                                    adapter.addWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn}`), false);
                                     break;
                                 case DataType.Label:
                                 case DataType.HTML:
@@ -1741,12 +1775,12 @@
                                 case DataType.Task:
                                     for (const col in table.valueColumn) {
                                         if (table.valueColumn.hasOwnProperty(col)) {
-                                            adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn[col]}`), false);
+                                            adapter.addWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn[col]}`), false);
                                         }
                                     }
                                     break;
                             }
-                            adapter.PerformSelect(table.name, undefined, undefined, undefined, response => {
+                            adapter.performSelect(table.name, undefined, undefined, undefined, response => {
                                 for (let i = 0, l = response.length; i < l; i++) {
                                     keys[`$${response[i].path}.${ext}`] = true;
                                 }
@@ -1756,7 +1790,7 @@
                     }());
                 }
             }
-            tasks.parallel = that._parallel;
+            tasks.parallel = that.#parallel;
             Executor.run(tasks, () => {
                 const array = [];
                 for (const key in keys) {
@@ -1767,15 +1801,16 @@
                 onResponse(array);
             }, onError);
         }
-        _getReferencesFrom(id, onResponse, onError) {
+
+        #getReferencesFrom(id, onResponse, onError) {
             if (this._contentTablesKeyRegex.test(id)) {
                 const that = this;
-                this._getSqlAdapter(adapter => {
-                    that._getReferencesFromObjectWithId(adapter, id, results => {
-                        adapter.Close();
+                this.#getSqlAdapter(adapter => {
+                    that.#getReferencesFromObjectWithId(adapter, id, results => {
+                        adapter.close();
                         onResponse(results);
                     }, err => {
-                        adapter.Close();
+                        adapter.close();
                         onError(err);
                     });
                 }, onError);
@@ -1784,10 +1819,11 @@
                 onResponse([]);
             }
         }
-        _getReferencesFromCount(id, onResponse, onError) {
+
+        #getReferencesFromCount(id, onResponse, onError) {
             if (this._contentTablesKeyRegex.test(id)) {
                 const that = this;
-                this._getSqlAdapter(adapter => {
+                this.#getSqlAdapter(adapter => {
                     const key = SqlHelper.escape(id);
                     let result = 0;
                     const tasks = [];
@@ -1796,11 +1832,11 @@
                             (function () {
                                 const table = that._contentTablesByExtension[attr];
                                 tasks.push((onSuc, onErr) => {
-                                    adapter.AddColumn('COUNT(*) AS cnt');
+                                    adapter.addColumn('COUNT(*) AS cnt');
                                     switch (table.type) {
                                         case DataType.JsonFX:
                                         case DataType.Text:
-                                            adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn}`), false);
+                                            adapter.addWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn}`), false);
                                             break;
                                         case DataType.Label:
                                         case DataType.HTML:
@@ -1808,12 +1844,12 @@
                                         case DataType.Task:
                                             for (const col in table.valueColumn) {
                                                 if (table.valueColumn.hasOwnProperty(col)) {
-                                                    adapter.AddWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn[col]}`), false);
+                                                    adapter.addWhere(formatReferencesFromCondition(key, `${table.name}.${table.valueColumn[col]}`), false);
                                                 }
                                             }
                                             break;
                                     }
-                                    adapter.PerformSelect(table.name, undefined, undefined, undefined, response => {
+                                    adapter.performSelect(table.name, undefined, undefined, undefined, response => {
                                         result += response[0].cnt;
                                         onSuc();
                                     }, onErr);
@@ -1821,12 +1857,12 @@
                             }());
                         }
                     }
-                    tasks.parallel = that._parallel;
+                    tasks.parallel = that.#parallel;
                     Executor.run(tasks, () => {
-                        adapter.Close();
+                        adapter.close();
                         onResponse(result);
                     }, err => {
-                        adapter.Close();
+                        adapter.close();
                         onError(err);
                     });
                 }, onError);
@@ -1835,14 +1871,15 @@
                 onResponse(0);
             }
         }
-        _getTreeChildNodes(id, onResponse, onError) {
+
+        #getTreeChildNodes(id, onResponse, onError) {
             const match = FOLDER_REGEX.exec(id);
             if (match) {
                 const that = this, key = match[1];
-                this._getSqlAdapter(adapter => {
+                this.#getSqlAdapter(adapter => {
                     const tasks = [], nodes = [];
                     function compareRawNodes(node1, node2) {
-                        return that.CompareIds(node1.path, node2.path);
+                        return that.compareIds(node1.path, node2.path);
                     };
                     for (const extension in that._contentTablesByExtension) {
                         if (that._contentTablesByExtension.hasOwnProperty(extension)) {
@@ -1870,7 +1907,7 @@
                                      * }
                                      * </code>
                                      */
-                                    adapter.GetChildNodes(table.name, table.keyColumn, '/', key, children => {
+                                    adapter.getChildNodes(table.name, table.keyColumn, '/', key, children => {
                                         const l = children.length;
                                         for (let i = 0; i < l; i++) {
                                             const node = children[i];
@@ -1895,12 +1932,12 @@
                             }());
                         }
                     }
-                    tasks.parallel = that._parallel;
+                    tasks.parallel = that.#parallel;
                     Executor.run(tasks, () => {
-                        adapter.Close();
+                        adapter.close();
                         onResponse(nodes);
                     }, err => {
-                        adapter.Close();
+                        adapter.close();
                         onError(err);
                     });
                 }, onError);
@@ -1910,10 +1947,11 @@
                 onError(`Invalid key: '${id}'`);
             }
         }
-        GetSearchResults(key, value, onResponse, onError) {
+
+        getSearchResults(key, value, onResponse, onError) {
             if (key.length > 0 || value.length > 0) {
                 const that = this;
-                this._getSqlAdapter(adapter => {
+                this.#getSqlAdapter(adapter => {
                     const results = [], tasks = [];
                     for (const extension in that._contentTablesByExtension) {
                         if (that._contentTablesByExtension.hasOwnProperty(extension)) {
@@ -1921,7 +1959,7 @@
                                 const ext = extension;
                                 const table = that._contentTablesByExtension[extension];
                                 tasks.push((onSuc, onErr) => {
-                                    adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
+                                    adapter.addColumn(`${table.name}.${table.keyColumn} AS path`);
                                     let where = '';
                                     if (key.length > 0) {
                                         where += `LOCATE(${SqlHelper.escape(key)}, ${table.name}.${table.keyColumn}) > 0`;
@@ -1954,8 +1992,8 @@
                                                 break;
                                         }
                                     }
-                                    adapter.AddWhere(where);
-                                    adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
+                                    adapter.addWhere(where);
+                                    adapter.performSelect(table.name, undefined, undefined, undefined, result => {
                                         const l = result.length;
                                         for (let i = 0; i < l; i++) {
                                             results.push(`$${result[i].path}.${ext}`);
@@ -1966,21 +2004,22 @@
                             }());
                         }
                     }
-                    tasks.parallel = that._parallel;
+                    tasks.parallel = that.#parallel;
                     Executor.run(tasks, () => {
-                        adapter.Close();
+                        adapter.close();
                         onResponse(results);
                     }, err => {
-                        adapter.Close();
+                        adapter.close();
                         onError(err);
                     });
                 }, onError);
             }
         }
-        GetIdKeyValues(id, onResponse, onError) {
-            const that = this, data = this.AnalyzeId(id);
+
+        getIdKeyValues(id, onResponse, onError) {
+            const that = this, data = this.analyzeId(id);
             if (data.file || data.folder) {
-                this._getSqlAdapter(adapter => {
+                this.#getSqlAdapter(adapter => {
                     const results = [], tasks = [], path = SqlHelper.escape(data.path);
                     for (const extension in this._contentTablesByExtension) {
                         if (this._contentTablesByExtension.hasOwnProperty(extension)) {
@@ -1988,9 +2027,9 @@
                                 const ext = extension;
                                 const table = that._contentTablesByExtension[extension];
                                 tasks.push((onSuc, onErr) => {
-                                    adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
-                                    adapter.AddWhere(`LOCATE(${path},${table.name}.${table.keyColumn}) = 1`);
-                                    adapter.PerformSelect(table.name, undefined, undefined, undefined, result => {
+                                    adapter.addColumn(`${table.name}.${table.keyColumn} AS path`);
+                                    adapter.addWhere(`LOCATE(${path},${table.name}.${table.keyColumn}) = 1`);
+                                    adapter.performSelect(table.name, undefined, undefined, undefined, result => {
                                         const l = result.length;
                                         for (let i = 0; i < l; i++) {
                                             results.push(`$${result[i].path}.${ext}`);
@@ -2001,12 +2040,12 @@
                             }());
                         }
                     }
-                    tasks.parallel = this._parallel;
+                    tasks.parallel = this.#parallel;
                     Executor.run(tasks, () => {
-                        adapter.Close();
+                        adapter.close();
                         onResponse(results);
                     }, err => {
-                        adapter.Close();
+                        adapter.close();
                         onError(err);
                     });
                 }, onError);
@@ -2014,7 +2053,8 @@
                 onError(`Invalid selection: '${data.string}'`);
             }
         }
-        GetAllIdsForType(type, onResponse, onError) {
+
+        getAllIdsForType(type, onResponse, onError) {
             const extension = this._extensionsForType[type];
             if (!extension) {
                 onError(`Invalid type: '${type}'`);
@@ -2025,17 +2065,18 @@
                 onError(`Invalid table for type: ${type}`);
                 return;
             }
-            this._getSqlAdapter(adapter => this._getAllIdsForType(adapter, table, extension, ids => {
-                adapter.Close();
+            this.#getSqlAdapter(adapter => this.#getAllIdsForType(adapter, table, extension, ids => {
+                adapter.close();
                 onResponse(ids);
             }, error => {
-                adapter.Close();
+                adapter.close();
                 onError(error);
             }), onError);
         }
-        _getAllIdsForType(adapter, table, extension, onResponse, onError) {
-            adapter.AddColumn(`${table.name}.${table.keyColumn} AS path`);
-            adapter.PerformSelect(table.name, undefined, 'path ASC', undefined, result => {
+
+        #getAllIdsForType(adapter, table, extension, onResponse, onError) {
+            adapter.addColumn(`${table.name}.${table.keyColumn} AS path`);
+            adapter.performSelect(table.name, undefined, 'path ASC', undefined, result => {
                 const response = [], l = result.length;
                 for (let i = 0; i < l; i++) {
                     response.push(`$${result[i].path}.${extension}`);
@@ -2043,8 +2084,9 @@
                 onResponse(response);
             }, onError);
         }
-        GetAllForLanguage(language, onResponse, onError) {
-            this._getSqlAdapter(adapter => {
+
+        getAllForLanguage(language, onResponse, onError) {
+            this.#getSqlAdapter(adapter => {
                 const that = this, values = {};
                 function get(type, onSuc, onErr) {
                     const extension = that._extensionsForType[type];
@@ -2057,7 +2099,7 @@
                         onError(`Invalid table for type: ${type}`);
                         return;
                     }
-                    that._getAllIdsForType(adapter, table, extension, allIdsForType => {
+                    that.#getAllIdsForType(adapter, table, extension, allIdsForType => {
                         const tasks = [];
                         for (let idForType of allIdsForType) {
                             (function () {
@@ -2067,7 +2109,7 @@
                                     if (!match) {
                                         oe(`Invalid id: '${id}'`);
                                     } else {
-                                        that._getObject(adapter, id, match[1], table, language, ContentManager.INCLUDE, value => {
+                                        that.#getObject(adapter, id, match[1], table, language, ContentManager.INCLUDE, value => {
                                             values[id] = value;
                                             os();
                                         }, oe)
@@ -2075,7 +2117,7 @@
                                 });
                             }());
                         }
-                        tasks.parallel = that._parallel;
+                        tasks.parallel = that.#parallel;
                         Executor.run(tasks, onSuc, onErr);
                     }, onErr);
                 }
@@ -2083,15 +2125,16 @@
                 tasks.push((onSuc, onErr) => get(DataType.Label, onSuc, onErr));
                 tasks.push((onSuc, onErr) => get(DataType.HTML, onSuc, onErr));
                 Executor.run(tasks, () => {
-                    adapter.Close();
+                    adapter.close();
                     onResponse(values);
                 }, error => {
-                    adapter.Close();
+                    adapter.close();
                     onError(error);
                 });
             }, onError);
         }
-        IsHMIObject(id, onResponse, onError) {
+
+        isHMIObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onResponse(false);
@@ -2102,20 +2145,21 @@
                 onResponse(false);
                 return;
             }
-            const hmiTable = this._hmiTable;
-            this._getSqlAdapter(adapter => {
-                adapter.AddColumn('COUNT(*) AS cnt');
-                adapter.AddWhere(`${hmiTable.name}.${hmiTable.viewObjectColumn} = ${SqlHelper.escape(id)}`);
-                adapter.PerformSelect(hmiTable.name, undefined, undefined, undefined, result => {
-                    adapter.Close();
+            const hmiTable = this.#hmiTable;
+            this.#getSqlAdapter(adapter => {
+                adapter.addColumn('COUNT(*) AS cnt');
+                adapter.addWhere(`${hmiTable.name}.${hmiTable.viewObjectColumn} = ${SqlHelper.escape(id)}`);
+                adapter.performSelect(hmiTable.name, undefined, undefined, undefined, result => {
+                    adapter.close();
                     onResponse(result[0].cnt > 0);
                 }, error => {
-                    adapter.Close();
+                    adapter.close();
                     onError(error);
                 });
             }, onError);
         }
-        AddDefaultHMIObject(id, onResponse, onError) {
+
+        addDefaultHMIObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
@@ -2130,13 +2174,13 @@
                 return;
             }
             const rawKey = match[1];
-            const hmiTable = this._hmiTable;
-            this._getSqlAdapter(adapter => {
+            const hmiTable = this.#hmiTable;
+            this.#getSqlAdapter(adapter => {
                 const tasks = [], affectedTypes = {};
                 tasks.parallel = false;
-                tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
+                tasks.push((onSuc, onErr) => adapter.startTransaction(onSuc, onErr));
                 let equalNameExists = false;
-                tasks.push((onSuc, onErr) => this._exists(adapter, hmiTable, rawKey, response => {
+                tasks.push((onSuc, onErr) => this.#exists(adapter, hmiTable, rawKey, response => {
                     equalNameExists = response === true;
                     onSuc();
                 }, onErr));
@@ -2144,46 +2188,47 @@
                     if (equalNameExists) {
                         const random = Server.createSHA256(`#${(Math.E * Math.random())}%${id}&${Date.now()}?${(Math.PI * Math.random())}$`);
                         const keyValue = `${random.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${random.substring(random.length - Math.ceil(AUTO_KEY_LENGTH / 2), random.length)}`;
-                        adapter.AddValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(`${rawKey}_${keyValue}`));
+                        adapter.addValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(`${rawKey}_${keyValue}`));
                     } else {
-                        adapter.AddValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(rawKey));
+                        adapter.addValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(rawKey));
                     }
                     const idChecksum = Server.createSHA256(id);
                     const queryParameter = `${idChecksum.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${idChecksum.substring(idChecksum.length - Math.ceil(AUTO_KEY_LENGTH / 2), idChecksum.length)}`;
-                    adapter.AddValue(`${hmiTable.name}.${hmiTable.queryParameterColumn}`, SqlHelper.escape(queryParameter));
-                    adapter.AddValue(`${hmiTable.name}.${hmiTable.viewObjectColumn}`, SqlHelper.escape(id));
-                    adapter.PerformInsert(hmiTable.name, () => {
+                    adapter.addValue(`${hmiTable.name}.${hmiTable.queryParameterColumn}`, SqlHelper.escape(queryParameter));
+                    adapter.addValue(`${hmiTable.name}.${hmiTable.viewObjectColumn}`, SqlHelper.escape(id));
+                    adapter.performInsert(hmiTable.name, () => {
                         affectedTypes[hmiTable.type] = true;
                         onSuc();
                     }, onErr);
                 });
                 Executor.run(tasks, () => {
-                    adapter.CommitTransaction(() => {
-                        adapter.Close();
+                    adapter.commitTransaction(() => {
+                        adapter.close();
                         onResponse();
-                        this._nofifyAffectedTypes(affectedTypes);
+                        this.#nofifyAffectedTypes(affectedTypes);
                     }, err => {
-                        adapter.Close();
+                        adapter.close();
                         onError(err);
                     });
                 }, err => {
-                    adapter.RollbackTransaction(() => {
-                        adapter.Close();
+                    adapter.rollbackTransaction(() => {
+                        adapter.close();
                         onError(err);
                     }, ee => {
-                        adapter.Close();
+                        adapter.close();
                         onError(ee);
                     });
                 });
             }, onError);
         }
-        GetHMIObject(queryParameterValue, language, onResponse, onError) {
-            const hmiTable = this._hmiTable;
-            this._getSqlAdapter(adapter => {
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.viewObjectColumn} AS path`);
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS flags`);
-                adapter.AddWhere(`${hmiTable.name}.${hmiTable.queryParameterColumn} = ${SqlHelper.escape(queryParameterValue)}`);
-                adapter.PerformSelect(hmiTable.name, undefined, undefined, undefined, result => {
+
+        getHMIObject(queryParameterValue, language, onResponse, onError) {
+            const hmiTable = this.#hmiTable;
+            this.#getSqlAdapter(adapter => {
+                adapter.addColumn(`${hmiTable.name}.${hmiTable.viewObjectColumn} AS path`);
+                adapter.addColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS flags`);
+                adapter.addWhere(`${hmiTable.name}.${hmiTable.queryParameterColumn} = ${SqlHelper.escape(queryParameterValue)}`);
+                adapter.performSelect(hmiTable.name, undefined, undefined, undefined, result => {
                     if (!result || !Array.isArray(result)) {
                         onError(`HMI could not be loaded: Invalid query parameter: '${queryParameterValue}'`);
                         return;
@@ -2212,39 +2257,41 @@
                         onError(`HMI could not be loaded: Invalid table name: '${id}' for query parameter '${queryParameterValue}'`);
                         return;
                     }
-                    this._getObject(adapter, id, match[1], table, language, ContentManager.PARSE, response => {
-                        adapter.Close();
+                    this.#getObject(adapter, id, match[1], table, language, ContentManager.PARSE, response => {
+                        adapter.close();
                         onResponse(response);
                     }, error => {
-                        adapter.Close();
+                        adapter.close();
                         onError(error);
                     });
                 }, error => {
-                    adapter.Close();
+                    adapter.close();
                     onError(error);
                 });
             }, onError);
         }
-        GetHMIObjects(onResponse, onError) {
-            const hmiTable = this._hmiTable;
-            this._getSqlAdapter(adapter => {
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.keyColumn} AS path`);
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.queryParameterColumn} AS queryParameter`);
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.viewObjectColumn} AS viewObject`);
-                adapter.AddColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS flags`);
-                adapter.PerformSelect(hmiTable.name, undefined, 'path ASC', undefined, result => {
-                    adapter.Close();
+
+        getHMIObjects(onResponse, onError) {
+            const hmiTable = this.#hmiTable;
+            this.#getSqlAdapter(adapter => {
+                adapter.addColumn(`${hmiTable.name}.${hmiTable.keyColumn} AS path`);
+                adapter.addColumn(`${hmiTable.name}.${hmiTable.queryParameterColumn} AS queryParameter`);
+                adapter.addColumn(`${hmiTable.name}.${hmiTable.viewObjectColumn} AS viewObject`);
+                adapter.addColumn(`${hmiTable.name}.${hmiTable.flagsColumn} AS flags`);
+                adapter.performSelect(hmiTable.name, undefined, 'path ASC', undefined, result => {
+                    adapter.close();
                     for (let entry of result) {
                         entry.file = entry.id = `$${entry.path}.${this._extensionsForType[hmiTable.type]}`; // TODO: what about 'file' vs. 'id'?
                     }
                     onResponse(result);
                 }, error => {
-                    adapter.Close();
+                    adapter.close();
                     onError(error);
                 });
             }, onError);
         }
-        IsTaskObject(id, onResponse, onError) {
+
+        isTaskObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onResponse(false);
@@ -2255,20 +2302,21 @@
                 onResponse(false);
                 return;
             }
-            const taskTable = this._taskTable;
-            this._getSqlAdapter(adapter => {
-                adapter.AddColumn('COUNT(*) AS cnt');
-                adapter.AddWhere(`${taskTable.name}.${taskTable.taskObjectColumn} = ${SqlHelper.escape(id)}`);
-                adapter.PerformSelect(taskTable.name, undefined, undefined, undefined, result => {
-                    adapter.Close();
+            const taskTable = this.#taskTable;
+            this.#getSqlAdapter(adapter => {
+                adapter.addColumn('COUNT(*) AS cnt');
+                adapter.addWhere(`${taskTable.name}.${taskTable.taskObjectColumn} = ${SqlHelper.escape(id)}`);
+                adapter.performSelect(taskTable.name, undefined, undefined, undefined, result => {
+                    adapter.close();
                     onResponse(result[0].cnt > 0);
                 }, error => {
-                    adapter.Close();
+                    adapter.close();
                     onError(error);
                 });
             }, onError);
         }
-        AddDefaultTaskObject(id, onResponse, onError) {
+
+        addDefaultTaskObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
@@ -2283,13 +2331,13 @@
                 return;
             }
             const rawKey = match[1];
-            const taskTable = this._taskTable;
-            this._getSqlAdapter(adapter => {
+            const taskTable = this.#taskTable;
+            this.#getSqlAdapter(adapter => {
                 const tasks = [], affectedTypes = {};
                 tasks.parallel = false;
-                tasks.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
+                tasks.push((onSuc, onErr) => adapter.startTransaction(onSuc, onErr));
                 let equalNameExists = false;
-                tasks.push((onSuc, onErr) => this._exists(adapter, taskTable, rawKey, response => {
+                tasks.push((onSuc, onErr) => this.#exists(adapter, taskTable, rawKey, response => {
                     equalNameExists = response === true;
                     onSuc();
                 }, onErr));
@@ -2297,58 +2345,60 @@
                     if (equalNameExists) {
                         const random = Server.createSHA256(`#${(Math.E * Math.random())}%${id}&${Date.now()}?${(Math.PI * Math.random())}$`);
                         const keyValue = `${random.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${random.substring(random.length - Math.ceil(AUTO_KEY_LENGTH / 2), random.length)}`;
-                        adapter.AddValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(`${rawKey}_${keyValue}`));
+                        adapter.addValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(`${rawKey}_${keyValue}`));
                     } else {
-                        adapter.AddValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(rawKey));
+                        adapter.addValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(rawKey));
                     }
-                    adapter.AddValue(`${taskTable.name}.${taskTable.taskObjectColumn}`, SqlHelper.escape(id));
-                    adapter.AddValue(`${taskTable.name}.${taskTable.flagsColumn}`, SqlHelper.escape('0'));
-                    adapter.AddValue(`${taskTable.name}.${taskTable.cycleIntervalMillisColumn}`, SqlHelper.escape('1000'));
-                    adapter.PerformInsert(taskTable.name, () => {
+                    adapter.addValue(`${taskTable.name}.${taskTable.taskObjectColumn}`, SqlHelper.escape(id));
+                    adapter.addValue(`${taskTable.name}.${taskTable.flagsColumn}`, SqlHelper.escape('0'));
+                    adapter.addValue(`${taskTable.name}.${taskTable.cycleIntervalMillisColumn}`, SqlHelper.escape('1000'));
+                    adapter.performInsert(taskTable.name, () => {
                         affectedTypes[taskTable.type] = true;
                         onSuc();
                     }, onErr);
                 });
                 Executor.run(tasks, () => {
-                    adapter.CommitTransaction(() => {
-                        adapter.Close();
+                    adapter.commitTransaction(() => {
+                        adapter.close();
                         onResponse();
-                        this._nofifyAffectedTypes(affectedTypes);
+                        this.#nofifyAffectedTypes(affectedTypes);
                     }, err => {
-                        adapter.Close();
+                        adapter.close();
                         onError(err);
                     });
                 }, err => {
-                    adapter.RollbackTransaction(() => {
-                        adapter.Close();
+                    adapter.rollbackTransaction(() => {
+                        adapter.close();
                         onError(err);
                     }, ee => {
-                        adapter.Close();
+                        adapter.close();
                         onError(ee);
                     });
                 });
             }, onError);
         }
-        GetTaskObjects(onResponse, onError) {
-            const taskTable = this._taskTable;
-            this._getSqlAdapter(adapter => {
-                adapter.AddColumn(`${taskTable.name}.${taskTable.keyColumn} AS path`);
-                adapter.AddColumn(`${taskTable.name}.${taskTable.taskObjectColumn} AS taskObject`);
-                adapter.AddColumn(`${taskTable.name}.${taskTable.flagsColumn} AS flags`);
-                adapter.AddColumn(`${taskTable.name}.${taskTable.cycleIntervalMillisColumn} AS cycleMillis`);
-                adapter.PerformSelect(taskTable.name, undefined, 'path ASC', undefined, result => {
-                    adapter.Close();
+
+        getTaskObjects(onResponse, onError) {
+            const taskTable = this.#taskTable;
+            this.#getSqlAdapter(adapter => {
+                adapter.addColumn(`${taskTable.name}.${taskTable.keyColumn} AS path`);
+                adapter.addColumn(`${taskTable.name}.${taskTable.taskObjectColumn} AS taskObject`);
+                adapter.addColumn(`${taskTable.name}.${taskTable.flagsColumn} AS flags`);
+                adapter.addColumn(`${taskTable.name}.${taskTable.cycleIntervalMillisColumn} AS cycleMillis`);
+                adapter.performSelect(taskTable.name, undefined, 'path ASC', undefined, result => {
+                    adapter.close();
                     for (let entry of result) {
                         entry.file = entry.id = `$${entry.path}.${this._extensionsForType[taskTable.type]}`; // TODO: what about 'file' vs. 'id' vs. 'path'?
                     }
                     onResponse(result);
                 }, error => {
-                    adapter.Close();
+                    adapter.close();
                     onError(error);
                 });
             }, onError);
         }
-        _handleRequest(request, onResponse, onError) {
+
+        #handleRequest(request, onResponse, onError) {
             switch (request.command) {
                 case COMMAND_GET_CONFIG:
                     const validIdForTypeRegex = {};
@@ -2365,68 +2415,69 @@
                         extensionsForType: this._extensionsForType,
                         contentTablesByExtension: this._contentTablesByExtension,
                         contentTablesKeyRegex: this._contentTablesKeyRegex.source,
-                        exchangeHeaderRegex: this.exchangeHeaderRegex.source,
+                        _exchangeHeaderRegex: this._exchangeHeaderRegex.source,
                         validIdForTypeRegex,
                         validIdForLanguageValueRegex: this._validIdForLanguageValueRegex.source
                     });
                     break;
                 case COMMAND_EXISTS:
-                    this.Exists(request.id, onResponse, onError);
+                    this.exists(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_CHECKSUM:
-                    this.GetChecksum(request.id, onResponse, onError);
+                    this.getChecksum(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_OBJECT:
-                    this.GetObject(request.id, request.language, request.mode, onResponse, onError);
+                    this.getObject(request.id, request.language, request.mode, onResponse, onError);
                     break;
                 case COMMAND_GET_MODIFICATION_PARAMS:
-                    this.GetModificationParams(request.id, request.language, request.value, onResponse, onError);
+                    this.getModificationParams(request.id, request.language, request.value, onResponse, onError);
                     break;
                 case COMMAND_SET_OBJECT:
-                    this.SetObject(request.id, request.language, request.value, request.checksum, onResponse, onError);
+                    this.setObject(request.id, request.language, request.value, request.checksum, onResponse, onError);
                     break;
                 case COMMAND_GET_REFACTORING_PARAMS:
-                    this.GetRefactoringParams(request.source, request.target, request.action, onResponse, onError);
+                    this.getRefactoringParams(request.source, request.target, request.action, onResponse, onError);
                     break;
                 case COMMAND_PERFORM_REFACTORING:
-                    this.PerformRefactoring(request.source, request.target, request.action, request.checksum, onResponse, onError);
+                    this.performRefactoring(request.source, request.target, request.action, request.checksum, onResponse, onError);
                     break;
                 case COMMAND_GET_SEARCH_RESULTS:
-                    this.GetSearchResults(request.key, request.value, onResponse, onError);
+                    this.getSearchResults(request.key, request.value, onResponse, onError);
                     break;
                 case COMMAND_GET_ID_KEY_VALUES:
-                    this.GetIdKeyValues(request.id, onResponse, onError);
+                    this.getIdKeyValues(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_ALL_IDS_FOR_TYPE:
-                    this.GetAllIdsForType(request.type, onResponse, onError);
+                    this.getAllIdsForType(request.type, onResponse, onError);
                     break;
                 case COMMAND_GET_ALL_FOR_LANGUAGE:
-                    this.GetAllForLanguage(request.language, onResponse, onError);
+                    this.getAllForLanguage(request.language, onResponse, onError);
                     break;
                 case COMMAND_IS_HMI_OBJECT:
-                    this.IsHMIObject(request.id, onResponse, onError);
+                    this.isHMIObject(request.id, onResponse, onError);
                     break;
                 case COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT:
-                    this.AddDefaultHMIObject(request.id, onResponse, onError);
+                    this.addDefaultHMIObject(request.id, onResponse, onError);
                     break;
                 case COMMAND_GET_HMI_OBJECT:
-                    this.GetHMIObject(request.queryParameterValue, request.language, onResponse, onError);
+                    this.getHMIObject(request.queryParameterValue, request.language, onResponse, onError);
                     break;
                 case COMMAND_GET_HMI_OBJECTS:
-                    this.GetHMIObjects(onResponse, onError);
+                    this.getHMIObjects(onResponse, onError);
                     break;
                 case COMMAND_IS_TASK_OBJECT:
-                    this.IsTaskObject(request.id, onResponse, onError);
+                    this.isTaskObject(request.id, onResponse, onError);
                     break;
                 case COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT:
-                    this.AddDefaultTaskObject(request.id, onResponse, onError);
+                    this.addDefaultTaskObject(request.id, onResponse, onError);
                     break;
                 default:
                     onError(`EXCEPTION! Unexpected command: '${request.command}'`);
                     break;
             }
         }
-        _handleFancyTreeRequest(request, identifier, onResponse, onError) {
+
+        #handleFancyTreeRequest(request, identifier, onResponse, onError) {
             const that = this, id = typeof identifier === 'string' && identifier.length > 0 ? identifier : '$';
             switch (request) {
                 case ContentManager.COMMAND_GET_CHILD_TREE_NODES:
@@ -2441,7 +2492,7 @@
                      * }
                      * </code>
                      */
-                    this._getTreeChildNodes(id, nodes => {
+                    this.#getTreeChildNodes(id, nodes => {
                         // transform to fance-tree node style
                         const ns = [], l = nodes.length;
                         for (let i = 0; i < l; i++) {
@@ -2457,14 +2508,14 @@
                                     path: node.path,
                                     request: ContentManager.COMMAND_GET_CHILD_TREE_NODES,
                                 },
-                                icon: that.GetIcon(node.path)
+                                icon: that.getIcon(node.path)
                             });
                         }
                         onResponse(ns);
                     }, onError);
                     break;
                 case ContentManager.COMMAND_GET_REFERENCES_TO_TREE_NODES:
-                    this._getReferencesTo(id, results => {
+                    this.#getReferencesTo(id, results => {
                         // transform to fance-tree node style
                         const nodes = [], l = results.length, tasks = [];
                         for (let i = 0; i < l; i++) {
@@ -2479,11 +2530,11 @@
                                         path: key,
                                         request: ContentManager.COMMAND_GET_REFERENCES_TO_TREE_NODES,
                                     },
-                                    icon: that.GetIcon(key)
+                                    icon: that.getIcon(key)
                                 };
                                 nodes.push(node);
                                 tasks.push((onSuc, onErr) => {
-                                    that._getReferencesToCount(key, count => {
+                                    that.#getReferencesToCount(key, count => {
                                         const folder = count > 0;
                                         node.folder = folder;
                                         node.lazy = folder;
@@ -2497,7 +2548,7 @@
                     }, onError);
                     break;
                 case ContentManager.COMMAND_GET_REFERENCES_FROM_TREE_NODES:
-                    this._getReferencesFrom(id, results => {
+                    this.#getReferencesFrom(id, results => {
                         // transform to fance-tree node style
                         const nodes = [], l = results.length, tasks = [];
                         for (let i = 0; i < l; i++) {
@@ -2512,11 +2563,11 @@
                                         path: key,
                                         request: ContentManager.COMMAND_GET_REFERENCES_FROM_TREE_NODES,
                                     },
-                                    icon: that.GetIcon(key)
+                                    icon: that.getIcon(key)
                                 };
                                 nodes.push(node);
                                 tasks.push((onSuc, onErr) => {
-                                    that._getReferencesFromCount(key, count => {
+                                    that.#getReferencesFromCount(key, count => {
                                         const folder = count > 0;
                                         node.folder = folder;
                                         node.lazy = folder;
@@ -2534,68 +2585,51 @@
                     break;
             }
         }
-        RegisterOnWebServer(webServer) {
+
+        registerOnWebServer(webServer) {
             // we need access via ajax from clients
-            webServer.Post(ContentManager.GET_CONTENT_DATA_URL, (request, response) => this._handleRequest(
+            webServer.post(ContentManager.GET_CONTENT_DATA_URL, (request, response) => this.#handleRequest(
                 request.body,
                 result => response.send(JsonFX.stringify({ result }, false)),
                 error => response.send(JsonFX.stringify({ error: error.toString() }, false))
             ));
             // the tree control requests da via 'GET' so we handle those request separately
-            webServer.Get(ContentManager.GET_CONTENT_TREE_NODES_URL, (request, response) => this._handleFancyTreeRequest(
+            webServer.get(ContentManager.GET_CONTENT_TREE_NODES_URL, (request, response) => this.#handleFancyTreeRequest(
                 request.query.request,
                 request.query.path,
                 result => response.send(JsonFX.stringify(result, false)),
                 error => response.send(JsonFX.stringify(error.toString(), false))
             ));
         }
+
         // Note: this next is a template method - copy when new request has to be implemented
-        _tempdateMethodUsingTransaction(onResponse, onError) {
-            this._getSqlAdapter(adapter => {
+        #tempdateMethodUsingTransaction(onResponse, onError) {
+            this.#getSqlAdapter(adapter => {
                 const main = [];
                 main.parallel = false;
-                main.push((onSuc, onErr) => adapter.StartTransaction(onSuc, onErr));
+                main.push((onSuc, onErr) => adapter.startTransaction(onSuc, onErr));
                 main.push((onSuc, onErr) => {
                     // add this as often as reqzured and implement actions
                 });
                 Executor.run(main, () => {
-                    adapter.CommitTransaction(() => {
-                        adapter.Close();
+                    adapter.commitTransaction(() => {
+                        adapter.close();
                         onResponse();
                     }, (err) => {
-                        adapter.Close();
+                        adapter.close();
                         onError(err);
                     });
                 }, err => {
-                    adapter.RollbackTransaction(() => {
-                        adapter.Close();
+                    adapter.rollbackTransaction(() => {
+                        adapter.close();
                         onError(err);
                     }, er => {
-                        adapter.Close();
+                        adapter.close();
                         onError(er);
                     });
                 });
             }, onError);
         }
-    }
-
-    function fetch(request, onResponse, onError) {
-        Client.fetch(ContentManager.GET_CONTENT_DATA_URL, JsonFX.stringify(request, false), response => {
-            if (response.length > 0) {
-                try {
-                    const resp = JsonFX.parse(response, false, false);
-                    if (resp.error !== undefined) {
-                        onError(resp.error);
-                    } else {
-                        onResponse(resp.result);
-                    }
-                } catch (error) {
-                    onError(error);
-                }
-            } else {
-                onResponse();
-            }
-        }, onError);
     }
 
     class ClientManager extends ContentManagerBase {
@@ -2607,7 +2641,7 @@
                 this._iconDirectory = config.iconDirectory;
                 this._extensionsForType = config.extensionsForType;
                 this._contentTablesKeyRegex = new RegExp(config.contentTablesKeyRegex);
-                this.exchangeHeaderRegex = new RegExp(config.exchangeHeaderRegex, 'g');
+                this._exchangeHeaderRegex = new RegExp(config._exchangeHeaderRegex, 'g');
                 this._contentTablesByExtension = config.contentTablesByExtension;
                 this._validIdForTypeRegex = {};
                 for (const type in config.validIdForTypeRegex) {
@@ -2619,13 +2653,16 @@
                 onResponse();
             }, onError);
         }
-        Exists(id, onResponse, onError) {
+
+        exists(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_EXISTS, id }, onResponse, onError);
         }
-        GetChecksum(id, onResponse, onError) {
+
+        getChecksum(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_CHECKSUM, id }, onResponse, onError);
         }
-        GetObject(id, language, mode, onResponse, onError) {
+
+        getObject(id, language, mode, onResponse, onError) {
             const parse = mode === ContentManager.PARSE;
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, {
                 command: COMMAND_GET_OBJECT,
@@ -2651,37 +2688,48 @@
                 }
             } : onResponse, onError);
         }
-        GetModificationParams(id, language, value, onResponse, onError) {
+
+        getModificationParams(id, language, value, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_MODIFICATION_PARAMS, id, language, value }, onResponse, onError);
         }
-        SetObject(id, language, value, checksum, onResponse, onError) {
+
+        setObject(id, language, value, checksum, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_SET_OBJECT, id, language, value, checksum }, onResponse, onError);
         }
-        GetRefactoringParams(source, target, action, onResponse, onError) {
+
+        getRefactoringParams(source, target, action, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_REFACTORING_PARAMS, source, target, action }, onResponse, onError);
         }
-        PerformRefactoring(source, target, action, checksum, onResponse, onError) {
+
+        performRefactoring(source, target, action, checksum, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_PERFORM_REFACTORING, source, target, action, checksum }, onResponse, onError);
         }
-        GetSearchResults(key, value, onResponse, onError) {
+
+        getSearchResults(key, value, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_SEARCH_RESULTS, key, value }, onResponse, onError);
         }
-        GetIdKeyValues(id, onResponse, onError) {
+
+        getIdKeyValues(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_ID_KEY_VALUES, id }, onResponse, onError);
         }
-        GetAllIdsForType(type, onResponse, onError) {
+
+        getAllIdsForType(type, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_ALL_IDS_FOR_TYPE, type }, onResponse, onError);
         }
-        GetAllForLanguage(language, onResponse, onError) {
+
+        getAllForLanguage(language, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_ALL_FOR_LANGUAGE, language }, onResponse, onError);
         }
-        IsHMIObject(id, onResponse, onError) {
+
+        isHMIObject(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_IS_HMI_OBJECT, id }, onResponse, onError);
         }
-        AddDefaultHMIObject(id, onResponse, onError) {
+
+        addDefaultHMIObject(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT, id }, onResponse, onError);
         }
-        GetHMIObject(queryParameterValue, language, onResponse, onError) {
+
+        getHMIObject(queryParameterValue, language, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_HMI_OBJECT, queryParameterValue, language }, response => {
                 if (response !== undefined) {
                     try {
@@ -2702,13 +2750,16 @@
                 }
             }, onError);
         }
-        GetHMIObjects(onResponse, onError) {
+
+        getHMIObjects(onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_HMI_OBJECTS }, onResponse, onError);
         }
-        IsTaskObject(id, onResponse, onError) {
+
+        isTaskObject(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_IS_TASK_OBJECT, id }, onResponse, onError);
         }
-        AddDefaultTaskObject(id, onResponse, onError) {
+
+        addDefaultTaskObject(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT, id }, onResponse, onError);
         }
     }
@@ -2726,22 +2777,24 @@
     }
 
     class ExchangeHandler {
+        #cms;
         constructor(cms) {
-            this._cms = cms;
+            this.#cms = cms;
         }
-        _readConfigData(ids, path, languages, onProgressChanged, onError) {
+
+        #readConfigData(ids, path, languages, onProgressChanged, onError) {
             const exports = [createHeader(EXCHANGE_HEADER, path), '\n'];
-            const cms = this._cms, tasks = [], len = ids.length;
+            const cms = this.#cms, tasks = [], len = ids.length;
             for (let i = 0; i < len; i++) {
                 // closure
                 (function () {
-                    let idx = i, id = ids[idx], data = cms.AnalyzeId(id);
+                    let idx = i, id = ids[idx], data = cms.analyzeId(id);
                     switch (data.type) {
                         case DataType.JsonFX:
                         case DataType.HMI:
                         case DataType.Task:
                             tasks.push((onSuc, onErr) => {
-                                cms.GetObject(id, undefined, ContentManager.RAW, object => {
+                                cms.getObject(id, undefined, ContentManager.RAW, object => {
                                     exports.push(createHeader(data.extension, id));
                                     exports.push(JsonFX.stringify(JsonFX.reconstruct(object), true));
                                     exports.push('\n\n');
@@ -2752,7 +2805,7 @@
                             break;
                         case DataType.Text:
                             tasks.push((onSuc, onErr) => {
-                                cms.GetObject(id, undefined, ContentManager.RAW, object => {
+                                cms.getObject(id, undefined, ContentManager.RAW, object => {
                                     exports.push(createHeader(data.extension, id));
                                     exports.push(object);
                                     exports.push('\n\n');
@@ -2764,7 +2817,7 @@
                         case DataType.Label:
                         case DataType.HTML:
                             tasks.push((onSuc, onErr) => {
-                                cms.GetObject(id, undefined, ContentManager.RAW, results => {
+                                cms.getObject(id, undefined, ContentManager.RAW, results => {
                                     exports.push(createHeader(data.extension, id));
                                     for (let l = 0; l < languages.length; l++) {
                                         const lang = languages[l];
@@ -2793,10 +2846,11 @@
                 saveAs(new Blob(exports, { type: "text/plain;charset=utf-8" }), 'js_hmi_export.txt');
             }, onError);
         }
-        _parse(text, results, onProgressChanged, onError) {
+
+        #parse(text, results, onProgressChanged, onError) {
             // separate ids and data
-            const cms = this._cms, elements = [];
-            Regex.each(cms.exchangeHeaderRegex, text, (start, end, match) => elements.push(match ? match : text.substring(start, end)));
+            const cms = this.#cms, elements = [];
+            Regex.each(cms._exchangeHeaderRegex, text, (start, end, match) => elements.push(match ? match : text.substring(start, end)));
             onProgressChanged(`loaded ${elements.length} elements`);
             let header = elements[0];
             if (!Array.isArray(header) || EXCHANGE_HEADER !== header[1] || createChecksum(header[1], header[3]) !== header[2]) {
@@ -2811,7 +2865,7 @@
                 if (Array.isArray(header)) {
                     const path = header[3];
                     if (createChecksum(header[1], path) === header[2]) {
-                        const data = cms.AnalyzeId(path);
+                        const data = cms.analyzeId(path);
                         switch (data.type) {
                             case DataType.JsonFX:
                             case DataType.HMI:
@@ -2861,8 +2915,9 @@
             onProgressChanged(`parsed ${idx}/${elements.length} elements`);
             return filter;
         }
-        _writeConfigData(data, onProgressChanged, onError) {
-            const cms = this._cms, tasks = [];
+
+        #writeConfigData(data, onProgressChanged, onError) {
+            const cms = this.#cms, tasks = [];
             for (let i = 0, len = data.length; i < len; i++) {
                 // closure
                 (function () {
@@ -2871,7 +2926,7 @@
                         case DataType.JsonFX:
                             tasks.push((onSuc, onErr) => {
                                 const val = d.value !== undefined && d.value !== null ? JsonFX.stringify(d.value, false) : undefined;
-                                cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr), onErr);
+                                cms.getModificationParams(d.id, undefined, val, params => cms.setObject(d.id, undefined, val, params.checksum, onSuc, onErr), onErr);
                             });
                             break;
                         case DataType.Text:
@@ -2881,7 +2936,7 @@
                         case DataType.Task:
                             tasks.push((onSuc, onErr) => {
                                 const val = d.value !== undefined && d.value !== null ? d.value : undefined;
-                                cms.GetModificationParams(d.id, undefined, val, params => cms.SetObject(d.id, undefined, val, params.checksum, onSuc, onErr), onErr);
+                                cms.getModificationParams(d.id, undefined, val, params => cms.setObject(d.id, undefined, val, params.checksum, onSuc, onErr), onErr);
                             });
                             break;
                         default:
@@ -2897,9 +2952,10 @@
             tasks.parallel = false;
             Executor.run(tasks, () => onProgressChanged(), onError);
         }
-        HandleImport(hmi, text, onProgressChanged, onError) {
+
+        handleImport(hmi, text, onProgressChanged, onError) {
             // separate ids and data
-            const that = this, data = [], prefix = this._parse(text, data, onProgressChanged, onError);
+            const that = this, data = [], prefix = this.#parse(text, data, onProgressChanged, onError);
             if (typeof prefix !== 'string') {
                 onProgressChanged();
                 return;
@@ -2910,21 +2966,22 @@
                 height: $(window).height() * 0.4,
                 title: 'warning',
                 html,
-                yes: () => that._writeConfigData(data, onProgressChanged, onError),
+                yes: () => that.#writeConfigData(data, onProgressChanged, onError),
                 cancel: () => onProgressChanged()
             });
         }
-        HandleExport(id, onProgressChanged, onError) {
-            const that = this, cms = this._cms, data = cms.AnalyzeId(id);
+
+        handleExport(id, onProgressChanged, onError) {
+            const that = this, cms = this.#cms, data = cms.analyzeId(id);
             onProgressChanged('load languages ...');
-            const languages = cms.GetLanguages();
+            const languages = cms.getLanguages();
             languages.sort(compareKeys);
             if (data.file) {
-                that._readConfigData([data.file], id, languages, onProgressChanged, onError);
+                that.#readConfigData([data.file], id, languages, onProgressChanged, onError);
             } else if (data.folder) {
-                cms.GetIdKeyValues(data.folder, ids => {
+                cms.getIdKeyValues(data.folder, ids => {
                     ids.sort(compareKeys);
-                    that._readConfigData(ids, id, languages, onProgressChanged, onError);
+                    that.#readConfigData(ids, id, languages, onProgressChanged, onError);
                 }, onError);
             } else {
                 onProgressChanged();
@@ -2933,9 +2990,9 @@
     }
 
     if (isNodeJS) {
-        ContentManager.Instance = ServerManager;
+        ContentManager.getInstance = (getSqlAdapter, iconDirectory, config) => new ServerManager(getSqlAdapter, iconDirectory, config);
     } else {
-        ContentManager.Instance = ClientManager;
+        ContentManager.getInstance = (onResponse, onError) => new ClientManager(onResponse, onError);
     }
     Object.freeze(ContentManager);
     if (isNodeJS) {

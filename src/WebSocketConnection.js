@@ -29,7 +29,7 @@
             OnError(error): will be called when an error occurred
           }
         A connection has the following public interface:
-        - SessionId: The session id
+        - sessionId: The session id
         - IsConnected: true if connected
         - ping(): sends ping to other an waits for response (pong)
         - register(): registers receiver for data
@@ -65,7 +65,7 @@
             Common.validateAsConnection(this, true);
         }
 
-        get SessionId() {
+        get sessionId() {
             return this._sessionId;
         }
 

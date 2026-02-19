@@ -115,7 +115,7 @@
             this.#removeObserverDelay = typeof value === 'number' && value > 0 ? value : false;
         }
 
-        setDataPoints(dataPoints) { // TODO: removeObserver data points that not exist anymore immediately
+        setDataPoints(dataPoints) { // TODO: unregisterObserver data points that not exist anymore immediately
             this._logger.info(`setDataPoints(${dataPoints.length})`);
             const dataPointConfigsByShortId = this.#dataPointConfigsByShortId = getDataPointConfigsByShortId(dataPoints, this.#getNextShortId);
             const that = this;
@@ -166,7 +166,7 @@
                         if (dataPoint.isObserved) {
                             if (this.#source) {
                                 try {
-                                    this.#source.removeObserver(dataId, dataPoint.onRefresh);
+                                    this.#source.unregisterObserver(dataId, dataPoint.onRefresh);
                                     this._logger.info(`Removed observer for data point ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
                                 } catch (error) {
                                     this._logger.error(`Failed removing observer for data point with id ${dataPoint.shortId}:'${dataId}'`, error);
@@ -248,7 +248,7 @@
         }
 
         #updateObservations(observationShorts) {
-            Core.validateAs('DataAccessObject', this.#source, ['addObserver:function', 'removeObserver:function']);
+            Core.validateAs('DataAccessObject', this.#source, ['registerObserver:function', 'unregisterObserver:function']);
             // First we unsubscribe all that have been observed but are no longer requested
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId)) {
@@ -256,7 +256,7 @@
                     // Note: Only data points with a short id exists!
                     if (dataPoint.isObserved && (!dataPoint.shortId || observationShorts.indexOf(dataPoint.shortId) < 0)) {
                         try {
-                            this.#source.removeObserver(dataId, dataPoint.onRefresh);
+                            this.#source.unregisterObserver(dataId, dataPoint.onRefresh);
                             this._logger.info(`Unsubscribed datapoint ${dataPoint.shortId}:'${dataId}'`);
                         } catch (error) {
                             this._logger.error(`Failed unsubscribing data point with id ${dataPoint.shortId}:'${dataId}'`, error);
@@ -275,7 +275,7 @@
                     if (dataPoint) {
                         if (!dataPoint.isObserved) {
                             try {
-                                this.#source.addObserver(dataId, dataPoint.onRefresh);
+                                this.#source.registerObserver(dataId, dataPoint.onRefresh);
                                 dataPoint.isObserved = true;
                                 this._logger.info(`Observed data point ${shortId}:'${dataId}'`);
                             } catch (error) {
@@ -359,7 +359,7 @@
             return dataPoint ? dataPoint.type : Core.DataType.Unknown;
         }
 
-        addObserver(dataId, onRefresh) {
+        registerObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
@@ -370,9 +370,9 @@
                 dataPoint = this.#dataPointsByDataId[dataId] = {
                     value: null,
                     onRefresh: null,
-                    // Note: addObserver(dataId, onRefresh) is a closure for dataId!
-                    addObserver: onRefresh => this.addObserver(dataId, onRefresh),
-                    removeObserver: onRefresh => this.removeObserver(dataId, onRefresh)
+                    // Note: registerObserver(dataId, onRefresh) is a closure for dataId!
+                    registerObserver: onRefresh => this.registerObserver(dataId, onRefresh),
+                    unregisterObserver: onRefresh => this.unregisterObserver(dataId, onRefresh)
                 };
             } else if (dataPoint.onRefresh === onRefresh) {
                 this._logger.error(`Data id '${dataId}' is already observed with this callback`);
@@ -390,7 +390,7 @@
             }
         }
 
-        removeObserver(dataId, onRefresh) {
+        unregisterObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid unsubscription id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
@@ -511,8 +511,8 @@
                                 type: config.type,
                                 value: null,
                                 onRefresh: null,
-                                addObserver: onRefresh => that.addObserver(dataId, onRefresh),
-                                removeObserver: onRefresh => that.removeObserver(dataId, onRefresh)
+                                registerObserver: onRefresh => that.registerObserver(dataId, onRefresh),
+                                unregisterObserver: onRefresh => that.unregisterObserver(dataId, onRefresh)
                             };
                         }
                     }());

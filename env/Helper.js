@@ -59,16 +59,16 @@
         txt += `    function ${addStaticWebServerFilesFunctionName}(server) {\n`;
         for (let component of components) {
             if (browserIgnorables.indexOf(component) < 0) {
-                txt += `        server.AddStaticFile('./node_modules/${scope}js_utils/src/${component}.js');\n`;
+                txt += `        server.addStaticFile('./node_modules/${scope}js_utils/src/${component}.js');\n`;
             }
         }
         if (Array.isArray(ext)) {
             for (let e of ext) {
-                txt += `        server.AddStaticFile('./node_modules/${scope}js_utils/${e}'); // external\n`;
+                txt += `        server.addStaticFile('./node_modules/${scope}js_utils/${e}'); // external\n`;
             }
         }
         txt += `        // And last but not least add client side 'main' program using the previously added files:\n`
-        txt += `        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/client/main.js');\n`
+        txt += `        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/client/main.js');\n`
         txt += '    }\n';
         txt += `    const ${name} = {\n`;
         for (let component of components) {

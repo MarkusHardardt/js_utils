@@ -20,9 +20,9 @@
         constructor(logger, cms) {
             this.#logger = Common.validateAsLogger(logger, true);
             this.#cms = cms;
-            this.#isValidLabelType = cms.GetIdValidTestFunctionForType(ContentManager.DataType.Label);
-            this.#isValidHTMLType = cms.GetIdValidTestFunctionForType(ContentManager.DataType.HTML);
-            this.#languages = cms.GetLanguages();
+            this.#isValidLabelType = cms.getIdValidTestFunctionForType(ContentManager.DataType.Label);
+            this.#isValidHTMLType = cms.getIdValidTestFunctionForType(ContentManager.DataType.HTML);
+            this.#languages = cms.getLanguages();
             this.#language = this.#languages[0];
             this.#dataPoints = {};
             this.#languageObservers = [];
@@ -65,7 +65,7 @@
             }
         }
 
-        addObserver(dataId, onRefresh) {
+        registerObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
@@ -89,7 +89,7 @@
             }
         }
 
-        removeObserver(dataId, onRefresh) {
+        unregisterObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
@@ -137,7 +137,7 @@
 
         loadLanguage(language, onSuccess, onError) {
             // Load all label and html values
-            this.#cms.GetAllForLanguage(language, values => {
+            this.#cms.getAllForLanguage(language, values => {
                 this.#language = language;
                 // Use existing or create new data point and store value.
                 for (const dataId in values) {

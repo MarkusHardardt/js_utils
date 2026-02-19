@@ -1,11 +1,3 @@
-/**
- * HashLists
- * 
- * HashLists is a JavaScript implementation of a provider for three different
- * types of hashtables with more than one values per key.
- * 
- * Author: Markus Hardardt <markus.hardardt@gmx.ch> Version: 1.1 Build date:
- */
 (function (root) {
     "use strict";
     const HashLists = {};
@@ -33,26 +25,31 @@
 
     // constructor for our hash lists implementations
     class Impl {
+        #mode;
+        #data;
+        #size;
+        #selection;
         constructor(mode) {
             // this makes sure we have one ouf our supported modes
             switch (mode) {
                 case Mode.NoIdenticalValuesPerKey:
-                    this._mode = Mode.NoIdenticalValuesPerKey;
+                    this.#mode = Mode.NoIdenticalValuesPerKey;
                     break;
                 case Mode.NoEqualValuesPerKey:
-                    this._mode = Mode.NoEqualValuesPerKey;
+                    this.#mode = Mode.NoEqualValuesPerKey;
                     break;
                 case Mode.IdenticalValuesPerKey:
                 default:
-                    this._mode = Mode.IdenticalValuesPerKey;
+                    this.#mode = Mode.IdenticalValuesPerKey;
                     break;
             }
             // plain javascript objects are implemented as associative arrays - so we
             // use this data object for our internal data storage
-            this._data = {};
-            this._size = 0;
-            this._selection = undefined;
+            this.#data = {};
+            this.#size = 0;
+            this.#selection = null;
         }
+
         /**
          * Add an entry to the list
          *
@@ -63,23 +60,22 @@
          */
         add(key, value) {
             if (typeof key === 'string') {
-                var data = this._data, object = data[key];
+                const data = this.#data, object = data[key];
                 if (object === undefined) {
                     data[key] = value;
-                    this._size++;
+                    this.#size++;
                     return true;
-                }
-                else if (List.prototype.isPrototypeOf(object)) {
-                    switch (this._mode) {
+                } else if (List.prototype.isPrototypeOf(object)) {
+                    switch (this.#mode) {
                         case Mode.NoIdenticalValuesPerKey:
-                            for (var i = 0, l = object.length; i < l; i++) {
+                            for (let i = 0, l = object.length; i < l; i++) {
                                 if (object[i] === value) {
                                     return false;
                                 }
                             }
                             break;
                         case Mode.NoEqualValuesPerKey:
-                            for (var i = 0, l = object.length; i < l; i++) {
+                            for (let i = 0, l = object.length; i < l; i++) {
                                 if (object[i] == value) {
                                     return false;
                                 }
@@ -91,9 +87,8 @@
                     }
                     object.push(value);
                     return true;
-                }
-                else {
-                    switch (this._mode) {
+                } else {
+                    switch (this.#mode) {
                         case Mode.NoIdenticalValuesPerKey:
                             if (object === value) {
                                 return false;
@@ -108,41 +103,42 @@
                         default:
                             break;
                     }
-                    var list = new List();
+                    const list = new List();
                     list.push(object);
                     list.push(value);
                     data[key] = list;
                     return true;
                 }
-            }
-            else {
+            } else {
                 return false;
             }
         }
+
         put(key, value) {
             this.add(key, value);
         }
+
         /**
          * Get the keys
          */
         keys() {
-            return Utilities.getObjectProperties(this._data);
+            return Utilities.getObjectProperties(this.#data);
         }
+
         remove(key, value) {
             if (typeof key === 'string') {
-                var data = this._data, object = data[key];
+                const data = this.#data, object = data[key];
                 if (object === undefined) {
                     return false;
-                }
-                else if (List.prototype.isPrototypeOf(object)) {
-                    switch (this._mode) {
+                } else if (List.prototype.isPrototypeOf(object)) {
+                    switch (this.#mode) {
                         case Mode.NoIdenticalValuesPerKey:
-                            for (var i = 0, l = object.length; i < l; i++) {
+                            for (let i = 0, l = object.length; i < l; i++) {
                                 if (object[i] === value) {
                                     object.splice(i, 1);
                                     if (object.length === 0) {
                                         delete data[key];
-                                        this._size--;
+                                        this.#size--;
                                     }
                                     return true;
                                 }
@@ -151,29 +147,27 @@
                         case Mode.NoEqualValuesPerKey:
                         case Mode.IdenticalValuesPerKey:
                         default:
-                            for (var i = 0, l = object.length; i < l; i++) {
-                                var val = object[i];
+                            for (let i = 0, l = object.length; i < l; i++) {
+                                const val = object[i];
                                 if (val == value) {
                                     object.splice(i, 1);
                                     if (object.length === 0) {
                                         delete data[key];
-                                        this._size--;
+                                        this.#size--;
                                     }
                                     return true;
                                 }
                             }
                             return false;
                     }
-                }
-                else {
-                    switch (this._mode) {
+                } else {
+                    switch (this.#mode) {
                         case Mode.NoIdenticalValuesPerKey:
                             if (object === value) {
                                 delete data[key];
-                                this._size--;
+                                this.#size--;
                                 return true;
-                            }
-                            else {
+                            } else {
                                 return false;
                             }
                         case Mode.NoEqualValuesPerKey:
@@ -181,76 +175,72 @@
                         default:
                             if (object == value) {
                                 delete data[key];
-                                this._size--;
+                                this.#size--;
                                 return true;
-                            }
-                            else {
+                            } else {
                                 return false;
                             }
                     }
                 }
-            }
-            else {
+            } else {
                 return false;
             }
         }
+
         clear() {
-            this._data = {};
-            this._size = 0;
+            this.#data = {};
+            this.#size = 0;
         }
+
         size(key) {
             if (typeof key === 'string') {
-                var data = this._data, object = data[key];
+                const data = this.#data, object = data[key];
                 if (object === undefined) {
                     return 0;
-                }
-                else if (List.prototype.isPrototypeOf(object)) {
+                } else if (List.prototype.isPrototypeOf(object)) {
                     return object.length;
-                }
-                else {
+                } else {
                     return 1;
                 }
-            }
-            else {
-                return this._size;
+            } else {
+                return this.#size;
             }
         }
+
         getValues(key, collection) {
             if (typeof key === 'string') {
-                var data = this._data, object = data[key];
+                const data = this.#data, object = data[key];
                 if (object === undefined) {
                     return false;
-                }
-                else if (List.prototype.isPrototypeOf(object)) {
-                    var result = collection ? collection : [];
+                } else if (List.prototype.isPrototypeOf(object)) {
+                    const result = collection ? collection : [];
                     for (var i = 0, l = object.length; i < l; i++) {
                         result.push(object[i]);
                     }
                     return result;
-                }
-                else {
-                    var result = collection ? collection : [];
+                } else {
+                    const result = collection ? collection : [];
                     result.push(object);
                     return result;
                 }
-            }
-            else {
+            } else {
                 return false;
             }
         }
+
         containsKey(key) {
-            return this._data[key] !== undefined;
+            return this.#data[key] !== undefined;
         }
+
         containsValue(key, value) {
             if (typeof key === 'string') {
-                var data = this._data, object = data[key];
+                const data = this.#data, object = data[key];
                 if (object === undefined) {
                     return false;
-                }
-                else if (List.prototype.isPrototypeOf(object)) {
-                    switch (this._mode) {
+                } else if (List.prototype.isPrototypeOf(object)) {
+                    switch (this.#mode) {
                         case Mode.NoIdenticalValuesPerKey:
-                            for (var i = 0, l = object.length; i < l; i++) {
+                            for (let i = 0, l = object.length; i < l; i++) {
                                 if (object[i] === value) {
                                     return true;
                                 }
@@ -259,17 +249,16 @@
                         case Mode.NoEqualValuesPerKey:
                         case Mode.IdenticalValuesPerKey:
                         default:
-                            for (var i = 0, l = object.length; i < l; i++) {
-                                var val = object[i];
+                            for (let i = 0, l = object.length; i < l; i++) {
+                                const val = object[i];
                                 if (val == value) {
                                     return true;
                                 }
                             }
                             return false;
                     }
-                }
-                else {
-                    switch (this._mode) {
+                } else {
+                    switch (this.#mode) {
                         case Mode.NoIdenticalValuesPerKey:
                             return object === value;
                         case Mode.NoEqualValuesPerKey:
@@ -278,42 +267,38 @@
                             return object == value;
                     }
                 }
-            }
-            else {
+            } else {
                 return false;
             }
         }
+
         selectValue(key) {
             if (typeof key === 'string') {
-                var data = this._data, object = data[key];
+                const data = this.#data, object = data[key];
                 if (object !== undefined) {
-                    this._selection = object;
+                    this.#selection = object;
                     return true;
-                }
-                else {
-                    delete this._selection;
+                } else {
+                    this.#selection = null;
                     return false;
                 }
-            }
-            else {
+            } else {
                 return false;
             }
         }
+
         getSelectedValueCount() {
-            var selection = this._selection;
-            if (selection !== undefined) {
-                return List.prototype.isPrototypeOf(selection) ? selection.length : 1;
-            }
-            else {
+            if (this.#selection !== null) {
+                return List.prototype.isPrototypeOf(this.#selection) ? this.#selection.length : 1;
+            } else {
                 return -1;
             }
         }
+
         getSelectedValue(index) {
-            var selection = this._selection;
-            if (selection !== undefined) {
-                return List.prototype.isPrototypeOf(selection) ? selection[index] : (index === 0 ? selection : undefined);
-            }
-            else {
+            if (this.#selection !== null) {
+                return List.prototype.isPrototypeOf(this.#selection) ? this.#selection[index] : (index === 0 ? selthis.#selection : undefined);
+            } else {
                 return undefined;
             }
         }

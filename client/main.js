@@ -50,7 +50,7 @@
         hmi.env.tasks = taskManager;
 
         // prepare content management system
-        tasks.push((onSuccess, onError) => hmi.env.cms = new ContentManager.Instance(onSuccess, onError));
+        tasks.push((onSuccess, onError) => hmi.env.cms = ContentManager.getInstance(onSuccess, onError));
         tasks.push((onSuccess, onError) => {
             const languages = hmi.env.lang = LanguageSwitching.getInstance(hmi.env.logger, hmi.env.cms);
             const language = languages.isAvailable(languageQueryParameterValue) ? languageQueryParameterValue : languages.getLanguage();
@@ -75,18 +75,18 @@
                     reconnectStart: 1000,
                     reconnectMax: 32000,
                     onOpen: () => {
-                        console.log(`web socket client opened (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.SessionId)}')`);
+                        console.log(`web socket client opened (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}')`);
                         taskManager.onOpen();
                         dataConnector.onOpen();
                     },
                     onClose: () => {
-                        console.log(`web socket client closed (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.SessionId)}')`);
+                        console.log(`web socket client closed (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}')`);
                         taskManager.onClose();
                         dataConnector.onClose();
 
                     },
                     OnError: error => {
-                        console.error(`error in connection (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.SessionId)}') to server: ${error}`);
+                        console.error(`error in connection (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}') to server: ${error}`);
                     }
                 });
                 taskManager.connection = webSocketConnection;
@@ -107,7 +107,7 @@
         // Provide data access from any context to any source
         tasks.push((onSuccess, onError) => {
             // Create router for delegation to language or data values 
-            const isValidLanguageValueId = hmi.env.cms.GetIdValidTestFunctionForLanguageValue();
+            const isValidLanguageValueId = hmi.env.cms.getIdValidTestFunctionForLanguageValue();
             const dataAccessSwitch = new DataPoint.Switch(dataId => isValidLanguageValueId(dataId) ? hmi.env.lang : dataConnector);
             // Create collection providing multiple subscriptions from any context
             const dataAccessPoint = new DataPoint.AccessPoint(hmi.env.logger, dataAccessSwitch); // Use the router as source
@@ -119,7 +119,7 @@
         let rootObject = null;
         tasks.push((onSuccess, onError) => {
             if (hmiQueryParameterValue) {
-                hmi.env.cms.GetHMIObject(hmiQueryParameterValue, hmi.env.lang.getLanguage(), object => {
+                hmi.env.cms.getHMIObject(hmiQueryParameterValue, hmi.env.lang.getLanguage(), object => {
                     if (object !== null && typeof object === 'object' && !Array.isArray(object)) {
                         rootObject = object;
                     } else {

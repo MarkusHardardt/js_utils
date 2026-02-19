@@ -1514,7 +1514,7 @@
                 // this method will be called from inside of the rectangle handler in
                 // case a new rectangle must be loaded
                 loadRectangle = function (i_x, i_y, i_width, i_height, i_objectReference, i_suc, i_err, i_initData) {
-                    that.hmi.env.cms.GetObject(i_objectReference, that.hmi.env.lang.GetLanguage(), ContentManager.PARSE, function (i_object) {
+                    that.hmi.env.cms.getObject(i_objectReference, that.hmi.env.lang.GetLanguage(), ContentManager.PARSE, function (i_object) {
                         if (i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
                             // first we got to remove all place holders
                             for (var col = i_x + i_width - 1; col >= i_x; col--) {
@@ -7235,7 +7235,7 @@
                             };
                             _onEventCallbacks.push(onRefresh);
                             try {
-                                that.hmi.env.data.addObserver(dataId, onRefresh);
+                                that.hmi.env.data.registerObserver(dataId, onRefresh);
                             } catch (error) {
                                 console.error(`Failed subscribing to '${dataId}':\n${error.message}`);
                             }
@@ -7297,7 +7297,7 @@
             if (Array.isArray(_watch)) {
                 for (var i = _watch.length - 1; i >= 0; i--) {
                     try {
-                        that.hmi.env.data.removeObserver(_watch[i], _onEventCallbacks[i]);
+                        that.hmi.env.data.unregisterObserver(_watch[i], _onEventCallbacks[i]);
                     } catch (error) {
                         console.error(`Failed unsubscribing from '${_watch[i]}':\n${error.message}`);
                     }

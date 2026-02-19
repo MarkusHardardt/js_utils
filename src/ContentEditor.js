@@ -161,7 +161,7 @@
         let cms = hmi.env.cms, tasks = [], checksum = false, equal_id = startEditId === id;
         if (equal_id) {
             tasks.push((onSuc, onErr) => {
-                cms.GetChecksum(id, cs => {
+                cms.getChecksum(id, cs => {
                     checksum = cs;
                     onSuc();
                 }, onErr);
@@ -184,7 +184,7 @@
                     closed: () => onSuccess(false)
                 });
             } else {
-                cms.GetModificationParams(id, language, value, params => {
+                cms.getModificationParams(id, language, value, params => {
                     if (typeof params.error === 'string') {
                         if (typeof onError === 'function') {
                             onError(params.error);
@@ -210,12 +210,12 @@
                                 height: $(window).height() * 0.8,
                                 title: 'Warning',
                                 html,
-                                yes: () => cms.SetObject(id, language, value, params.checksum, () => onSuccess(params), onError),
+                                yes: () => cms.setObject(id, language, value, params.checksum, () => onSuccess(params), onError),
                                 cancel: () => onSuccess(false),
                                 closed: () => onSuccess(false)
                             });
                         } else {
-                            cms.SetObject(id, language, value, params.checksum, () => onSuccess(params), onError);
+                            cms.setObject(id, language, value, params.checksum, () => onSuccess(params), onError);
                         }
                     } else if (params.action === ContentManager.NONE) {
                         hmi.showDefaultConfirmationDialog({
@@ -228,7 +228,7 @@
                         });
                     } else if (!equal_id) {
                         // if the id has changed
-                        cms.Exists(id, exists => {
+                        cms.exists(id, exists => {
                             if (exists !== false) {
                                 let txt = '<b>';
                                 txt += `Identificator '${id}' already exists!`;
@@ -241,26 +241,26 @@
                                     height: $(window).height() * 0.8,
                                     title: 'Warning',
                                     html: txt,
-                                    yes: () => cms.SetObject(id, language, value, params.checksum, () => onSuccess(params), onError),
+                                    yes: () => cms.setObject(id, language, value, params.checksum, () => onSuccess(params), onError),
                                     cancel: () => onSuccess(false),
                                     closed: () => onSuccess(false)
                                 });
                             } else {
-                                cms.SetObject(id, language, value, params.checksum, () => onSuccess(params), onError);
+                                cms.setObject(id, language, value, params.checksum, () => onSuccess(params), onError);
                             }
                         }, onError)
                     } else {
                         // selected node has changed
-                        cms.SetObject(id, language, value, params.checksum, () => onSuccess(params), onError);
+                        cms.setObject(id, language, value, params.checksum, () => onSuccess(params), onError);
                     }
                 }, onError);
             }
         }, onError);
     }
 
-    function PerformRefactoring(hmi, source, target, action, onSuccess, onEerror) {
+    function performRefactoring(hmi, source, target, action, onSuccess, onEerror) {
         var cms = hmi.env.cms;
-        cms.GetRefactoringParams(source, target, action, params => {
+        cms.getRefactoringParams(source, target, action, params => {
             if (typeof params.error === 'string') {
                 hmi.showDefaultConfirmationDialog({
                     width: $(window).width() * 0.8,
@@ -300,7 +300,7 @@
                     height: $(window).height() * 0.8,
                     title: 'Warning',
                     html: txt,
-                    yes: () => cms.PerformRefactoring(source, target, action, params.checksum, () => onSuccess(params), onEerror),
+                    yes: () => cms.performRefactoring(source, target, action, params.checksum, () => onSuccess(params), onEerror),
                     cancel: () => onSuccess(false),
                     closed: () => onSuccess(false)
                 });
@@ -326,12 +326,12 @@
                         height: $(window).height() * 0.8,
                         title: 'Warning',
                         html: txt,
-                        yes: () => cms.PerformRefactoring(source, target, action, params.checksum, () => onSuccess(params), onEerror),
+                        yes: () => cms.performRefactoring(source, target, action, params.checksum, () => onSuccess(params), onEerror),
                         cancel: () => onSuccess(false),
                         closed: () => onSuccess(false)
                     });
                 } else {
-                    cms.PerformRefactoring(source, target, action, params.checksum, () => onSuccess(params), onEerror);
+                    cms.performRefactoring(source, target, action, params.checksum, () => onSuccess(params), onEerror);
                 }
             } else {
                 onSuccess(false);
@@ -574,12 +574,12 @@
                 that._keyup = event => {
                     if (event.which === 13) {
                         var path = that.hmi_value().trim();
-                        adapter.keySelected(cms.AnalyzeId(path));
+                        adapter.keySelected(cms.analyzeId(path));
                     }
                 };
                 that.hmi_getTextField().on('keyup', that._keyup);
                 that._on_change = () => {
-                    var data = cms.AnalyzeId(that.hmi_value().trim());
+                    var data = cms.analyzeId(that.hmi_value().trim());
                     that._update_color(data);
                     adapter.keyEdited(data);
                 };
@@ -598,7 +598,7 @@
                 keyTextField.hmi_value(data.id);
                 keyTextField._update_color(data);
             },
-            getIdData: () => cms.AnalyzeId(keyTextField.hmi_value().trim())
+            getIdData: () => cms.analyzeId(keyTextField.hmi_value().trim())
         };
         return keyTextField;
     }
@@ -616,17 +616,17 @@
             type: 'tree',
             rootURL: ContentManager.GET_CONTENT_TREE_NODES_URL,
             rootRequest: ContentManager.COMMAND_GET_CHILD_TREE_NODES,
-            compareNodes: (node1, node2) => cms.CompareIds(node1.data.path, node2.data.path),
+            compareNodes: (node1, node2) => cms.compareIds(node1.data.path, node2.data.path),
             nodeActivated: node => {
                 let path = node.data.path;
                 if (selected !== path) {
                     selected = path;
-                    adapter.keySelected(cms.AnalyzeId(path));
+                    adapter.keySelected(cms.analyzeId(path));
                 }
             },
             nodeClicked: node => {
                 selected = node.data.path;
-                adapter.keySelected(cms.AnalyzeId(selected));
+                adapter.keySelected(cms.analyzeId(selected));
             },
             expand: data => {
                 unstress((onSuccess, onError) => {
@@ -649,12 +649,12 @@
             if (key.length > 0 || value.length > 0) {
                 search_running = true;
                 button_search.hmi_setEnabled(false);
-                cms.GetSearchResults(key, value, results => {
+                cms.getSearchResults(key, value, results => {
                     search_running = false;
                     button_search.hmi_setEnabled(true);
                     search_results.splice(0, search_results.length);
                     for (let i = 0, l = results.length; i < l; i++) {
-                        let id = results[i], icon = cms.GetIcon(id);
+                        let id = results[i], icon = cms.getIcon(id);
                         search_results.push({
                             id: id,
                             icon: icon
@@ -733,7 +733,7 @@
                         return '';
                 }
             },
-            handleTableRowClicked: row => adapter.keySelected(cms.AnalyzeId(search_results[row].id))
+            handleTableRowClicked: row => adapter.keySelected(cms.analyzeId(search_results[row].id))
         };
         return {
             visible: false,
@@ -840,19 +840,19 @@
             type: 'tree',
             rootURL: ContentManager.GET_CONTENT_TREE_NODES_URL,
             rootRequest: ContentManager.COMMAND_GET_REFERENCES_TO_TREE_NODES,
-            compareNodes: (node1, node2) => cms.CompareIds(node1.data.path, node2.data.path),
+            compareNodes: (node1, node2) => cms.compareIds(node1.data.path, node2.data.path),
             nodeActivated: node => {
                 const path = node.data.path;
                 text.hmi_value(path);
                 if (selected !== path) {
                     selected = path;
-                    adapter.keySelected(cms.AnalyzeId(path));
+                    adapter.keySelected(cms.analyzeId(path));
                 }
             },
             nodeClicked: node => {
                 selected = node.data.path;
                 text.hmi_value(selected);
-                adapter.keySelected(cms.AnalyzeId(selected));
+                adapter.keySelected(cms.analyzeId(selected));
             }
         };
         function updateReferences(button) {
@@ -892,7 +892,7 @@
             y: 0,
             border: true,
             text: 'browse',
-            clicked: () => adapter.selectInNavigator(cms.AnalyzeId(text.hmi_value()))
+            clicked: () => adapter.selectInNavigator(cms.analyzeId(text.hmi_value()))
         };
         return {
             type: 'grid',
@@ -909,7 +909,7 @@
                 updateReferences();
             },
             update: updateReferences,
-            getIdData: () => cms.AnalyzeId(text.hmi_value())
+            getIdData: () => cms.analyzeId(text.hmi_value())
         };
     }
 
@@ -918,10 +918,10 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     function getLabelView(hmi, adapter, editable) {
-        const cms = hmi.env.cms, langs = cms.GetLanguages(), children = [], rows = [], values = {};
+        const cms = hmi.env.cms, langs = cms.getLanguages(), children = [], rows = [], values = {};
         function onKeyChanged(data, language, onSuccess, onError) {
             if (data && data.file) {
-                cms.GetObject(data.file, undefined, editable === true ? ContentManager.RAW : ContentManager.INCLUDE, result => {
+                cms.getObject(data.file, undefined, editable === true ? ContentManager.RAW : ContentManager.INCLUDE, result => {
                     if (result !== undefined) {
                         for (let i = 0, l = langs.length; i < l; i++) {
                             const lang = langs[i], lab = result[lang];
@@ -1016,7 +1016,7 @@
             if (data && data.file) {
                 switch (mode) {
                     case ContentManager.RAW:
-                        hmi.env.cms.GetObject(data.file, language, ContentManager.RAW, raw => {
+                        hmi.env.cms.getObject(data.file, language, ContentManager.RAW, raw => {
                             preview.hmi_html(raw !== undefined ? raw : '');
                             onSuccess();
                         }, error => {
@@ -1025,7 +1025,7 @@
                         });
                         break;
                     case ContentManager.INCLUDE:
-                        hmi.env.cms.GetObject(data.file, language, ContentManager.INCLUDE, build => {
+                        hmi.env.cms.getObject(data.file, language, ContentManager.INCLUDE, build => {
                             preview.hmi_html(build !== undefined ? build : '');
                             onSuccess();
                         }, error => {
@@ -1098,7 +1098,7 @@
                 delete textarea.file;
             }
             if (data && data.file) {
-                cms.GetObject(data.file, language, ContentManager.RAW, raw => {
+                cms.getObject(data.file, language, ContentManager.RAW, raw => {
                     textarea.hmi_value(raw !== undefined ? raw : '');
                     if (raw !== undefined) {
                         textarea.file = data.file;
@@ -1173,7 +1173,7 @@
             if (data && data.file) {
                 switch (mode) {
                     case ContentManager.RAW:
-                        cms.GetObject(data.file, language, ContentManager.RAW, raw => {
+                        cms.getObject(data.file, language, ContentManager.RAW, raw => {
                             textarea.hmi_value(raw !== undefined ? raw : '');
                             if (raw !== undefined) {
                                 textarea.file_raw = data.file;
@@ -1186,7 +1186,7 @@
                         });
                         break;
                     case ContentManager.INCLUDE:
-                        cms.GetObject(data.file, language, ContentManager.INCLUDE, build => {
+                        cms.getObject(data.file, language, ContentManager.INCLUDE, build => {
                             textarea.hmi_value(build !== undefined ? build : '');
                             if (build !== undefined) {
                                 textarea.file_build = data.file;
@@ -1266,7 +1266,7 @@
                 delete textarea.file;
             }
             if (data && data.file) {
-                cms.GetObject(data.file, language, ContentManager.RAW, raw => {
+                cms.getObject(data.file, language, ContentManager.RAW, raw => {
                     textarea.hmi_value(raw !== undefined ? raw : '');
                     if (raw !== undefined) {
                         textarea.file = data.file;
@@ -1343,7 +1343,7 @@
                 switch (mode) {
                     case ContentManager.RAW:
                         container.hmi_removeContent(function () {
-                            cms.GetObject(data.file, language, ContentManager.RAW, raw => {
+                            cms.getObject(data.file, language, ContentManager.RAW, raw => {
                                 let value = raw !== undefined ? JsonFX.stringify(JsonFX.reconstruct(raw), true) : '';
                                 textarea.value = value;
                                 container.hmi_setContent(textarea, () => {
@@ -1358,7 +1358,7 @@
                         break;
                     case ContentManager.INCLUDE:
                         container.hmi_removeContent(() => {
-                            cms.GetObject(data.file, language, ContentManager.INCLUDE, build => {
+                            cms.getObject(data.file, language, ContentManager.INCLUDE, build => {
                                 var value = build !== undefined ? JsonFX.stringify(JsonFX.reconstruct(build), true) : '';
                                 textarea.value = value;
                                 container.hmi_setContent(textarea, () => {
@@ -1373,7 +1373,7 @@
                         break;
                     case ContentManager.PARSE:
                         container.hmi_removeContent(() => {
-                            cms.GetObject(data.file, language, ContentManager.PARSE, parsed => {
+                            cms.getObject(data.file, language, ContentManager.PARSE, parsed => {
                                 if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
                                     container.hmi_setContent(parsed, onSuccess, onError);
                                 } else if (parsed !== undefined) {
@@ -1491,7 +1491,7 @@
                 switch (mode) {
                     case ContentManager.RAW:
                         container.hmi_removeContent(() => {
-                            cms.GetObject(data.file, language, ContentManager.RAW, raw => {
+                            cms.getObject(data.file, language, ContentManager.RAW, raw => {
                                 raw = raw !== undefined ? JsonFX.reconstruct(raw) : undefined;
                                 textarea.value = raw !== undefined ? JsonFX.stringify(raw, true) : '';
                                 container.hmi_setContent(textarea, () => {
@@ -1506,10 +1506,10 @@
                         break;
                     case ContentManager.PARSE:
                         container.hmi_removeContent(() => {
-                            cms.GetObject(data.file, language, ContentManager.RAW, raw => {
+                            cms.getObject(data.file, language, ContentManager.RAW, raw => {
                                 if (raw !== undefined) {
                                     raw = JsonFX.reconstruct(raw);
-                                    cms.GetObject(data.file, language, ContentManager.PARSE, parsed => {
+                                    cms.getObject(data.file, language, ContentManager.PARSE, parsed => {
                                         if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
                                             object = parsed;
                                             container.hmi_setContent(object, () => {
@@ -1749,7 +1749,7 @@
         function onKeyChanged(data, language, onSuccess, onError) {
             watchEditActions = false;
             if (data && data.file) {
-                cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
+                cms.getObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
                         viewObjectValue.hmi_value(data.viewObjectColumn);
                         queryParameterValue.hmi_value(data.queryParameterColumn);
@@ -1887,7 +1887,7 @@
         function onKeyChanged(data, language, onSuccess, onError) {
             watchEditActions = false;
             if (data && data.file) {
-                cms.GetObject(data.file, undefined, ContentManager.RAW, data => {
+                cms.getObject(data.file, undefined, ContentManager.RAW, data => {
                     if (data !== undefined) {
                         taskObjectValue.hmi_value(data.taskObjectColumn);
                         autorunCheckbox.setValue((data.flagsColumn & ContentManager.TASK_FLAG_AUTORUN) !== 0);
@@ -2045,12 +2045,12 @@
         const hmiPreview = getHmiView(hmi, adapter, false);
         const taskPreview = getTaskView(hmi, adapter, false);
         const handlers = {};
-        handlers[cms.GetExtensionForType(ContentManager.DataType.JsonFX)] = jsonFxPreview;
-        handlers[cms.GetExtensionForType(ContentManager.DataType.Text)] = textPreview;
-        handlers[cms.GetExtensionForType(ContentManager.DataType.Label)] = labelPreview;
-        handlers[cms.GetExtensionForType(ContentManager.DataType.HTML)] = htmlPreview;
-        handlers[cms.GetExtensionForType(ContentManager.DataType.HMI)] = hmiPreview;
-        handlers[cms.GetExtensionForType(ContentManager.DataType.Task)] = taskPreview;
+        handlers[cms.getExtensionForType(ContentManager.DataType.JsonFX)] = jsonFxPreview;
+        handlers[cms.getExtensionForType(ContentManager.DataType.Text)] = textPreview;
+        handlers[cms.getExtensionForType(ContentManager.DataType.Label)] = labelPreview;
+        handlers[cms.getExtensionForType(ContentManager.DataType.HTML)] = htmlPreview;
+        handlers[cms.getExtensionForType(ContentManager.DataType.HMI)] = hmiPreview;
+        handlers[cms.getExtensionForType(ContentManager.DataType.Task)] = taskPreview;
         const container = {
             type: 'container',
             update: (data, lang) => {
@@ -2134,7 +2134,7 @@
             enabled: false,
             border: true,
             clicked: () => {
-                PerformRefactoring(hmi, source.id, sel_data.id, mode, params => {
+                performRefactoring(hmi, source.id, sel_data.id, mode, params => {
                     let m = mode;
                     mode = false;
                     source = false;
@@ -2157,7 +2157,7 @@
             enabled: false,
             border: true,
             clicked: () => {
-                PerformRefactoring(hmi, sel_data.id, undefined, ContentManager.DELETE, params => {
+                performRefactoring(hmi, sel_data.id, undefined, ContentManager.DELETE, params => {
                     mode = false;
                     source = false;
                     update();
@@ -2180,8 +2180,8 @@
             border: true,
             timeout: 1000,
             longClicked: () => {
-                const handler = cms.GetExchangeHandler();
-                handler.HandleExport(sel_data.id, state => adapter.updateInfo(state !== undefined ? 'export ' + state : 'export ready'), adapter.notifyError);
+                const handler = cms.getExchangeHandler();
+                handler.handleExport(sel_data.id, state => adapter.updateInfo(state !== undefined ? 'export ' + state : 'export ready'), adapter.notifyError);
             }
         };
         const button_import = {
@@ -2191,8 +2191,8 @@
             border: true,
             clicked: () => {
                 Utilities.loadClientTextFile(text => {
-                    const handler = cms.GetExchangeHandler();
-                    handler.HandleImport(hmi, text.replace(/\r?\n|\r/g, '\n'), state => {
+                    const handler = cms.getExchangeHandler();
+                    handler.handleImport(hmi, text.replace(/\r?\n|\r/g, '\n'), state => {
                         if (state !== undefined) {
                             adapter.updateInfo('import ' + state);
                         } else {
@@ -2252,7 +2252,7 @@
             resetButton.hmi_setVisible(false);
             browseHmiObjectButton.hmi_setVisible(false);
             browseJsonFXObjectButton.hmi_setVisible(false);
-            cms.GetHMIObjects(result => {
+            cms.getHMIObjects(result => {
                 hmiObjects = result;
                 const tasks = [];
                 for (let hmiObj of hmiObjects) {
@@ -2260,7 +2260,7 @@
                         const obj = hmiObj;
                         obj.edited = false;
                         tasks.push((onSuccess, onError) => {
-                            cms.GetChecksum(obj.file, checksum => {
+                            cms.getChecksum(obj.file, checksum => {
                                 obj.checksum = checksum;
                                 onSuccess();
                             }, onError)
@@ -2483,7 +2483,7 @@
             visible: false,
             click: onClose => {
                 if (selectedDataIndex !== -1) {
-                    adapter.selectInNavigator(cms.AnalyzeId(hmiObjects[selectedDataIndex].id));
+                    adapter.selectInNavigator(cms.analyzeId(hmiObjects[selectedDataIndex].id));
                 }
                 onClose();
             }
@@ -2493,7 +2493,7 @@
             visible: false,
             click: onClose => {
                 if (selectedDataIndex !== -1) {
-                    adapter.selectInNavigator(cms.AnalyzeId(hmiObjects[selectedDataIndex].viewObject));
+                    adapter.selectInNavigator(cms.analyzeId(hmiObjects[selectedDataIndex].viewObject));
                 }
                 onClose();
             }
@@ -2549,7 +2549,7 @@
                     const taskObject = taskObjects[i];
                     taskObject.edited = false;
                     tasks.push((onSuccess, onError) => {
-                        cms.GetChecksum(taskObject.config.file, checksum => {
+                        cms.getChecksum(taskObject.config.file, checksum => {
                             taskObject.checksum = checksum;
                             onSuccess();
                         }, onError)
@@ -2827,7 +2827,7 @@
             visible: false,
             click: onClose => {
                 if (selectedDataIndex !== -1) {
-                    adapter.selectInNavigator(cms.AnalyzeId(taskObjects[selectedDataIndex].config.id));
+                    adapter.selectInNavigator(cms.analyzeId(taskObjects[selectedDataIndex].config.id));
                 }
                 hmi.env.tasks.OnConfigChanged = null;
                 hmi.env.tasks.OnStateChanged = null;
@@ -2839,7 +2839,7 @@
             visible: false,
             click: onClose => {
                 if (selectedDataIndex !== -1) {
-                    adapter.selectInNavigator(cms.AnalyzeId(taskObjects[selectedDataIndex].config.taskObject));
+                    adapter.selectInNavigator(cms.analyzeId(taskObjects[selectedDataIndex].config.taskObject));
                 }
                 hmi.env.tasks.OnConfigChanged = null;
                 hmi.env.tasks.OnStateChanged = null;
@@ -2887,7 +2887,7 @@
                     editListenerEnabled = true;
                     editor = next;
                     if (sel_data.file) {
-                        cms.GetChecksum(sel_data.file, checksum => {
+                        cms.getChecksum(sel_data.file, checksum => {
                             sel_cs = checksum;
                             onSuccess();
                         }, onError)
@@ -2902,7 +2902,7 @@
             const isJsonFX = sel_data.type === ContentManager.DataType.JsonFX;
             tasksButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset);
             if (isJsonFX) {
-                cms.IsTaskObject(sel_data.id, response => {
+                cms.isTaskObject(sel_data.id, response => {
                     tasksButton.hmi_setSelected(response === true);
                     if (typeof response === 'string') {
                         adapter.notifyError(response);
@@ -2916,7 +2916,7 @@
             }
             hmisButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset);
             if (isJsonFX) {
-                cms.IsHMIObject(sel_data.id, response => {
+                cms.isHMIObject(sel_data.id, response => {
                     hmisButton.hmi_setSelected(response === true);
                     if (typeof response === 'string') {
                         adapter.notifyError(response);
@@ -2996,12 +2996,12 @@
         const hmiEditor = getHmiView(hmi, adapter, true);
         const taskEditor = getTaskView(hmi, adapter, true);
         const handlers = {};
-        handlers[cms.GetExtensionForType(ContentManager.DataType.JsonFX)] = jsonFxEditor;
-        handlers[cms.GetExtensionForType(ContentManager.DataType.Text)] = textEditor;
-        handlers[cms.GetExtensionForType(ContentManager.DataType.Label)] = labelEditor;
-        handlers[cms.GetExtensionForType(ContentManager.DataType.HTML)] = htmlEditor;
-        handlers[cms.GetExtensionForType(ContentManager.DataType.HMI)] = hmiEditor;
-        handlers[cms.GetExtensionForType(ContentManager.DataType.Task)] = taskEditor;
+        handlers[cms.getExtensionForType(ContentManager.DataType.JsonFX)] = jsonFxEditor;
+        handlers[cms.getExtensionForType(ContentManager.DataType.Text)] = textEditor;
+        handlers[cms.getExtensionForType(ContentManager.DataType.Label)] = labelEditor;
+        handlers[cms.getExtensionForType(ContentManager.DataType.HTML)] = htmlEditor;
+        handlers[cms.getExtensionForType(ContentManager.DataType.HMI)] = hmiEditor;
+        handlers[cms.getExtensionForType(ContentManager.DataType.Task)] = taskEditor;
         const editContainer = {
             type: 'container'
         };
@@ -3015,9 +3015,9 @@
             longClicked: () => {
                 try {
                     if (sel_data && sel_data.type === ContentManager.DataType.JsonFX) {
-                        cms.IsHMIObject(sel_data.id, response => {
+                        cms.isHMIObject(sel_data.id, response => {
                             if (response !== true) {
-                                cms.AddDefaultHMIObject(sel_data.id, resp => {
+                                cms.addDefaultHMIObject(sel_data.id, resp => {
                                     updateEditorButtons();
                                     adapter.reload();
                                 }, error => {
@@ -3043,9 +3043,9 @@
             longClicked: () => {
                 try {
                     if (sel_data && sel_data.type === ContentManager.DataType.JsonFX) {
-                        cms.IsTaskObject(sel_data.id, response => {
+                        cms.isTaskObject(sel_data.id, response => {
                             if (response !== true) {
-                                cms.AddDefaultTaskObject(sel_data.id, resp => {
+                                cms.addDefaultTaskObject(sel_data.id, resp => {
                                     updateEditorButtons();
                                     adapter.reload();
                                 }, error => {

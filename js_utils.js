@@ -2,29 +2,29 @@
 (function (root) {
     "use strict";
     function addStaticWebServerJsUtilsFiles(server) {
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Client.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Executor.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/HashLists.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/JsonFX.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Mathematics.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectPositionSystem.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Regex.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Sorting.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Utilities.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Core.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Common.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentManager.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectLifecycleManager.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataPoint.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/Logger.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/LanguageSwitching.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/src/TaskManager.js');
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/ext/md5.js'); // external
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Client.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Executor.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/HashLists.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/JsonFX.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Mathematics.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectPositionSystem.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Regex.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Sorting.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Utilities.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Core.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Common.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentManager.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectLifecycleManager.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataPoint.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Logger.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/LanguageSwitching.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/TaskManager.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/ext/md5.js'); // external
         // And last but not least add client side 'main' program using the previously added files:
-        server.AddStaticFile('./node_modules/@markus.hardardt/js_utils/client/main.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/client/main.js');
     }
     const js_utils = {
         Client: require('./src/Client.js'),

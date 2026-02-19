@@ -11,39 +11,51 @@
     SqlHelper.escape = escape;
 
     class Adapter {
+        #connection;
+        #verbose;
+        #columns;
+        #joins;
+        #wheres;
+        #values;
         constructor(connection, verbose) {
-            this._con = connection;
-            this._verbose = verbose === true;
-            this._columns = [];
-            this._joins = [];
-            this._wheres = [];
-            this._values = [];
+            this.#connection = connection;
+            this.#verbose = verbose === true;
+            this.#columns = [];
+            this.#joins = [];
+            this.#wheres = [];
+            this.#values = [];
         }
-        Close() {
-            if (!this._con) {
+
+        close() {
+            if (!this.#connection) {
                 console.error('SQL adapter has allready been closed');
                 return;
             }
-            this._con.release();
-            delete this._con;
+            this.#connection.release();
+            this.#connection = null;
         }
-        _clear() {
-            this._values.splice(0, this._values.length);
-            this._columns.splice(0, this._columns.length);
-            this._joins.splice(0, this._joins.length);
-            this._wheres.splice(0, this._wheres.length);
+
+        #clear() {
+            this.#values.splice(0, this.#values.length);
+            this.#columns.splice(0, this.#columns.length);
+            this.#joins.splice(0, this.#joins.length);
+            this.#wheres.splice(0, this.#wheres.length);
         }
-        AddColumn(expression) {
-            this._columns.push(expression);
+
+        addColumn(expression) {
+            this.#columns.push(expression);
         }
-        AddJoin(expression) {
-            this._joins.push(expression);
+
+        addJoin(expression) {
+            this.#joins.push(expression);
         }
-        AddWhere(expression, and) {
-            this._wheres.push({ expr: expression, opr: and !== false ? ' AND ' : ' OR ' });
+
+        addWhere(expression, and) {
+            this.#wheres.push({ expr: expression, opr: and !== false ? ' AND ' : ' OR ' });
         }
-        AddValue(column, data) {
-            let values = this._values, value;
+
+        addValue(column, data) {
+            let values = this.#values, value;
             for (let i = 0, l = values.length; i < l; i++) {
                 value = values[i];
                 if (value.column === column) {
@@ -55,13 +67,14 @@
                     return;
                 }
             }
-            this._values.push({ column, data, apostrophes: false });
+            this.#values.push({ column, data, apostrophes: false });
         }
-        _query(queryString, onSuccess, onError) {
-            if (this._verbose) {
+
+        #query(queryString, onSuccess, onError) {
+            if (this.#verbose) {
                 console.log(queryString);
             }
-            this._con.query(queryString, (error, results, fields) => {
+            this.#connection.query(queryString, (error, results, fields) => {
                 if (error) {
                     if (typeof onError === 'function') {
                         onError(error);
@@ -73,17 +86,21 @@
                 }
             });
         }
-        StartTransaction(onSuccess, onError) {
-            this._query('START TRANSACTION', onSuccess, onError);
+
+        startTransaction(onSuccess, onError) {
+            this.#query('START TRANSACTION', onSuccess, onError);
         }
-        RollbackTransaction(onSuccess, onError) {
-            this._query('ROLLBACK', onSuccess, onError);
+
+        rollbackTransaction(onSuccess, onError) {
+            this.#query('ROLLBACK', onSuccess, onError);
         }
-        CommitTransaction(onSuccess, onError) {
-            this._query('COMMIT', onSuccess, onError);
+
+        commitTransaction(onSuccess, onError) {
+            this.#query('COMMIT', onSuccess, onError);
         }
-        _formatSelect(table, group, order, limit) {
-            let query = 'SELECT', l, columns = this._columns, joins = this._joins, wheres = this._wheres, expr;
+
+        #formatSelect(table, group, order, limit) {
+            let query = 'SELECT', l, columns = this.#columns, joins = this.#joins, wheres = this.#wheres, expr;
             // COLUMNS
             for (let i = 0, l = columns.length; i < l; i++) {
                 if (i > 0) {
@@ -128,19 +145,21 @@
                 query += limit;
             }
             // clear, perform query, check for errors and return result
-            this._clear();
+            this.#clear();
             return query;
         }
-        PerformSelect(table, group, order, limit, onSuccess, onError) {
-            const query = this._formatSelect(table, group, order, limit);
-            this._query(query, onSuccess, onError);
+
+        performSelect(table, group, order, limit, onSuccess, onError) {
+            const query = this.#formatSelect(table, group, order, limit);
+            this.#query(query, onSuccess, onError);
         }
-        _formatInsert(table) {
+
+        #formatInsert(table) {
             let insert = 'INSERT INTO ';
             insert += table;
             insert += ' (';
             // COLUMN NAMES
-            let max = 1, i, l, values = this._values, value, data;
+            let max = 1, i, l, values = this.#values, value, data;
             for (let i = 0, l = values.length; i < l; i++) {
                 value = values[i];
                 if (i > 0) {
@@ -175,7 +194,7 @@
                     }
                 }
                 insert += ')';
-                this._clear();
+                this.#clear();
                 return insert;
             } else {
                 const inserts = [];
@@ -203,7 +222,7 @@
                     query += ')';
                     inserts.push(query);
                 }
-                this._clear();
+                this.#clear();
                 let queries = [], query = insert, idx = 0, count = inserts.length, nxt;
                 while (idx < count) {
                     query += inserts[idx];
@@ -223,10 +242,11 @@
                 return queries;
             }
         }
-        PerformInsert(table, onSuccess, onError) {
-            const query = this._formatInsert(table);
+
+        performInsert(table, onSuccess, onError) {
+            const query = this.#formatInsert(table);
             if (typeof query === 'string') {
-                this._query(query, onSuccess, onError);
+                this.#query(query, onSuccess, onError);
             } else if (Array.isArray(query)) {
                 const that = this, tasks = [];
                 tasks.parallel = false;
@@ -234,15 +254,16 @@
                     (function () {
                         // closure
                         const q = query[i];
-                        tasks.push((onSuc, onErr) => that._query(q, onSuc, onErr));
+                        tasks.push((onSuc, onErr) => that.#query(q, onSuc, onErr));
                     }());
                 }
                 Executor.run(tasks, onSuccess, onError);
             }
         }
-        _formatUpdate(table, order, limit) {
+
+        #formatUpdate(table, order, limit) {
             let query = `UPDATE ${table} SET `;
-            let values = this._values, value, data, i, l;
+            let values = this.#values, value, data, i, l;
             // COLUMN NAMES AND VALUES
             for (i = 0, l = values.length; i < l; i++) {
                 value = values[i];
@@ -265,7 +286,7 @@
                 }
             }
             // WHERE
-            let wheres = this._wheres, expr;
+            let wheres = this.#wheres, expr;
             if (wheres.length > 0) {
                 query += ' WHERE ';
                 for (i = 0, l = wheres.length; i < l; i++) {
@@ -287,18 +308,20 @@
                 query += limit;
             }
             // clear, perform query, check for errors and return result
-            this._clear();
+            this.#clear();
             return query;
         }
-        PerformUpdate(table, order, limit, onSuccess, onError) {
-            const query = this._formatUpdate(table, order, limit);
-            this._query(query, onSuccess, onError);
+
+        performUpdate(table, order, limit, onSuccess, onError) {
+            const query = this.#formatUpdate(table, order, limit);
+            this.#query(query, onSuccess, onError);
         }
-        _formatDelete(table, order, limit) {
+
+        #formatDelete(table, order, limit) {
             let query = 'DELETE FROM ';
             query += table;
             // WHERE
-            let wheres = this._wheres, expr, i, l = wheres.length;
+            let wheres = this.#wheres, expr, i, l = wheres.length;
             if (l > 0) {
                 query += ' WHERE ';
                 for (i = 0; i < l; i++) {
@@ -320,13 +343,15 @@
                 query += limit;
             }
             // clear, perform query, check for errors and return result
-            this._clear();
+            this.#clear();
             return query;
         }
-        PerformDelete(table, order, limit, onSuccess, onError) {
-            const query = this._formatDelete(table, order, limit);
-            this._query(query, onSuccess, onError);
+
+        performDelete(table, order, limit, onSuccess, onError) {
+            const query = this.#formatDelete(table, order, limit);
+            this.#query(query, onSuccess, onError);
         }
+
         /**
          * This returns an array containing objects like this: <code>
          * {
@@ -336,14 +361,14 @@
          * }
          * </code>
          */
-        GetChildNodes(table, column, delimiter, path, onSuccess, onError) {
+        getChildNodes(table, column, delimiter, path, onSuccess, onError) {
             const delim = SqlHelper.escape(delimiter);
             const plp1 = path.length + 1;
             const tabCol = `${table}.${column}`;
             let col = `DISTINCT IF(LOCATE(${delim}, ${tabCol}, ${(plp1)}) > 0, SUBSTRING(${tabCol}, ${(plp1)}, (LOCATE(${delim}, ${tabCol}, ${plp1}) - ${path.length})), SUBSTRING(${tabCol}, ${plp1}, LENGTH(${tabCol}))) AS child`;
-            this.AddColumn(col);
-            this.AddWhere(`LOCATE(${escape(path)}, ${tabCol}) = 1`);
-            this.PerformSelect(table, undefined, undefined, undefined, function (results, fields) {
+            this.addColumn(col);
+            this.addWhere(`LOCATE(${escape(path)}, ${tabCol}) = 1`);
+            this.performSelect(table, undefined, undefined, undefined, function (results, fields) {
                 const nodes = [];
                 for (let i = 0, l = results.length; i < l; i++) {
                     const child = results[i].child;
@@ -358,8 +383,8 @@
                 onSuccess(nodes);
             }, onError);
         }
-        GetTrendData() {
-            throw new Error('ERROR! Not implemented: GetTrendData()');
+        getTrendData() {
+            throw new Error('ERROR! Not implemented: getTrendData()');
         }
     }
 

@@ -40,7 +40,7 @@
                     clearTimeout(this.#removeObserverTimer);
                     this.#removeObserverTimer = null;
                     try {
-                        this.#source.removeObserver(this.#onRefresh);
+                        this.#source.unregisterObserver(this.#onRefresh);
                     } catch (error) {
                         this.#logger.error('Failed removing observer', error);
                     }
@@ -58,7 +58,7 @@
             this.#refresh(value);
         }
 
-        addObserver(onRefresh) {
+        registerObserver(onRefresh) {
             if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh(value) is not a function');
             }
@@ -83,7 +83,7 @@
                     this.#removeObserverTimer = null;
                 } else { // We subscribe on the source which should result in firering the refresh event
                     try {
-                        this.#source.addObserver(this.#onRefresh); // Note: This may throw an exception if adding failed
+                        this.#source.registerObserver(this.#onRefresh); // Note: This may throw an exception if adding failed
                         this.#isObserved = true;
                     } catch (error) {
                         this.#logger.error('Failed adding observer on node', error);
@@ -100,7 +100,7 @@
             }
         }
 
-        removeObserver(onRefresh) {
+        unregisterObserver(onRefresh) {
             if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh(value) is not a function');
             }
@@ -112,7 +112,7 @@
                             this.#removeObserverTimer = setTimeout(() => {
                                 this.#removeObserverTimer = null;
                                 try {
-                                    this.#source.removeObserver(this.#onRefresh);
+                                    this.#source.unregisterObserver(this.#onRefresh);
                                 } catch (error) {
                                     this.#logger.Error(`Failed removing observer on node: ${error.message}`);
                                 }
@@ -121,7 +121,7 @@
                             }, this.#removeObserverDelay);
                         } else {
                             try {
-                                this.#source.removeObserver(this.#onRefresh); // Note: This may throw an exception if removing failed
+                                this.#source.unregisterObserver(this.#onRefresh); // Note: This may throw an exception if removing failed
                             } catch (error) {
                                 this.#logger.error('Failed removing observer on node', error);
                             }
@@ -142,7 +142,7 @@
             }
             if (!this.#isObserved && this.#observers.length > 0) {
                 try {
-                    this.#source.addObserver(this.#onRefresh); // Note: This may throw an exception if adding failed
+                    this.#source.registerObserver(this.#onRefresh); // Note: This may throw an exception if adding failed
                     this.#isObserved = true;
                 } catch (error) {
                     this.#logger.error('Failed adding observer on node', error);
@@ -157,7 +157,7 @@
             }
             if (this.#isObserved) {
                 try {
-                    this.#source.removeObserver(this.#onRefresh); // Note: This may throw an exception if removing failed
+                    this.#source.unregisterObserver(this.#onRefresh); // Note: This may throw an exception if removing failed
                 } catch (error) {
                     this.#logger.error('Failed removing observer on node', error);
                     throw error;
@@ -211,7 +211,7 @@
             return this.#source.getType(dataId);
         }
 
-        addObserver(dataId, onRefresh) {
+        registerObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid dataId '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
@@ -220,8 +220,8 @@
             let dataPoint = this.#dataPointsByDataId[dataId];
             if (!dataPoint) {
                 this.#dataPointsByDataId[dataId] = dataPoint = {
-                    addObserver: onRefresh => this.#source.addObserver(dataId, onRefresh),
-                    removeObserver: onRefresh => this.#source.removeObserver(dataId, onRefresh)
+                    registerObserver: onRefresh => this.#source.registerObserver(dataId, onRefresh),
+                    unregisterObserver: onRefresh => this.#source.unregisterObserver(dataId, onRefresh)
                 };
                 const node = dataPoint.node = new Node(this.#logger, dataPoint, () => {
                     delete dataPoint.node;
@@ -229,10 +229,10 @@
                 });
                 node.removeObserverDelay = this.#removeObserverDelay;
             }
-            dataPoint.node.addObserver(onRefresh); // Note: may throw an exception if adding failed!
+            dataPoint.node.registerObserver(onRefresh); // Note: may throw an exception if adding failed!
         }
 
-        removeObserver(dataId, onRefresh) {
+        unregisterObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid dataId '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
@@ -242,7 +242,7 @@
             if (!dataPoint) {
                 throw new Error(`Failed removing observer for unsupported id '${dataId}'`);
             }
-            dataPoint.node.removeObserver(onRefresh); // Note: may throw an exception if removing failed!
+            dataPoint.node.unregisterObserver(onRefresh); // Note: may throw an exception if removing failed!
         }
 
         addObserverToSource(filter) {
@@ -297,12 +297,12 @@
             return this._dao(dataId, 'getType:function').getType(dataId);
         }
 
-        addObserver(dataId, onRefresh) {
-            this._dao(dataId, 'addObserver:function').addObserver(dataId, onRefresh);
+        registerObserver(dataId, onRefresh) {
+            this._dao(dataId, 'registerObserver:function').registerObserver(dataId, onRefresh);
         }
 
-        removeObserver(dataId, onRefresh) {
-            this._dao(dataId, 'removeObserver:function').removeObserver(dataId, onRefresh);
+        unregisterObserver(dataId, onRefresh) {
+            this._dao(dataId, 'unregisterObserver:function').unregisterObserver(dataId, onRefresh);
         }
 
         read(dataId, onResponse, onError) {
@@ -406,8 +406,8 @@
                 this.#dataAccessObjects[targetId] = {
                     accessObject,
                     getType: dataId => accessObject.getType(getRawDataId(dataId)),
-                    addObserver: (dataId, onRefresh) => accessObject.addObserver(getRawDataId(dataId), onRefresh),
-                    removeObserver: (dataId, onRefresh) => accessObject.removeObserver(getRawDataId(dataId), onRefresh),
+                    registerObserver: (dataId, onRefresh) => accessObject.registerObserver(getRawDataId(dataId), onRefresh),
+                    unregisterObserver: (dataId, onRefresh) => accessObject.unregisterObserver(getRawDataId(dataId), onRefresh),
                     read: (dataId, onResponse, onError) => accessObject.read(getRawDataId(dataId), onResponse, onError),
                     write: (dataId, value) => accessObject.write(getRawDataId(dataId), value)
                 }

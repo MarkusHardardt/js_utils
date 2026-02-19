@@ -21,8 +21,8 @@
     /*  Observable inferface  */
     function validateAsObservable(instance, validateMethodArguments) {
         return Core.validateAs('Observable', instance, [
-            'addObserver(onRefresh)',
-            'removeObserver(onRefresh)',
+            'registerObserver(onRefresh)',
+            'unregisterObserver(onRefresh)',
         ], validateMethodArguments);
     }
     Common.validateAsObservable = validateAsObservable;
@@ -31,8 +31,8 @@
     function validateAsDataAccessObject(instance, validateMethodArguments) {
         return Core.validateAs('DataAccessObject', instance, [
             'getType(dataId)',
-            'addObserver(dataId, onRefresh)',
-            'removeObserver(dataId, onRefresh)',
+            'registerObserver(dataId, onRefresh)',
+            'unregisterObserver(dataId, onRefresh)',
             'read(dataId, onResponse, onError)',
             'write(dataId, value)'
         ], validateMethodArguments);
