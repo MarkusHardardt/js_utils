@@ -46,11 +46,13 @@
             Logger.addTransport(entry => {
                 const { level, formattedArgs } = entry;
                 if (level <= Logger.Level.ERROR) {
-                    console.error(...formattedArgs);
+                    console.error('❌', ...formattedArgs);
                 } else if (level <= Logger.Level.WARN) {
-                    console.warn(...formattedArgs);
+                    console.warn('⚠️', ...formattedArgs);
+                } else if (level <= Logger.Level.INFO) {
+                    console.info('ℹ️', ...formattedArgs);
                 } else {
-                    console.log(...formattedArgs);
+                    console.log('★', ...formattedArgs);
                 }
             });
         }

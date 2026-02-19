@@ -26,7 +26,7 @@
         - options: {
             onOpen(): will be called when socket connection has been established
             onClose(): will be called when socket connection has been lost
-            OnError(error): will be called when an error occurred
+            onError(error): will be called when an error occurred
           }
         A connection has the following public interface:
         - sessionId: The session id

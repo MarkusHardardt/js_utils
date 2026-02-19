@@ -1514,7 +1514,7 @@
                 // this method will be called from inside of the rectangle handler in
                 // case a new rectangle must be loaded
                 loadRectangle = function (i_x, i_y, i_width, i_height, i_objectReference, i_suc, i_err, i_initData) {
-                    that.hmi.env.cms.getObject(i_objectReference, that.hmi.env.lang.GetLanguage(), ContentManager.PARSE, function (i_object) {
+                    that.hmi.env.cms.getObject(i_objectReference, that.hmi.env.lang.getLanguage(), ContentManager.PARSE, function (i_object) {
                         if (i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
                             // first we got to remove all place holders
                             for (var col = i_x + i_width - 1; col >= i_x; col--) {
@@ -7250,7 +7250,7 @@
                     that.handleLanguageChanged(language);
                 }
                 try {
-                    that.hmi.env.lang.SubscribeLanguage(onLanguageChanged);
+                    that.hmi.env.lang.addLanguageObserver(onLanguageChanged);
                     that._hmi_onLanguageChanged = onLanguageChanged;
                 } catch (error) {
                     console.error(`Failed subscribing on language:\n${error.message}`);
@@ -7288,7 +7288,7 @@
             }
             if (that._hmi_onLanguageChanged) {
                 try {
-                    that.hmi.env.lang.UnsubscribeLanguage(that._hmi_onLanguageChanged);
+                    that.hmi.env.lang.removeLanguageObserver(that._hmi_onLanguageChanged);
                 } catch (error) {
                     console.error(`Failed subscribing from language:\n${error.message}`);
                 }
