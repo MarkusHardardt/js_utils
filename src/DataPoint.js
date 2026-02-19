@@ -132,7 +132,7 @@
             this.#logger.warn('onRefresh(value) has already been removed');
         }
 
-        addObserverToSource() {
+        addObserverToSource() { // TODO: Do we realy need this? If not, then remove!
             if (this.#removeObserverTimer) { // If still observed we kill the timer
                 clearTimeout(this.#removeObserverTimer);
                 this.#removeObserverTimer = null;
@@ -157,10 +157,11 @@
                     this.#source.unregisterObserver(this.#onRefresh); // Note: This may throw an exception if removing failed
                 } catch (error) {
                     this.#logger.error('Failed removing observer on node', error);
-                    throw error;
                 }
                 this.#isObserved = false;
-                this.#onObserverRemoved();
+                if (this.#observers.length === 0) {
+                    this.#onObserverRemoved();
+                }
             }
         }
 
@@ -242,7 +243,7 @@
             dataPoint.node.unregisterObserver(onRefresh); // Note: may throw an exception if removing failed!
         }
 
-        addObserverToSource(filter) {
+        addObserverToSource(filter) { // TODO: Do we realy need this? If not, then remove!
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
                     const dataPoint = this.#dataPointsByDataId[dataId];
