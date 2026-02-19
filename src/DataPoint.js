@@ -37,6 +37,7 @@
                     clearTimeout(this.#removeObserverTimer);
                     this.#removeObserverTimer = null;
                     try {
+                        this.#logger.debug('Node.unregisterObserver() because removeObserverDelay has been reset');
                         this.#source.unregisterObserver(this.#onRefresh);
                     } catch (error) {
                         this.#logger.error('Failed removing observer', error);
@@ -78,8 +79,10 @@
                 if (this.#removeObserverTimer) { // If still observed we just kill the timer
                     clearTimeout(this.#removeObserverTimer);
                     this.#removeObserverTimer = null;
+                    this.#logger.debug('Node.registerObserver() has not been called but unregister timer has been interrupted');
                 } else { // We subscribe on the source which should result in firering the refresh event
                     try {
+                        this.#logger.debug('Node.registerObserver() for first added observer');
                         this.#source.registerObserver(this.#onRefresh); // Note: This may throw an exception if adding failed
                         this.#isObserved = true;
                     } catch (error) {
@@ -109,6 +112,7 @@
                             this.#removeObserverTimer = setTimeout(() => {
                                 this.#removeObserverTimer = null;
                                 try {
+                                    this.#logger.debug('Node.unregisterObserver() after timeout');
                                     this.#source.unregisterObserver(this.#onRefresh);
                                 } catch (error) {
                                     this.#logger.error('Failed removing observer on node', error);
@@ -118,6 +122,7 @@
                             }, this.#removeObserverDelay);
                         } else {
                             try {
+                                this.#logger.debug('Node.unregisterObserver() without timeout');
                                 this.#source.unregisterObserver(this.#onRefresh); // Note: This may throw an exception if removing failed
                             } catch (error) {
                                 this.#logger.error('Failed removing observer on node', error);
@@ -139,6 +144,7 @@
             }
             if (!this.#isObserved && this.#observers.length > 0) {
                 try {
+                    this.#logger.debug('Node.registerObserver() on addObserverToSource()');
                     this.#source.registerObserver(this.#onRefresh); // Note: This may throw an exception if adding failed
                     this.#isObserved = true;
                 } catch (error) {
@@ -154,6 +160,7 @@
             }
             if (this.#isObserved) {
                 try {
+                    this.#logger.debug('Node.unregisterObserver() on removeObserverFromSource()');
                     this.#source.unregisterObserver(this.#onRefresh); // Note: This may throw an exception if removing failed
                 } catch (error) {
                     this.#logger.error('Failed removing observer on node', error);
@@ -218,8 +225,14 @@
             let dataPoint = this.#dataPointsByDataId[dataId];
             if (!dataPoint) {
                 this.#dataPointsByDataId[dataId] = dataPoint = {
-                    registerObserver: onRefresh => this.#source.registerObserver(dataId, onRefresh),
-                    unregisterObserver: onRefresh => this.#source.unregisterObserver(dataId, onRefresh)
+                    registerObserver: onRefresh => {
+                        this.#logger.debug(`From node AccessPoint.registerObserver('${dataId}') on source`);
+                        this.#source.registerObserver(dataId, onRefresh);
+                    },
+                    unregisterObserver: onRefresh => {
+                        this.#logger.debug(`From node AccessPoint.unregisterObserver('${dataId}') on source`);
+                        this.#source.unregisterObserver(dataId, onRefresh);
+                    }
                 };
                 const node = dataPoint.node = new Node(this.#logger, dataPoint, () => {
                     delete dataPoint.node;
@@ -227,6 +240,7 @@
                 });
                 node.removeObserverDelay = this.#removeObserverDelay;
             }
+            this.#logger.debug(`AccessPoint.registerObserver('${dataId}') on node`);
             dataPoint.node.registerObserver(onRefresh); // Note: may throw an exception if adding failed!
         }
 
@@ -240,23 +254,28 @@
             if (!dataPoint) {
                 throw new Error(`Failed removing observer for unsupported id '${dataId}'`);
             }
+            this.#logger.debug(`AccessPoint.unregisterObserver('${dataId}') on node`);
             dataPoint.node.unregisterObserver(onRefresh); // Note: may throw an exception if removing failed!
         }
 
         addObserverToSource(filter) { // TODO: Do we realy need this? If not, then remove!
+            this.#logger.debug(`Calling addObserverToSource(filter) with filter: '${typeof filter === 'function'}'`);
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
                     const dataPoint = this.#dataPointsByDataId[dataId];
-                    dataPoint.addObserverToSource();
+                    dataPoint.node.addObserverToSource();
+                    this.#logger.debug(`Calling addObserverToSource() for data id '${dataId}'`);
                 }
             }
         }
 
         removeObserverFromSource(filter) {
+            this.#logger.debug(`Calling removeObserverFromSource(filter) with filter: '${typeof filter === 'function'}'`);
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
                     const dataPoint = this.#dataPointsByDataId[dataId];
-                    dataPoint.removeObserverFromSource();
+                    dataPoint.node.removeObserverFromSource();
+                    this.#logger.debug(`Calling removeObserverFromSource() for data id '${dataId}'`);
                 }
             }
         }
@@ -350,14 +369,14 @@
             this.#onAfterUpdateDataConnectors = null;
         }
 
-        set OnBeforeUpdateDataConnectors(value) {
+        set onBeforeUpdateDataConnectors(value) {
             if (typeof value !== 'function') {
                 throw new Error('Set value for onBeforeUpdateDataConnectors() is not a function');
             }
             this.#onBeforeUpdateDataConnectors = value;
         }
 
-        set OnAfterUpdateDataConnectors(value) {
+        set onAfterUpdateDataConnectors(value) {
             if (typeof value !== 'function') {
                 throw new Error('Set value for onAfterUpdateDataConnectors() is not a function');
             }
@@ -429,9 +448,11 @@
         }
 
         #updateDataConnectors(excludeTargetId = null) {
+            const dataIdStart = excludeTargetId ? `${excludeTargetId}:` : null;
+            const filter = dataIdStart ? dataId => dataId.startsWith(dataIdStart) : null;
             if (this.#onBeforeUpdateDataConnectors) {
                 try {
-                    this.#onBeforeUpdateDataConnectors();
+                    this.#onBeforeUpdateDataConnectors(filter);
                 } catch (error) {
                     this.#logger.error('Failed calling onBeforeUpdateDataConnectors()', error);
                 }
@@ -446,7 +467,7 @@
             }
             if (this.#onAfterUpdateDataConnectors) {
                 try {
-                    this.#onAfterUpdateDataConnectors();
+                    this.#onAfterUpdateDataConnectors(filter);
                 } catch (error) {
                     this.#logger.error('Failed calling onAfterUpdateDataConnectors()', error);
                 }
