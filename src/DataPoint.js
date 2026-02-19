@@ -46,7 +46,7 @@
 
         registerObserver(onRefresh) {
             if (typeof onRefresh !== 'function') {
-                throw new Error('onRefresh(value) is not a function');
+                throw new Error('Node.registerObserver(): onRefresh(value) is not a function');
             }
             // Check if already registered
             for (const observer of this.#observers) {
@@ -104,7 +104,7 @@
 
         unregisterObserver(onRefresh) {
             if (typeof onRefresh !== 'function') {
-                throw new Error('onRefresh(value) is not a function');
+                throw new Error('Node.unregisterObserver(): onRefresh(value) is not a function');
             }
             for (let i = 0; i < this.#observers.length; i++) {
                 if (this.#observers[i] === onRefresh) {
@@ -221,19 +221,19 @@
 
         registerObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`Invalid dataId '${dataId}'`);
+                throw new Error(`AccessPointon.registerObserver(): Invalid dataId '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
-                throw new Error('onRefresh(value) is not a function');
+                throw new Error('AccessPointon.registerObserver(): onRefresh(value) is not a function');
             }
             let dataPoint = this.#dataPointsByDataId[dataId];
             if (!dataPoint) {
                 this.#dataPointsByDataId[dataId] = dataPoint = {
                     registerObserver: onRefresh => {
-                        this.#logger.debug(`From node AccessPoint.registerObserver('${dataId}') on source`);
+                        this.#logger.debug(`AccessPointon.registerObserver(): Register '${dataId}' on source`);
                         this.#source.registerObserver(dataId, onRefresh);
                     },
                     unregisterObserver: onRefresh => {
-                        this.#logger.debug(`From node AccessPoint.unregisterObserver('${dataId}') on source`);
+                        this.#logger.debug(`AccessPointon.registerObserver(): Unregister '${dataId}' on source`);
                         this.#source.unregisterObserver(dataId, onRefresh);
                     }
                 };
@@ -248,9 +248,9 @@
 
         unregisterObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`Invalid dataId '${dataId}'`);
+                throw new Error(`AccessPointon.unregisterObserver(): Invalid dataId '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
-                throw new Error('onRefresh(value) is not a function');
+                throw new Error('AccessPointon.unregisterObserver(): onRefresh(value) is not a function');
             }
             const dataPoint = this.#dataPointsByDataId[dataId];
             if (!dataPoint) {

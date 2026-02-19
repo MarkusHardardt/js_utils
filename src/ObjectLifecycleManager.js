@@ -7200,8 +7200,13 @@
                 for (var i = 0; i < _watch.length; i++) {
                     (function () {
                         const dataId = _watch[i];
+                        let type;
                         try {
-                            const type = that.hmi.env.data.getType(dataId);
+                            type = that.hmi.env.data.getType(dataId);
+                        } catch (error) {
+                            type = Core.DataType.Unknown;
+                        }
+                        try {
                             const onRefresh = value => {
                                 try {
                                     if (typeof that.handleDataUpdate === 'function') {
