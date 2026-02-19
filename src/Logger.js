@@ -46,13 +46,13 @@
             Logger.addTransport(entry => {
                 const { level, formattedArgs } = entry;
                 if (level <= Logger.Level.ERROR) {
-                    console.error('❌', ...formattedArgs);
+                    console.error(...formattedArgs);
                 } else if (level <= Logger.Level.WARN) {
-                    console.warn('⚠️', ...formattedArgs);
+                    console.warn(...formattedArgs);
                 } else if (level <= Logger.Level.INFO) {
-                    console.info('ℹ️', ...formattedArgs);
+                    console.info(...formattedArgs);
                 } else {
-                    console.log('★', ...formattedArgs);
+                    console.log(...formattedArgs);
                 }
             });
         }
@@ -100,7 +100,17 @@
             if (level <= effectiveLevel) {
                 const timestamp = new Date().toISOString();
                 const levelName = Logger.LevelName[level];
-                const prefix = `[${timestamp}] [${levelName}] [${this.#context}]`;
+                let symbol;
+                if (level <= Logger.Level.ERROR) {
+                    symbol = '❌';
+                } else if (level <= Logger.Level.WARN) {
+                    symbol = '⚠️';
+                } else if (level <= Logger.Level.INFO) {
+                    symbol = 'ℹ️';
+                } else {
+                    symbol = '★';
+                }
+                const prefix = `${symbol}[${timestamp}] [${levelName}] [${this.#context}]`;
                 const formattedArgs = this.#format(prefix, level, args);
                 const entry = {
                     timestamp,

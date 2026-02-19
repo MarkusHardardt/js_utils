@@ -55,6 +55,7 @@
         // prepare logging
         tasks.push((onSuccess, onError) => {
             hmi.env.logger = new Logger(config.applicationName);
+            onSuccess();
         });
 
         // prepare content management system
