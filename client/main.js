@@ -115,8 +115,7 @@
             const isValidLanguageValueId = hmi.env.cms.getIdValidTestFunctionForLanguageValue();
             const dataAccessSwitch = new DataPoint.Switch(dataId => isValidLanguageValueId(dataId) ? hmi.env.lang : dataConnector);
             // Create collection providing multiple subscriptions from any context
-            const dataAccessPoint = new DataPoint.AccessPoint(hmi.env.logger, dataAccessSwitch); // Use the router as source
-            dataAccessPoint.removeObserverDelay = config.accessPointRemoveObserverDelay;
+            const dataAccessPoint = new DataPoint.AccessPoint(hmi.env.logger, dataAccessSwitch, config.accessPointUnregisterObserverDelay); // Use the router as source
             hmi.env.data = dataAccessPoint; // Enable access from anyhwere
             onSuccess();
         });

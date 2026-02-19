@@ -5,47 +5,35 @@
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Common = isNodeJS ? require('./Common.js') : root.Common;
 
+    const NodeState = Object.freeze({
+        Constructed: 0,
+        Registered: 1,
+        NotRegistered: 2,
+        UnregisterTimerRunning: 3,
+        Destructed: 4
+    });
+
     class Node {
         #logger;
         #source;
         #onObserverRemoved;
-        #isObserved;
         #value;
         #onRefresh;
         #observers;
-        #removeObserverDelay;
-        #removeObserverTimer;
-        constructor(logger, source, onObserverRemoved) {
+        #unregisterObserverDelay;
+        #unregisterObserverTimer;
+        #state;
+        constructor(logger, source, unregisterObserverDelay, onObserverRemoved) {
             this.#logger = logger;
             this.#source = source;
             this.#onObserverRemoved = onObserverRemoved;
-            this.#isObserved = false;
             this.#value = null;
             this.#onRefresh = value => this.#refresh(value);
             this.#observers = [];
-            this.#removeObserverDelay = false;
-            this.#removeObserverTimer = null;
+            this.#unregisterObserverDelay = unregisterObserverDelay;
+            this.#unregisterObserverTimer = null;
+            this.#state = NodeState.Constructed;
             Common.validateAsObservable(this, true);
-        }
-
-        set removeObserverDelay(value) {
-            if (typeof value === 'number' && value > 0) {
-                this.#removeObserverDelay = Math.ceil(value);
-            } else {
-                this.#removeObserverDelay = false;
-                if (this.#removeObserverTimer) { // TODO: Do we need to do this here?
-                    clearTimeout(this.#removeObserverTimer);
-                    this.#removeObserverTimer = null;
-                    try {
-                        this.#logger.debug('Node.unregisterObserver() because removeObserverDelay has been reset');
-                        this.#source.unregisterObserver(this.#onRefresh);
-                    } catch (error) {
-                        this.#logger.error('Failed removing observer', error);
-                    }
-                    this.#isObserved = false;
-                    this.#onObserverRemoved();
-                }
-            }
         }
 
         get value() {
@@ -60,43 +48,57 @@
             if (typeof onRefresh !== 'function') {
                 throw new Error('onRefresh(value) is not a function');
             }
-            // If already stored and if we just call for refresh and return
+            // Check if already registered
             for (const observer of this.#observers) {
                 if (observer === onRefresh) {
-                    this.#logger.warn('onRefresh(value) has already been added');
+                    this.#logger.warn('Node.registerObserver(): onRefresh(value) has already been registered');
+                    // If already stored and if we just call for refresh and return
                     if (this.#value !== undefined && this.#value !== null) {
                         try {
                             onRefresh(this.#value);
                         } catch (error) {
-                            this.#logger.error('Failed calling onRefresh(value)', error);
+                            this.#logger.error('Node.registerObserver(): Failed calling onRefresh(value)', error);
                         }
                     }
                     return;
                 }
             }
             this.#observers.push(onRefresh);
-            if (!this.#isObserved && this.#observers.length === 1) { // If not observerd and the first add
-                if (this.#removeObserverTimer) { // If still observed we just kill the timer
-                    clearTimeout(this.#removeObserverTimer);
-                    this.#removeObserverTimer = null;
-                    this.#logger.debug('Node.registerObserver() has not been called but unregister timer has been interrupted');
-                } else { // We subscribe on the source which should result in firering the refresh event
+            switch (this.#state) {
+                case NodeState.Constructed:
+                case NodeState.NotRegistered:
                     try {
-                        this.#logger.debug('Node.registerObserver() for first added observer');
-                        this.#source.registerObserver(this.#onRefresh); // Note: This may throw an exception if adding failed
-                        this.#isObserved = true;
+                        this.#source.registerObserver(this.#onRefresh); // Note: This may throw an exception
+                        this.#logger.debug('Node.registerObserver(): Registered observer on source');
+                        this.#state = NodeState.Registered;
                     } catch (error) {
-                        this.#logger.error('Failed adding observer on node', error);
+                        this.#logger.error('Node.registerObserver(): Failed to register observer on source', error);
+                        this.#state = NodeState.NotRegistered;
                     }
                     return;
-                }
-            }
-            if (this.#value !== undefined && this.#value !== null) { // Refresh if value is available
-                try {
-                    onRefresh(this.#value);
-                } catch (error) {
-                    this.#logger.error('Failed calling onRefresh(value)', error);
-                }
+                case NodeState.Registered:
+                    if (this.#value !== undefined && this.#value !== null) { // Refresh if value is available
+                        try {
+                            onRefresh(this.#value);
+                        } catch (error) {
+                            this.#logger.error('Node.registerObserver(): Failed calling onRefresh(value)', error);
+                        }
+                    }
+                    return;
+                case NodeState.UnregisterTimerRunning:
+                    clearTimeout(this.#unregisterObserverTimer);
+                    this.#unregisterObserverTimer = null;
+                    this.#logger.debug('Node.registerObserver(): Unregister timer has been interrupted due to registered another observer');
+                    this.#state = NodeState.Registered;
+                    if (this.#value !== undefined && this.#value !== null) { // Refresh if value is available
+                        try {
+                            onRefresh(this.#value);
+                        } catch (error) {
+                            this.#logger.error('Node.registerObserver(): Failed calling onRefresh(value)', error);
+                        }
+                    }
+                    return;
+
             }
         }
 
@@ -107,68 +109,82 @@
             for (let i = 0; i < this.#observers.length; i++) {
                 if (this.#observers[i] === onRefresh) {
                     this.#observers.splice(i, 1);
-                    if (this.#isObserved && this.#observers.length === 0) { // If observed and the last observer has been removed
-                        if (this.#removeObserverDelay) {
-                            this.#removeObserverTimer = setTimeout(() => {
-                                this.#removeObserverTimer = null;
-                                try {
-                                    this.#logger.debug('Node.unregisterObserver() after timeout');
-                                    this.#source.unregisterObserver(this.#onRefresh);
-                                } catch (error) {
-                                    this.#logger.error('Failed removing observer on node', error);
+                    switch (this.#state) {
+                        case NodeState.Registered:
+                            if (this.#observers.length === 0) {
+                                if (this.#unregisterObserverDelay) {
+                                    this.#unregisterObserverTimer = setTimeout(() => {
+                                        this.#unregisterObserverTimer = null;
+                                        try {
+                                            this.#source.unregisterObserver(this.#onRefresh);
+                                            this.#logger.debug('Node.unregisterObserver(): Unregistered on source after delay has expired');
+                                        } catch (error) {
+                                            this.#logger.error('Node.unregisterObserver(): Failed to unregister on source after delay has expired', error);
+                                        }
+                                        this.#state = NodeState.Destructed;
+                                        this.#onObserverRemoved();
+                                    }, this.#unregisterObserverDelay);
+                                    this.#state = NodeState.UnregisterTimerRunning;
+                                } else {
+                                    try {
+                                        this.#source.unregisterObserver(this.#onRefresh);
+                                        this.#logger.debug('Node.unregisterObserver(): Unregistered on source without delay');
+                                    } catch (error) {
+                                        this.#logger.error('Node.unregisterObserver(): Failed to unregister on source without delay', error);
+                                    }
+                                    this.#state = NodeState.Destructed;
+                                    this.#onObserverRemoved();
                                 }
-                                this.#isObserved = false;
-                                this.#onObserverRemoved();
-                            }, this.#removeObserverDelay);
-                        } else {
-                            try {
-                                this.#logger.debug('Node.unregisterObserver() without timeout');
-                                this.#source.unregisterObserver(this.#onRefresh); // Note: This may throw an exception if removing failed
-                            } catch (error) {
-                                this.#logger.error('Failed removing observer on node', error);
                             }
-                            this.#isObserved = false;
-                            this.#onObserverRemoved();
-                        }
+                            return;
+                        case NodeState.NotRegistered:
+                            if (this.#observers.length === 0) {
+                                this.#state = NodeState.Destructed;
+                                this.#onObserverRemoved();
+                            }
+                            return;
                     }
-                    return;
                 }
             }
             this.#logger.warn('onRefresh(value) has already been removed');
         }
 
-        addObserverToSource() { // TODO: Do we realy need this? If not, then remove!
-            if (this.#removeObserverTimer) { // If still observed we kill the timer
-                clearTimeout(this.#removeObserverTimer);
-                this.#removeObserverTimer = null;
-            }
-            if (!this.#isObserved && this.#observers.length > 0) {
-                try {
-                    this.#logger.debug('Node.registerObserver() on addObserverToSource()');
-                    this.#source.registerObserver(this.#onRefresh); // Note: This may throw an exception if adding failed
-                    this.#isObserved = true;
-                } catch (error) {
-                    this.#logger.error('Failed adding observer on node', error);
-                }
+        registerObserverOnSource() {
+            switch (this.#state) {
+                case NodeState.NotRegistered:
+                    try {
+                        this.#source.registerObserver(this.#onRefresh);
+                        this.#logger.debug('Node.registerObserverOnSource(): Registered on source');
+                        this.#state = NodeState.Registered;
+                    } catch (error) {
+                        this.#logger.error('Node.registerObserverOnSource(): Failed to register on source', error);
+                    }
+                    return;
             }
         }
 
-        removeObserverFromSource() {
-            if (this.#removeObserverTimer) { // If still observed we kill the timer
-                clearTimeout(this.#removeObserverTimer);
-                this.#removeObserverTimer = null;
-            }
-            if (this.#isObserved) {
-                try {
-                    this.#logger.debug('Node.unregisterObserver() on removeObserverFromSource()');
-                    this.#source.unregisterObserver(this.#onRefresh); // Note: This may throw an exception if removing failed
-                } catch (error) {
-                    this.#logger.error('Failed removing observer on node', error);
-                }
-                this.#isObserved = false;
-                if (this.#observers.length === 0) {
-                    this.#onObserverRemoved();
-                }
+        unregisterObserverOnSource() {
+            switch (this.#state) {
+                case NodeState.Registered:
+                    try {
+                        this.#source.unregisterObserver(this.#onRefresh);
+                        this.#logger.debug('Node.unregisterObserverOnSource(): Unregistered on source');
+                    } catch (error) {
+                        this.#logger.error('Node.unregisterObserverOnSource(): Failed to unregister on source', error);
+                    }
+                    this.#state = NodeState.NotRegistered;
+                    return;
+                case NodeState.UnregisterTimerRunning:
+                    clearTimeout(this.#unregisterObserverTimer);
+                    this.#unregisterObserverTimer = null;
+                    try {
+                        this.#source.unregisterObserver(this.#onRefresh);
+                        this.#logger.debug('Node.unregisterObserverOnSource(): Unregistered on source with interruppted timer');
+                    } catch (error) {
+                        this.#logger.error('Node.unregisterObserverOnSource(): Failed to unregister on sourcewith interruppted timer', error);
+                    }
+                    this.#state = NodeState.NotRegistered;
+                    return;
             }
         }
 
@@ -189,27 +205,14 @@
     class AccessPoint {
         #logger;
         #source;
-        #removeObserverDelay;
+        #unregisterObserverDelay;
         #dataPointsByDataId;
-        constructor(logger, source) {
+        constructor(logger, source, unregisterObserverDelay) {
             this.#logger = Common.validateAsLogger(logger, true);
             this.#source = Common.validateAsDataAccessObject(source, true);
-            this.#removeObserverDelay = false;
+            this.#unregisterObserverDelay = typeof unregisterObserverDelay === 'number' && unregisterObserverDelay > 0 ? Math.ceil(unregisterObserverDelay) : false;
             this.#dataPointsByDataId = {};
             Common.validateAsDataAccessObject(this, true);
-        }
-
-        set removeObserverDelay(value) {
-            this.#removeObserverDelay = typeof value === 'number' && value > 0 ? Math.ceil(value) : false;
-            this.#setRemoveObserverDelayOnNodes(this.#removeObserverDelay);
-        }
-
-        #setRemoveObserverDelayOnNodes(delay) {
-            for (const dataId in this.#dataPointsByDataId) {
-                if (this.#dataPointsByDataId.hasOwnProperty(dataId)) {
-                    this.#dataPointsByDataId[dataId].node.removeObserverDelay = delay;
-                }
-            }
         }
 
         getType(dataId) {
@@ -234,11 +237,10 @@
                         this.#source.unregisterObserver(dataId, onRefresh);
                     }
                 };
-                const node = dataPoint.node = new Node(this.#logger, dataPoint, () => {
+                dataPoint.node = new Node(this.#logger, dataPoint, this.#unregisterObserverDelay, () => {
                     delete dataPoint.node;
                     delete this.#dataPointsByDataId[dataId];
                 });
-                node.removeObserverDelay = this.#removeObserverDelay;
             }
             this.#logger.debug(`AccessPoint.registerObserver('${dataId}') on node`);
             dataPoint.node.registerObserver(onRefresh); // Note: may throw an exception if adding failed!
@@ -258,24 +260,24 @@
             dataPoint.node.unregisterObserver(onRefresh); // Note: may throw an exception if removing failed!
         }
 
-        addObserverToSource(filter) { // TODO: Do we realy need this? If not, then remove!
-            this.#logger.debug(`Calling addObserverToSource(filter) with filter: '${typeof filter === 'function'}'`);
+        registerObserverOnSource(filter) { // TODO: Do we realy need this? If not, then remove!
+            this.#logger.debug(`Calling registerObserverOnSource(filter) with filter: '${typeof filter === 'function'}'`);
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
                     const dataPoint = this.#dataPointsByDataId[dataId];
-                    dataPoint.node.addObserverToSource();
-                    this.#logger.debug(`Calling addObserverToSource() for data id '${dataId}'`);
+                    dataPoint.node.registerObserverOnSource();
+                    this.#logger.debug(`Calling registerObserverOnSource() for data id '${dataId}'`);
                 }
             }
         }
 
-        removeObserverFromSource(filter) {
-            this.#logger.debug(`Calling removeObserverFromSource(filter) with filter: '${typeof filter === 'function'}'`);
+        unregisterObserverOnSource(filter) {
+            this.#logger.debug(`Calling unregisterObserverOnSource(filter) with filter: '${typeof filter === 'function'}'`);
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
                     const dataPoint = this.#dataPointsByDataId[dataId];
-                    dataPoint.node.removeObserverFromSource();
-                    this.#logger.debug(`Calling removeObserverFromSource() for data id '${dataId}'`);
+                    dataPoint.node.unregisterObserverOnSource();
+                    this.#logger.debug(`Calling unregisterObserverOnSource() for data id '${dataId}'`);
                 }
             }
         }

@@ -7197,14 +7197,6 @@
             _watch = get_watch(that.watch);
             if (Array.isArray(_watch)) {
                 _onEventCallbacks = [];
-                function tryGetType(dataId) { // TODO: Use or remove
-                    try {
-                        return that.hmi.env.data.getType(dataId);
-                    } catch (error) {
-                        console.error(`Failed calling getType('${dataId}'):\n${error.message}`);
-                        return Core.DataType.Unknown;
-                    }
-                }
                 for (var i = 0; i < _watch.length; i++) {
                     (function () {
                         const dataId = _watch[i];

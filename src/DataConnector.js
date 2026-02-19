@@ -242,6 +242,8 @@
         }
 
         #updateObservations(observationShorts) {
+            this.#logger.debug(`### ==> BLOCKED UPDATING OBSERVERS [${observationShorts}]`);
+            return; // TODO: Remove this line
             Core.validateAs('DataAccessObject', this.#source, ['registerObserver:function', 'unregisterObserver:function']);
             // First we unsubscribe all that have been observed but are no longer requested
             for (const dataId in this.#dataPointsByDataId) {
