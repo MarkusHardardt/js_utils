@@ -29,7 +29,6 @@
         },
         // Environment
         env: {
-            logger: new Logger('js_utils'),
             isInstance: instance => false, // TODO: Implement isInstance(instance)
             isSimulationEnabled: () => false // TODO: Implement isSimulationEnabled()
         },
@@ -53,6 +52,11 @@
             }, onError);
         });
 
+        // prepare logging
+        tasks.push((onSuccess, onError) => {
+            hmi.env.logger = new Logger(config.applicationName);
+        });
+
         // prepare content management system
         tasks.push((onSuccess, onError) => hmi.env.cms = ContentManager.getInstance(onSuccess, onError));
         tasks.push((onSuccess, onError) => {
@@ -67,7 +71,7 @@
             hmi.env.logger.debug('Loaded web socket session configuration successfully. Session ID:', webSocketSessionConfig.sessionId);
             onSuccess();
         }, error => {
-            console.error(`Error loading web socket session configuration: ${error}`);
+            hmi.env.logger.error('Failed loading web socket session configuration', error);
             onError(error);
         }));
         let dataConnector = undefined;
@@ -93,8 +97,8 @@
                         dataConnector.onClose();
 
                     },
-                    OnError: error => {
-                        console.error(`error in connection (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}') to server: ${error}`);
+                    onError: error => {
+                        hmi.env.logger.error(`error in connection (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}') to server`, error);
                     }
                 });
                 taskManager.connection = webSocketConnection;
@@ -132,7 +136,7 @@
                 });
             } else {
                 rootObject = ContentEditor.create(hmi);
-                hmi.env.data.OnError = rootObject.notifyError;
+                // hmi.env.data.onError = rootObject.notifyError; ???
                 onSuccess();
             }
         });
@@ -147,8 +151,14 @@
             const body = $(document.body);
             body.empty();
             body.addClass('hmi-body');
-            hmi.createObject(rootObject, body, () => hmi.env.logger.info('js hmi started'), error => console.error(error));
-            body.on('unload', () => hmi.killObject(rootObject, () => hmi.env.logger.info('js hmi stopped'), error => console.error(error)));
-        }, error => console.error(error));
+            hmi.createObject(rootObject, body,
+                () => hmi.env.logger.info(`${config.applicationName} started`),
+                error => hmi.env.logger.error(`Failed starting ${config.applicationName}`, error)
+            );
+            body.on('unload', () => hmi.killObject(rootObject,
+                () => hmi.env.logger.info(`${config.applicationName} stopped`),
+                error => hmi.env.logger.error(`Failed stopping ${config.applicationName}`, error)
+            ));
+        }, error => hmi.env.logger.error(`Failed building ${config.applicationName}`, error));
     });
 }(globalThis));
