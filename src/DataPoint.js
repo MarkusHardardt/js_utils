@@ -114,7 +114,7 @@
                                 try {
                                     this.#source.unregisterObserver(this.#onRefresh);
                                 } catch (error) {
-                                    this.#logger.Error(`Failed removing observer on node: ${error.message}`);
+                                    this.#logger.error('Failed removing observer on node', error);
                                 }
                                 this.#isObserved = false;
                                 this.#onObserverRemoved();

@@ -296,11 +296,11 @@
                 reconnectMax: max timeout before next reconnect attempt [ms]
                 onOpen(): will be called when socket connection has been established
                 onClose(): will be called when socket connection has been lost
-                OnError(error): will be called when an error occurred
+                onError(error): will be called when an error occurred
               }
             A client connection has the following public interface:
-            - Start(): triggers connection attempts
-            - Stop(): triggers disconnection
+            - start(): triggers connection attempts
+            - stop(): triggers disconnection
             read comment for Connection for more properties and methods.    */
         class WebSocketClientConnection extends Connection {
             #url;
@@ -438,7 +438,7 @@
             - options: {
                 onOpen(): will be called when socket connection has been established
                 onClose(): will be called when socket connection has been lost
-                OnError(error): will be called when an error occurred
+                onError(error): will be called when an error occurred
               }
             read comment for Connection for more properties and methods.    */
         class WebSocketServerConnection extends Connection {
@@ -540,7 +540,7 @@
                                         try {
                                             options.onReopen(instance.connection);
                                         } catch (error) {
-                                            this.#logger.error('Failed calling OnReopen()', error);
+                                            this.#logger.error('Failed calling onReopen()', error);
                                         }
                                     } else {
                                         this.#logger.info(`Connection reopened with session id: '${formatSesionId(sessionId)}'`);
@@ -564,7 +564,7 @@
                                         try {
                                             options.onDispose(instance.connection);
                                         } catch (error) {
-                                            this.#logger.error('Failed calling OnDispose()', error);
+                                            this.#logger.error('Failed calling onDispose()', error);
                                         }
                                     } else {
                                         this.#logger.info(`Connection diposed with session id: '${formatSesionId(sessionId)}'`);
@@ -576,7 +576,7 @@
                                     try {
                                         options.onError(instance.connection, error);
                                     } catch (error) {
-                                        this.#logger.error('Failed calling OnError()', error);
+                                        this.#logger.error('Failed calling onError()', error);
                                     }
                                 } else {
                                     this.#logger.error(`Error in connection with session id: '${formatSesionId(sessionId)}': ${error}`);

@@ -2542,7 +2542,7 @@
             stopTaskButton.hmi_setVisible(false);
             browseTaskObjectButton.hmi_setVisible(false);
             browseJsonFXObjectButton.hmi_setVisible(false);
-            taskObjects = hmi.env.tasks.GetTasks();
+            taskObjects = hmi.env.tasks.getTasks();
             const tasks = [];
             for (let i = 0; i < taskObjects.length; i++) {
                 (function () {
@@ -2808,7 +2808,7 @@
             click: onClose => {
                 if (selectedDataIndex !== -1) {
                     const taskObject = taskObjects[selectedDataIndex];
-                    hmi.env.tasks.StartTask(taskObject.config.path, response => adapter.updateInfo(response), error => adapter.notifyError(error));
+                    hmi.env.tasks.startTask(taskObject.config.path, response => adapter.updateInfo(response), error => adapter.notifyError(error));
                 }
             }
         };
@@ -2818,7 +2818,7 @@
             click: onClose => {
                 if (selectedDataIndex !== -1) {
                     const taskObject = taskObjects[selectedDataIndex];
-                    hmi.env.tasks.StopTask(taskObject.config.path, response => adapter.updateInfo(response), error => adapter.notifyError(error));
+                    hmi.env.tasks.stopTask(taskObject.config.path, response => adapter.updateInfo(response), error => adapter.notifyError(error));
                 }
             }
         };
@@ -2829,8 +2829,8 @@
                 if (selectedDataIndex !== -1) {
                     adapter.selectInNavigator(cms.analyzeId(taskObjects[selectedDataIndex].config.id));
                 }
-                hmi.env.tasks.OnConfigChanged = null;
-                hmi.env.tasks.OnStateChanged = null;
+                hmi.env.tasks.onConfigChanged = null;
+                hmi.env.tasks.onStateChanged = null;
                 onClose();
             }
         };
@@ -2841,8 +2841,8 @@
                 if (selectedDataIndex !== -1) {
                     adapter.selectInNavigator(cms.analyzeId(taskObjects[selectedDataIndex].config.taskObject));
                 }
-                hmi.env.tasks.OnConfigChanged = null;
-                hmi.env.tasks.OnStateChanged = null;
+                hmi.env.tasks.onConfigChanged = null;
+                hmi.env.tasks.onStateChanged = null;
                 onClose();
             }
         };
@@ -2858,20 +2858,20 @@
             buttons: [commitButton, resetButton, startTaskButton, stopTaskButton, browseTaskObjectButton, browseJsonFXObjectButton, {
                 text: 'close',
                 click: onClose => {
-                    hmi.env.tasks.OnConfigChanged = null;
-                    hmi.env.tasks.OnStateChanged = null;
+                    hmi.env.tasks.onConfigChanged = null;
+                    hmi.env.tasks.onStateChanged = null;
                     onClose();
                 }
             }]
         };
         hmi.showDialog(dialogObject);
         reload();
-        hmi.env.tasks.OnConfigChanged = () => {
+        hmi.env.tasks.onConfigChanged = () => {
             if (!selectedDataEdited) {
                 reload();
             }
         };
-        hmi.env.tasks.OnStateChanged = onStateChanged;
+        hmi.env.tasks.onStateChanged = onStateChanged;
     }
 
     function getEditController(hmi, adapter) {
