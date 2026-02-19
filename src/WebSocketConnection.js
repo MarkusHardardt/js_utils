@@ -489,10 +489,10 @@
             - options: {
                 closedConnectionDisposeTimeout: timeout before a closed connection is disposed [ms]
                 onOpen(connection): will be called when socket connection has been established the first time
-                OnReopen(connection): will be called when socket connection has been established again
+                onReopen(connection): will be called when socket connection has been established again
                 onClose(connection): will be called when socket connection has been lost
-                OnDispose(connection): will be called when socket connection has been lost and not established again before the timeout has expired
-                OnError(connection, error): will be called when an error occurred
+                onDispose(connection): will be called when socket connection has been lost and not established again before the timeout has expired
+                onError(connection, error): will be called when an error occurred
               }   
             A server has the following public interface:    
             - CreateSessionConfig(): returns a configuration object containing the port and a new unique session id    */

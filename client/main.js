@@ -43,11 +43,15 @@
         const hmiQueryParameterValue = urlSearchParams.get('hmi');
         const tasks = [];
         tasks.parallel = false;
-
-        const dataConnector = DataConnector.getInstance(hmi.env.logger);
-
-        const taskManager = TaskManager.getInstance(hmi);
-        hmi.env.tasks = taskManager;
+        // load client config
+        let config = false;
+        tasks.push((onSuccess, onError) => {
+            Client.fetch('/get_client_config', null, response => {
+                config = JSON.parse(response);
+                Logger.setLevel(config.logLevel);
+                onSuccess();
+            }, onError);
+        });
 
         // prepare content management system
         tasks.push((onSuccess, onError) => hmi.env.cms = ContentManager.getInstance(onSuccess, onError));
@@ -66,8 +70,12 @@
             console.error(`Error loading web socket session configuration: ${error}`);
             onError(error);
         }));
+        let dataConnector = undefined;
         let webSocketConnection = undefined;
         tasks.push((onSuccess, onError) => {
+            dataConnector = DataConnector.getInstance(hmi.env.logger);
+            const taskManager = TaskManager.getInstance(hmi);
+            hmi.env.tasks = taskManager;
             try {
                 webSocketConnection = new WebSocketConnection.ClientConnection(hmi.env.logger, document.location.hostname, webSocketSessionConfig, {
                     heartbeatInterval: 2000,
@@ -95,14 +103,6 @@
             } catch (error) {
                 onError(error);
             }
-        });
-        // load client config
-        let config = false;
-        tasks.push((onSuccess, onError) => {
-            Client.fetch('/get_client_config', null, response => {
-                config = JSON.parse(response);
-                onSuccess();
-            }, onError);
         });
         // Provide data access from any context to any source
         tasks.push((onSuccess, onError) => {

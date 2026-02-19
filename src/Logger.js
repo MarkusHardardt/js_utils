@@ -7,7 +7,6 @@
         // ─────────────────────────────
         // Log Levels
         // ─────────────────────────────
-
         static Level = Object.freeze({
             FATAL: 1,
             ERROR: 2,
@@ -15,8 +14,20 @@
             INFO: 4,
             DEBUG: 5,
             TRACE: 6,
-            OFF: 0
+            OFF: 99
         });
+
+        static getLevel(value, defaultLevel = null) {
+            for (const levelName in Logger.Level) {
+                if (Logger.Level.hasOwnProperty(levelName)) {
+                    const levelNumber = Logger.Level[levelName];
+                    if (value === levelNumber || value === levelName) {
+                        return levelNumber;
+                    }
+                }
+            }
+            return defaultLevel;
+        }
 
         static LevelName = Object.freeze({
             1: 'FATAL',
@@ -27,7 +38,7 @@
             6: 'TRACE'
         });
 
-        static #globalLevel = Logger.Level.TRACE; // TODO: Reuse Logger.Level.WARN;
+        static #globalLevel = Logger.Level.WARN;
         static #transports = [];
 
         // Default transport → console
@@ -47,9 +58,8 @@
         // ─────────────────────────────
         // Static API
         // ─────────────────────────────
-
         static setLevel(level) {
-            this.#globalLevel = level;
+            this.#globalLevel = Logger.getLevel(level, Logger.Level.TRACE);
         }
 
         static addTransport(fn) {
@@ -67,52 +77,46 @@
         // ─────────────────────────────
         // Instance
         // ─────────────────────────────
-
         #context;
         #level;
 
         constructor(context = 'App', level = null) {
             this.#context = context;
-            this.#level = level;
+            this.#level = Logger.getLevel(level);
             Common.validateAsLogger(this, true);
         }
 
         setLevel(level) {
-            this.#level = level;
+            this.#level = Logger.getLevel(level);
         }
 
         // ─────────────────────────────
         // Core Logging Method
         // ─────────────────────────────
-
         #log(level, args) {
             const effectiveLevel = this.#level ?? Logger.#globalLevel;
-            if (level > effectiveLevel) return;
-
-            const timestamp = new Date().toISOString();
-            const levelName = Logger.LevelName[level];
-            const prefix = `[${timestamp}] [${levelName}] [${this.#context}]`;
-
-            const formattedArgs = this.#format(prefix, level, args);
-
-            const entry = {
-                timestamp,
-                level,
-                levelName,
-                context: this.#context,
-                args,
-                formattedArgs,
-            };
-
-            for (const transport of Logger.#transports) {
-                transport(entry);
+            if (level <= effectiveLevel) {
+                const timestamp = new Date().toISOString();
+                const levelName = Logger.LevelName[level];
+                const prefix = `[${timestamp}] [${levelName}] [${this.#context}]`;
+                const formattedArgs = this.#format(prefix, level, args);
+                const entry = {
+                    timestamp,
+                    level,
+                    levelName,
+                    context: this.#context,
+                    args,
+                    formattedArgs,
+                };
+                for (const transport of Logger.#transports) {
+                    transport(entry);
+                }
             }
         }
 
         // ─────────────────────────────
         // Formatting
         // ─────────────────────────────
-
         #format(prefix, level, args) {
             if (isNodeJS) {
                 // Node.js ANSI colors
@@ -152,7 +156,6 @@
         // ─────────────────────────────
         // Public Logging Methods
         // ─────────────────────────────
-
         fatal(...args) {
             this.#log(Logger.Level.FATAL, args);
         }

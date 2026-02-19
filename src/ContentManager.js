@@ -11,6 +11,7 @@
     const SqlHelper = isNodeJS ? require('./SqlHelper.js') : root.SqlHelper;
     const Utilities = isNodeJS ? require('./Utilities.js') : root.Utilities;
     const Core = isNodeJS ? require('./Core.js') : root.Core;
+    const Common = isNodeJS ? require('./Common.js') : root.Common;
 
     /*  ContentManager inferface  */
     function validateAsContentManager(instance, validateMethodArguments) {
@@ -275,13 +276,15 @@
     const compareKeys = Sorting.getTextsAndNumbersCompareFunction(false, false, true);
 
     class ServerManager extends ContentManagerBase {
+        #logger;
         #getSqlAdapter;
         #parallel;
         #affectedTypesListeners;
         #hmiTable;
         #taskTable;
-        constructor(getSqlAdapter, iconDirectory, config) {
+        constructor(logger, getSqlAdapter, iconDirectory, config) {
             super();
+            this.#logger = Common.validateAsLogger(logger, true);
             if (typeof getSqlAdapter !== 'function') {
                 throw new Error('No database access provider available!');
             }
@@ -2990,7 +2993,7 @@
     }
 
     if (isNodeJS) {
-        ContentManager.getInstance = (getSqlAdapter, iconDirectory, config) => new ServerManager(getSqlAdapter, iconDirectory, config);
+        ContentManager.getInstance = (logger, getSqlAdapter, iconDirectory, config) => new ServerManager(logger, getSqlAdapter, iconDirectory, config);
     } else {
         ContentManager.getInstance = (onResponse, onError) => new ClientManager(onResponse, onError);
     }
