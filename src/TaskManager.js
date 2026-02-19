@@ -54,7 +54,7 @@
             }
             this.#reloadTasksTimeout = setTimeout(() => {
                 this.#reloadTasksTimeout = null;
-                this.#reloadTasks(() => this._logger.info('Loaded tasks'), error => this._logger.error(error));
+                this.#reloadTasks(() => this._logger.debug('Loaded tasks'), error => this._logger.error(error));
             }, RELOAD_TASKS_TIMEOUT);
         }
 
@@ -253,9 +253,8 @@
                     this._logger.info(`Stopped task '${path}' with object '${taskObject.config.taskObject}'`);
                     onSuccess();
                 }, error => {
-                    const message = `Failed stopping task '${path}' with object '${taskObject.config.taskObject}':\n${error}`;
-                    this._logger.error(message);
-                    onError(message);
+                    this._logger.error(`Failed stopping task '${path}' with object '${taskObject.config.taskObject}'`, error);
+                    onError(`Failed stopping task '${path}' with object '${taskObject.config.taskObject}':\n${error}`);
                 }, taskObject.onLifecycleStateChanged);
             }
         }

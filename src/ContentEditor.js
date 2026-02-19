@@ -360,10 +360,10 @@
             }
             language = btn.text;
             languageSwitching.loadLanguage(language, () => {
-                console.log(`loaded language '${language}'`);
+                hmi.env.logger.debug(`loaded language '${language}'`);
                 adapter.languageChanged(language);
             }, error => {
-                console.error(`failed loading language '${language}': ${error}`);
+                hmi.env.loggererror(`failed loading language '${language}'`, error);
             });
         };
         for (let i = 0; i < langs.length; i++) {
@@ -529,7 +529,7 @@
                     text: typeof error === 'string' ? error : (error ? error.toString() : 'unknown'),
                     timeout: false
                 });
-                console.error(error);
+                hmi.env.logger.error(error);
             },
             pushTimeout: message => {
                 push({
@@ -538,7 +538,7 @@
                     text: typeof message === 'string' ? message : (message ? message.toString() : 'unknown'),
                     timeout: true
                 });
-                console.error(message);
+                hmi.env.logger.error(message);
             },
             prepare: (that, onSuccess, onError) => {
                 update();
@@ -1720,7 +1720,7 @@
             getValue: get_value,
             destroy: (that, onSuccess, onError) => {
                 if (object && typeof object._hmi_removeEditListener === 'function') {
-                    console.log('object._hmi_removeEditListener(edit_listener);');
+                    hmi.env.logger.trace('object._hmi_removeEditListener(edit_listener);');
                     object._hmi_removeEditListener(edit_listener);
                 }
                 onSuccess();
@@ -2565,7 +2565,6 @@
             }, error => adapter.notifyError(`Error loading task objects: ${error}`));
         }
         function onStateChanged(path, state) {
-            // TODO: remove console.log(`task '${path}', state: '${ObjectLifecycleManager.formatObjectLifecycleState(state)}'`);
             if (taskObjects) {
                 for (let i = 0; i < taskObjects.length; i++) {
                     const taskObject = taskObjects[i];

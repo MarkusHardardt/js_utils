@@ -898,8 +898,6 @@
                         break;
                     case DataType.HMI:
                     case DataType.Task:
-                        // TODO: remove console.log(`currentData: ${JSON.stringify(currentData)}, value: ${JSON.stringify(value)}`);
-                        // currentData: {"jsonFxObjectKey":"$001_debug/maze_game.j","flags":1}, value: {"jsonFxObjectKey":"$001_debug/m aze_game.j","flags":1}
                         for (const attr in table.valueColumn) {
                             if (table.valueColumn.hasOwnProperty(attr)) {
                                 // for all columns we try to get the current and new value

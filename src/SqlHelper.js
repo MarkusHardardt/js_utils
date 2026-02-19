@@ -3,6 +3,7 @@
     const SqlHelper = {};
     const isNodeJS = typeof require === 'function';
     const Executor = isNodeJS ? require('./Executor') : root.Executor;
+    const Common = isNodeJS ? require('./Common') : root.Common;
     const mysql = isNodeJS ? require('mysql') : false;
 
     function escape(value) {
@@ -11,13 +12,15 @@
     SqlHelper.escape = escape;
 
     class Adapter {
+        #logger;
         #connection;
         #verbose;
         #columns;
         #joins;
         #wheres;
         #values;
-        constructor(connection, verbose) {
+        constructor(logger, connection, verbose) {
+            this.#logger = logger;
             this.#connection = connection;
             this.#verbose = verbose === true;
             this.#columns = [];
@@ -28,7 +31,7 @@
 
         close() {
             if (!this.#connection) {
-                console.error('SQL adapter has allready been closed');
+                this.#logger.error('SQL adapter has allready been closed');
                 return;
             }
             this.#connection.release();
@@ -72,7 +75,7 @@
 
         #query(queryString, onSuccess, onError) {
             if (this.#verbose) {
-                console.log(queryString);
+                this.#logger.trace(queryString);
             }
             this.#connection.query(queryString, (error, results, fields) => {
                 if (error) {
@@ -388,7 +391,8 @@
         }
     }
 
-    function getAdapterFactory(config, verbose) {
+    function getAdapterFactory(logger, config, verbose) {
+        Common.validateAsLogger(logger, true);
         const db_access = require(typeof config === 'string' ? config : '../cfg/db_access.json');
         const helper = mysql.createPool(db_access);
         return (onSuccess, onError) => {
@@ -396,7 +400,7 @@
                 if (onErr) {
                     onError(onErr);
                 } else {
-                    onSuccess(new Adapter(connection, verbose));
+                    onSuccess(new Adapter(logger, connection, verbose));
                 }
             });
         };

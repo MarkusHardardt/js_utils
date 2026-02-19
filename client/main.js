@@ -64,7 +64,7 @@
         // Load web socket session config from server
         tasks.push((onSuccess, onError) => Client.fetch('/get_web_socket_session_config', undefined, response => {
             webSocketSessionConfig = JSON.parse(response);
-            console.log('Loaded web socket session configuration successfully. Session ID:', webSocketSessionConfig.sessionId);
+            hmi.env.logger.debug('Loaded web socket session configuration successfully. Session ID:', webSocketSessionConfig.sessionId);
             onSuccess();
         }, error => {
             console.error(`Error loading web socket session configuration: ${error}`);
@@ -83,12 +83,12 @@
                     reconnectStart: 1000,
                     reconnectMax: 32000,
                     onOpen: () => {
-                        console.log(`web socket client opened (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}')`);
+                        hmi.env.logger.debug(`web socket client opened (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}')`);
                         taskManager.onOpen();
                         dataConnector.onOpen();
                     },
                     onClose: () => {
-                        console.log(`web socket client closed (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}')`);
+                        hmi.env.logger.debug(`web socket client closed (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}')`);
                         taskManager.onClose();
                         dataConnector.onClose();
 
@@ -147,8 +147,8 @@
             const body = $(document.body);
             body.empty();
             body.addClass('hmi-body');
-            hmi.createObject(rootObject, body, () => console.log('js hmi started'), error => console.error(error));
-            body.on('unload', () => hmi.killObject(rootObject, () => console.log('js hmi stopped'), error => console.error(error)));
+            hmi.createObject(rootObject, body, () => hmi.env.logger.info('js hmi started'), error => console.error(error));
+            body.on('unload', () => hmi.killObject(rootObject, () => hmi.env.logger.info('js hmi stopped'), error => console.error(error)));
         }, error => console.error(error));
     });
 }(globalThis));

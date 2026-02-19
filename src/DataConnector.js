@@ -116,7 +116,7 @@
         }
 
         setDataPoints(dataPoints) { // TODO: unregisterObserver data points that not exist anymore immediately
-            this._logger.info(`setDataPoints(${dataPoints.length})`);
+            this._logger.debug(`setDataPoints(${dataPoints.length})`);
             const dataPointConfigsByShortId = this.#dataPointConfigsByShortId = getDataPointConfigsByShortId(dataPoints, this.#getNextShortId);
             const that = this;
             // For all data point configurations we ether reuse an existing or add a new data point.
@@ -127,11 +127,11 @@
                         const dataId = config.dataId;
                         let dataPoint = that.#dataPointsByDataId[dataId];
                         if (dataPoint) {
-                            that._logger.info(`Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.isObserved ? '' : '!'}observed)`);
+                            that._logger.debug(`Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.isObserved ? '' : '!'}observed)`);
                             dataPoint.shortId = shortId; // Note: Only data points with a short id exists!
                             dataPoint.type = config.type;
                         } else {
-                            that._logger.info(`Create data point ${shortId}:'${dataId}'`);
+                            that._logger.debug(`Create data point ${shortId}:'${dataId}'`);
                             that.#dataPointsByDataId[dataId] = dataPoint = {
                                 shortId,
                                 type: config.type,
@@ -167,16 +167,16 @@
                             if (this.#source) {
                                 try {
                                     this.#source.unregisterObserver(dataId, dataPoint.onRefresh);
-                                    this._logger.info(`Removed observer for data point ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
+                                    this._logger.debug(`Removed observer for data point ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
                                 } catch (error) {
                                     this._logger.error(`Failed removing observer for data point with id ${dataPoint.shortId}:'${dataId}'`, error);
                                 }
                                 dataPoint.isObserved = false;
                             }
-                            this._logger.info(`Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
+                            this._logger.debug(`Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
                             delete dataPoint.shortId; // Note: Only data points with a short id exists!
                         } else {
-                            this._logger.info(`Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !observed)`);
+                            this._logger.debug(`Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !observed)`);
                             delete this.#dataPointsByDataId[dataId];
                         }
                     };
@@ -197,7 +197,7 @@
             this.#isOpen = false;
             clearTimeout(this.#sendTimer);
             this.#sendTimer = null;
-            this._logger.info('Reset all observers onClose()');
+            this._logger.debug('Reset all observers onClose()');
             this.#updateObservations('');
         }
 
@@ -214,7 +214,7 @@
             if (this.#isOpen) {
                 switch (data.type) {
                     case TransmissionType.ObserverRequest:
-                        this._logger.info(`Update observers from client: [${data.observations}]`);
+                        this._logger.debug(`Update observers from client: [${data.observations}]`);
                         this.#updateObservations(data.observations);
                         break;
                     case TransmissionType.ReadRequest:
@@ -257,7 +257,7 @@
                     if (dataPoint.isObserved && (!dataPoint.shortId || observationShorts.indexOf(dataPoint.shortId) < 0)) {
                         try {
                             this.#source.unregisterObserver(dataId, dataPoint.onRefresh);
-                            this._logger.info(`Unsubscribed datapoint ${dataPoint.shortId}:'${dataId}'`);
+                            this._logger.debug(`Unsubscribed datapoint ${dataPoint.shortId}:'${dataId}'`);
                         } catch (error) {
                             this._logger.error(`Failed unsubscribing data point with id ${dataPoint.shortId}:'${dataId}'`, error);
                         }
@@ -277,7 +277,7 @@
                             try {
                                 this.#source.registerObserver(dataId, dataPoint.onRefresh);
                                 dataPoint.isObserved = true;
-                                this._logger.info(`Observed data point ${shortId}:'${dataId}'`);
+                                this._logger.debug(`Observed data point ${shortId}:'${dataId}'`);
                             } catch (error) {
                                 this._logger.error(`Failed observing data point with id ${shortId}:'${dataId}'`, error);
                             }
@@ -475,7 +475,6 @@
             if (this.#open) {
                 switch (data.type) {
                     case TransmissionType.ConfigurationRefresh:
-                        // TODO: Remove this._logger.info(`ConfigurationRefresh: ${JSON.stringify(data.dataPointConfigsByShortId)}`);
                         this.#addObserverDelay = typeof data.subscribeDelay === 'number' && data.subscribeDelay > 0 ? data.subscribeDelay : false;
                         this.#removeObserverDelay = typeof data.unsubscribeDelay === 'number' && data.unsubscribeDelay > 0 ? data.unsubscribeDelay : false;
                         this.#setDataPointConfigsByShortId(data.dataPointConfigsByShortId);
@@ -501,11 +500,11 @@
                         const dataId = config.dataId;
                         let dataPoint = that.#dataPointsByDataId[dataId];
                         if (dataPoint) {
-                            that._logger.info(`Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.onRefresh !== null ? '' : '!'}observed)`);
+                            that._logger.debug(`Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.onRefresh !== null ? '' : '!'}observed)`);
                             dataPoint.shortId = shortId;
                             dataPoint.type = config.type;
                         } else {
-                            that._logger.info(`Create data point ${shortId}:'${dataId}'`);
+                            that._logger.debug(`Create data point ${shortId}:'${dataId}'`);
                             that.#dataPointsByDataId[dataId] = dataPoint = {
                                 shortId,
                                 type: config.type,
@@ -534,10 +533,10 @@
                     if (!exists) {
                         const dataPoint = this.#dataPointsByDataId[dataId];
                         if (dataPoint.onRefresh) {
-                            this._logger.info(`Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
+                            this._logger.debug(`Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
                             delete dataPoint.shortId;
                         } else {
-                            this._logger.info(`Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !observed)`);
+                            this._logger.debug(`Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !observed)`);
                             delete this.#dataPointsByDataId[dataId];
                         }
                     };
@@ -592,7 +591,7 @@
                     if (dataPoint.onRefresh && dataPoint.value !== undefined && dataPoint.value !== null) {
                         try {
                             dataPoint.onRefresh(dataPoint.value);
-                            this._logger.info(`Refreshed ${shortId}:'${dataId}': ${dataPoint.value}`);
+                            this._logger.trace(`Refreshed ${shortId}:'${dataId}': ${dataPoint.value}`);
                         } catch (error) {
                             this._logger.error(`Failed calling onRefresh(value) for ${shortId}:'${dataId}'`, error);
                         }

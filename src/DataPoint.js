@@ -16,11 +16,8 @@
         #removeObserverDelay;
         #removeObserverTimer;
         constructor(logger, source, onObserverRemoved) {
-            this.#logger = Common.validateAsLogger(logger, true);
-            this.#source = Common.validateAsObservable(source, true);
-            if (typeof onObserverRemoved !== 'function') {
-                throw new Error('onObserverRemoved() is not a function');
-            }
+            this.#logger = logger;
+            this.#source = source;
             this.#onObserverRemoved = onObserverRemoved;
             this.#isObserved = false;
             this.#value = null;

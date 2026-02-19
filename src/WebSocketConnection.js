@@ -532,7 +532,7 @@
                                             this.#logger.error('Failed calling onOpen()', error);
                                         }
                                     } else {
-                                        this.#logger.info(`Connection opened with session id: '${formatSesionId(sessionId)}'`);
+                                        this.#logger.debug(`Connection opened with session id: '${formatSesionId(sessionId)}'`);
                                     }
                                 } else {
                                     clearTimeout(instance.disposeTimeoutTimer);
@@ -543,7 +543,7 @@
                                             this.#logger.error('Failed calling onReopen()', error);
                                         }
                                     } else {
-                                        this.#logger.info(`Connection reopened with session id: '${formatSesionId(sessionId)}'`);
+                                        this.#logger.debug(`Connection reopened with session id: '${formatSesionId(sessionId)}'`);
                                     }
                                 }
                             },
@@ -556,7 +556,7 @@
                                         this.#logger.error('Failed calling onClose()', error);
                                     }
                                 } else {
-                                    this.#logger.info(`Connection closed with session id: '${formatSesionId(sessionId)}'`);
+                                    this.#logger.debug(`Connection closed with session id: '${formatSesionId(sessionId)}'`);
                                 }
                                 instance.disposeTimeoutTimer = setTimeout(() => {
                                     delete this.#instances[sessionId];
@@ -567,7 +567,7 @@
                                             this.#logger.error('Failed calling onDispose()', error);
                                         }
                                     } else {
-                                        this.#logger.info(`Connection diposed with session id: '${formatSesionId(sessionId)}'`);
+                                        this.#logger.debug(`Connection diposed with session id: '${formatSesionId(sessionId)}'`);
                                     }
                                 }, options.closedConnectionDisposeTimeout ?? DEFAULT_CLOSED_CONNECTION_DISPOSE_TIMEOUT);
                             },
