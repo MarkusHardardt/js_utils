@@ -110,8 +110,8 @@
             this.#sendObserverRequestDelay = typeof value === 'number' && value > 0 ? value : false;
         }
 
-        setDataPoints(dataPoints) { // TODO: unregisterObserver data points that not exist anymore immediately
-            this.#logger.debug(`setDataPoints(${dataPoints.length})`);
+        setDataPoints(dataPoints) {
+            this.#logger.debug(`DataConnector.setDataPoints(): Set ${dataPoints.length} data points`);
             const dataPointConfigsByShortId = this.#dataPointConfigsByShortId = getDataPointConfigsByShortId(dataPoints, this.#getNextShortId);
             const that = this;
             // For all data point configurations we ether reuse an existing or add a new data point.
@@ -122,11 +122,11 @@
                         const dataId = config.dataId;
                         let dataPoint = that.#dataPointsByDataId[dataId];
                         if (dataPoint) {
-                            that.#logger.debug(`Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.isObserved ? '' : '!'}observed)`);
+                            that.#logger.debug(`DataConnector.setDataPoints(): Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.isObserved ? '' : '!'}observed)`);
                             dataPoint.shortId = shortId; // Note: Only data points with a short id exists!
                             dataPoint.type = config.type;
                         } else {
-                            that.#logger.debug(`Create data point ${shortId}:'${dataId}'`);
+                            that.#logger.debug(`DataConnector.setDataPoints(): Create data point ${shortId}:'${dataId}'`);
                             that.#dataPointsByDataId[dataId] = dataPoint = {
                                 shortId,
                                 type: config.type,
@@ -162,16 +162,16 @@
                             if (this.#source) {
                                 try {
                                     this.#source.unregisterObserver(dataId, dataPoint.onRefresh);
-                                    this.#logger.debug(`Removed observer for data point ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
+                                    this.#logger.debug(`DataConnector.setDataPoints(): Removed observer for data point ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
                                 } catch (error) {
-                                    this.#logger.error(`Failed removing observer for data point with id ${dataPoint.shortId}:'${dataId}'`, error);
+                                    this.#logger.error(`DataConnector.setDataPoints(): Failed removing observer for data point with id ${dataPoint.shortId}:'${dataId}'`, error);
                                 }
                                 dataPoint.isObserved = false;
                             }
-                            this.#logger.debug(`Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
+                            this.#logger.debug(`DataConnector.setDataPoints(): Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
                             delete dataPoint.shortId; // Note: Only data points with a short id exists!
                         } else {
-                            this.#logger.debug(`Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !observed)`);
+                            this.#logger.debug(`DataConnector.setDataPoints(): Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !observed)`);
                             delete this.#dataPointsByDataId[dataId];
                         }
                     };
@@ -192,7 +192,7 @@
             this.#isOpen = false;
             clearTimeout(this.#sendTimer);
             this.#sendTimer = null;
-            this.#logger.debug('Reset all observers onClose()');
+            this.#logger.debug('DataConnector.onClose(): Reset all observers onClose()');
             this.#updateObservations('');
         }
 
@@ -208,41 +208,41 @@
             if (this.#isOpen) {
                 switch (data.type) {
                     case TransmissionType.ObserverRequest:
-                        this.#logger.debug(`Update observers from client: [${data.observations}]`);
+                        this.#logger.debug(`DataConnector._handleReceived(): Update observers from client: [${data.observations}]`);
                         this.#updateObservations(data.observations);
                         break;
                     case TransmissionType.ReadRequest:
                         let readDPConf = this.#dataPointConfigsByShortId[data.shortId];
                         if (!readDPConf) {
-                            this.#logger.error('Unknown data point for read request');
+                            this.#logger.error('DataConnector._handleReceived(): Unknown data point for read request');
                             return;
                         }
                         try {
                             Core.validateAs('DataAccessObject', this.#source, 'read:function').read(readDPConf.dataId, onResponse, onError);
                         } catch (error) {
-                            this.#logger.error(`Failed calling read('${readDPConf.dataId}')`, error);
+                            this.#logger.error(`DataConnector._handleReceived(): Failed calling read('${readDPConf.dataId}')`, error);
                         }
                         break;
                     case TransmissionType.WriteRequest:
                         let writeDPConf = this.#dataPointConfigsByShortId[data.shortId];
                         if (!writeDPConf) {
-                            this.#logger.error('Unknown data point for write request');
+                            this.#logger.error('DataConnector._handleReceived(): Unknown data point for write request');
                             return;
                         }
                         try {
                             Core.validateAs('DataAccessObject', this.#source, 'write:function').write(writeDPConf.dataId, data.value);
                         } catch (error) {
-                            this.#logger.error(`Failed calling write('${readDPConf.dataId}', value)`, error);
+                            this.#logger.error(`DataConnector._handleReceived(): Failed calling write('${readDPConf.dataId}', value)`, error);
                         }
                         break;
                     default:
-                        this.#logger.error(`Invalid transmission type: ${data.type}`);
+                        this.#logger.error(`DataConnector._handleReceived(): Invalid transmission type: ${data.type}`);
                 }
             }
         }
 
         #updateObservations(observationShorts) {
-            this.#logger.debug(`### ==> BLOCKED UPDATING OBSERVERS [${observationShorts}]`);
+            this.#logger.debug(`DataConnector.updateObservations(): ### ==> BLOCKED UPDATING OBSERVERS [${observationShorts}]`);
             return; // TODO: Remove this line
             Core.validateAs('DataAccessObject', this.#source, ['registerObserver:function', 'unregisterObserver:function']);
             // First we unsubscribe all that have been observed but are no longer requested
@@ -253,9 +253,9 @@
                     if (dataPoint.isObserved && (!dataPoint.shortId || observationShorts.indexOf(dataPoint.shortId) < 0)) {
                         try {
                             this.#source.unregisterObserver(dataId, dataPoint.onRefresh);
-                            this.#logger.debug(`Unsubscribed datapoint ${dataPoint.shortId}:'${dataId}'`);
+                            this.#logger.debug(`DataConnector.updateObservations(): Unsubscribed datapoint ${dataPoint.shortId}:'${dataId}'`);
                         } catch (error) {
-                            this.#logger.error(`Failed unsubscribing data point with id ${dataPoint.shortId}:'${dataId}'`, error);
+                            this.#logger.error(`DataConnector.updateObservations(): Failed unsubscribing data point with id ${dataPoint.shortId}:'${dataId}'`, error);
                         }
                         dataPoint.isObserved = false;
                     }
@@ -273,17 +273,17 @@
                             try {
                                 this.#source.registerObserver(dataId, dataPoint.onRefresh);
                                 dataPoint.isObserved = true;
-                                this.#logger.debug(`Observed data point ${shortId}:'${dataId}'`);
+                                this.#logger.debug(`DataConnector.updateObservations(): Observed data point ${shortId}:'${dataId}'`);
                             } catch (error) {
-                                this.#logger.error(`Failed observing data point with id ${shortId}:'${dataId}'`, error);
+                                this.#logger.error(`DataConnector.updateObservations(): Failed observing data point with id ${shortId}:'${dataId}'`, error);
                             }
                         }
                     } else {
-                        this.#logger.error(`Cannot find data point with id ${shortId}:'${dataId}'`);
+                        this.#logger.error(`DataConnector.updateObservations(): Cannot find data point with id ${shortId}:'${dataId}'`);
                     }
                 } else {
                     // TODO: Why we land here after stopping a task when items are monitored?
-                    this.#logger.error(`Cannot observe unknown data point with short id ${shortId}, stored:${JSON.stringify(this.#dataPointConfigsByShortId)}`);
+                    this.#logger.error(`DataConnector.updateObservations(): Cannot observe unknown data point with short id ${shortId}, stored:${JSON.stringify(this.#dataPointConfigsByShortId)}`);
                 }
             }, true);
         }
@@ -321,7 +321,7 @@
                             { type: TransmissionType.DataRefresh, values }
                         );
                     } catch (error) {
-                        this.#logger.error('Failed to send refreshed values', error);
+                        this.#logger.error('DataConnector.sendValues(): Failed to send refreshed values', error);
                     }
                 }
             }

@@ -16,22 +16,22 @@
     class Node {
         #logger;
         #source;
-        #onObserverRemoved;
+        #onLastObserverUnregistered;
         #value;
         #onRefresh;
         #observers;
         #unregisterObserverDelay;
         #unregisterObserverTimer;
         #state;
-        constructor(logger, source, unregisterObserverDelay, onObserverRemoved) {
+        constructor(logger, source, unregisterObserverDelay, onLastObserverUnregistered) {
             this.#logger = logger;
             this.#source = source;
-            this.#onObserverRemoved = onObserverRemoved;
-            this.#value = null;
-            this.#onRefresh = value => this.#refresh(value);
-            this.#observers = [];
             this.#unregisterObserverDelay = unregisterObserverDelay;
             this.#unregisterObserverTimer = null;
+            this.#onLastObserverUnregistered = onLastObserverUnregistered;
+            this.#observers = [];
+            this.#value = null;
+            this.#onRefresh = value => this.value = value;
             this.#state = NodeState.Constructed;
             Common.validateAsObservable(this, true);
         }
@@ -41,7 +41,10 @@
         }
 
         set value(value) {
-            this.#refresh(value);
+            this.#value = value;
+            for (const onRefresh of this.#observers) {
+                this.#refresh('Node.value', onRefresh);
+            }
         }
 
         registerObserver(onRefresh) {
@@ -53,52 +56,34 @@
                 if (observer === onRefresh) {
                     this.#logger.warn('Node.registerObserver(): onRefresh(value) has already been registered');
                     // If already stored and if we just call for refresh and return
-                    if (this.#value !== undefined && this.#value !== null) {
-                        try {
-                            onRefresh(this.#value);
-                        } catch (error) {
-                            this.#logger.error('Node.registerObserver(): Failed calling onRefresh(value)', error);
-                        }
-                    }
+                    this.#refresh('Node.registerObserver()', onRefresh);
                     return;
                 }
             }
+            // Add to list and depending on the state register on source, kill unregister timer or just refresh
             this.#observers.push(onRefresh);
             switch (this.#state) {
                 case NodeState.Constructed:
                 case NodeState.NotRegistered:
                     try {
-                        this.#source.registerObserver(this.#onRefresh); // Note: This may throw an exception
+                        this.#source.registerObserver(this.#onRefresh);
                         this.#logger.debug('Node.registerObserver(): Registered observer on source');
                         this.#state = NodeState.Registered;
                     } catch (error) {
                         this.#logger.error('Node.registerObserver(): Failed to register observer on source', error);
                         this.#state = NodeState.NotRegistered;
                     }
-                    return;
+                    break;
                 case NodeState.Registered:
-                    if (this.#value !== undefined && this.#value !== null) { // Refresh if value is available
-                        try {
-                            onRefresh(this.#value);
-                        } catch (error) {
-                            this.#logger.error('Node.registerObserver(): Failed calling onRefresh(value)', error);
-                        }
-                    }
-                    return;
+                    this.#refresh('Node.registerObserver()', onRefresh);
+                    break;
                 case NodeState.UnregisterTimerRunning:
                     clearTimeout(this.#unregisterObserverTimer);
                     this.#unregisterObserverTimer = null;
-                    this.#logger.debug('Node.registerObserver(): Unregister timer has been interrupted due to registered another observer');
+                    this.#logger.debug('Node.registerObserver(): Timer to unregister has been interrupted because another observer has been registered');
                     this.#state = NodeState.Registered;
-                    if (this.#value !== undefined && this.#value !== null) { // Refresh if value is available
-                        try {
-                            onRefresh(this.#value);
-                        } catch (error) {
-                            this.#logger.error('Node.registerObserver(): Failed calling onRefresh(value)', error);
-                        }
-                    }
-                    return;
-
+                    this.#refresh('Node.registerObserver()', onRefresh);
+                    break;
             }
         }
 
@@ -106,47 +91,55 @@
             if (typeof onRefresh !== 'function') {
                 throw new Error('Node.unregisterObserver(): onRefresh(value) is not a function');
             }
+            // Check for index
+            let observerIndex = -1;
             for (let i = 0; i < this.#observers.length; i++) {
                 if (this.#observers[i] === onRefresh) {
-                    this.#observers.splice(i, 1);
-                    switch (this.#state) {
-                        case NodeState.Registered:
-                            if (this.#observers.length === 0) {
-                                if (this.#unregisterObserverDelay) {
-                                    this.#unregisterObserverTimer = setTimeout(() => {
-                                        this.#unregisterObserverTimer = null;
-                                        try {
-                                            this.#source.unregisterObserver(this.#onRefresh);
-                                            this.#logger.debug('Node.unregisterObserver(): Unregistered on source after delay has expired');
-                                        } catch (error) {
-                                            this.#logger.error('Node.unregisterObserver(): Failed to unregister on source after delay has expired', error);
-                                        }
-                                        this.#state = NodeState.Destructed;
-                                        this.#onObserverRemoved();
-                                    }, this.#unregisterObserverDelay);
-                                    this.#state = NodeState.UnregisterTimerRunning;
-                                } else {
-                                    try {
-                                        this.#source.unregisterObserver(this.#onRefresh);
-                                        this.#logger.debug('Node.unregisterObserver(): Unregistered on source without delay');
-                                    } catch (error) {
-                                        this.#logger.error('Node.unregisterObserver(): Failed to unregister on source without delay', error);
-                                    }
-                                    this.#state = NodeState.Destructed;
-                                    this.#onObserverRemoved();
-                                }
-                            }
-                            return;
-                        case NodeState.NotRegistered:
-                            if (this.#observers.length === 0) {
-                                this.#state = NodeState.Destructed;
-                                this.#onObserverRemoved();
-                            }
-                            return;
-                    }
+                    observerIndex = i;
+                    break;
                 }
             }
-            this.#logger.warn('onRefresh(value) has already been removed');
+            if (observerIndex < 0) {
+                this.#logger.warn('Node.unregisterObserver(): onRefresh(value) is not registered');
+                return;
+            }
+            // Remove from list and depending on the state unregister on source or create unregister timer
+            this.#observers.splice(observerIndex, 1);
+            switch (this.#state) {
+                case NodeState.NotRegistered:
+                    if (this.#observers.length === 0) {
+                        this.#state = NodeState.Destructed;
+                        this.#onLastObserverUnregistered();
+                    }
+                    break;
+                case NodeState.Registered:
+                    if (this.#observers.length === 0) {
+                        if (this.#unregisterObserverDelay) {
+                            this.#unregisterObserverTimer = setTimeout(() => {
+                                this.#unregisterObserverTimer = null;
+                                try {
+                                    this.#source.unregisterObserver(this.#onRefresh);
+                                    this.#logger.debug('Node.unregisterObserver(): Unregistered on source after delay has expired');
+                                } catch (error) {
+                                    this.#logger.error('Node.unregisterObserver(): Failed to unregister on source after delay has expired', error);
+                                }
+                                this.#state = NodeState.Destructed;
+                                this.#onLastObserverUnregistered();
+                            }, this.#unregisterObserverDelay);
+                            this.#state = NodeState.UnregisterTimerRunning;
+                        } else {
+                            try {
+                                this.#source.unregisterObserver(this.#onRefresh);
+                                this.#logger.debug('Node.unregisterObserver(): Unregistered on source without delay');
+                            } catch (error) {
+                                this.#logger.error('Node.unregisterObserver(): Failed to unregister on source without delay', error);
+                            }
+                            this.#state = NodeState.Destructed;
+                            this.#onLastObserverUnregistered();
+                        }
+                    }
+                    break;
+            }
         }
 
         registerObserverOnSource() {
@@ -179,24 +172,21 @@
                     this.#unregisterObserverTimer = null;
                     try {
                         this.#source.unregisterObserver(this.#onRefresh);
-                        this.#logger.debug('Node.unregisterObserverOnSource(): Unregistered on source with interruppted timer');
+                        this.#logger.debug('Node.unregisterObserverOnSource(): Interruppted unregister timer and unregistered on source');
                     } catch (error) {
-                        this.#logger.error('Node.unregisterObserverOnSource(): Failed to unregister on sourcewith interruppted timer', error);
+                        this.#logger.error('Node.unregisterObserverOnSource(): Interruppted unregister timer but failed to unregister on source', error);
                     }
                     this.#state = NodeState.NotRegistered;
                     return;
             }
         }
 
-        #refresh(value) {
-            this.#value = value;
-            if (this.#observers && value !== undefined && value !== null) {
-                for (const onRefresh of this.#observers) {
-                    try {
-                        onRefresh(value);
-                    } catch (error) {
-                        this.#logger.error('Failed calling onRefresh(value)', error);
-                    }
+        #refresh(context, onRefresh) {
+            if (this.#value !== undefined && this.#value !== null) {
+                try {
+                    onRefresh(this.#value);
+                } catch (error) {
+                    this.#logger.error(`${context}: Failed calling onRefresh(value)`, error);
                 }
             }
         }
@@ -221,63 +211,60 @@
 
         registerObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`AccessPointon.registerObserver(): Invalid dataId '${dataId}'`);
+                throw new Error(`AccessPoint.registerObserver(): Invalid data id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
-                throw new Error('AccessPointon.registerObserver(): onRefresh(value) is not a function');
+                throw new Error('AccessPoint.registerObserver(): onRefresh(value) is not a function');
             }
             let dataPoint = this.#dataPointsByDataId[dataId];
             if (!dataPoint) {
-                this.#dataPointsByDataId[dataId] = dataPoint = {
-                    registerObserver: onRefresh => {
-                        this.#logger.debug(`AccessPointon.registerObserver(): Register '${dataId}' on source`);
-                        this.#source.registerObserver(dataId, onRefresh);
-                    },
-                    unregisterObserver: onRefresh => {
-                        this.#logger.debug(`AccessPointon.registerObserver(): Unregister '${dataId}' on source`);
-                        this.#source.unregisterObserver(dataId, onRefresh);
-                    }
+                dataPoint = this.#dataPointsByDataId[dataId] = {
+                    registerObserver: onRefresh => this.#source.registerObserver(dataId, onRefresh),
+                    unregisterObserver: onRefresh => this.#source.unregisterObserver(dataId, onRefresh)
                 };
                 dataPoint.node = new Node(this.#logger, dataPoint, this.#unregisterObserverDelay, () => {
                     delete dataPoint.node;
                     delete this.#dataPointsByDataId[dataId];
                 });
+                this.#logger.debug(`AccessPoint.registerObserver(): Register first '${dataId}' on node`);
+            } else {
+                this.#logger.debug(`AccessPoint.registerObserver(): Register next '${dataId}' on node`);
             }
-            this.#logger.debug(`AccessPoint.registerObserver('${dataId}') on node`);
-            dataPoint.node.registerObserver(onRefresh); // Note: may throw an exception if adding failed!
+            dataPoint.node.registerObserver(onRefresh);
         }
 
         unregisterObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`AccessPointon.unregisterObserver(): Invalid dataId '${dataId}'`);
+                throw new Error(`AccessPoint.unregisterObserver(): Invalid data id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
-                throw new Error('AccessPointon.unregisterObserver(): onRefresh(value) is not a function');
+                throw new Error('AccessPoint.unregisterObserver(): onRefresh(value) is not a function');
             }
             const dataPoint = this.#dataPointsByDataId[dataId];
             if (!dataPoint) {
-                throw new Error(`Failed removing observer for unsupported id '${dataId}'`);
+                this.#logger.error(`AccessPoint.unregisterObserver(): Data id '${dataId}' is not registered`);
+                return;
             }
-            this.#logger.debug(`AccessPoint.unregisterObserver('${dataId}') on node`);
-            dataPoint.node.unregisterObserver(onRefresh); // Note: may throw an exception if removing failed!
+            this.#logger.debug(`AccessPoint.unregisterObserver(): Unregister data id '${dataId}' on node`);
+            dataPoint.node.unregisterObserver(onRefresh);
         }
 
-        registerObserverOnSource(filter) { // TODO: Do we realy need this? If not, then remove!
-            this.#logger.debug(`Calling registerObserverOnSource(filter) with filter: '${typeof filter === 'function'}'`);
+        registerObserverOnSource(filter) {
+            this.#logger.debug(`AccessPoint.registerObserverOnSource(): Called with filter: '${typeof filter === 'function'}'`);
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
                     const dataPoint = this.#dataPointsByDataId[dataId];
+                    this.#logger.debug(`AccessPoint.registerObserverOnSource(): Calling registerObserverOnSource() for data id '${dataId}' on node`);
                     dataPoint.node.registerObserverOnSource();
-                    this.#logger.debug(`Calling registerObserverOnSource() for data id '${dataId}'`);
                 }
             }
         }
 
         unregisterObserverOnSource(filter) {
-            this.#logger.debug(`Calling unregisterObserverOnSource(filter) with filter: '${typeof filter === 'function'}'`);
+            this.#logger.debug(`AccessPoint.unregisterObserverOnSource(): Called with filter: '${typeof filter === 'function'}'`);
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
                     const dataPoint = this.#dataPointsByDataId[dataId];
+                    this.#logger.debug(`AccessPoint.unregisterObserverOnSource(): Calling unregisterObserverOnSource() for data id '${dataId}' on node`);
                     dataPoint.node.unregisterObserverOnSource();
-                    this.#logger.debug(`Calling unregisterObserverOnSource() for data id '${dataId}'`);
                 }
             }
         }
@@ -287,7 +274,7 @@
                 try {
                     onResponse(value);
                 } catch (error) {
-                    this.#logger.error(`Failed calling onResponse(${value}) for dataId '${dataId}'`, error);
+                    this.#logger.error(`AccessPoint.read(): Failed calling onResponse(${value}) for data id '${dataId}'`, error);
                 }
                 const dataPoint = this.#dataPointsByDataId[dataId];
                 if (dataPoint) {
@@ -297,7 +284,12 @@
         }
 
         write(dataId, value) {
-            this.#source.write(dataId, value);
+            try {
+                this.#source.write(dataId, value);
+                this.#logger.debug(`AccessPoint.write(): Called write(${value}) for data id '${dataId}'`, error);
+            } catch (error) {
+                this.#logger.error(`AccessPoint.write(): Failed calling write(${value}) for data id '${dataId}'`, error);
+            }
         }
     }
     DataPoint.AccessPoint = AccessPoint;
@@ -306,7 +298,7 @@
         #getDataAccessObject;
         constructor(getDataAccessObject) {
             if (typeof getDataAccessObject !== 'function') {
-                throw new Error('Passed getDataAccessObject(dataId) is not a function');
+                throw new Error('Switch.constructor: Passed getDataAccessObject(dataId) is not a function');
             }
             this.#getDataAccessObject = getDataAccessObject;
             Common.validateAsDataAccessObject(this, true);
@@ -333,9 +325,6 @@
         }
 
         _dao(dataId, aspect) {
-            if (!this.#getDataAccessObject) {
-                throw new Error('Function getDataAccessObject(dataId) is not available');
-            }
             return Core.validateAs('DataAccessObject', this.#getDataAccessObject(dataId), aspect);
         }
     }
@@ -373,14 +362,14 @@
 
         set onBeforeUpdateDataConnectors(value) {
             if (typeof value !== 'function') {
-                throw new Error('Set value for onBeforeUpdateDataConnectors() is not a function');
+                throw new Error('Router.onBeforeUpdateDataConnectors: Set value is not a function');
             }
             this.#onBeforeUpdateDataConnectors = value;
         }
 
         set onAfterUpdateDataConnectors(value) {
             if (typeof value !== 'function') {
-                throw new Error('Set value for onAfterUpdateDataConnectors() is not a function');
+                throw new Error('Router.onAfterUpdateDataConnectors: Set value is not a function');
             }
             this.#onAfterUpdateDataConnectors = value;
         }
@@ -389,7 +378,7 @@
         registerDataConnector(dataConnector) {
             for (const connector in this.#dataConnectors) {
                 if (dataConnector === connector) {
-                    this.#logger.warn('Data connector is already registered');
+                    this.#logger.warn('Router.registerDataConnector(): Data connector is already registered');
                     return;
                 }
             }
@@ -406,16 +395,16 @@
                     return;
                 }
             }
-            this.#logger.warn('Data connector is not registered');
+            this.#logger.warn('Router.unregisterDataConnector(): Data connector is not registered');
         }
 
         registerDataAccessObject(targetId, accessObject) {
             if (typeof targetId !== 'string') {
-                throw new Error(`Invalid target id '${targetId}'`);
+                throw new Error(`Router.registerDataAccessObject(): Invalid target id '${targetId}'`);
             } else if (!targetIdValidRegex.test(targetId)) {
-                throw new Error(`Invalid target id format '${targetId}'`);
+                throw new Error(`Router.registerDataAccessObject(): Invalid target id format '${targetId}'`);
             } else if (this.#dataAccessObjects[targetId] !== undefined) {
-                throw new Error(`Target id '${targetId}' is already registered`);
+                throw new Error(`Router.registerDataAccessObject(): Target id '${targetId}' is already registered`);
             } else {
                 Common.validateAsDataAccessServerObject(accessObject, true);
                 const prefixLength = targetId.length + 1;
@@ -430,49 +419,52 @@
                     read: (dataId, onResponse, onError) => accessObject.read(getRawDataId(dataId), onResponse, onError),
                     write: (dataId, value) => accessObject.write(getRawDataId(dataId), value)
                 }
-                this.#updateDataConnectors();
+                const idPrefix = `${targetId}:`
+                const filter = dataId => dataId.startsWith(idPrefix);
+                if (this.#onBeforeUpdateDataConnectors) {
+                    this.#onBeforeUpdateDataConnectors(filter);
+                }
+                const dataPoints = this.#getDataPoints(null);
+                for (const dataConnector of this.#dataConnectors) {
+                    try {
+                        dataConnector.setDataPoints(dataPoints);
+                    } catch (error) {
+                        this.#logger.error('Router.registerDataAccessObject(): Failed updating data points on connector', error);
+                    }
+                }
+                if (this.#onAfterUpdateDataConnectors) {
+                    this.#onAfterUpdateDataConnectors(filter);
+                }
             }
         }
 
         unregisterDataAccessObject(targetId, accessObject) {
             if (typeof targetId !== 'string') {
-                throw new Error(`Invalid target id: '${targetId}'`);
+                throw new Error(`Router.unregisterDataAccessObject(): Invalid target id: '${targetId}'`);
             } else if (!targetIdValidRegex.test(targetId)) {
-                throw new Error(`Invalid target id format '${targetId}'`);
+                throw new Error(`Router.unregisterDataAccessObject(): Invalid target id format '${targetId}'`);
             } else if (this.#dataAccessObjects[targetId] === undefined) {
-                throw new Error(`Target id '${targetId}' is not registered`);
+                throw new Error(`Router.unregisterDataAccessObject(): Target id '${targetId}' is not registered`);
             } else if (this.#dataAccessObjects[targetId].accessObject !== accessObject) {
-                throw new Error(`Target id '${targetId}' is registered for another data access object`);
+                throw new Error(`Router.unregisterDataAccessObject(): Target id '${targetId}' is registered for another data access object`);
             } else {
-                this.#updateDataConnectors(targetId);
-                delete this.#dataAccessObjects[targetId];
-            }
-        }
-
-        #updateDataConnectors(excludeTargetId = null) {
-            const dataIdStart = excludeTargetId ? `${excludeTargetId}:` : null;
-            const filter = dataIdStart ? dataId => dataId.startsWith(dataIdStart) : null;
-            if (this.#onBeforeUpdateDataConnectors) {
-                try {
+                const idPrefix = `${targetId}:`
+                const filter = dataId => dataId.startsWith(idPrefix);
+                if (this.#onBeforeUpdateDataConnectors) {
                     this.#onBeforeUpdateDataConnectors(filter);
-                } catch (error) {
-                    this.#logger.error('Failed calling onBeforeUpdateDataConnectors()', error);
                 }
-            }
-            const dataPoints = this.#getDataPoints(excludeTargetId);
-            for (const dataConnector of this.#dataConnectors) {
-                try {
-                    dataConnector.setDataPoints(dataPoints);
-                } catch (error) {
-                    this.#logger.error('Failed updating data points on connector', error);
+                const dataPoints = this.#getDataPoints(targetId);
+                for (const dataConnector of this.#dataConnectors) {
+                    try {
+                        dataConnector.setDataPoints(dataPoints);
+                    } catch (error) {
+                        this.#logger.error('Router.unregisterDataAccessObject(): Failed updating data points on connector', error);
+                    }
                 }
-            }
-            if (this.#onAfterUpdateDataConnectors) {
-                try {
+                if (this.#onAfterUpdateDataConnectors) {
                     this.#onAfterUpdateDataConnectors(filter);
-                } catch (error) {
-                    this.#logger.error('Failed calling onAfterUpdateDataConnectors()', error);
                 }
+                delete this.#dataAccessObjects[targetId];
             }
         }
 
