@@ -247,7 +247,7 @@
             dataPoint.node.unregisterObserver(onRefresh);
         }
 
-        registerObserverOnSource(filter) {
+        registerObserversOnSource(filter) {
             this.#logger.debug(`Provider.registerObserverOnSource(): Called with filter: '${typeof filter === 'function'}'`);
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
@@ -258,7 +258,7 @@
             }
         }
 
-        unregisterObserverOnSource(filter) {
+        unregisterObserversOnSource(filter) {
             this.#logger.debug(`Provider.unregisterObserverOnSource(): Called with filter: '${typeof filter === 'function'}'`);
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
@@ -337,8 +337,8 @@
         #dataConnectors;
         #dataAccessObjects;
         #getDataAccessObject;
-        #onBeforeUpdateDataConnectors;
-        #onAfterUpdateDataConnectors
+        #onUnregisterObserversOnSource;
+        #onRegisterObserversOnSource
         constructor(logger) {
             Common.validateAsLogger(logger, true);
             this.#logger = logger;
@@ -356,22 +356,22 @@
                 }
                 return accObj;
             };
-            this.#onBeforeUpdateDataConnectors = null;
-            this.#onAfterUpdateDataConnectors = null;
+            this.#onUnregisterObserversOnSource = null;
+            this.#onRegisterObserversOnSource = null;
         }
 
-        set onBeforeUpdateDataConnectors(value) {
+        set onUnregisterObserversOnSource(value) {
             if (typeof value !== 'function') {
-                throw new Error('Router.onBeforeUpdateDataConnectors: Set value is not a function');
+                throw new Error('Router.onUnregisterObserversOnSource: Set value is not a function');
             }
-            this.#onBeforeUpdateDataConnectors = value;
+            this.#onUnregisterObserversOnSource = value;
         }
 
-        set onAfterUpdateDataConnectors(value) {
+        set onRegisterObserversOnSource(value) {
             if (typeof value !== 'function') {
-                throw new Error('Router.onAfterUpdateDataConnectors: Set value is not a function');
+                throw new Error('Router.onRegisterObserversOnSource: Set value is not a function');
             }
-            this.#onAfterUpdateDataConnectors = value;
+            this.#onRegisterObserversOnSource = value;
         }
 
         // This will be called on server side when a new web socket connection has opened or an existing has reopened
@@ -411,30 +411,27 @@
                 function getRawDataId(dataId) {
                     return dataId.substring(prefix.length);
                 }
-                this.#dataAccessObjects[targetId] = {
+                this.#dataAccessObjects[targetId] = Common.validateAsDataAccessObject({
                     accessObject,
                     getType: dataId => accessObject.getType(getRawDataId(dataId)),
                     registerObserver: (dataId, onRefresh) => accessObject.registerObserver(getRawDataId(dataId), onRefresh),
                     unregisterObserver: (dataId, onRefresh) => accessObject.unregisterObserver(getRawDataId(dataId), onRefresh),
                     read: (dataId, onResponse, onError) => accessObject.read(getRawDataId(dataId), onResponse, onError),
                     write: (dataId, value) => accessObject.write(getRawDataId(dataId), value)
-                }
+                }, true);
                 function filter(dataId) {
                     return dataId.startsWith(prefix);
                 }
-                if (this.#onBeforeUpdateDataConnectors) {
-                    this.#onBeforeUpdateDataConnectors(filter);
+                if (this.#onRegisterObserversOnSource) {
+                    this.#onRegisterObserversOnSource(filter);
                 }
-                const dataPoints = this.#getDataPoints(null);
+                const dataPoints = this.#getDataPoints();
                 for (const dataConnector of this.#dataConnectors) {
                     try {
                         dataConnector.setDataPoints(dataPoints);
                     } catch (error) {
                         this.#logger.error('Router.registerDataAccessObject(): Failed updating data points on connector', error);
                     }
-                }
-                if (this.#onAfterUpdateDataConnectors) {
-                    this.#onAfterUpdateDataConnectors(filter);
                 }
             }
         }
@@ -453,10 +450,11 @@
                 function filter(dataId) {
                     return dataId.startsWith(prefix);
                 }
-                if (this.#onBeforeUpdateDataConnectors) {
-                    this.#onBeforeUpdateDataConnectors(filter);
+                if (this.#onUnregisterObserversOnSource) {
+                    this.#onUnregisterObserversOnSource(filter);
                 }
-                const dataPoints = this.#getDataPoints(targetId);
+                delete this.#dataAccessObjects[targetId];
+                const dataPoints = this.#getDataPoints();
                 for (const dataConnector of this.#dataConnectors) {
                     try {
                         dataConnector.setDataPoints(dataPoints);
@@ -464,17 +462,13 @@
                         this.#logger.error('Router.unregisterDataAccessObject(): Failed updating data points on connector', error);
                     }
                 }
-                if (this.#onAfterUpdateDataConnectors) {
-                    this.#onAfterUpdateDataConnectors(filter);
-                }
-                delete this.#dataAccessObjects[targetId];
             }
         }
 
-        #getDataPoints(excludeTargetId = null) {
+        #getDataPoints() {
             const result = [];
             for (const targetId in this.#dataAccessObjects) {
-                if (this.#dataAccessObjects.hasOwnProperty(targetId) && targetId !== excludeTargetId) {
+                if (this.#dataAccessObjects.hasOwnProperty(targetId)) {
                     const object = this.#dataAccessObjects[targetId];
                     const dataPoints = object.accessObject.getDataPoints();
                     for (const dataPoint of dataPoints) {
