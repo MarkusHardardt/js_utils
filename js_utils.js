@@ -16,7 +16,7 @@
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentManager.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectLifecycleManager.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
-        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataPoint.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Access.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Logger.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
@@ -44,7 +44,7 @@
         ContentManager: require('./src/ContentManager.js'),
         ObjectLifecycleManager: require('./src/ObjectLifecycleManager.js'),
         DataConnector: require('./src/DataConnector.js'),
-        DataPoint: require('./src/DataPoint.js'),
+        Access: require('./src/Access.js'),
         Logger: require('./src/Logger.js'),
         WebSocketConnection: require('./src/WebSocketConnection.js'),
         ContentEditor: require('./src/ContentEditor.js'),

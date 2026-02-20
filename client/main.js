@@ -24,7 +24,7 @@
             Common,
             ContentManager,
             ObjectLifecycleManager,
-            DataPoint,
+            Access,
             Logger
         },
         // Environment
@@ -113,10 +113,10 @@
         tasks.push((onSuccess, onError) => {
             // Create router for delegation to language or data values 
             const isValidLanguageValueId = hmi.env.cms.getIdValidTestFunctionForLanguageValue();
-            const dataAccessSwitch = new DataPoint.Switch(dataId => isValidLanguageValueId(dataId) ? hmi.env.lang : dataConnector);
+            const dataAccessSwitch = new Access.Switch(dataId => isValidLanguageValueId(dataId) ? hmi.env.lang : dataConnector);
             // Create collection providing multiple subscriptions from any context
-            const dataAccessPoint = new DataPoint.AccessPoint(hmi.env.logger, dataAccessSwitch, config.accessPointUnregisterObserverDelay); // Use the router as source
-            hmi.env.data = dataAccessPoint; // Enable access from anyhwere
+            const dataAccessProvider = new Access.Provider(hmi.env.logger, dataAccessSwitch, config.accessPointUnregisterObserverDelay); // Use the router as source
+            hmi.access = dataAccessProvider; // Enable access from anyhwere
             onSuccess();
         });
 
@@ -136,7 +136,6 @@
                 });
             } else {
                 rootObject = ContentEditor.create(hmi);
-                // hmi.env.data.onError = rootObject.notifyError; ???
                 onSuccess();
             }
         });

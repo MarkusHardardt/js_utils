@@ -1,6 +1,6 @@
 (function (root) {
     "use strict";
-    const DataPoint = {};
+    const Access = {};
     const isNodeJS = typeof require === 'function';
     const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Common = isNodeJS ? require('./Common.js') : root.Common;
@@ -192,7 +192,7 @@
         }
     }
 
-    class AccessPoint {
+    class Provider {
         #logger;
         #source;
         #unregisterObserverDelay;
@@ -211,9 +211,9 @@
 
         registerObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`AccessPoint.registerObserver(): Invalid data id '${dataId}'`);
+                throw new Error(`Provider.registerObserver(): Invalid data id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
-                throw new Error('AccessPoint.registerObserver(): onRefresh(value) is not a function');
+                throw new Error('Provider.registerObserver(): onRefresh(value) is not a function');
             }
             let dataPoint = this.#dataPointsByDataId[dataId];
             if (!dataPoint) {
@@ -225,45 +225,45 @@
                     delete dataPoint.node;
                     delete this.#dataPointsByDataId[dataId];
                 });
-                this.#logger.debug(`AccessPoint.registerObserver(): Register first '${dataId}' on node`);
+                this.#logger.debug(`Provider.registerObserver(): Register first '${dataId}' on node`);
             } else {
-                this.#logger.debug(`AccessPoint.registerObserver(): Register next '${dataId}' on node`);
+                this.#logger.debug(`Provider.registerObserver(): Register next '${dataId}' on node`);
             }
             dataPoint.node.registerObserver(onRefresh);
         }
 
         unregisterObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
-                throw new Error(`AccessPoint.unregisterObserver(): Invalid data id '${dataId}'`);
+                throw new Error(`Provider.unregisterObserver(): Invalid data id '${dataId}'`);
             } else if (typeof onRefresh !== 'function') {
-                throw new Error('AccessPoint.unregisterObserver(): onRefresh(value) is not a function');
+                throw new Error('Provider.unregisterObserver(): onRefresh(value) is not a function');
             }
             const dataPoint = this.#dataPointsByDataId[dataId];
             if (!dataPoint) {
-                this.#logger.error(`AccessPoint.unregisterObserver(): Data id '${dataId}' is not registered`);
+                this.#logger.error(`Provider.unregisterObserver(): Data id '${dataId}' is not registered`);
                 return;
             }
-            this.#logger.debug(`AccessPoint.unregisterObserver(): Unregister data id '${dataId}' on node`);
+            this.#logger.debug(`Provider.unregisterObserver(): Unregister data id '${dataId}' on node`);
             dataPoint.node.unregisterObserver(onRefresh);
         }
 
         registerObserverOnSource(filter) {
-            this.#logger.debug(`AccessPoint.registerObserverOnSource(): Called with filter: '${typeof filter === 'function'}'`);
+            this.#logger.debug(`Provider.registerObserverOnSource(): Called with filter: '${typeof filter === 'function'}'`);
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
                     const dataPoint = this.#dataPointsByDataId[dataId];
-                    this.#logger.debug(`AccessPoint.registerObserverOnSource(): Calling registerObserverOnSource() for data id '${dataId}' on node`);
+                    this.#logger.debug(`Provider.registerObserverOnSource(): Calling registerObserverOnSource() for data id '${dataId}' on node`);
                     dataPoint.node.registerObserverOnSource();
                 }
             }
         }
 
         unregisterObserverOnSource(filter) {
-            this.#logger.debug(`AccessPoint.unregisterObserverOnSource(): Called with filter: '${typeof filter === 'function'}'`);
+            this.#logger.debug(`Provider.unregisterObserverOnSource(): Called with filter: '${typeof filter === 'function'}'`);
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
                     const dataPoint = this.#dataPointsByDataId[dataId];
-                    this.#logger.debug(`AccessPoint.unregisterObserverOnSource(): Calling unregisterObserverOnSource() for data id '${dataId}' on node`);
+                    this.#logger.debug(`Provider.unregisterObserverOnSource(): Calling unregisterObserverOnSource() for data id '${dataId}' on node`);
                     dataPoint.node.unregisterObserverOnSource();
                 }
             }
@@ -274,7 +274,7 @@
                 try {
                     onResponse(value);
                 } catch (error) {
-                    this.#logger.error(`AccessPoint.read(): Failed calling onResponse(${value}) for data id '${dataId}'`, error);
+                    this.#logger.error(`Provider.read(): Failed calling onResponse(${value}) for data id '${dataId}'`, error);
                 }
                 const dataPoint = this.#dataPointsByDataId[dataId];
                 if (dataPoint) {
@@ -286,13 +286,13 @@
         write(dataId, value) {
             try {
                 this.#source.write(dataId, value);
-                this.#logger.debug(`AccessPoint.write(): Called write(${value}) for data id '${dataId}'`, error);
+                this.#logger.debug(`Provider.write(): Called write(${value}) for data id '${dataId}'`, error);
             } catch (error) {
-                this.#logger.error(`AccessPoint.write(): Failed calling write(${value}) for data id '${dataId}'`, error);
+                this.#logger.error(`Provider.write(): Failed calling write(${value}) for data id '${dataId}'`, error);
             }
         }
     }
-    DataPoint.AccessPoint = AccessPoint;
+    Access.Provider = Provider;
 
     class Switch {
         #getDataAccessObject;
@@ -328,7 +328,7 @@
             return Core.validateAs('DataAccessObject', this.#getDataAccessObject(dataId), aspect);
         }
     }
-    DataPoint.Switch = Switch;
+    Access.Switch = Switch;
 
     const targetIdValidRegex = /^[a-z0-9_]+$/i;
     const targetIdRegex = /^([a-z0-9_]+):.+$/i;
@@ -407,9 +407,9 @@
                 throw new Error(`Router.registerDataAccessObject(): Target id '${targetId}' is already registered`);
             } else {
                 Common.validateAsDataAccessServerObject(accessObject, true);
-                const prefixLength = targetId.length + 1;
+                const prefix = `${targetId}:`
                 function getRawDataId(dataId) {
-                    return dataId.substring(prefixLength);
+                    return dataId.substring(prefix.length);
                 }
                 this.#dataAccessObjects[targetId] = {
                     accessObject,
@@ -419,8 +419,9 @@
                     read: (dataId, onResponse, onError) => accessObject.read(getRawDataId(dataId), onResponse, onError),
                     write: (dataId, value) => accessObject.write(getRawDataId(dataId), value)
                 }
-                const idPrefix = `${targetId}:`
-                const filter = dataId => dataId.startsWith(idPrefix);
+                function filter(dataId) {
+                    return dataId.startsWith(prefix);
+                }
                 if (this.#onBeforeUpdateDataConnectors) {
                     this.#onBeforeUpdateDataConnectors(filter);
                 }
@@ -448,8 +449,10 @@
             } else if (this.#dataAccessObjects[targetId].accessObject !== accessObject) {
                 throw new Error(`Router.unregisterDataAccessObject(): Target id '${targetId}' is registered for another data access object`);
             } else {
-                const idPrefix = `${targetId}:`
-                const filter = dataId => dataId.startsWith(idPrefix);
+                const prefix = `${targetId}:`
+                function filter(dataId) {
+                    return dataId.startsWith(prefix);
+                }
                 if (this.#onBeforeUpdateDataConnectors) {
                     this.#onBeforeUpdateDataConnectors(filter);
                 }
@@ -486,12 +489,12 @@
             return this.#getDataAccessObject;
         }
     }
-    DataPoint.Router = Router;
+    Access.Router = Router;
 
-    Object.freeze(DataPoint);
+    Object.freeze(Access);
     if (isNodeJS) {
-        module.exports = DataPoint;
+        module.exports = Access;
     } else {
-        root.DataPoint = DataPoint;
+        root.Access = Access;
     }
 }(globalThis));

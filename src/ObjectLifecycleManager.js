@@ -2404,7 +2404,7 @@
                 var column = that.columns[i];
                 var cell = $('#' + _columns[i]._id);
                 if (typeof column.labelId === 'string' && column.labelId.length > 0) {
-                    cell.text(that.hmi.env.data.Get(column.labelId)); // TODO: Get() not exists!
+                    cell.text(that.hmi.access.Get(column.labelId)); // TODO: Get() not exists!
                 }
                 else if (typeof column.text === 'string' && column.text.length > 0) {
                     cell.text(column.text);
@@ -2434,7 +2434,7 @@
                 txt += _columns[i]._id;
                 txt += '">';
                 // TODO
-                txt += that.hmi.env.data.Get(column.labelId); // TODO: Get() not exists!
+                txt += that.hmi.access.Get(column.labelId); // TODO: Get() not exists!
                 txt += '</b>';
             }
             else if (typeof column.text === 'string' && column.text.length > 0) {
@@ -7202,7 +7202,7 @@
                         const dataId = _watch[i];
                         let type;
                         try {
-                            type = that.hmi.env.data.getType(dataId);
+                            type = that.hmi.access.getType(dataId);
                         } catch (error) {
                             type = Core.DataType.Unknown;
                         }
@@ -7232,7 +7232,7 @@
                             };
                             _onEventCallbacks.push(onRefresh);
                             try {
-                                that.hmi.env.data.registerObserver(dataId, onRefresh);
+                                that.hmi.access.registerObserver(dataId, onRefresh);
                             } catch (error) {
                                 console.error(`Failed subscribing to '${dataId}':\n${error.message}`);
                             }
@@ -7294,7 +7294,7 @@
             if (Array.isArray(_watch)) {
                 for (var i = _watch.length - 1; i >= 0; i--) {
                     try {
-                        that.hmi.env.data.unregisterObserver(_watch[i], _onEventCallbacks[i]);
+                        that.hmi.access.unregisterObserver(_watch[i], _onEventCallbacks[i]);
                     } catch (error) {
                         console.error(`Failed unsubscribing from '${_watch[i]}':\n${error.message}`);
                     }
@@ -7499,25 +7499,25 @@
         const buttons = [];
         if (typeof config.ok === 'function') {
             buttons.push({
-                text: typeof config.okLabelId === 'string' ? that.hmi.env.data.Get(config.okLabelId) : 'OK', // TODO: Get() not exists!
+                text: typeof config.okLabelId === 'string' ? that.hmi.access.Get(config.okLabelId) : 'OK', // TODO: Get() not exists!
                 click: close => perform(config.ok, close)
             });
         }
         if (typeof config.yes === 'function') {
             buttons.push({
-                text: typeof config.yesLabelId === 'string' ? that.hmi.env.data.Get(config.yesLabelId) : 'Yes', // TODO: Get() not exists!
+                text: typeof config.yesLabelId === 'string' ? that.hmi.access.Get(config.yesLabelId) : 'Yes', // TODO: Get() not exists!
                 click: close => perform(config.yes, close)
             });
         }
         if (typeof config.no === 'function') {
             buttons.push({
-                text: typeof config.noLabelId === 'string' ? that.hmi.env.data.Get(config.noLabelId) : 'No', // TODO: Get() not exists!
+                text: typeof config.noLabelId === 'string' ? that.hmi.access.Get(config.noLabelId) : 'No', // TODO: Get() not exists!
                 click: close => perform(config.no, close)
             });
         }
         if (typeof config.cancel === 'function') {
             buttons.push({
-                text: typeof config.cancelLabelId === 'string' ? that.hmi.env.data.Get(config.cancelLabelId) : 'Cancel', // TODO: Get() not exists!
+                text: typeof config.cancelLabelId === 'string' ? that.hmi.access.Get(config.cancelLabelId) : 'Cancel', // TODO: Get() not exists!
                 click: close => perform(config.cancel, close)
             });
         }
