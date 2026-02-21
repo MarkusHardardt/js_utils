@@ -1,6 +1,7 @@
 (function (root) {
     "use strict";
     const isNodeJS = typeof require === 'function';
+    const JsonFX = isNodeJS ? require('./JsonFX.js') : root.JsonFX;
     const PI = Math.PI;
     const TWO_PI = PI + PI;
     const HALF_PI = PI * 0.5;
@@ -481,13 +482,13 @@
             this.scale = 1.0 / this.scale;
             this.rotation = -this.rotation;
             /*  this is the inversion calculation (taken from AffineTransform.java)
-                var d00 = this.d00;
-                var d01 = this.d01;
-                var x = this.x;
-                var d10 = this.d10;
-                var d11 = this.d11;
-                var y = this.y;
-                var det = d00 * d11 - d01 * d10;
+                const d00 = this.d00;
+                const d01 = this.d01;
+                const x = this.x;
+                const d10 = this.d10;
+                const d11 = this.d11;
+                const y = this.y;
+                const det = d00 * d11 - d01 * d10;
                 this.d00 = d11 / det;
                 this.d10 = -d10 / det;
                 this.d01 = -d01 / det;
@@ -717,7 +718,7 @@
                 // try to get rotation angle
                 let phi = params.phi;
                 if (typeof phi !== 'number') {
-                    var a = params.angle;
+                    const a = params.angle;
                     if (typeof a === 'number') {
                         phi = a !== 0.0 ? a * DEG2RAD : undefined;
                     }
@@ -761,7 +762,7 @@
                 this.d11 = m11;
                 this.y = y;
                 // compute the inversion (taken from AffineTransform.java)
-                var det = m00 * m11 - m01 * m10;
+                const det = m00 * m11 - m01 * m10;
                 this.i00 = m11 / det;
                 this.i10 = -m10 / det;
                 this.i01 = -m01 / det;
@@ -895,10 +896,8 @@
                 } else if (is ? source >= s2 : source <= s2) {
                     return t2 + (source - s2) / ds * dt;
                 } else {
-                    for (let i = 0; i < config.length; i++) {
-                        const c = config[i];
-                        s2 = c.s2;
-                        if (is ? source <= s2 : source >= s2) {
+                    for (const c of config) {
+                        if (is ? source <= c.s2 : source >= c.s2) {
                             return c.t1 + (source - c.s1) / c.ds * c.dt;
                         }
                     }
@@ -923,10 +922,8 @@
                 } else if (it ? target >= t2 : target <= t2) {
                     return s2 + (target - t2) / dt * ds;
                 } else {
-                    for (let i = 0; i < config.length; i++) {
-                        const c = config[i];
-                        t2 = c.t2;
-                        if (it ? target <= t2 : target >= t2) {
+                    for (const c of config) {
+                        if (it ? target <= c.t2 : target >= c.t2) {
                             return c.s1 + (target - c.t1) / c.dt * c.ds;
                         }
                     }
@@ -939,14 +936,14 @@
             if (config.length > 0) {
                 let id1 = this.#id;
                 let txt = 'adjustment:';
-                for (var i = 0; i < config.length; i++) {
+                for (let i = 0; i < config.length; i++) {
                     txt += '\n';
-                    var cfg = config[i];
+                    const cfg = config[i];
                     txt += '[';
                     txt += i;
                     txt += '] = ';
                     txt += (cfg.dt / cfg.ds).toString();
-                    var id2 = cfg.id;
+                    const id2 = cfg.id;
                     txt += ' (from "';
                     txt += id1;
                     txt += '" to "';
@@ -955,7 +952,6 @@
                     id1 = id2;
                 }
                 return txt;
-                // JSONX.stringify(config, undefined, 2);
             } else {
                 return false;
             }
@@ -1183,7 +1179,7 @@
                     const y2 = ea !== false ? ea.startY : ep.y;
                     const dx = x2 - x1;
                     const dy = y2 - y1;
-                    const len = Math.sqrt(dx * dx + dy * dy);
+                    let len = Math.sqrt(dx * dx + dy * dy);
                     if (len > EPSILON) {
                         // we only want lines with an existing length
                         parts.push({
@@ -1226,7 +1222,7 @@
         }
         #getPositionOnArcLine(position, left, point) {
             const parts = this.#parts;
-            for (const part of parts.length) {
+            for (const part of parts) {
                 const s1 = part.s1;
                 if (position >= s1 && position <= part.s2) {
                     const tf = this.#tf;
@@ -2264,9 +2260,9 @@
             let sag1 = sag0 + dsag;
             let sag2 = sag3 - dsag;
             this.#initForThreeNormalizedPoints(nx1, ny1, xm, ym - sag1, nx2, ny2);
-            const frc1 = this.#getNormalizedForce(nx);
+            let frc1 = this.#getNormalizedForce(nx);
             this.#initForThreeNormalizedPoints(nx1, ny1, xm, ym - sag2, nx2, ny2);
-            const frc2 = this.#getNormalizedForce(nx);
+            let frc2 = this.#getNormalizedForce(nx);
             const maxIter = this.#maxIterations;
             for (let i = 0; i < maxIter && dsag > distTol; i++) {
                 if (frc1 > frc2) {
@@ -2299,25 +2295,25 @@
          * Compute a chain through the two given points and a given force at a given
          * location.
          *
-         * @param i_x1
+         * @param x1
          *          The first x coordinate
-         * @param i_y1
+         * @param y1
          *          The first y coordinate
-         * @param i_x2
+         * @param x2
          *          The second x coordinate
-         * @param i_y2
+         * @param y2
          *          The second y coordinate
-         * @param i_x
+         * @param x
          *          The location for the given force
-         * @param i_force
+         * @param force
          *          The force for the given location
-         * @param i_q0
+         * @param q0
          *          The weight per meter
          */
-        initForForce(i_x1, i_y1, i_x2, i_y2, i_x, i_force, i_q0) {
+        initForForce(x1, y1, x2, y2, x, force, q0) {
             // First we initialize our chain for the minimum possible force at the
             // given location. If the given force is less we return unsuccessfully.
-            this.initForMinimumForce(i_x1, i_y1, i_x2, i_y2, i_x);
+            this.initForMinimumForce(x1, y1, x2, y2, x);
             if (this.#cosinusHyperbolicus !== true) {
                 this.reset();
                 return false;
@@ -2327,56 +2323,55 @@
             const ny1 = this.#toNormalizedHeight(tuple.y1);
             const nx2 = this.#toNormalizedLocation(tuple.x2);
             const ny2 = this.#toNormalizedHeight(tuple.y2);
-            const nx = this.#toNormalizedLocation(i_x);
-            var force = typeof i_q0 === 'number' && i_q0 > 0.0 ? i_force / i_q0 : i_force; // TODO: Go on here
-            var normForce = this.#toNormalized(force);
-            var minForce = this.#getNormalizedForce(nx);
-            if (normForce < minForce) {
+            const nx = this.#toNormalizedLocation(x);
+            let frc = typeof q0 === 'number' && q0 > 0.0 ? force / q0 : force; // TODO: Go on here
+            const normFrc = this.#toNormalized(frc);
+            const minForce = this.#getNormalizedForce(nx);
+            if (normFrc < minForce) {
                 this.reset();
                 return false;
             }
             // If we reach this point we know that the required force is reachable, By
             // varying the sag, we try to approximate a chain for the required force.
-            var xm = (nx1 + nx2) * 0.5;
-            var ym = (ny1 + ny2) * 0.5;
-            var csag = (ym - this.#getNormalizedHeight(xm)) * 0.5;
-            var dsag = csag * 0.5;
-            var maxIter = this.#maxIterations;
-            var distTol = this.#distanceTolerance;
-            for (var i = 0; i < maxIter && dsag > distTol; i++) {
+            const xm = (nx1 + nx2) * 0.5;
+            const ym = (ny1 + ny2) * 0.5;
+            let csag = (ym - this.#getNormalizedHeight(xm)) * 0.5;
+            let dsag = csag * 0.5;
+            const maxIter = this.#maxIterations;
+            const distTol = this.#distanceTolerance;
+            for (let i = 0; i < maxIter && dsag > distTol; i++) {
                 this.#initForThreeNormalizedPoints(nx1, ny1, xm, ym - csag, nx2, ny2);
-                var force = this.#getNormalizedForce(nx);
-                if (force < normForce) {
+                frc = this.#getNormalizedForce(nx);
+                if (frc < normFrc) {
                     csag -= dsag;
-                }
-                else {
+                } else {
                     csag += dsag;
                 }
                 dsag *= 0.5;
             }
             // To get the best results we finally perform a 2 D-Newton iteration with
             // our start values calculated in the loop before.
-            var dy = ny2 - ny1;
-            var normA = this.#normA;
-            var normB = this.#normB;
-            for (var i = 0; i < maxIter; i++) {
-                var ax1b = normA * nx1 + normB;
-                var ax2b = normA * nx2 + normB;
-                var axb = normA * nx + normB;
-                var eax1bp = Math.exp(ax1b);
-                var eax1bm = 1.0 / eax1bp;
-                var eax2bp = Math.exp(ax2b);
-                var eax2bm = 1.0 / eax2bp;
-                var eaxbp = Math.exp(axb);
-                var eaxbm = 1.0 / eaxbp;
-                var cax1b = (eax1bp + eax1bm) * 0.5;
-                var cax2b = (eax2bp + eax2bm) * 0.5;
-                var caxb = (eaxbp + eaxbm) * 0.5;
-                var f1 = -normA * dy - cax1b + cax2b;
-                var f2 = caxb - normA * normForce;
+            const dy = ny2 - ny1;
+            let normA = this.#normA;
+            let normB = this.#normB;
+            for (let i = 0; i < maxIter; i++) {
+                const ax1b = normA * nx1 + normB;
+                const ax2b = normA * nx2 + normB;
+                const axb = normA * nx + normB;
+                const eax1bp = Math.exp(ax1b);
+                const eax1bm = 1.0 / eax1bp;
+                const eax2bp = Math.exp(ax2b);
+                const eax2bm = 1.0 / eax2bp;
+                const eaxbp = Math.exp(axb);
+                const eaxbm = 1.0 / eaxbp;
+                const cax1b = (eax1bp + eax1bm) * 0.5;
+                const cax2b = (eax2bp + eax2bm) * 0.5;
+                const caxb = (eaxbp + eaxbm) * 0.5;
+                const f1 = -normA * dy - cax1b + cax2b;
+                const f2 = caxb - normA * normFrc;
                 if (Math.abs(f1) <= distTol && Math.abs(f2) <= distTol) {
-                    var normC = (ny1 + ny2 - (cosh(normA * nx1 + normB) + cosh(normA * nx2 + normB)) / normA) * 0.5;
-                    var parabola = this.#parabola;
+                    const normC = (ny1 + ny2 - (cosh(normA * nx1 + normB) + cosh(normA * nx2 + normB)) / normA) * 0.5;
+                    const parabola = this.#parabola;
                     parabola.a = normA * 0.5;
                     parabola.b = normB;
                     parabola.c = (2.0 + normB * normB) * 0.5 / normA + normC;
@@ -2387,14 +2382,14 @@
                     this.#valid = true;
                     return true;
                 }
-                var sax1b = (eax1bp - eax1bm) * 0.5;
-                var sax2b = (eax2bp - eax2bm) * 0.5;
-                var saxb = (eaxbp - eaxbm) * 0.5;
-                var df1da = -dy - sax1b * nx1 + sax2b * nx2;
-                var df1db = -sax1b + sax2b;
-                var df2da = saxb * nx - normForce;
-                var df2db = saxb;
-                var det = df1da * df2db - df1db * df2da;
+                const sax1b = (eax1bp - eax1bm) * 0.5;
+                const sax2b = (eax2bp - eax2bm) * 0.5;
+                const saxb = (eaxbp - eaxbm) * 0.5;
+                const df1da = -dy - sax1b * nx1 + sax2b * nx2;
+                const df1db = -sax1b + sax2b;
+                const df2da = saxb * nx - normFrc;
+                const df2db = saxb;
+                const det = df1da * df2db - df1db * df2da;
                 if (isZeroInfinitOrInvalid(det)) {
                     break;
                 }
@@ -2407,22 +2402,20 @@
         /**
          * Get the y coordinate for the given x coordinate
          *
-         * @param i_x
+         * @param x
          *          The x coordinate
          * @return The y coordinate
          */
-        getHeight(i_x) {
+        getHeight(x) {
             if (this.#cosinusHyperbolicus) {
-                var nx = this.#toNormalizedLocation(i_x);
-                var ny = this.#getNormalizedHeight(nx);
+                const nx = this.#toNormalizedLocation(x);
+                const ny = this.#getNormalizedHeight(nx);
                 return this.#fromNormalizedHeight(ny);
-            }
-            else if (this.#valid) {
-                var nx = this.#toNormalizedLocation(i_x);
-                var ny = getParabolaValue(this.#parabola, nx);
+            } else if (this.#valid) {
+                const nx = this.#toNormalizedLocation(x);
+                const ny = getParabolaValue(this.#parabola, nx);
                 return this.#fromNormalizedHeight(ny);
-            }
-            else {
+            } else {
                 return 0.0;
             }
         }
@@ -2430,23 +2423,23 @@
          * Get the gradient e.g. the first derivation value for the given x
          * coordinate
          *
-         * @param i_x
+         * @param x
          *          The x coordinate
          * @return The gradient value
          */
-        getGradient(i_x) {
-            var nx = this.#toNormalizedLocation(i_x);
+        getGradient(x) {
+            const nx = this.#toNormalizedLocation(x);
             return sinh(this.#normA * nx + this.#normB);
         }
         /**
          * Get the angle for the given x coordinate
          *
-         * @param i_x
+         * @param x
          *          The x coordinate
          * @return The angle
          */
-        getAngle(i_x) {
-            var grad = this.getGradient(i_x);
+        getAngle(x) {
+            const grad = this.getGradient(x);
             return Math.atan2(grad, 1.0);
         }
         /**
@@ -2455,7 +2448,7 @@
          * @return The x coordinate
          */
         getMinimumLocation() {
-            var nx = -this.#normB / this.#normA;
+            const nx = -this.#normB / this.#normA;
             return this.#fromNormalizedLocation(nx);
         }
         /**
@@ -2464,59 +2457,57 @@
          * @return The minimum y coordinate
          */
         getMinimumHeight() {
-            var ny = 1.0 / this.#normA + this.#normC;
+            const ny = 1.0 / this.#normA + this.#normC;
             return this.#fromNormalizedHeight(ny);
         }
         /**
          * Get the length between the given x coordinates
          *
-         * @param i_x1
+         * @param x1
          *          The first x coordinate
-         * @param i_x2
+         * @param x2
          *          The second x coordinate
          * @return The length
          */
-        getLength(i_x1, i_x2) {
-            var x1 = Math.min(i_x1, i_x2);
-            var x2 = Math.max(i_x1, i_x2);
-            var nx1 = this.#toNormalizedLocation(x1);
-            var nx2 = this.#toNormalizedLocation(x2);
-            var nd = this.#getNormalizedDistance(nx1, nx2);
+        getLength(x1, x2) {
+            const nx1 = this.#toNormalizedLocation(Math.min(x1, x2));
+            const nx2 = this.#toNormalizedLocation(Math.max(x1, x2));
+            const nd = this.#getNormalizedDistance(nx1, nx2);
             return this.#fromNormalized(nd);
         }
         /**
          * Get the x coordinate for the given offset and distance
          *
-         * @param i_offsetX
+         * @param offsetX
          *          The offset x coordinate
-         * @param i_distance
+         * @param distance
          *          The distance (may be negative)
          * @return The x coordinate
          */
-        getLocation(i_offsetX, i_distance) {
-            var nx = this.#toNormalizedLocation(i_offsetX);
-            var normA = this.#normA;
-            var normB = this.#normB;
-            var sh = sinh(normA * nx + normB);
-            var nd = this.#toNormalized(i_distance);
-            var nl = (asinh(normA * nd + sh) - normB) / normA;
+        getLocation(offsetX, distance) {
+            const nx = this.#toNormalizedLocation(offsetX);
+            const normA = this.#normA;
+            const normB = this.#normB;
+            const sh = sinh(normA * nx + normB);
+            const nd = this.#toNormalized(distance);
+            const nl = (asinh(normA * nd + sh) - normB) / normA;
             return this.#fromNormalizedLocation(nl);
         }
         /**
          * Get the force for the given x coordinate
          *
-         * @param i_x
+         * @param x
          *          The x coordinate
-         * @param i_weightPerMeter
+         * @param weightPerMeter
          *          The weight per meter
-         * @param i_gravitation
+         * @param gravitation
          *          The gravitation constant
          * @return The force
          */
-        getForce(i_x, i_weightPerMeter, i_gravitation) {
-            var nx = this.#toNormalizedLocation(i_x);
-            var nf = this.#getNormalizedForce(nx);
-            var q0 = typeof i_gravitation === 'number' && i_gravitation > 0.0 ? i_weightPerMeter * i_gravitation : i_weightPerMeter;
+        getForce(x, weightPerMeter, gravitation) {
+            const nx = this.#toNormalizedLocation(x);
+            const nf = this.#getNormalizedForce(nx);
+            const q0 = typeof gravitation === 'number' && gravitation > 0.0 ? weightPerMeter * gravitation : weightPerMeter;
             return this.#fromNormalized(nf) * q0;
         }
         /**
@@ -2568,98 +2559,97 @@
     }
 
 
-    function fn_normalize_rope_angle(i_phi) {
-        var phi = i_phi;
-        while (phi < -HALF_PI) {
-            phi += TWO_PI;
+    function normalizeRopeAngle(phi) {
+        let p = phi;
+        while (p < -HALF_PI) {
+            p += TWO_PI;
         }
-        while (phi >= THREE_HALF_PI) {
-            phi -= TWO_PI;
+        while (p >= THREE_HALF_PI) {
+            p -= TWO_PI;
         }
-        return phi;
+        return p;
     }
 
     /**
      * This method computes a support between two chains
      * 
-     * @param i_chainFunction1
+     * @param chainFunction1
      *          The first chain function
-     * @param i_chainFunction2
+     * @param chainFunction2
      *          The second chain function
-     * @param i_x
+     * @param x
      *          The x coordinate where our chains are "connected"
-     * @param i_radius
+     * @param radius
      *          The saddle radius
-     * @param i_maxIterations
+     * @param maxIterations
      *          The maximum iteration count
-     * @param i_tolerance
+     * @param tolerance
      *          The tolerance for our iteration process
      * @return True if the support has been computed successfully
      */
-    function fn_compute_support(i_chainFunction1, i_chainFunction2, i_x, i_radius, i_maxIterations, i_tolerance, i_increasingX) {
-        if (typeof i_radius !== 'number' || i_radius <= 0.0) {
+    function computeRopeSupport(chainFunction1, chainFunction2, x, radius, maxIterations, tolerance, increasingX) {
+        if (typeof radius !== 'number' || radius <= 0.0) {
             // invalid radius
             return false;
         }
-        var incX = i_increasingX === true;
-        var grad1 = i_chainFunction1.getGradient(i_x);
-        var grad2 = i_chainFunction2.getGradient(i_x);
-        var up = incX ? grad1 >= grad2 : grad1 <= grad2;
-        var x1 = i_x;
-        var x2 = i_x;
-        var r = i_radius;
-        var a1 = i_chainFunction1.getA();
-        var b1 = i_chainFunction1.getB();
-        var c1 = i_chainFunction1.getC();
-        var a2 = i_chainFunction2.getA();
-        var b2 = i_chainFunction2.getB();
-        var c2 = i_chainFunction2.getC();
-        var maxIterations = typeof i_maxIterations === 'number' && i_maxIterations > 0 ? i_maxIterations : DEFAULT_MAX_ITERATIONS;
-        var tolerance = typeof i_tolerance === 'number' && i_tolerance > 0 ? i_tolerance : DEFAULT_DISTANCE_TOLERANCE;
-        for (var i = 0; i < maxIterations; i++) {
-            var a1x1b1 = a1 * x1 + b1;
-            var a2x2b2 = a2 * x2 + b2;
-            var ea1x1b1p = Math.exp(a1x1b1);
-            var ea1x1b1m = 1.0 / ea1x1b1p;
-            var ea2x2b2p = Math.exp(a2x2b2);
-            var ea2x2b2m = 1.0 / ea2x2b2p;
-            var ca1x1b1 = (ea1x1b1p + ea1x1b1m) * 0.5;
-            var sa1x1b1 = (ea1x1b1p - ea1x1b1m) * 0.5;
-            var ca2x2b2 = (ea2x2b2p + ea2x2b2m) * 0.5;
-            var sa2x2b2 = (ea2x2b2p - ea2x2b2m) * 0.5;
-            var y1 = ca1x1b1 / a1 + c1;
-            var y2 = ca2x2b2 / a2 + c2;
-            var f1 = up ? (x1 + r * sa1x1b1 / ca1x1b1 - x2 - r * sa2x2b2 / ca2x2b2) : (x1 - r * sa1x1b1 / ca1x1b1 - x2 + r * sa2x2b2 / ca2x2b2);
-            var f2 = up ? (y1 - r / ca1x1b1 - y2 + r / ca2x2b2) : (y1 + r / ca1x1b1 - y2 - r / ca2x2b2);
-            if (Math.abs(f1) <= tolerance && Math.abs(f2) <= tolerance) {
-                var centerX = up ? ((x1 + r * sa1x1b1 / ca1x1b1 + x2 + r * sa2x2b2 / ca2x2b2) * 0.5) : ((x1 - r * sa1x1b1 / ca1x1b1 + x2 - r * sa2x2b2 / ca2x2b2) * 0.5);
-                var centerY = up ? ((y1 - r / ca1x1b1 + y2 - r / ca2x2b2) * 0.5) : ((y1 + r / ca1x1b1 + y2 + r / ca2x2b2) * 0.5);
-                var phi1 = Math.atan2(y1 - centerY, x1 - centerX);
-                var phi2 = Math.atan2(y2 - centerY, x2 - centerX);
-                var left = incX !== up;
+        const incX = increasingX === true;
+        const grad1 = chainFunction1.getGradient(x);
+        const grad2 = chainFunction2.getGradient(x);
+        const up = incX ? grad1 >= grad2 : grad1 <= grad2;
+        let x1 = x;
+        let x2 = x;
+        const r = radius;
+        const a1 = chainFunction1.getA();
+        const b1 = chainFunction1.getB();
+        const c1 = chainFunction1.getC();
+        const a2 = chainFunction2.getA();
+        const b2 = chainFunction2.getB();
+        const c2 = chainFunction2.getC();
+        const maxIter = typeof maxIterations === 'number' && maxIterations > 0 ? maxIterations : DEFAULT_MAX_ITERATIONS;
+        const tol = typeof tolerance === 'number' && tolerance > 0 ? tolerance : DEFAULT_DISTANCE_TOLERANCE;
+        for (let i = 0; i < maxIter; i++) {
+            const a1x1b1 = a1 * x1 + b1;
+            const a2x2b2 = a2 * x2 + b2;
+            const ea1x1b1p = Math.exp(a1x1b1);
+            const ea1x1b1m = 1.0 / ea1x1b1p;
+            const ea2x2b2p = Math.exp(a2x2b2);
+            const ea2x2b2m = 1.0 / ea2x2b2p;
+            const ca1x1b1 = (ea1x1b1p + ea1x1b1m) * 0.5;
+            const sa1x1b1 = (ea1x1b1p - ea1x1b1m) * 0.5;
+            const ca2x2b2 = (ea2x2b2p + ea2x2b2m) * 0.5;
+            const sa2x2b2 = (ea2x2b2p - ea2x2b2m) * 0.5;
+            const y1 = ca1x1b1 / a1 + c1;
+            const y2 = ca2x2b2 / a2 + c2;
+            const f1 = up ? (x1 + r * sa1x1b1 / ca1x1b1 - x2 - r * sa2x2b2 / ca2x2b2) : (x1 - r * sa1x1b1 / ca1x1b1 - x2 + r * sa2x2b2 / ca2x2b2);
+            const f2 = up ? (y1 - r / ca1x1b1 - y2 + r / ca2x2b2) : (y1 + r / ca1x1b1 - y2 - r / ca2x2b2);
+            if (Math.abs(f1) <= tol && Math.abs(f2) <= tol) {
+                const centerX = up ? ((x1 + r * sa1x1b1 / ca1x1b1 + x2 + r * sa2x2b2 / ca2x2b2) * 0.5) : ((x1 - r * sa1x1b1 / ca1x1b1 + x2 - r * sa2x2b2 / ca2x2b2) * 0.5);
+                const centerY = up ? ((y1 - r / ca1x1b1 + y2 - r / ca2x2b2) * 0.5) : ((y1 + r / ca1x1b1 + y2 + r / ca2x2b2) * 0.5);
+                const phi1 = Math.atan2(y1 - centerY, x1 - centerX);
+                const phi2 = Math.atan2(y2 - centerY, x2 - centerX);
+                const left = incX !== up;
                 return {
-                    up: up,
-                    left: left,
+                    up,
+                    left,
                     right: incX === up,
-                    centerX: centerX,
-                    centerY: centerY,
-                    radius: i_radius,
+                    centerX,
+                    centerY,
+                    radius,
                     startX: x1,
                     startY: y1,
-                    startPhi: fn_normalize_rope_angle(left ? phi1 + HALF_PI : phi1 - HALF_PI),
+                    startPhi: normalizeRopeAngle(left ? phi1 + HALF_PI : phi1 - HALF_PI),
                     endX: x2,
                     endY: y2,
-                    endPhi: fn_normalize_rope_angle(left ? phi2 + HALF_PI : phi2 - HALF_PI)
+                    endPhi: normalizeRopeAngle(left ? phi2 + HALF_PI : phi2 - HALF_PI)
                 };
             }
-            var ca1x1b1Sq = ca1x1b1 * ca1x1b1;
-            var ca2x2b2Sq = ca2x2b2 * ca2x2b2;
-            var df1dx1 = up ? (1.0 + r * a1 / ca1x1b1Sq) : (1.0 - r * a1 / ca1x1b1Sq);
-            var df1dx2 = up ? (-1.0 - r * a2 / ca2x2b2Sq) : (-1.0 + r * a2 / ca2x2b2Sq);
-            var df2dx1 = up ? (sa1x1b1 + a1 * r * sa1x1b1 / ca1x1b1Sq) : (sa1x1b1 - a1 * r * sa1x1b1 / ca1x1b1Sq);
-            var df2dx2 = up ? (-sa2x2b2 - a2 * r * sa2x2b2 / ca2x2b2Sq) : (-sa2x2b2 + a2 * r * sa2x2b2 / ca2x2b2Sq);
-            var det = df1dx1 * df2dx2 - df1dx2 * df2dx1;
-
+            const ca1x1b1Sq = ca1x1b1 * ca1x1b1;
+            const ca2x2b2Sq = ca2x2b2 * ca2x2b2;
+            const df1dx1 = up ? (1.0 + r * a1 / ca1x1b1Sq) : (1.0 - r * a1 / ca1x1b1Sq);
+            const df1dx2 = up ? (-1.0 - r * a2 / ca2x2b2Sq) : (-1.0 + r * a2 / ca2x2b2Sq);
+            const df2dx1 = up ? (sa1x1b1 + a1 * r * sa1x1b1 / ca1x1b1Sq) : (sa1x1b1 - a1 * r * sa1x1b1 / ca1x1b1Sq);
+            const df2dx2 = up ? (-sa2x2b2 - a2 * r * sa2x2b2 / ca2x2b2Sq) : (-sa2x2b2 + a2 * r * sa2x2b2 / ca2x2b2Sq);
+            const det = df1dx1 * df2dx2 - df1dx2 * df2dx1;
             // if our determinant is zero our iteration fails
             if (isZeroInfinitOrInvalid(det)) {
                 return false;
@@ -2675,116 +2665,119 @@
      * returns zero if i_x is exactly i_x1, i_x2 or outside the range, one if i_x
      * is our i_referenceX and in between a linear interpolated value.
      */
-    function fn_get_relative_linear_values(i_x1, i_x2, i_referenceX, i_x, i_values) {
-        var val = i_values || {};
-        if (i_x2 > i_x1) {
-            if (i_x < i_referenceX) {
-                var denom = i_referenceX - i_x1;
-                val.value = (i_x - i_x1) / denom;
+    function getRelativeLinearValues(x1, x2, referenceX, x, values) {
+        const val = values || {};
+        if (x2 > x1) {
+            if (x < referenceX) {
+                const denom = referenceX - x1;
+                val.value = (x - x1) / denom;
                 val.gradient = 1.0 / denom;
-            }
-            else if (i_x > i_referenceX) {
-                var denom = i_x2 - i_referenceX;
-                val.value = (i_x2 - i_x) / denom;
+            } else if (x > referenceX) {
+                const denom = x2 - referenceX;
+                val.value = (x2 - x) / denom;
                 val.gradient = -1.0 / denom;
-            }
-            else {
+            } else {
                 val.value = 1.0;
-                val.gradient = 0.5 * (1.0 / (i_referenceX - i_x1) - 1.0 / (i_x2 - i_referenceX));
+                val.gradient = 0.5 * (1.0 / (referenceX - x1) - 1.0 / (x2 - referenceX));
             }
-        }
-        else {
-            if (i_x < i_referenceX) {
-                var denom = i_referenceX - i_x2;
-                val.value = (i_x - i_x2) / denom;
+        } else {
+            if (x < referenceX) {
+                const denom = referenceX - x2;
+                val.value = (x - x2) / denom;
                 val.gradient = 1.0 / denom;
-            }
-            else if (i_x > i_referenceX) {
-                var denom = i_x1 - i_referenceX;
-                val.value = (i_x1 - i_x) / denom;
+            } else if (x > referenceX) {
+                const denom = x1 - referenceX;
+                val.value = (x1 - x) / denom;
                 val.gradient = -1.0 / denom;
-            }
-            else {
+            } else {
                 val.value = 1.0;
-                val.gradient = 0.5 * (1.0 / (i_referenceX - i_x2) - 1.0 / (i_x1 - i_referenceX));
+                val.gradient = 0.5 * (1.0 / (referenceX - x2) - 1.0 / (x1 - referenceX));
             }
         }
         return val;
     }
 
-    function fn_get_linear_height(i_x1, i_y1, i_x2, i_y2, i_x) {
-        return i_y1 + (i_x - i_x1) * (i_y2 - i_y1) / (i_x2 - i_x1);
+    function getLinearHeight(x1, y1, x2, y2, x) {
+        return y1 + (x - x1) * (y2 - y1) / (x2 - x1);
     }
 
-    function get_steel_rope_q0(i_diameter) {
+    function getSteelRopeQ0(diameter) {
         // compute the cross section [m^2]
-        var cross_section = i_diameter * i_diameter * 0.25 * PI;
+        const cross_section = diameter * diameter * 0.25 * PI;
         // compute the weight per meter [kg/m] = [kg/m^3] * [m^2]
-        var weight_per_meter = SPECIFIC_GRAVITY_OF_STEEL * cross_section;
+        const weight_per_meter = SPECIFIC_GRAVITY_OF_STEEL * cross_section;
         // [kg/s^2] = [kg/m] * [m/s^2]
         return weight_per_meter * EARTH_GRAVITATION;
     }
 
-    function fn_get_smooth_rope_sag_factor(i_x1, i_x2, i_x, i_s1, i_s2) {
-        var xm = (i_x1 + i_x2) * 0.5;
-        var lx = Math.abs(i_x2 - xm);
-        var dx = Math.abs(i_x - xm);
-        return getSmoothNormalizedTransfer(Math.abs(i_x - xm) / Math.abs(i_x2 - xm), i_s1, i_s2);
+    function getSmoothRopeSagFactor(x1, x2, x, s1, s2) {
+        const xm = (x1 + x2) * 0.5;
+        return getSmoothNormalizedTransfer(Math.abs(x - xm) / Math.abs(x2 - xm), s1, s2);
     }
 
-    var RopeLine = function (i_curve) {
-        // ACHTUNG: Wenn ein Seil mit Kraftausgleich �ber mehrere St�tzen geht,
-        // verh�lt sich die horizontale L�nge, schr�nge L�nge und Seill�nge in etwa
-        // proportional.
-        // Der Durchhang jedoch ist bei kleineren Feldern unterproportional kleiner,
-        // die vertikale Distanz hingegen minimal gr�sser.
+    class RopeLine {
+        #curve;
+        #stress1;
+        #stress2;
+        #maxIterations;
+        #distanceTolerance;
+        #increasingX;
+        #counterweight0;
+        #counterweight1;
+        #q0;
+        #p;
+        #parts;
+        #fields;
+        #adjuster;
+        #tf;
+        constructor(curve) {
+            // ACHTUNG: Wenn ein Seil mit Kraftausgleich �ber mehrere St�tzen geht,
+            // verh�lt sich die horizontale L�nge, schr�nge L�nge und Seill�nge in etwa
+            // proportional.
+            // Der Durchhang jedoch ist bei kleineren Feldern unterproportional kleiner,
+            // die vertikale Distanz hingegen minimal gr�sser.
+            // public fields
+            this.length = 0.0;
 
-        // public fields
-        this.length = 0.0;
+            // internal parameters
+            this.#curve = curve;
+            this.#stress1 = DEFAULT_STRESS_S1;
+            this.#stress2 = DEFAULT_STRESS_S2;
+            this.#maxIterations = typeof curve.maxIterations === 'number' && curve.maxIterations > 0 ? curve.maxIterations : DEFAULT_MAX_ITERATIONS;
+            this.#distanceTolerance = typeof curve.distanceTolerance === 'number' && curve.distanceTolerance > 0 ? curve.distanceTolerance : DEFAULT_DISTANCE_TOLERANCE;
+            this.#increasingX = undefined;
+            this.#counterweight0 = undefined;
+            this.#counterweight1 = undefined;
+            this.#q0 = undefined;
+            this.#p = {};
+            this.#parts = [];
+            this.#fields = [];
+            this.#adjuster = new Adjuster();
+            this.#tf = new Transform();
 
-        // internal parameters
-        this._curve = i_curve;
-        this._stress1 = DEFAULT_STRESS_S1;
-        this._stress2 = DEFAULT_STRESS_S2;
-        this._maxIterations = typeof i_curve.maxIterations === 'number' && i_curve.maxIterations > 0 ? i_curve.maxIterations : DEFAULT_MAX_ITERATIONS;
-        this._distanceTolerance = typeof i_curve.distanceTolerance === 'number' && i_curve.distanceTolerance > 0 ? i_curve.distanceTolerance : DEFAULT_DISTANCE_TOLERANCE;
-        this._increasingX = undefined;
-        this._counterweight0 = undefined;
-        this._counterweight1 = undefined;
-        this._q0 = undefined;
-        this._p = {};
-        this._parts = [];
-        this._fields = [];
-        this._adjuster = new Adjuster();
-        this._tf = new Transform();
-
-        // initialize
-        this.adjust();
-        this._init();
-    };
-
-    RopeLine.prototype = {
-        adjust: function () {
-            var fields = this._fields;
-            var curve = this._curve;
+            // initialize
+            this.adjust();
+            this.#init();
+        }
+        adjust() {
+            const fields = this.#fields;
+            const curve = this.#curve;
             // adjust transform
-            this._tf.setToIdentity();
-            this._tf.setToCoordinateTransform(curve);
+            this.#tf.setToIdentity();
+            this.#tf.setToCoordinateTransform(curve);
             // handle stressing vehicle
-            var stressX = curve.stressX;
-            var stressSag = curve.stressSag;
-            var stressAvailable = false;
+            const stressX = curve.stressX;
+            const stressSag = curve.stressSag;
+            let stressAvailable = false;
             if (typeof stressX === 'number' && typeof stressSag === 'number') {
-                for (var i = 0; i < fields.length; i++) {
-                    var field = fields[i];
-                    var saddle1x = field.saddle1x;
-                    var saddle2x = field.saddle2x;
-                    if (this._increasingX ? (saddle1x < stressX && stressX < saddle2x) : (saddle2x < stressX && stressX < saddle1x)) {
+                for (const field of fields) {
+                    const saddle1x = field.saddle1x;
+                    const saddle2x = field.saddle2x;
+                    if (this.#increasingX ? (saddle1x < stressX && stressX < saddle2x) : (saddle2x < stressX && stressX < saddle1x)) {
                         stressAvailable = true;
-                        var rate = fn_get_smooth_rope_sag_factor(saddle1x, saddle2x, stressX, this._stress1, this._stress2) * field.relative_rate;
-                        var max_sag = stressSag / rate;
-                        for (var j = 0; j < fields.length; j++) {
-                            var fld = fields[j];
+                        const rate = getSmoothRopeSagFactor(saddle1x, saddle2x, stressX, this.#stress1, this.#stress2) * field.relative_rate;
+                        const max_sag = stressSag / rate;
+                        for (const fld of fields) {
                             fld.middle_stress_sag = max_sag * fld.relative_rate;
                         }
                         break;
@@ -2792,24 +2785,23 @@
                 }
             }
             if (stressAvailable === false) {
-                for (var i = 0; i < fields.length; i++) {
-                    var field = fields[i];
+                for (const field of fields) {
                     delete field.middle_stress_sag;
                 }
             }
-        },
-        _reset: function () {
+        }
+        #reset() {
             // clean up
-            this._fields.splice(0, this._fields.length);
-            this._parts.splice(0, this._parts.length);
+            this.#fields.splice(0, this.#fields.length);
+            this.#parts.splice(0, this.#parts.length);
             this.length = 0.0;
-            this._increasingX = undefined;
-            this._counterweight0 = undefined;
-            this._counterweight1 = undefined;
-            this._adjuster.reset();
-        },
-        _load_config: function () {
-            var curve = this._curve;
+            this.#increasingX = undefined;
+            this.#counterweight0 = undefined;
+            this.#counterweight1 = undefined;
+            this.#adjuster.reset();
+        }
+        #loadConfig() {
+            const curve = this.#curve;
             // if invalid configuration we do not perform
             if (curve === null || typeof curve !== 'object') {
                 console.error('ERROR! No rope configuration available.');
@@ -2818,9 +2810,9 @@
             // ///////////////////////////////////////////////////////////////
             // VALIDITY CHECK
             // ///////////////////////////////////////////////////////////////
-            var points = curve.points;
+            const points = curve.points;
             // if invalid configuration we do not perform
-            if ($.isArray(points) !== true || points.length === 0) {
+            if (Array.isArray(points) !== true || points.length === 0) {
                 console.error('ERROR! Rope configuration does not contain valid points.');
                 return false;
             }
@@ -2828,32 +2820,31 @@
             // ///////////////////////////////////////////////////////////////
             // WEIGHT PER METER
             // ///////////////////////////////////////////////////////////////
-            var weight_per_meter = curve.weightPerMeter;
+            const weight_per_meter = curve.weightPerMeter;
             if (typeof weight_per_meter === 'number' && weight_per_meter > 0) {
-                this._q0 = weight_per_meter * EARTH_GRAVITATION;
+                this.#q0 = weight_per_meter * EARTH_GRAVITATION;
             }
             // ///////////////////////////////////////////////////////////////
             // COUNTERWEIGHT
             // ///////////////////////////////////////////////////////////////
-
             // check for counter weight configuration on first found support
-            for (var i = 0; i < points.length; i++) {
-                var pos = points[i];
+            for (let i = 0; i < points.length; i++) {
+                const pos = points[i];
                 if (pos !== null && typeof pos === 'object' && pos.type === 'support') {
                     if (typeof pos.counterweight === 'number') {
-                        this._counterweight0 = pos.counterweight;
+                        this.#counterweight0 = pos.counterweight;
                     }
                     break;
                 }
             }
             // if not found check for counter weight configuration on last found
             // support
-            if (this._counterweight0 === undefined) {
-                for (var i = points.length - 1; i >= 0; i--) {
-                    var pos = points[i];
+            if (this.#counterweight0 === undefined) {
+                for (let i = points.length - 1; i >= 0; i--) {
+                    const pos = points[i];
                     if (pos !== null && typeof pos === 'object' && pos.type === 'support') {
                         if (typeof pos.counterweight === 'number') {
-                            this._counterweight1 = pos.counterweight;
+                            this.#counterweight1 = pos.counterweight;
                         }
                         break;
                     }
@@ -2862,39 +2853,35 @@
             // ///////////////////////////////////////////////////////////////
             // FIELDS
             // ///////////////////////////////////////////////////////////////
-
             // next we build an array of fields depending on the available supports
-            var prev = undefined;
-            var fields = this._fields;
-            for (var i = 0; i < points.length; i++) {
-                var pos = points[i];
+            let prev = undefined;
+            const fields = this.#fields;
+            for (let i = 0; i < points.length; i++) {
+                const pos = points[i];
                 if (pos !== null && typeof pos === 'object' && pos.type === 'support') {
                     if (prev === undefined) {
                         prev = pos;
-                    }
-                    else {
-                        var x1 = typeof prev.x === 'number' ? prev.x : 0.0;
-                        var y1 = typeof prev.y === 'number' ? prev.y : 0.0;
-                        var x2 = typeof pos.x === 'number' ? pos.x : 0.0;
-                        var y2 = typeof pos.y === 'number' ? pos.y : 0.0;
-                        var incx = x1 < x2;
+                    } else {
+                        const x1 = typeof prev.x === 'number' ? prev.x : 0.0;
+                        const y1 = typeof prev.y === 'number' ? prev.y : 0.0;
+                        const x2 = typeof pos.x === 'number' ? pos.x : 0.0;
+                        const y2 = typeof pos.y === 'number' ? pos.y : 0.0;
+                        const incx = x1 < x2;
                         // if first field we store if our x coordinate is increasing - if
                         // following field we check if the x coordinate is increasing as
                         // well
-                        if (this._increasingX === undefined) {
-                            this._increasingX = incx;
-                        }
-                        else if (this._increasingX === true) {
+                        if (this.#increasingX === undefined) {
+                            this.#increasingX = incx;
+                        } else if (this.#increasingX === true) {
                             if (incx !== true) {
                                 console.error('ERROR! Rope configuration changed from increasing to decreasing x-coordinate (index: ' + i + ', x1: ' + x1 + '. x2: ' + x2 + ')');
-                                this._reset();
+                                this.#reset();
                                 return false;
                             }
-                        }
-                        else {
+                        } else {
                             if (incx === true) {
                                 console.error('ERROR! Rope configuration changed from decreasing to increasing x-coordinate (index: ' + i + ', x1: ' + x1 + '. x2: ' + x2 + ')');
-                                this._reset();
+                                this.#reset();
                                 return false;
                             }
                         }
@@ -2919,14 +2906,13 @@
             // ///////////////////////////////////////////////////////////////
             // FIELD AND ROPE CONFIGURATION
             // ///////////////////////////////////////////////////////////////
-
             // next we try to find configuration data for the fields
-            var field = undefined;
-            for (var i = 0; i < points.length; i++) {
-                var pos = points[i];
+            let field = undefined;
+            for (let i = 0; i < points.length; i++) {
+                const pos = points[i];
                 if (pos !== null && typeof pos === 'object') {
-                    for (var j = 0; j < fields.length; j++) {
-                        var fld = fields[j];
+                    for (let j = 0; j < fields.length; j++) {
+                        const fld = fields[j];
                         if (fld.support1config === pos) {
                             field = fld;
                             break;
@@ -2936,51 +2922,47 @@
                         continue;
                     }
                     // try to get rope configuration for every item
-                    if (this._q0 === undefined && pos.rope !== undefined) {
+                    if (this.#q0 === undefined && pos.rope !== undefined) {
                         if (typeof pos.rope === 'number' && pos.rope > 0) {
-                            this._q0 = get_steel_rope_q0(pos.rope);
-                        }
-                        else if ($.isArray(pos.rope)) {
-                            var q0 = 0.0;
-                            for (var j = 0; j < pos.rope.length; j++) {
-                                var rd = pos.rope[j];
+                            this.#q0 = getSteelRopeQ0(pos.rope);
+                        } else if (Array.isArray(pos.rope)) {
+                            const q0 = 0.0;
+                            for (let j = 0; j < pos.rope.length; j++) {
+                                const rd = pos.rope[j];
                                 if (typeof rd === 'number' && rd > 0) {
-                                    q0 += get_steel_rope_q0(rd);
+                                    q0 += getSteelRopeQ0(rd);
                                 }
                             }
                             if (q0 > 0.0) {
-                                this._q0 = q0;
+                                this.#q0 = q0;
                             }
                         }
                     }
                     // if a field try to get field parameters
                     if (pos.type === 'field') {
                         // first check the x location
-                        var x = pos.x;
-                        if (typeof x === 'number' && (this._increasingX === true ? (x <= field.support1x || x >= field.support2x) : (x <= field.support2x || x >= field.support1x))) {
+                        const x = pos.x;
+                        if (typeof x === 'number' && (this.#increasingX === true ? (x <= field.support1x || x >= field.support2x) : (x <= field.support2x || x >= field.support1x))) {
                             console.error('ERROR! Rope configuration field x-coordinate is outside field bounds (index: ' + i + ')');
-                            this._reset();
+                            this.#reset();
                             return false;
                         }
                         if (typeof pos.length === 'number' && pos.length > 0.0) {
                             field.length = pos.length;
-                        }
-                        else if (typeof pos.y === 'number') {
+                        } else if (typeof pos.y === 'number') {
                             field.x = x !== undefined ? x : (field.support1x + field.support2x) * 0.5;
-                            var dir_y = fn_get_linear_height(field.support1x, field.support1y, field.support2x, field.support2y, field.x);
+                            const dir_y = getLinearHeight(field.support1x, field.support1y, field.support2x, field.support2y, field.x);
                             if (pos.y >= dir_y) {
                                 console.error('ERROR! Rope configuration field y-coordinate is above linear height without any sag (index: ' + i + ')');
-                                this._reset();
+                                this.#reset();
                                 return false;
                             }
                             field.y = pos.y;
-                        }
-                        else if (typeof pos.sag === 'number' && pos.sag > 0.0) {
+                        } else if (typeof pos.sag === 'number' && pos.sag > 0.0) {
                             field.x = x !== undefined ? x : (field.support1x + field.support2x) * 0.5;
-                            var dir_y = fn_get_linear_height(field.support1x, field.support1y, field.support2x, field.support2y, field.x);
+                            const dir_y = getLinearHeight(field.support1x, field.support1y, field.support2x, field.support2y, field.x);
                             field.y = dir_y - pos.sag;
-                        }
-                        else if (typeof pos.force === 'number' && pos.force > 0.0) {
+                        } else if (typeof pos.force === 'number' && pos.force > 0.0) {
                             field.x = x !== undefined ? x : (field.support1x + field.support2x) * 0.5;
                             field.force = pos.force;
                         }
@@ -2989,54 +2971,51 @@
             }
             // success if we collected any fields
             return fields.length > 0;
-        },
-        _compute_rope_line: function () {
-            var fields = this._fields;
+        }
+        #computeRopeLine() {
+            const fields = this.#fields;
             // if we got a counter weight in our first (or last) station we initialize
             // the first (or last) field
-            if (this._counterweight0 !== undefined) {
-                var field = fields[0];
-                var chain = field.chain;
-                chain.initForForce(field.support1x, field.support1y, field.support2x, field.support2y, field.support1x, this._counterweight0 * EARTH_GRAVITATION, this._q0);
+            if (this.#counterweight0 !== undefined) {
+                const field = fields[0];
+                const chain = field.chain;
+                chain.initForForce(field.support1x, field.support1y, field.support2x, field.support2y, field.support1x, this.#counterweight0 * EARTH_GRAVITATION, this.#q0);
                 field.valid = chain.isValid() || chain.isCosinusHyperbolicus();
-            }
-            else if (this._counterweight1 !== undefined) {
-                var field = fields[fields.length - 1];
-                var chain = field.chain;
-                chain.initForForce(field.support1x, field.support1y, field.support2x, field.support2y, field.support2x, this._counterweight1 * EARTH_GRAVITATION, this._q0);
+            } else if (this.#counterweight1 !== undefined) {
+                const field = fields[fields.length - 1];
+                const chain = field.chain;
+                chain.initForForce(field.support1x, field.support1y, field.support2x, field.support2y, field.support2x, this.#counterweight1 * EARTH_GRAVITATION, this.#q0);
                 field.valid = chain.isValid() || chain.isCosinusHyperbolicus();
             }
             // initialize all not already initialized fields with given parameters
-            for (var i = 0; i < fields.length; i++) {
-                var field = fields[i];
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
                 if (field.valid === undefined) {
-                    var chain = field.chain;
+                    const chain = field.chain;
                     if (field.length !== undefined) {
                         chain.initForLength(field.support1x, field.support1y, field.support2x, field.support2y, field.length);
                         field.valid = chain.isValid() || chain.isCosinusHyperbolicus();
-                    }
-                    else if (field.x !== undefined && field.y !== undefined) {
+                    } else if (field.x !== undefined && field.y !== undefined) {
                         chain.initForThreePoints(field.support1x, field.support1y, field.support2x, field.support2y, field.x, field.y);
                         field.valid = chain.isValid() || chain.isCosinusHyperbolicus();
-                    }
-                    else if (field.force !== undefined && field.x !== undefined) {
-                        chain.initForForce(field.support1x, field.support1y, field.support2x, field.support2y, field.x, field.force, this._q0);
+                    } else if (field.force !== undefined && field.x !== undefined) {
+                        chain.initForForce(field.support1x, field.support1y, field.support2x, field.support2y, field.x, field.force, this.#q0);
                         field.valid = chain.isValid() || chain.isCosinusHyperbolicus();
                     }
                 }
             }
             // now initialize all other fields
-            for (var i = 0; i < fields.length; i++) {
-                var field = fields[i];
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
                 if (field.valid === true) {
-                    var chain = field.chain;
+                    const chain = field.chain;
                     // if we found a valid field we iterate over all following and not yet
                     // initialized fields in both directions and initialize them for
                     // equilibrium of forces.
-                    var idx = i - 1;
-                    var force = chain.getForce(field.support1x, 1.0);
+                    let idx = i - 1;
+                    let force = chain.getForce(field.support1x, 1.0);
                     while (idx >= 0 && fields[idx].valid === undefined) {
-                        var fld = fields[idx];
+                        const fld = fields[idx];
                         fld.chain.initForForce(fld.support1x, fld.support1y, fld.support2x, fld.support2y, fld.support2x, force);
                         fld.valid = fld.chain.isValid() || fld.chain.isCosinusHyperbolicus();
                         force = fld.chain.getForce(fld.support1x, 1.0);
@@ -3045,7 +3024,7 @@
                     idx = i + 1;
                     force = chain.getForce(field.support2x, 1.0);
                     while (idx < fields.length && fields[idx].valid === undefined) {
-                        var fld = fields[idx];
+                        const fld = fields[idx];
                         fld.chain.initForForce(fld.support1x, fld.support1y, fld.support2x, fld.support2y, fld.support1x, force);
                         fld.valid = fld.chain.isValid() || fld.chain.isCosinusHyperbolicus();
                         force = fld.chain.getForce(fld.support2x, 1.0);
@@ -3055,21 +3034,21 @@
             }
             // now we initialize all fields not yet initialized with default minimum
             // force on lower support
-            for (var i = 0; i < fields.length; i++) {
-                var field = fields[i];
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
                 if (field.valid === undefined) {
-                    var chain = field.chain;
-                    var x = field.support1y <= field.support2y ? field.support1x : field.support2x;
+                    const chain = field.chain;
+                    const x = field.support1y <= field.support2y ? field.support1x : field.support2x;
                     chain.initForMinimumForce(field.support1x, field.support1y, field.support2x, field.support2y, x);
                     field.valid = chain.isValid() || chain.isCosinusHyperbolicus();
                 }
             }
             // after all fields have been initialized we compute the saddles depending
             // on the radius
-            for (var i = 1; i < fields.length; i++) {
-                var field1 = fields[i - 1];
-                var field2 = fields[i];
-                var support = fn_compute_support(field1.chain, field2.chain, field1.support2x, field1.support2config.r, this._maxIterations, this._distanceTolerance, this._increasingX === true);
+            for (let i = 1; i < fields.length; i++) {
+                const field1 = fields[i - 1];
+                const field2 = fields[i];
+                const support = computeRopeSupport(field1.chain, field2.chain, field1.support2x, field1.support2config.r, this.#maxIterations, this.#distanceTolerance, this.#increasingX === true);
                 if (support !== false) {
                     support.config = field1.support2config;
                     field1.sup2data = support;
@@ -3078,79 +3057,78 @@
                     field2.sup1data = support;
                     field2.saddle1x = support.endX;
                     field2.saddle1y = support.endY;
-                }
-                else {
+                } else {
                     field1.sup2data = false;
                     field2.sup1data = false;
                 }
             }
             // finally we compute the relative rate for every field for our stress
             // simulation
-            var max_delta_x = 0.0;
-            var max_sag = 0.0;
-            for (var i = 0; i < fields.length; i++) {
-                var field = fields[i];
-                var chain = field.chain;
-                var saddle1x = field.saddle1x;
-                var saddle2x = field.saddle2x;
+            let max_delta_x = 0.0;
+            let max_sag = 0.0;
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
+                const chain = field.chain;
+                const saddle1x = field.saddle1x;
+                const saddle2x = field.saddle2x;
                 field._saddle_delta_x = Math.abs(saddle2x - saddle1x);
-                var xmid = (saddle1x + saddle2x) * 0.5;
-                var ylin = fn_get_linear_height(saddle1x, field.saddle1y, saddle2x, field.saddle2y, xmid);
-                var yr = chain.getHeight(xmid);
+                const xmid = (saddle1x + saddle2x) * 0.5;
+                const ylin = getLinearHeight(saddle1x, field.saddle1y, saddle2x, field.saddle2y, xmid);
+                const yr = chain.getHeight(xmid);
                 field._middle_sag = ylin - yr;
                 // update to the max
                 max_sag = Math.max(max_sag, field._middle_sag);
                 max_delta_x = Math.max(max_delta_x, field._saddle_delta_x);
             }
-            for (var i = 0; i < fields.length; i++) {
-                var field = fields[i];
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
                 field.relative_rate = (field._saddle_delta_x / max_delta_x + field._middle_sag / max_sag) * 0.5;
                 delete field._saddle_delta_x;
                 delete field._middle_sag;
             }
-        },
-        _compute_parts: function () {
-            var fields = this._fields;
-            var le = 0.0;
+        }
+        #computeParts() {
+            const fields = this.#fields;
+            let le = 0.0;
             if (fields.length > 0) {
-                var parts = this._parts;
-                var adjuster = this._adjuster;
-                var field = fields[0];
-                var supcfg = field.support1config;
-                var dist = typeof supcfg.position === 'number' ? supcfg.position : 0.0;
+                const parts = this.#parts;
+                const adjuster = this.#adjuster;
+                let field = fields[0];
+                let supcfg = field.support1config;
+                let dist = typeof supcfg.position === 'number' ? supcfg.position : 0.0;
                 adjuster.reset(dist, 0.0, supcfg.id);
-                for (var i = 0; i < fields.length; i++) {
+                for (let i = 0; i < fields.length; i++) {
                     field = fields[i];
-                    var chain = field.chain;
-                    var x1 = field.saddle1x;
-                    var y1 = chain.getHeight(x1);
-                    var x2 = field.saddle2x;
-                    var y2 = chain.getHeight(x2);
-                    var length = chain.getLength(x1, x2);
+                    const chain = field.chain;
+                    const x1 = field.saddle1x;
+                    const y1 = chain.getHeight(x1);
+                    const x2 = field.saddle2x;
+                    const y2 = chain.getHeight(x2);
+                    const length = chain.getLength(x1, x2);
                     parts.push({
                         arc: false,
-                        x1: x1,
-                        y1: y1,
+                        x1,
+                        y1,
                         s1: le,
-                        x2: x2,
-                        y2: y2,
+                        x2,
+                        y2,
                         s2: le + length,
-                        length: length,
-                        field: field
+                        length,
+                        field
                     });
                     le += length;
-                    var support = field.sup2data;
+                    const support = field.sup2data;
                     if (support !== null && typeof support === 'object') {
-                        var angle = support.endPhi - support.startPhi;
-                        var len = Math.abs(angle) * support.radius;
-                        var s1 = le;
-                        var s = le + len / 2;
-                        var s2 = le + len;
-                        var sup = {
+                        const angle = support.endPhi - support.startPhi;
+                        const len = Math.abs(angle) * support.radius;
+                        const s1 = le;
+                        const s = le + len / 2;
+                        const s2 = le + len;
+                        const sup = {
                             arc: support,
-                            s1: s1,
-                            s: s,
-                            s2: s2,
+                            s1,
+                            s,
+                            s2,
                             length: len
                         };
                         parts.push(sup);
@@ -3165,14 +3143,13 @@
                 adjuster.add(dist, le, supcfg.id);
                 this.length = dist;
             }
-        },
-        _format_rope_info: function () {
-            var txt = 'ROPE LINE INFO\n\n';
-            var parts = this._parts;
-            var le = 0.0;
-            for (var i = 0; i < parts.length; i++) {
-                var part = parts[i];
-                var arc = part.arc;
+        }
+        #formatRopeInfo() {
+            let txt = 'ROPE LINE INFO\n\n';
+            const parts = this.#parts;
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                const arc = part.arc;
                 txt += (arc ? 'SUPPORT' : 'FIELD');
                 txt += ':\nstart: ';
                 txt += part.s1;
@@ -3189,244 +3166,242 @@
                         txt += arc.config.id;
                         txt += '"\n';
                     }
-                    var mphi = (arc.endPhi + arc.startPhi) / 2;
+                    const mphi = (arc.endPhi + arc.startPhi) / 2;
                     txt += 'middle phi: ' + mphi + ' / ' + (mphi * RAD2DEG) + ' grad\n';
-                    var dphi = Math.abs(arc.endPhi - arc.startPhi);
+                    const dphi = Math.abs(arc.endPhi - arc.startPhi);
                     txt += 'delta phi: ' + dphi + ' / ' + (dphi * RAD2DEG) + ' grad\n';
-                    txt += JSONX.stringify(arc, undefined, 2);
+                    txt += JsonFX.stringify(arc, true);
                     txt += '\n\n';
-                }
-                else {
-                    var field = part.field;
-                    var chain = field.chain;
-                    var x1 = field.saddle1x;
-                    var x2 = field.saddle2x;
-                    var angle1 = chain.getAngle(x1) * RAD2DEG;
-                    var force1 = chain.getForce(x1, this._q0);
+                } else {
+                    const field = part.field;
+                    const chain = field.chain;
+                    const x1 = field.saddle1x;
+                    const x2 = field.saddle2x;
+                    const angle1 = chain.getAngle(x1) * RAD2DEG;
+                    const force1 = chain.getForce(x1, this.#q0);
                     txt += 'x1 = ' + x1 + ' y1 = ' + field.saddle1y + ' angle1 = ' + angle1 + ' force1 = ' + force1 + '\n';
-                    var angle2 = chain.getAngle(x2) * RAD2DEG;
-                    var force2 = chain.getForce(x2, this._q0);
+                    const angle2 = chain.getAngle(x2) * RAD2DEG;
+                    const force2 = chain.getForce(x2, this.#q0);
                     txt += 'x2 = ' + x2 + ' y2 = ' + field.saddle2y + ' angle2 = ' + angle2 + ' force2 = ' + force2 + '\n';
                     txt += 'mode: ' + (chain.isCosinusHyperbolicus() === true ? 'cosh' : (chain.isValid() === true ? 'parabola' : 'none')) + '\n';
                     txt += 'stress rate: ' + field.relative_rate + '\n\n';
                 }
             }
-            txt += '\n\n' + this._adjuster.format();
+            txt += '\n\n' + this.#adjuster.format();
             return txt;
-        },
-        _init: function () {
-            this._reset();
+        }
+        #init() {
+            this.#reset();
             // if invalid data
-            if (this._load_config() !== true) {
+            if (this.#loadConfig() !== true) {
                 return false;
             }
             // compute
-            this._compute_rope_line();
+            this.#computeRopeLine();
             // finally we collect the parts
-            this._compute_parts();
+            this.#computeParts();
             // if verbose mode we got to dump some information
-            if (this._curve.verbose === true) {
-                console.log(this._format_rope_info());
+            if (this.#curve.verbose === true) {
+                console.log(this.#formatRopeInfo());
             }
-        },
-        setVehiclePosition: function (i_position) {
-            var position = this._adjuster.adjust(i_position);
-            var fields = this._fields;
+        }
+        setVehiclePosition(position) {
+            const vehPos = this.#adjuster.adjust(position);
+            const fields = this.#fields;
             // search the field containing the given stress position
-            var start = 0.0;
-            for (var i = 0; i < fields.length; i++) {
-                var field = fields[i];
-                var chain = field.chain;
-                var saddle1x = field.saddle1x;
-                var saddle2x = field.saddle2x;
-                var length = chain.getLength(saddle1x, saddle2x);
-                var end = start + length;
-                if (field.middle_stress_sag !== undefined && position > start && position < end) {
-                    field.vehicle_position = position;
-                    var x = chain.getLocation(saddle1x, this._increasingX === true ? position - start : start - position);
+            let start = 0.0;
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
+                const chain = field.chain;
+                const saddle1x = field.saddle1x;
+                const saddle2x = field.saddle2x;
+                let length = chain.getLength(saddle1x, saddle2x);
+                let end = start + length;
+                if (field.middle_stress_sag !== undefined && vehPos > start && vehPos < end) {
+                    field.vehicle_position = vehPos;
+                    const x = chain.getLocation(saddle1x, this.#increasingX === true ? vehPos - start : start - vehPos);
                     field.vehicle_x = x;
-                    field.vehicle_stress_rate = fn_get_smooth_rope_sag_factor(saddle1x, saddle2x, x, this._stress1, this._stress2);
-                }
-                else {
+                    field.vehicle_stress_rate = getSmoothRopeSagFactor(saddle1x, saddle2x, x, this.#stress1, this.#stress2);
+                } else {
                     delete field.vehicle_position;
                     delete field.vehicle_x;
                     delete field.vehicle_stress_rate;
                 }
                 start = end;
-                var support = field.sup2data;
+                const support = field.sup2data;
                 if (support !== null && typeof support === 'object') {
                     length = Math.abs(support.endPhi - support.startPhi) * support.radius;
                     end = start + length;
                 }
                 start = end;
             }
-        },
-        getLength: function () {
+        }
+        getLength() {
             return this.length;
-        },
-        isIncreasingX: function () {
-            return this._increasingX;
-        },
-        _get_position_on_rope_line: function (i_position, i_left, i_point) {
-            var start = 0.0;
-            var fields = this._fields;
-            var tf = this._tf;
-            var mirrored = tf.mirrorX !== tf.mirrorY;
-            for (var i = 0; i < fields.length; i++) {
-                var field = fields[i];
-                var chain = field.chain;
-                var saddle1x = field.saddle1x;
-                var saddle2x = field.saddle2x;
-                var length = chain.getLength(saddle1x, saddle2x);
-                var end = start + length;
-                if (i_position >= start && i_position <= end) {
+        }
+        isIncreasingX() {
+            return this.#increasingX;
+        }
+        #getPositionOnRopeLine(position, left, point) {
+            let start = 0.0;
+            const fields = this.#fields;
+            const tf = this.#tf;
+            const mirrored = tf.mirrorX !== tf.mirrorY;
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
+                const chain = field.chain;
+                const saddle1x = field.saddle1x;
+                const saddle2x = field.saddle2x;
+                let length = chain.getLength(saddle1x, saddle2x);
+                let end = start + length;
+                if (position >= start && position <= end) {
                     // first we compute the original rope point coordinates and the
                     // gradient
-                    var x = chain.getLocation(saddle1x, this._increasingX === true ? i_position - start : start - i_position);
-                    var y = chain.getHeight(x);
-                    var gradient = chain.getGradient(x);
+                    let x = chain.getLocation(saddle1x, this.#increasingX === true ? position - start : start - position);
+                    let y = chain.getHeight(x);
+                    let gradient = chain.getGradient(x);
                     // if we have a vehicle within the field we lower the y coordinate and
                     // gradient
-                    var vehicle_x = field.vehicle_x;
+                    const vehicle_x = field.vehicle_x;
                     if (vehicle_x !== undefined) {
-                        var vehicle_stress_rate = field.vehicle_stress_rate;
-                        var rel = this._p;
-                        fn_get_relative_linear_values(saddle1x, saddle2x, vehicle_x, x, rel);
-                        var stress_sag = vehicle_stress_rate * field.middle_stress_sag;
+                        const vehicle_stress_rate = field.vehicle_stress_rate;
+                        const rel = this.#p;
+                        getRelativeLinearValues(saddle1x, saddle2x, vehicle_x, x, rel);
+                        const stress_sag = vehicle_stress_rate * field.middle_stress_sag;
                         y -= rel.value * stress_sag;
                         gradient -= rel.gradient * stress_sag;
                     }
-                    var phi = fn_normalize_rope_angle(Math.atan2(gradient, 1.0));
-                    if (typeof i_left === 'number' && i_left !== 0.0) {
-                        x -= Math.sin(phi) * i_left;
-                        y += Math.cos(phi) * i_left;
+                    const phi = normalizeRopeAngle(Math.atan2(gradient, 1.0));
+                    if (typeof left === 'number' && left !== 0.0) {
+                        x -= Math.sin(phi) * left;
+                        y += Math.cos(phi) * left;
                     }
-                    var p = i_point || {};
+                    const p = point || {};
                     tf.transform(x, y, p);
                     p.phi = (mirrored ? -phi : phi) + tf.rotation;
                     return p;
                 }
                 start = end;
-                var support = field.sup2data;
+                const support = field.sup2data;
                 if (support !== null && typeof support === 'object') {
-                    var startPhi = support.startPhi;
-                    var endPhi = support.endPhi;
-                    var radius = support.radius;
-                    var deltaPhi = endPhi - startPhi;
+                    const startPhi = support.startPhi;
+                    const endPhi = support.endPhi;
+                    const radius = support.radius;
+                    const deltaPhi = endPhi - startPhi;
                     length = Math.abs(deltaPhi) * radius;
                     end = start + length;
-                    if (i_position >= start && i_position < end) {
-                        var phi = fn_normalize_rope_angle(startPhi + (i_position - start) / length * deltaPhi);
-                        var cos = Math.cos(phi);
-                        var sin = Math.sin(phi);
-                        var r = radius + (support.up === true ? i_left : -i_left);
-                        var left = support.left === true;
-                        var x = support.centerX + (left ? sin * r : -sin * r);
-                        var y = support.centerY + (left ? -cos * r : cos * r);
-                        var p = i_point || {};
+                    if (position >= start && position < end) {
+                        const phi = normalizeRopeAngle(startPhi + (position - start) / length * deltaPhi);
+                        const cos = Math.cos(phi);
+                        const sin = Math.sin(phi);
+                        const r = radius + (support.up === true ? left : -left);
+                        const supLeft = support.left === true;
+                        const x = support.centerX + (supLeft ? sin * r : -sin * r);
+                        const y = support.centerY + (supLeft ? -cos * r : cos * r);
+                        const p = point || {};
                         tf.transform(x, y, p);
-                        p.phi = (mirrored ? -(this._increasingX ? phi : phi - PI) : (this._increasingX ? phi : phi - PI)) + tf.rotation;
+                        p.phi = (mirrored ? -(this.#increasingX ? phi : phi - PI) : (this.#increasingX ? phi : phi - PI)) + tf.rotation;
                         return p;
                     }
                 }
                 start = end;
             }
-        },
+        }
         /**
          * Transforms position on curve to point containing x/y location, rotation
          * angle and unit vector on curve. The curve has a length given through it's
          * actual form. If our position is in between zero and the length the result
          * will be a point on the curve. If we are outside the position will be
          * extrapolated linear.
-         * 
+         *
          * @name transform
          * @method
          * @memberof RopeLine.prototype
          * @param {Number}
-         *          i_position The position on the RopeLine
+         *          position The position on the RopeLine
          * @param {Object}
-         *          i_point Optional object for the result
+         *          point Optional object for the result
          * @returns {Object} If i_point is defined i_point will be returned.
          *          Otherwise a new object will be returned
          */
-        _transform: function (i_position, i_left, i_point) {
-            var parts = this._parts;
-            var fields = this._fields;
-            if (typeof i_position !== 'number' || parts.length === 0 || fields.length === 0) {
+        #transform(position, left, point) {
+            const parts = this.#parts;
+            const fields = this.#fields;
+            if (typeof position !== 'number' || parts.length === 0 || fields.length === 0) {
                 return false;
             }
             // check if before first segment
-            var tf = this._tf;
-            var mirrored = tf.mirrorX !== tf.mirrorY;
-            var s1 = parts[0].s1;
-            if (i_position <= s1) {
-                var field = fields[0];
-                var chain = field.chain;
-                var x = field.saddle1x;
-                var y = chain.getHeight(x);
-                var phi = fn_normalize_rope_angle(chain.getAngle(x));
-                var cos = Math.cos(phi);
-                var sin = Math.sin(phi);
-                var pos = this._increasingX === true ? i_position - s1 : s1 - i_position;
-                x += cos * pos - sin * i_left;
-                y += sin * pos + cos * i_left;
-                var p = i_point || {};
+            const tf = this.#tf;
+            const mirrored = tf.mirrorX !== tf.mirrorY;
+            const s1 = parts[0].s1;
+            if (position <= s1) {
+                const field = fields[0];
+                const chain = field.chain;
+                let x = field.saddle1x;
+                let y = chain.getHeight(x);
+                const phi = normalizeRopeAngle(chain.getAngle(x));
+                const cos = Math.cos(phi);
+                const sin = Math.sin(phi);
+                const pos = this.#increasingX === true ? position - s1 : s1 - position;
+                x += cos * pos - sin * left;
+                y += sin * pos + cos * left;
+                const p = point || {};
                 tf.transform(x, y, p);
                 p.phi = (mirrored ? -phi : phi) + tf.rotation;
                 return p;
             }
             // check if behind last segment
-            var s2 = parts[parts.length - 1].s2;
-            if (i_position >= s2) {
-                var field = fields[fields.length - 1];
-                var chain = field.chain;
-                var x = field.saddle2x;
-                var y = chain.getHeight(x);
-                var phi = fn_normalize_rope_angle(chain.getAngle(x));
-                var cos = Math.cos(phi);
-                var sin = Math.sin(phi);
-                var pos = this._increasingX === true ? i_position - s2 : s2 - i_position;
-                x += cos * pos - sin * i_left;
-                y += sin * pos + cos * i_left;
-                var p = i_point || {};
+            const s2 = parts[parts.length - 1].s2;
+            if (position >= s2) {
+                const field = fields[fields.length - 1];
+                const chain = field.chain;
+                let x = field.saddle2x;
+                let y = chain.getHeight(x);
+                const phi = normalizeRopeAngle(chain.getAngle(x));
+                const cos = Math.cos(phi);
+                const sin = Math.sin(phi);
+                const pos = this.#increasingX === true ? position - s2 : s2 - position;
+                x += cos * pos - sin * left;
+                y += sin * pos + cos * left;
+                const p = point || {};
                 tf.transform(x, y, p);
                 p.phi = (mirrored ? -phi : phi) + tf.rotation;
                 return p;
             }
             // must be in between
-            return this._get_position_on_rope_line(i_position, i_left, i_point);
-        },
-        transform: function (i_position, i_left, i_point) {
-            return this._transform(this._adjuster.adjust(i_position), i_left, i_point);
-        },
-        stroke: function (i_context, i_transform, i_start, i_end, i_left) {
+            return this.#getPositionOnRopeLine(position, left, point);
+        }
+        transform(position, left, point) {
+            return this.#transform(this.#adjuster.adjust(position), left, point);
+        }
+        stroke(context, transform, start, end, left) {
             // get the stroke start and end position in curve coordinates
-            var adjuster = this._adjuster;
-            var stroke_start = adjuster.adjust(Math.min(i_start, i_end));
-            var stroke_end = adjuster.adjust(Math.max(i_start, i_end));
+            const adjuster = this.#adjuster;
+            let stroke_start = adjuster.adjust(Math.min(start, end));
+            let stroke_end = adjuster.adjust(Math.max(start, end));
             // if too short
             if (stroke_end - stroke_start < MIN_STROKE_LENGTH) {
                 // nothing more to do
                 return;
             }
-            var p = this._p;
+            const p = this.#p;
             // get the curves start and end position
-            var parts = this._parts;
-            var curve_start = parts[0].s1;
-            var curve_end = parts[parts.length - 1].s2;
+            const parts = this.#parts;
+            const curve_start = parts[0].s1;
+            const curve_end = parts[parts.length - 1].s2;
             // first handle stroke parts before actual curve
             if (stroke_start < curve_start) {
-                var stroke_end_is_before_curve_start = stroke_end <= curve_start;
-                var se = stroke_end_is_before_curve_start ? stroke_end : curve_start;
+                const stroke_end_is_before_curve_start = stroke_end <= curve_start;
+                const se = stroke_end_is_before_curve_start ? stroke_end : curve_start;
                 if (se - stroke_start > MIN_STROKE_LENGTH) {
-                    i_context.beginPath();
-                    this._transform(stroke_start, i_left, p);
-                    i_transform.transform(p.x, p.y, p);
-                    i_context.moveTo(p.x, p.y);
-                    this._transform(se, i_left, p);
-                    i_transform.transform(p.x, p.y, p);
-                    i_context.lineTo(p.x, p.y);
-                    i_context.stroke();
+                    context.beginPath();
+                    this.#transform(stroke_start, left, p);
+                    transform.transform(p.x, p.y, p);
+                    context.moveTo(p.x, p.y);
+                    this.#transform(se, left, p);
+                    transform.transform(p.x, p.y, p);
+                    context.lineTo(p.x, p.y);
+                    context.stroke();
                 }
                 if (stroke_end_is_before_curve_start) {
                     // nothing more to do
@@ -3436,73 +3411,71 @@
             }
             // next handle parts on actual curve
             if (stroke_start < curve_end) {
-                var stroke_end_is_before_curve_end = stroke_end <= curve_end;
-                var se = stroke_end_is_before_curve_end ? stroke_end : curve_end;
+                const stroke_end_is_before_curve_end = stroke_end <= curve_end;
+                const se = stroke_end_is_before_curve_end ? stroke_end : curve_end;
                 if (se - stroke_start > MIN_STROKE_LENGTH) {
-                    var start_pos = stroke_start;
-                    for (var i = 0; i < parts.length; i++) {
-                        var part = parts[i];
-                        var s2 = part.s2;
+                    let start_pos = stroke_start;
+                    for (let i = 0; i < parts.length; i++) {
+                        const part = parts[i];
+                        const s2 = part.s2;
                         if (start_pos < s2) {
-                            var is_last = se <= s2;
-                            var end_pos = is_last ? se : s2;
+                            const is_last = se <= s2;
+                            const end_pos = is_last ? se : s2;
                             if (end_pos - start_pos > MIN_STROKE_LENGTH) {
-                                this._get_position_on_rope_line(start_pos, i_left, p);
-                                var start_phi = p.phi;
-                                i_transform.transform(p.x, p.y, p);
-                                var x1 = p.x;
-                                var y1 = p.y;
-                                i_context.beginPath();
-                                this._get_position_on_rope_line(end_pos, i_left, p);
-                                var end_phi = p.phi;
-                                i_transform.transform(p.x, p.y, p);
-                                var arc = part.arc;
+                                this.#getPositionOnRopeLine(start_pos, left, p);
+                                const start_phi = p.phi;
+                                transform.transform(p.x, p.y, p);
+                                const x1 = p.x;
+                                const y1 = p.y;
+                                context.beginPath();
+                                this.#getPositionOnRopeLine(end_pos, left, p);
+                                const end_phi = p.phi;
+                                transform.transform(p.x, p.y, p);
+                                const arc = part.arc;
                                 if (arc === false) {
-                                    var x2 = p.x;
-                                    var y2 = p.y;
-                                    i_context.moveTo(x1, y1);
-                                    var field = part.field;
+                                    const x2 = p.x;
+                                    const y2 = p.y;
+                                    context.moveTo(x1, y1);
+                                    const field = part.field;
                                     if (field) {
-                                        var stress_position = field.vehicle_position;
+                                        const stress_position = field.vehicle_position;
                                         if (stress_position !== undefined && stress_position > start_pos && stress_position < end_pos) {
-                                            this._get_position_on_rope_line(stress_position, i_left, p);
-                                            var stress_phi = p.phi;
-                                            i_transform.transform(p.x, p.y, p);
-                                            var xs = p.x;
-                                            var ys = p.y;
-                                            var cnt1 = Math.max(Math.ceil(Math.abs(stress_phi - start_phi) * RAD2DEG), 1);
-                                            var delta1 = (stress_position - start_pos) / cnt1;
-                                            for (var j = 1; j < cnt1; j++) {
-                                                this._get_position_on_rope_line(start_pos + delta1 * j, i_left, p);
-                                                i_transform.transform(p.x, p.y, p);
-                                                i_context.lineTo(p.x, p.y);
+                                            this.#getPositionOnRopeLine(stress_position, left, p);
+                                            const stress_phi = p.phi;
+                                            transform.transform(p.x, p.y, p);
+                                            const xs = p.x;
+                                            const ys = p.y;
+                                            const cnt1 = Math.max(Math.ceil(Math.abs(stress_phi - start_phi) * RAD2DEG), 1);
+                                            const delta1 = (stress_position - start_pos) / cnt1;
+                                            for (let j = 1; j < cnt1; j++) {
+                                                this.#getPositionOnRopeLine(start_pos + delta1 * j, left, p);
+                                                transform.transform(p.x, p.y, p);
+                                                context.lineTo(p.x, p.y);
                                             }
-                                            i_context.lineTo(xs, ys);
-                                            var cnt2 = Math.max(Math.ceil(Math.abs(end_phi - stress_phi) * RAD2DEG), 1);
-                                            var delta2 = (end_pos - stress_position) / cnt2;
-                                            for (var j = 1; j < cnt2; j++) {
-                                                this._get_position_on_rope_line(stress_position + delta2 * j, i_left, p);
-                                                i_transform.transform(p.x, p.y, p);
-                                                i_context.lineTo(p.x, p.y);
+                                            context.lineTo(xs, ys);
+                                            const cnt2 = Math.max(Math.ceil(Math.abs(end_phi - stress_phi) * RAD2DEG), 1);
+                                            const delta2 = (end_pos - stress_position) / cnt2;
+                                            for (let j = 1; j < cnt2; j++) {
+                                                this.#getPositionOnRopeLine(stress_position + delta2 * j, left, p);
+                                                transform.transform(p.x, p.y, p);
+                                                context.lineTo(p.x, p.y);
                                             }
-                                        }
-                                        else {
-                                            var cnt = Math.max(Math.ceil(Math.abs(end_phi - start_phi) * RAD2DEG), 1);
-                                            var delta = (end_pos - start_pos) / cnt;
-                                            for (var j = 1; j < cnt; j++) {
-                                                this._get_position_on_rope_line(start_pos + delta * j, i_left, p);
-                                                i_transform.transform(p.x, p.y, p);
-                                                i_context.lineTo(p.x, p.y);
+                                        } else {
+                                            const cnt = Math.max(Math.ceil(Math.abs(end_phi - start_phi) * RAD2DEG), 1);
+                                            const delta = (end_pos - start_pos) / cnt;
+                                            for (let j = 1; j < cnt; j++) {
+                                                this.#getPositionOnRopeLine(start_pos + delta * j, left, p);
+                                                transform.transform(p.x, p.y, p);
+                                                context.lineTo(p.x, p.y);
                                             }
                                         }
                                     }
-                                    i_context.lineTo(x2, y2);
+                                    context.lineTo(x2, y2);
+                                } else {
+                                    const l = this.#increasingX === false && typeof left === 'number' ? -left : left;
+                                    prepareArc(context, transform, p, part, start_pos, end_pos, l, this.#tf);
                                 }
-                                else {
-                                    var left = this._increasingX === false && typeof i_left === 'number' ? -i_left : i_left;
-                                    prepareArc(i_context, i_transform, p, part, start_pos, end_pos, left, this._tf);
-                                }
-                                i_context.stroke();
+                                context.stroke();
                             }
                             start_pos = end_pos;
                             if (is_last) {
@@ -3519,89 +3492,82 @@
             }
             // last handle stroke parts behind actual curve
             if (stroke_end - stroke_start > MIN_STROKE_LENGTH) {
-                i_context.beginPath();
-                this._transform(stroke_start, 0.0, p);
-                i_transform.transform(p.x, p.y, p);
-                i_context.moveTo(p.x, p.y);
-                this._transform(stroke_end, 0.0, p);
-                i_transform.transform(p.x, p.y, p);
-                i_context.lineTo(p.x, p.y);
-                i_context.stroke();
+                context.beginPath();
+                this.#transform(stroke_start, 0.0, p);
+                transform.transform(p.x, p.y, p);
+                context.moveTo(p.x, p.y);
+                this.#transform(stroke_end, 0.0, p);
+                transform.transform(p.x, p.y, p);
+                context.lineTo(p.x, p.y);
+                context.stroke();
             }
+        }
+    }
+
+    function setOffset(offset, point) {
+        let x = 0.0;
+        if (typeof offset === 'number') {
+            x = offset;
+        } else if (offset !== null && typeof offset === 'object' && typeof offset.offset === 'number') {
+            x = offset.offset;
+        }
+        let y = 0.0;
+        if (offset !== null && typeof offset === 'object') {
+            if (typeof offset.left === 'number') {
+                y = offset.left;
+            } else if (typeof offset.right === 'number') {
+                y = -offset.right;
+            }
+        }
+        if (point) {
+            point.x = x;
+            point.y = y;
+            return point;
+        } else {
+            return { x, y };
         }
     };
 
-    function setOffset(i_offset, i_point) {
-        var x = 0.0;
-        if (typeof i_offset === 'number') {
-            x = i_offset;
-        }
-        else if (i_offset !== null && typeof i_offset === 'object' && typeof i_offset.offset === 'number') {
-            x = i_offset.offset;
-        }
-        var y = 0.0;
-        if (i_offset !== null && typeof i_offset === 'object') {
-            if (typeof i_offset.left === 'number') {
-                y = i_offset.left;
-            }
-            else if (typeof i_offset.right === 'number') {
-                y = -i_offset.right;
-            }
-        }
-        if (i_point) {
-            i_point.x = x;
-            i_point.y = y;
-            return i_point;
-        }
-        else {
-            return {
-                x: x,
-                y: y
-            };
-        }
-    };
-
-    var TEN_POINT_ZERO = 10.0;
-    var FIFE_POINT_ZERO = 5.0;
-    var TWO_POINT_ZERO = 2.0;
-    var ONE_POINT_ZERO = 1.0;
-    var ZERO_POINT_FIFE = 0.5;
-    var ZERO_POINT_TWO = 0.2;
-    var ZERO_POINT_ONE = 0.1;
-    var get_disc_iter_diff = function (i_minDiff) {
-        var minDiff = Math.abs(i_minDiff);
+    const TEN_POINT_ZERO = 10.0;
+    const FIFE_POINT_ZERO = 5.0;
+    const TWO_POINT_ZERO = 2.0;
+    const ONE_POINT_ZERO = 1.0;
+    const ZERO_POINT_FIFE = 0.5;
+    const ZERO_POINT_TWO = 0.2;
+    const ZERO_POINT_ONE = 0.1;
+    function getFiscIterDiff(i_minDiff) {
+        const minDiff = Math.abs(i_minDiff);
         if (minDiff <= 1.0e-300 || minDiff >= 1.0e+300 || isNaN(minDiff)) {
             return 0.0;
         }
-        var diff = ONE_POINT_ZERO;
+        let diff = ONE_POINT_ZERO;
         if (minDiff > diff) {
-            for (var i = 0; i < 300; i++) {
-                var diff2 = diff * TWO_POINT_ZERO;
+            for (let i = 0; i < 300; i++) {
+                const diff2 = diff * TWO_POINT_ZERO;
                 if (minDiff <= diff2) {
                     return diff2;
                 }
-                var diff5 = diff * FIFE_POINT_ZERO;
+                const diff5 = diff * FIFE_POINT_ZERO;
                 if (minDiff <= diff5) {
                     return diff5;
                 }
-                var diff10 = diff * TEN_POINT_ZERO;
+                const diff10 = diff * TEN_POINT_ZERO;
                 if (minDiff <= diff10) {
                     return diff10;
                 }
                 diff = diff10;
             }
-        }
-        else {
-            for (var i = 0; i < 300; i++) {
-                var diff5 = diff * ZERO_POINT_FIFE;
+        } else {
+            for (let i = 0; i < 300; i++) {
+                const diff5 = diff * ZERO_POINT_FIFE;
                 if (minDiff > diff5) {
                     return diff;
                 }
-                var diff2 = diff * ZERO_POINT_TWO;
+                const diff2 = diff * ZERO_POINT_TWO;
                 if (minDiff > diff2) {
                     return diff5;
                 }
-                var diff10 = diff * ZERO_POINT_ONE;
+                const diff10 = diff * ZERO_POINT_ONE;
                 if (minDiff > diff10) {
                     return diff2;
                 }
@@ -3611,537 +3577,159 @@
         return 0.0;
     };
 
-    var DiscretizationIterator = function () {
-        this._diff = 0.0;
-        this._start = 0.0;
-        this._count = 0;
-        this._max = 0;
-        this._raising = true;
-    };
-    DiscretizationIterator.prototype = {
-        init: function (i_difference, i_start, i_end, i_forceMetricDiff) {
-            var fmd = i_forceMetricDiff === true;
-            this._diff = fmd ? get_disc_iter_diff(i_difference) : Math.abs(i_difference);
-            if (this._diff <= 0.0 || isNaN(this._diff)) {
-                this._diff = 0;
-                this._start = 0;
-                m_count = 0;
-                m_max = 0;
+    class DiscretizationIterator {
+        #diff;
+        #start;
+        #count;
+        #max;
+        #raising;
+        constructor() {
+            this.#diff = 0.0;
+            this.#start = 0.0;
+            this.#count = 0;
+            this.#max = 0;
+            this.#raising = true;
+        }
+        init(difference, start, end, forceMetricDiff) {
+            const fmd = forceMetricDiff === true;
+            this.#diff = fmd ? getFiscIterDiff(difference) : Math.abs(difference);
+            if (this.#diff <= 0.0 || isNaN(this.#diff)) {
+                this.#diff = 0;
+                this.#start = 0;
+                this.#count = 0;
+                this.#max = 0;
+            } else {
+                this.#raising = start < end;
+                this.#start = fmd ? ((this.#raising ? Math.ceil(start / this.#diff) : Math.floor(start / this.#diff)) * this.#diff) : start;
+                const e = fmd ? ((this.#raising ? Math.floor(end / this.#diff) : Math.ceil(end / this.#diff)) * this.#diff) : end;
+                const range = this.#raising ? e - this.#start : this.#start - e;
+                this.#count = 0;
+                this.#max = Math.ceil(range / this.#diff);
             }
-            else {
-                this._raising = i_start < i_end;
-                this._start = fmd ? ((this._raising ? Math.ceil(i_start / this._diff) : Math.floor(i_start / this._diff)) * this._diff) : i_start;
-                var end = fmd ? ((this._raising ? Math.floor(i_end / this._diff) : Math.ceil(i_end / this._diff)) * this._diff) : i_end;
-                var range = this._raising ? end - this._start : this._start - end;
-                this._count = 0;
-                this._max = Math.ceil(range / this._diff);
-            }
-        },
-        hasNext: function () {
-            return this._count <= this._max;
-        },
-        getNext: function () {
-            var offset = this._diff * this._count;
-            var value = this._raising ? this._start + offset : this._start - offset;
-            this._count++;
+        }
+        hasNext() {
+            return this.#count <= this.#max;
+        }
+        getNext() {
+            const offset = this.#diff * this.#count;
+            const value = this.#raising ? this.#start + offset : this.#start - offset;
+            this.#count++;
             return value;
-        },
-    };
-
-    function debug_dradation() {
-        var txt = '';
-        var step = 0.01;
-        var x = -1.2;
-        while (x <= 1.2) {
-            txt += x;
-            txt += ' ';
-            // #1
-            txt += getSmoothNormalizedTransfer(x, 0.3, 0.7);
-            txt += ' ';
-            // #2
-            txt += getSmoothNormalizedTransfer(x, 0.3, 1.0);
-            txt += ' ';
-            // #3
-            txt += getSmoothNormalizedTransfer(x, 0.0, 0.7);
-            txt += ' ';
-            // #4
-            txt += getSmoothNormalizedTransfer(x, 0.5, 0.5);
-            txt += ' ';
-            // #5
-            txt += getSmoothNormalizedTransfer(x, 0.0, 1.0);
-            txt += ' ';
-            // #6
-            txt += getSmoothNormalizedTransfer(x, 0.0, 0.0);
-            txt += ' ';
-            // #7
-            txt += getSmoothNormalizedTransfer(x, 1.0, 1.0);
-            txt += ' ';
-            txt += '\n';
-            x += step;
         }
-        return txt;
-    };
+    }
 
-    function round_dump(i_value) {
-        return Math.round(i_value * 100) / 100;
-    };
+    const NONE = 0x0;
+    const NORTH = 0x1;
+    const WEST = 0x2;
+    const SOUTH = 0x4;
+    const EAST = 0x8;
 
-    function dump_point(i_transform, i_x, i_y) {
-        var p = i_transform.transform(i_x, i_y);
-        console.log('x: ' + round_dump(i_x) + ' y: ' + round_dump(i_y) + ' ==> x: ' + round_dump(p.x) + ' y: ' + round_dump(p.y));
-    };
-
-    function check_point(i_t1, i_t2, i_x, i_y) {
-        var p1 = i_t1.transform(i_x, i_y);
-        var i1 = i_t1.transformInverse(p1.x, p1.y);
-        var p2 = i_t2.transform(i_x, i_y);
-        var i2 = i_t2.transformInverse(p2.x, p2.y);
-        var ok = true;
-        if (Math.abs(i1.x - i_x) > 0.0001 || Math.abs(i1.y - i_y) > 0.0001) {
-            ok = false;
+    class Maze {
+        #cells;
+        #list;
+        constructor() {
+            this.width = 0;
+            this.height = 0;
+            this.#cells = [];
+            this.#list = [];
         }
-        else if (Math.abs(i2.x - i_x) > 0.0001 || Math.abs(i2.y - i_y) > 0.0001) {
-            ok = false;
+        cell(x, y) {
+            return this.#cells[y * this.width + x];
         }
-        else if (Math.abs(p1.x - p2.x) > 0.0001 || Math.abs(p1.y - p2.y) > 0.0001) {
-            ok = false;
-        }
-        var stream = ok ? console.debug : console.warn;
-        var res = '(' + round_dump(i_x) + ',' + round_dump(i_y) + ')';
-        res += ' ==> ';
-        res += '(' + round_dump(p1.x) + '/' + round_dump(p2.x) + ',' + round_dump(p1.y) + '/' + round_dump(p2.y) + ')';
-        res += ' <== ';
-        res += '(' + round_dump(i1.x) + '/' + round_dump(i2.x) + ',' + round_dump(i1.y) + '/' + round_dump(i2.y) + ')';
-        stream.call(console, res);
-    };
-
-    function set_mirrors(i_select, i_data) {
-        switch (i_select % 4) {
-            case 0:
-                i_data.mx = false;
-                i_data.my = false;
-                break;
-            case 1:
-                i_data.mx = true;
-                i_data.my = false;
-                break;
-            case 2:
-                i_data.mx = true;
-                i_data.my = true;
-                break;
-            case 3:
-            default:
-                i_data.mx = false;
-                i_data.my = true;
-                break;
-        }
-    };
-
-    /*
-     * var psys = { x : 2, y : 1, s : Math.SQRT2, p : PI / 4 };
-     */
-    function debug_transforms1() {
-        // parent
-        var psys = {
-            x: 12,
-            y: 4,
-            s: Math.sqrt(3 * 3 + 1 * 1),
-            p: Math.atan2(1, 3)
-        };
-        var pt = new Transform();
-        // child
-        var csys = {
-            x: 2,
-            y: 1,
-            s: Math.sqrt(3 * 3 + 1 * 1),
-            p: Math.atan2(1, 3)
-        };
-        var ct1 = new Transform();
-        var ct2 = new Transform();
-        // parent mirror loop
-        for (var p = 0; p < 4; p++) {
-            set_mirrors(p, psys);
-            // parent transform
-            pt.setToIdentity();
-            pt.applyCoordinateTransformation(psys.x, psys.y, psys.s, psys.p, psys.mx, psys.my);
-            console.log('');
-            console.log('############ PARENT LOOP ############');
-            console.log('parent mirror x/y: ' + psys.mx + '/' + psys.my);
-            console.log('parent rotation: ' + Math.floor(pt.rotation * RAD2DEG));
-            dump_point(pt, 0, 0);
-            dump_point(pt, 1, 0);
-            dump_point(pt, 0, 1);
-            // child mirror loop
-            for (var c = 0; c < 4; c++) {
-                set_mirrors(c, csys);
-                // child transform 1
-                ct1.setToIdentity();
-                ct1.applyCoordinateTransformation(csys.x, csys.y, csys.s, csys.p, csys.mx, csys.my);
-                ct1.preConcatenate(pt);
-                // child transform 2
-                // ct2.init(pt);
-                // ct2.applyCoordinateTransformation(csys.x, csys.y, csys.s, csys.p,
-                // csys.mx, csys.my);
-                ct2.setToCoordinateTransform({
-                    x: csys.x,
-                    y: csys.y,
-                    scale: csys.s,
-                    phi: csys.p,
-                    mirrorX: csys.mx,
-                    mirrorY: csys.my
-                }, pt);
-                // mirror
-                console.log('');
-                console.log('parent mirror x/y: ' + psys.mx + '/' + psys.my);
-                console.log('child  mirror x/y: ' + csys.mx + '/' + csys.my);
-                var stream = Math.abs(ct1.rotation - ct2.rotation) > 0.001 ? console.warn : console.debug;
-                stream.call(console, 'child 1/2 rotation: ' + Math.floor(ct1.rotation * RAD2DEG) + ' / ' + Math.floor(ct2.rotation * RAD2DEG));
-                var s1 = Math.sqrt(Math.abs(ct1.d00 * ct1.d11 - ct1.d10 * ct1.d01));
-                var s2 = Math.sqrt(Math.abs(ct2.d00 * ct2.d11 - ct2.d10 * ct2.d01));
-                if (Math.abs(s1 - s2) > 0.001) {
-                    console.error('scales: s1: ' + s1 + ' s2: ' + s2);
-                }
-                if (true) {
-                    check_point(ct1, ct2, 0, 0);
-                    check_point(ct1, ct2, 1, 0);
-                    check_point(ct1, ct2, 0, 1);
-                }
-                else {
-                    dump_point(ct1, 0, 0);
-                    dump_point(ct2, 0, 0);
-                    dump_point(ct1, 1, 0);
-                    dump_point(ct2, 1, 0);
-                    dump_point(ct1, 0, 1);
-                    dump_point(ct2, 0, 1);
-                }
-            }
-        }
-    };
-
-    var tx = 2;
-    var ty = 1;
-    var ts = Math.SQRT2;
-    var tp = PI / 4;
-    function do_test(i_transforms, i_index) {
-        var t1 = i_transforms[i_index - 1];
-        var t2 = i_transforms[i_index];
-        var mx = undefined;
-        var my = undefined;
-        for (var p = 0; p < 4; p++) {
-            switch (p) {
-                case 0:
-                    mx = false;
-                    my = false;
-                    break;
-                case 1:
-                    mx = true;
-                    my = false;
-                    break;
-                case 2:
-                    mx = true;
-                    my = true;
-                    break;
-                case 3:
-                    mx = false;
-                    my = true;
-                    break;
-            }
-            t2.init(t1);
-            t2.applyCoordinateTransformation(tx, ty, ts, tp, mx, my);
-            console.log('===> ' + i_index + ' mirror x/y: ' + mx + '/' + my);
-            dump_point(t2, 0, 0);
-            dump_point(t2, 1, 0);
-            dump_point(t2, 0, 1);
-            if (i_index < i_transforms.length - 1) {
-                do_test(i_transforms, i_index + 1);
-            }
-        }
-    };
-
-    function debug_transforms2() {
-        // parent
-
-        var cnt = 3;
-        // transforms
-        var transforms = [];
-        for (var i = 0; i < cnt; i++) {
-            transforms.push(new Transform());
-        }
-        do_test(transforms, 1);
-        return;
-
-        // parent mirror loop
-        for (var p = 0; p < 4; p++) {
-            switch (p) {
-                case 0:
-                    pmx = false;
-                    pmy = false;
-                    break;
-                case 1:
-                    pmx = true;
-                    pmy = false;
-                    break;
-                case 2:
-                    pmx = true;
-                    pmy = true;
-                    break;
-                case 3:
-                    pmx = false;
-                    pmy = true;
-                    break;
-            }
-            // parent transform
-            pt.setToIdentity();
-            pt.applyCoordinateTransformation(px, py, ps, pp, pmx, pmy);
-            console.log('');
-            console.log('############ PARENT LOOP ############');
-            console.log('parent mirror x/y: ' + pmx + '/' + pmy);
-            console.log('parent rotation: ' + Math.floor(pt.rotation * RAD2DEG));
-            dump_point(pt, 0, 0);
-            dump_point(pt, 1, 0);
-            dump_point(pt, 0, 1);
-            // child mirror loop
-            for (var c = 0; c < 4; c++) {
-                switch (c) {
-                    case 0:
-                        cmx = false;
-                        cmy = false;
-                        break;
-                    case 1:
-                        cmx = true;
-                        cmy = false;
-                        break;
-                    case 2:
-                        cmx = true;
-                        cmy = true;
-                        break;
-                    case 3:
-                        cmx = false;
-                        cmy = true;
-                        break;
-                }
-                if (c !== 0 || p !== 1) {
-                    // continue;
-                }
-                // child transform 1
-                ct1.setToIdentity();
-                ct1.applyCoordinateTransformation(cx, cy, cs, cp, cmx, cmy);
-                ct1.preConcatenate(pt);
-                // child transform 2
-                ct2.setToIdentity();
-                ct2.init(pt);
-                ct2.applyCoordinateTransformation(cx, cy, cs, cp, cmx, cmy);
-                // mirror
-                console.log('');
-                console.log('child  mirror x/y: ' + cmx + '/' + cmy);
-                var stream = Math.abs(ct1.rotation - ct2.rotation) > 0.001 ? console.warn : console.debug;
-                stream.call(console, 'child 1/2 rotation: ' + Math.floor(ct1.rotation * RAD2DEG) + ' / ' + Math.floor(ct2.rotation * RAD2DEG));
-                var s1 = Math.sqrt(Math.abs(ct1.d00 * ct1.d11 - ct1.d10 * ct1.d01));
-                var s2 = Math.sqrt(Math.abs(ct2.d00 * ct2.d11 - ct2.d10 * ct2.d01));
-                if (Math.abs(s1 - s2) > 0.001) {
-                    console.error('scales: s1: ' + s1 + ' s2: ' + s2);
-                }
-                if (true) {
-                    check_point(ct1, ct2, 0, 0);
-                    check_point(ct1, ct2, 1, 0);
-                    check_point(ct1, ct2, 0, 1);
-                    check_point(ct1, ct2, 1, 1);
-                }
-                else {
-                    dump_point(ct1, 0, 0);
-                    dump_point(ct2, 0, 0);
-                    dump_point(ct1, 1, 0);
-                    dump_point(ct2, 1, 0);
-                    dump_point(ct1, 0, 1);
-                    dump_point(ct2, 0, 1);
-                }
-            }
-        }
-    };
-
-    function debug_arc() {
-        var arc = getArc(0, 0, 1, 0, 1, 1, 1);
-        console.log(JSONX.stringify(arc, undefined, 2));
-    };
-
-    /* function debug_adjuster(i_test) {
-        var a = new Adjuster();
-        switch (i_test) {
-            case 1:
-                a.reset(-1000, 1000);
-                a.add(0, 1500);
-                a.add(1000, 3000);
-                break;
-            case 2:
-                a.reset(1000, 1000);
-                a.add(0, 1500);
-                a.add(-1000, 3000);
-                break;
-            case 3:
-                a.reset(-1000, -1000);
-                a.add(0, -1500);
-                a.add(1000, -3000);
-                break;
-            case 4:
-                a.reset(1000, -1000);
-                a.add(0, -1500);
-                a.add(-1000, -3000);
-                break;
-            case 5:
-                a.reset(0, 0);
-                a.add(1, 1);
-                a.add(2, 3);
-                a.add(3, 4);
-                a.add(4, 8);
-                a.add(5, 9);
-                a.add(6, 12);
-                a.add(7, 17);
-                a.add(10, 20);
-                break;
-            default:
-                break;
-        }
-        var is = a.incrementSource;
-        var s1 = a.#cfg[0].s1;
-        var s2 = a.#cfg[a.#cfg.length - 1].s2;
-        var ds = s2 - s1;
-        var step = ds / 1000;
-        var x = s1 - ds;
-        var end = s2 + ds;
-        var txt = '';
-        while (is ? x <= end : x >= end) {
-            txt += x;
-            txt += ' ';
-            var y = a.adjust(x);
-            txt += y;
-            txt += ' ';
-            var z = a.adjustInverse(y);
-            txt += z;
-            txt += '\n';
-            if (Math.abs(x - z) > 0.0000001) {
-                console.error('Adjuster ERROR! value: ' + x + ' adjusted: ' + y + ' inverse: ' + z);
-                a.adjustInverse(a.adjust(x));
-                return;
-            }
-            x += step;
-        }
-        console.log('Adjuster tested and OK!');
-        Utilities._debug_dump('C:/___TEST_DUMP.txt', txt);
-    }; */
-
-    var NONE = 0x0;
-    var NORTH = 0x1;
-    var WEST = 0x2;
-    var SOUTH = 0x4;
-    var EAST = 0x8;
-
-    var Maze = function () {
-        this.width = 0;
-        this.height = 0;
-        this._cells = [];
-        this._list = [];
-    };
-
-    Maze.prototype = {
-        cell: function (i_x, i_y) {
-            return this._cells[i_y * this.width + i_x];
-        },
-        prepare: function (i_width, i_height) {
+        prepare(i_width, i_height) {
             // set the dimension
             this.width = i_width;
             this.height = i_height;
 
             // clear
-            var cells = this._cells;
+            const cells = this.#cells;
             cells.splice(0, cells.length);
-            this._list.splice(0, this._list.length);
+            this.#list.splice(0, this.#list.length);
 
             // if invalid
             if (i_width <= 0 || i_height <= 0) {
                 // nothing more to do
                 return;
             }
-            var x, y;
             // Fill the maze with walls
-            for (y = 0; y < i_height; y++) {
-                for (x = 0; x < i_width; x++) {
+            for (let y = 0; y < i_height; y++) {
+                for (let x = 0; x < i_width; x++) {
                     cells[y * i_width + x] = {
-                        x: x,
-                        y: y,
+                        x,
+                        y,
                         east: true,
                         west: true,
                         south: true,
                         north: true,
-                        _visited: false
+                        visited: false
                     };
                 }
             }
-            this._carveMaze(Math.floor(i_width / 2), Math.floor(i_height / 2));
-            for (x = 0; x < i_width; x++) {
-                for (y = 0; y < i_height; y++) {
-                    var cell = cells[y * i_width + x];
-                    if (!cell._visited) {
+            this.#carveMaze(Math.floor(i_width / 2), Math.floor(i_height / 2));
+            for (let x = 0; x < i_width; x++) {
+                for (let y = 0; y < i_height; y++) {
+                    const cell = cells[y * i_width + x];
+                    if (!cell.visited) {
                         console.error('EXCEPTION! Unvisited cell at ' + x + ', ' + y);
                     }
                 }
             }
-        },
-        _carveMaze: function (i_x, i_y) {
-            var cells = this._cells;
-            var list = this._list;
-            var width = this.width;
+        }
+        #carveMaze(x, y) {
+            const cells = this.#cells;
+            const list = this.#list;
+            const width = this.width;
             // add the middle cell to the stack
-            list.push(cells[i_y * width + i_x]);
+            list.push(cells[y * width + x]);
 
             // here we store the last index
-            var x, y, type;
-            var last = 0;
+            let xIdx, yIdx, type, last = 0;
 
             // while the stack is not empty
             while ((last = list.length - 1) >= 0) {
                 // get the last cell in the stack
-                var cell = list[last];
+                let cell = list[last];
 
                 // set visited
-                cell._visited = true;
+                cell.visited = true;
 
                 // store the coordinates
-                x = cell.x;
-                y = cell.y;
+                xIdx = cell.x;
+                yIdx = cell.y;
 
                 // get the next valid random neighbor cell type
-                type = this._getRandomValidCellNeighbour(x, y);
+                type = this.#getRandomValidCellNeighbour(xIdx, yIdx);
 
                 // depending on the neighbor
                 switch (type) {
                     case NORTH: {
                         cell.north = false;
-                        y--;
-                        cell = cells[y * width + x];
+                        yIdx--;
+                        cell = cells[yIdx * width + xIdx];
                         cell.south = false;
                         list.push(cell);
                         break;
                     }
                     case SOUTH: {
                         cell.south = false;
-                        y++;
-                        cell = cells[y * width + x];
+                        yIdx++;
+                        cell = cells[yIdx * width + xIdx];
                         cell.north = false;
                         list.push(cell);
                         break;
                     }
                     case WEST: {
                         cell.west = false;
-                        x--;
-                        cell = cells[y * width + x];
+                        xIdx--;
+                        cell = cells[yIdx * width + xIdx];
                         cell.east = false;
                         list.push(cell);
                         break;
                     }
                     case EAST: {
                         cell.east = false;
-                        x++;
-                        cell = cells[y * width + x];
+                        xIdx++;
+                        cell = cells[yIdx * width + xIdx];
                         cell.west = false;
                         list.push(cell);
                         break;
@@ -4153,27 +3741,27 @@
                     }
                 }
             }
-        },
-        _getRandomValidCellNeighbour: function (i_x, i_y) {
+        }
+        #getRandomValidCellNeighbour(x, y) {
             // here we store the number
-            var cnt = 0;
-            var cells = this._cells;
-            var width = this.width;
-            var height = this.height;
+            let cnt = 0;
+            const cells = this.#cells;
+            const width = this.width;
+            const height = this.height;
             // Above
-            if (i_y > 0 && !cells[(i_y - 1) * width + i_x]._visited) {
+            if (y > 0 && !cells[(y - 1) * width + x].visited) {
                 cnt++;
             }
             // Below
-            if (i_y < height - 1 && !cells[(i_y + 1) * width + i_x]._visited) {
+            if (y < height - 1 && !cells[(y + 1) * width + x].visited) {
                 cnt++;
             }
             // Right
-            if (i_x < width - 1 && !cells[i_y * width + i_x + 1]._visited) {
+            if (x < width - 1 && !cells[y * width + x + 1].visited) {
                 cnt++;
             }
             // Left
-            if (i_x > 0 && !cells[i_y * width + i_x - 1]._visited) {
+            if (x > 0 && !cells[y * width + x - 1].visited) {
                 cnt++;
             }
             // if no unvisited available
@@ -4181,34 +3769,34 @@
                 return NONE;
             }
             // select index by random
-            var idx = cnt > 1 ? Math.floor(Math.random() * cnt) : 0;
+            const idx = cnt > 1 ? Math.floor(Math.random() * cnt) : 0;
 
             // reset counter
             cnt = 0;
 
             // Above
-            if (i_y > 0 && !cells[(i_y - 1) * width + i_x]._visited) {
+            if (y > 0 && !cells[(y - 1) * width + x].visited) {
                 if (cnt == idx) {
                     return NORTH;
                 }
                 cnt++;
             }
             // Below
-            if (i_y < height - 1 && !cells[(i_y + 1) * width + i_x]._visited) {
+            if (y < height - 1 && !cells[(y + 1) * width + x].visited) {
                 if (cnt == idx) {
                     return SOUTH;
                 }
                 cnt++;
             }
             // Right
-            if (i_x < width - 1 && !cells[i_y * width + i_x + 1]._visited) {
+            if (x < width - 1 && !cells[y * width + x + 1].visited) {
                 if (cnt == idx) {
                     return EAST;
                 }
                 cnt++;
             }
             // Left
-            if (i_x > 0 && !cells[i_y * width + i_x - 1]._visited) {
+            if (x > 0 && !cells[y * width + x - 1].visited) {
                 if (cnt == idx) {
                     return WEST;
                 }
@@ -4216,39 +3804,35 @@
             }
             return NONE;
         }
-    };
+    }
 
     // helper class
-    var _WeightedGraphNode = function () {
-        this._nodeObject = undefined;
-        this._predecessorNode = undefined;
-        this._distanceToStartNode = undefined;
-        this._edges = [];
-        this._visited = false;
-    };
-
-    _WeightedGraphNode.prototype = {
+    class WeightedGraphNode {
+        constructor() {
+            this._nodeObject = undefined;
+            this._predecessorNode = undefined;
+            this._distanceToStartNode = undefined;
+            this._edges = [];
+            this._visited = false;
+        }
         // reset
-        _reset: function () {
+        _reset() {
             // reset the members
             this._nodeObject = undefined;
             this._predecessorNode = undefined;
             this._visited = false;
             this._distanceToStartNode = 0.0;
-            this._edges.splice(0, this._edges.length)
-        },
-        _getEdgeToNode: function (i_node) {
-            var i;
+            this._edges.splice(0, this._edges.length);
+        }
+        _getEdgeToNode(node) {
             // for all edges
-            for (i = 0; i < this._edges.length; i++) {
+            for (let i = 0; i < this._edges.length; i++) {
                 // get the edge
-                var edge = this._edges[i];
-
+                const edge = this._edges[i];
                 // get the opposite node
-                var node = edge._getOppositeNode(this);
-
+                const n = edge._getOppositeNode(this);
                 // if identical
-                if (node === i_node) {
+                if (n === node) {
                     // return the edge
                     return edge;
                 }
@@ -4256,241 +3840,232 @@
             // not found
             return undefined;
         }
-    };
+    }
 
     // helper class
-    var _WeightedGraphEdge = function () {
-        this._edgeObject = undefined;
-        this._node1 = undefined;
-        this._node2 = undefined;
-        this._length = 0.0;
-        this._virtual = false;
-    };
-
-    _WeightedGraphEdge.prototype = {
-        // initialize
-        _init: function (i_virtual, i_userEdge, i_node0, i_node1, i_length) {
-            this._virtual = i_virtual;
-            this._edgeObject = i_userEdge;
-            this._node1 = i_node0;
-            this._node2 = i_node1;
-            this._length = i_length;
-        },
-        _reset: function () {
+    class WeightedGraphEdge {
+        constructor() {
             this._edgeObject = undefined;
             this._node1 = undefined;
             this._node2 = undefined;
             this._length = 0.0;
             this._virtual = false;
-        },
-        _getOppositeNode: function (i_node) {
+        }
+        // initialize
+        _init(i_virtual, i_userEdge, i_node0, i_node1, i_length) {
+            this._virtual = i_virtual;
+            this._edgeObject = i_userEdge;
+            this._node1 = i_node0;
+            this._node2 = i_node1;
+            this._length = i_length;
+        }
+        _reset() {
+            this._edgeObject = undefined;
+            this._node1 = undefined;
+            this._node2 = undefined;
+            this._length = 0.0;
+            this._virtual = false;
+        }
+        _getOppositeNode(i_node) {
             // if given is identical to first
             if (this._node1 === i_node) {
                 // return second
                 return this._node2;
             }
+
             // if given is identical to second
             else if (this._node2 === i_node) {
                 // return first
                 return this._node1;
             }
+
             // given node is not part of this edge
             else {
                 // no opposite node available
                 return undefined;
             }
         }
-    };
+    }
 
-    var WeightedGraph = function () {
-        this._startNode = undefined;
-        this._endNode = undefined;
-        this._list = [];
-        this._edges = [];
-        this._nodes = [];
-        this._nodePool = new Utilities.DynamicList(function () {
-            return new _WeightedGraphNode();
-        });
-        this._edgePool = new Utilities.DynamicList(function () {
-            return new _WeightedGraphEdge();
-        });
-        this._nodeCount = 0;
-        this._edgeCount = 0;
-        this._isValidPath = undefined;
-    };
-
-    WeightedGraph.prototype = {
-        clear: function () {
+    class WeightedGraph {
+        #startNode;
+        #endNode;
+        #list;
+        #edges;
+        #nodes;
+        #nodePool;
+        #edgePool;
+        #nodeCount;
+        #edgeCount;
+        #isValidPath;
+        constructor() {
+            this.#startNode = undefined;
+            this.#endNode = undefined;
+            this.#list = [];
+            this.#edges = [];
+            this.#nodes = [];
+            this.#nodePool = new Utilities.DynamicList(() => new WeightedGraphNode());
+            this.#edgePool = new Utilities.DynamicList(() => new WeightedGraphEdge());
+            this.#nodeCount = 0;
+            this.#edgeCount = 0;
+            this.#isValidPath = undefined;
+        }
+        clear() {
             // clear the lists
-            this._list.splice(0, this._list.length);
-            this._edges.splice(0, this._edges.length);
-            this._nodes.splice(0, this._nodes.length);
-            var i;
-
+            this.#list.splice(0, this.#list.length);
+            this.#edges.splice(0, this.#edges.length);
+            this.#nodes.splice(0, this.#nodes.length);
             // for all nodes
-            for (i = 0; i < this._nodeCount; i++) {
+            for (let i = 0; i < this.#nodeCount; i++) {
                 // reset
-                this._nodePool.get(i)._reset();
+                this.#nodePool.get(i)._reset();
             }
             // reset
-            this._nodeCount = 0;
-
+            this.#nodeCount = 0;
             // for all edges
-            for (i = 0; i < this._edgeCount; i++) {
+            for (let i = 0; i < this.#edgeCount; i++) {
                 // reset
-                this._edgePool.get(i)._reset();
+                this.#edgePool.get(i)._reset();
             }
             // reset
-            this._edgeCount = 0;
-            this._startNode = undefined;
-            this._endNode = undefined;
-        },
-        setPathValidator: function (i_isValidPath) {
-            this._isValidPath = i_isValidPath;
-        },
-        destroy: function () {
+            this.#edgeCount = 0;
+            this.#startNode = undefined;
+            this.#endNode = undefined;
+        }
+        setPathValidator(i_isValidPath) {
+            this.#isValidPath = i_isValidPath;
+        }
+        destroy() {
             // clear all data
             this.clear();
-
             // clear the lists
-            this._edgePool.clear();
-            this._nodePool.clear();
-
+            this.#edgePool.clear();
+            this.#nodePool.clear();
             // reset
-            this._nodeCount = 0;
-            this._edgeCount = 0;
-            this._isValidPath = undefined;
-            this._startNode = undefined;
-            this._endNode = undefined;
-        },
+            this.#nodeCount = 0;
+            this.#edgeCount = 0;
+            this.#isValidPath = undefined;
+            this.#startNode = undefined;
+            this.#endNode = undefined;
+        }
         /**
          * Add a path
-         * 
-         * @param i_edge
+         *
+         * @param edge
          *          The path object (must not be undefined)
-         * @param i_node0
+         * @param node1
          *          The start node (must not be undefined)
-         * @param i_node1
+         * @param node2
          *          The end node (must not be undefined)
          * @param i_lengthThe
          *          path length (must be bigger than zero)
          * @return true is valid and added
          */
-        addEdge: function (i_edge, i_node0, i_node1, i_length) {
+        addEdge(edge, node1, node2, length) {
             // if invalid
-            if (i_node0 === undefined || i_node1 === undefined || i_length < 0.0) {
+            if (node1 === undefined || node2 === undefined || length < 0.0) {
                 // cannot add
                 return false;
             }
             // if identical objects
-            if (i_node0 === i_node1) {
+            if (node1 === node2) {
                 // cannot add
                 return false;
             }
             // add the edge
-            this._prepareEdge(false, i_edge, i_node0, i_node1, i_length);
+            this.#prepareEdge(false, edge, node1, node2, length);
 
             // success
             return true;
-        },
+        }
         /**
          * This method can be used
-         * 
-         * @param i_node0
-         * @param i_node1
+         *
+         * @param node1
+         * @param node2
          * @return
          */
-        addVirtualEdge: function (i_node0, i_node1, i_length) {
+        addVirtualEdge(node1, node2, length) {
             // if invalid
-            if (i_node0 === undefined || i_node1 === undefined) {
+            if (node1 === undefined || node2 === undefined) {
                 // cannot add
                 return false;
             }
             // depending on the mode
             // if identical nodes
-            if (i_node0 === i_node1) {
+            if (node1 === node2) {
                 // cannot add
                 return false;
             }
-            var i;
             // for all currently available edges
-            for (i = 0; i < this._edgeCount; i++) {
+            for (let i = 0; i < this.#edgeCount; i++) {
                 // get the edge
-                var edge = this._edgePool.get(i);
-
+                const edge = this.#edgePool.get(i);
                 // if a virtual edge
                 if (edge._virtual) {
                     // if identical start and end
-                    if (edge._node1._nodeObject == i_node0 && edge._node2._nodeObject == i_node1) {
+                    if (edge._node1._nodeObject == node1 && edge._node2._nodeObject == node2) {
                         // cannot add
                         return false;
                     }
                     // if inverse identical start and end
-                    if (edge._node2._nodeObject == i_node1 && edge._node1._nodeObject == i_node0) {
+                    if (edge._node2._nodeObject == node2 && edge._node1._nodeObject == node1) {
                         // cannot add
                         return false;
                     }
                 }
             }
             // add the edge
-            this._prepareEdge(true, undefined, i_node0, i_node1, i_length);
-
+            this.#prepareEdge(true, undefined, node1, node2, length);
             // success
             return true;
-        },
-        _getNode: function (i_nodeObject) {
-            var i;
+        }
+        #getNode(nodeObject) {
             // for all stored nodes
-            for (i = 0; i < this._nodeCount; i++) {
+            for (let i = 0; i < this.#nodeCount; i++) {
                 // get the node
-                var node = this._nodePool.get(i);
-
+                const node = this.#nodePool.get(i);
                 // if identical node object
-                if (node._nodeObject === i_nodeObject) {
+                if (node._nodeObject === nodeObject) {
                     // return the node
                     return node;
                 }
             }
             // get the next node
-            var node = this._nodePool.get(this._nodeCount++);
-
+            const node = this.#nodePool.get(this.#nodeCount++);
             // set object
-            node._nodeObject = i_nodeObject;
-
+            node._nodeObject = nodeObject;
             // return the node
             return node;
-        },
-        _prepareEdge: function (i_virtual, i_userEdge, i_userNode0, i_userNode1, i_length) {
+        }
+        #prepareEdge(virtual, userEdge, userNode1, userNode2, length) {
             // get the next edge
-            var edge = this._edgePool.get(this._edgeCount++);
-
+            const edge = this.#edgePool.get(this.#edgeCount++);
             // get the nodes
-            var node1 = this._getNode(i_userNode0);
-            var node2 = this._getNode(i_userNode1);
-
+            const node1 = this.#getNode(userNode1);
+            const node2 = this.#getNode(userNode2);
             // initialize edge
-            edge._init(i_virtual, i_userEdge, node1, node2, i_length);
-
+            edge._init(virtual, userEdge, node1, node2, length);
             // add edge to nodes
             node1._edges.push(edge);
             node2._edges.push(edge);
-        },
+        }
         /**
          * This method tries to find the shortest path from the start to the end
          * node. If the end node is undefined, the algorithm walks to all reachable
          * node and stores the distance from the start node.
-         * 
+         *
          * @param i_start
          *          The start node
          * @param i_end
          *          The end node (may be undefined)
          * @return The shortest path if available
          */
-        computePath: function (i_startNode, i_endNode) {
+        computePath(startNode, endNode) {
             // clear the lists
-            this._list.splice(0, this._list.length);
-            this._edges.splice(0, this._edges.length);
-            this._nodes.splice(0, this._nodes.length);
+            this.#list.splice(0, this.#list.length);
+            this.#edges.splice(0, this.#edges.length);
+            this.#nodes.splice(0, this.#nodes.length);
 
             // ////////////////////////////////////////////////////////////////////////////
             // This is an implementation of the Dijkstra algorithm.
@@ -4499,35 +4074,30 @@
             // to
             // find the start and the end node.
             // ////////////////////////////////////////////////////////////////////////////
-
             // here we store the start and the end node
-            this._startNode = undefined;
-            this._endNode = undefined;
-            var i;
-
+            this.#startNode = undefined;
+            this.#endNode = undefined;
             // for all currently stored nodes
-            for (i = 0; i < this._nodeCount; i++) {
+            for (let i = 0; i < this.#nodeCount; i++) {
                 // get the node
-                var node = this._nodePool.get(i);
-
+                const node = this.#nodePool.get(i);
                 // reset
                 node._predecessorNode = undefined;
                 node._visited = false;
                 node._distanceToStartNode = -1.0;
-
                 // if identical to start node
-                if (node._nodeObject === i_startNode) {
+                if (node._nodeObject === startNode) {
                     // set start node
-                    this._startNode = node;
+                    this.#startNode = node;
                 }
                 // if identical to end node
-                else if (i_endNode !== undefined && node._nodeObject === i_endNode) {
+                else if (endNode !== undefined && node._nodeObject === endNode) {
                     // set end node
-                    this._endNode = node;
+                    this.#endNode = node;
                 }
             }
             // if start node not available
-            if (this._startNode === undefined) {
+            if (this.#startNode === undefined) {
                 // no path available
                 return;
             }
@@ -4539,29 +4109,23 @@
             // node
             // as previous node and add the node to the working list.
             // ////////////////////////////////////////////////////////////////////////////
-
             // initialize start node
-            this._startNode._distanceToStartNode = 0;
-            this._startNode._visited = true;
-
+            this.#startNode._distanceToStartNode = 0;
+            this.#startNode._visited = true;
             // for all edges of the start node
-            for (i = 0; i < this._startNode._edges.length; i++) {
+            for (let i = 0; i < this.#startNode._edges.length; i++) {
                 // get the edge
-                var edge = this._startNode._edges[i];
-
+                const edge = this.#startNode._edges[i];
                 // get the opposite node
-                var node = edge._getOppositeNode(this._startNode);
-
+                const node = edge._getOppositeNode(this.#startNode);
                 // if valid path
-                if (typeof this._isValidPath !== 'function' || this._isValidPath(undefined, undefined, this._startNode._nodeObject, edge._edgeObject, node._nodeObject)) {
+                if (typeof this.#isValidPath !== 'function' || this.#isValidPath(undefined, undefined, this.#startNode._nodeObject, edge._edgeObject, node._nodeObject)) {
                     // set the distance
                     node._distanceToStartNode = edge._length >= 0.0 ? edge._length : 0.0;
-
                     // set the predecessor node
-                    node._predecessorNode = this._startNode;
-
+                    node._predecessorNode = this.#startNode;
                     // add to the list
-                    this._list.push(node);
+                    this.#list.push(node);
                 }
             }
             // ////////////////////////////////////////////////////////////////////////////
@@ -4569,24 +4133,20 @@
             //
             // Our working list contains all neighbors from our start node.
             // ////////////////////////////////////////////////////////////////////////////
-
             // loop while list is not empty
-            while (this._list.length > 0) {
+            while (this.#list.length > 0) {
                 // ////////////////////////////////////////////////////////////////////////////
                 // In the following iteration we search the node not already visited
                 // and
                 // with the smallest distance to the start node.
                 // ////////////////////////////////////////////////////////////////////////////
-
                 // here we store the closest node
-                var closestNode = undefined;
-                var closestNodeIdx = -1;
-
+                let closestNode = undefined;
+                let closestNodeIdx = -1;
                 // for all nodes in the working list
-                for (i = 0; i < this._list.length; i++) {
+                for (let i = 0; i < this.#list.length; i++) {
                     // get the node
-                    var node = this._list[i];
-
+                    const node = this.#list[i];
                     // if the node has not been visited before and its the first or
                     // closer
                     // than the last
@@ -4603,16 +4163,13 @@
                 }
                 // set visited
                 closestNode._visited = true;
-
                 // remove from the list
-                this._list.splice(closestNodeIdx, 1);
-
+                this.#list.splice(closestNodeIdx, 1);
                 // ////////////////////////////////////////////////////////////////////////////
                 // If the closest node is the one we try to reach we are ready.
                 // ////////////////////////////////////////////////////////////////////////////
-
                 // if equal to end node
-                if (this._endNode !== undefined && closestNode === this._endNode) {
+                if (this.#endNode !== undefined && closestNode === this.#endNode) {
                     // terminate loop
                     break;
                 }
@@ -4630,37 +4187,31 @@
                 // will be updated by setting the predecessor node to the current and
                 // resetting the distance.
                 // ////////////////////////////////////////////////////////////////////////////
-
                 // for all edges of this node
-                for (i = 0; i < closestNode._edges.length; i++) {
+                for (let i = 0; i < closestNode._edges.length; i++) {
                     // get the edge
-                    var edge = closestNode._edges[i];
-
+                    const edge = closestNode._edges[i];
                     // get the opposite node
-                    var node = edge._getOppositeNode(closestNode);
-
+                    const node = edge._getOppositeNode(closestNode);
                     // if visited before
                     if (node._visited) {
                         // ignore this node
                         continue;
                     }
                     // if invalid
-                    if (typeof this._isValidPath === 'function') {
+                    if (typeof this.#isValidPath === 'function') {
                         // get the predecessor node
-                        var predecessorNode = closestNode._predecessorNode;
-
+                        const predecessorNode = closestNode._predecessorNode;
                         // get the edge
-                        var predecessorEdge = closestNode._getEdgeToNode(predecessorNode);
-
+                        const predecessorEdge = closestNode._getEdgeToNode(predecessorNode);
                         // if not valid
-                        if (!this._isValidPath(predecessorNode._nodeObject, predecessorEdge._edgeObject, closestNode._nodeObject, edge._edgeObject, node._nodeObject)) {
+                        if (!this.#isValidPath(predecessorNode._nodeObject, predecessorEdge._edgeObject, closestNode._nodeObject, edge._edgeObject, node._nodeObject)) {
                             // ignore this node
                             continue;
                         }
                     }
                     // compute the distance
-                    var distance = closestNode._distanceToStartNode;
-
+                    let distance = closestNode._distanceToStartNode;
                     // if not a virtual edge
                     if (edge._length > 0.0) {
                         // add the edge length
@@ -4679,7 +4230,7 @@
                         node._predecessorNode = closestNode;
                     }
                     // add node to list
-                    this._list.push(node);
+                    this.#list.push(node);
                 }
             }
             // ////////////////////////////////////////////////////////////////////////////
@@ -4691,245 +4242,214 @@
             // looking
             // for). In that case the end node has a predecessor node!
             // ////////////////////////////////////////////////////////////////////////////
-
             // clear the list
-            this._list.splice(0, this._list.length);
-
+            this.#list.splice(0, this.#list.length);
             // if an end node is available
-            if (this._endNode !== undefined) {
+            if (this.#endNode !== undefined) {
                 // prepare edges
-                this._prepareEdgesToEndNode();
+                this.#prepareEdgesToEndNode();
                 // prepare nodes
-                this._prepareNodesToEndNode();
+                this.#prepareNodesToEndNode();
             }
-        },
-        addReachableNodes: function (i_collection) {
+        }
+        addReachableNodes(array) {
             // if a start node is available
-            if (this._startNode !== undefined) {
-                var i;
+            if (this.#startNode !== undefined) {
                 // for all currently stored nodes
-                for (i = 0; i < this._nodeCount; i++) {
+                for (let i = 0; i < this.#nodeCount; i++) {
                     // get the node
-                    var node = this._nodePool.get(i);
-
+                    const node = this.#nodePool.get(i);
                     // if visited and not the start node
-                    if (node !== this._startNode && node._visited) {
+                    if (node !== this.#startNode && node._visited) {
                         // add
-                        i_collection.push(node._nodeObject);
+                        array.push(node._nodeObject);
                     }
                 }
             }
-        },
-        selectClosestNode: function () {
-            return this._selectNode(true);
-        },
-        selectFarestNode: function () {
-            return this._selectNode(false);
-        },
-        _selectNode: function (i_closets) {
+        }
+        selectClosestNode() {
+            return this.#selectNode(true);
+        }
+        selectFarestNode() {
+            return this.#selectNode(false);
+        }
+        #selectNode(closest) {
             // reset
-            this._edges.splice(0, this._edges.length);
-            this._nodes.splice(0, this._nodes.length);
-            this._endNode = undefined;
-            var i;
+            this.#edges.splice(0, this.#edges.length);
+            this.#nodes.splice(0, this.#nodes.length);
+            this.#endNode = undefined;
             // for all currently stored nodes
-            for (i = 0; i < this._nodeCount; i++) {
+            for (let i = 0; i < this.#nodeCount; i++) {
                 // get the node
-                var node = this._nodePool.get(i);
-
+                const node = this.#nodePool.get(i);
                 // visited first or closer
-                if (node._visited && (this._endNode === undefined || (i_closets ? node._distanceToStartNode < this._endNode._distanceToStartNode : node._distanceToStartNode > this._endNode._distanceToStartNode))) {
+                if (node._visited && (this.#endNode === undefined || (closest ? node._distanceToStartNode < this.#endNode._distanceToStartNode : node._distanceToStartNode > this.#endNode._distanceToStartNode))) {
                     // update
-                    this._endNode = node;
+                    this.#endNode = node;
                 }
             }
             // if found
-            if (this._endNode !== undefined) {
+            if (this.#endNode !== undefined) {
                 // prepare
-                this._prepareEdgesToEndNode();
-                this._prepareNodesToEndNode();
+                this.#prepareEdgesToEndNode();
+                this.#prepareNodesToEndNode();
             }
             // return true if node available
-            return this._endNode !== undefined;
-        },
-        selectEndNode: function (i_node) {
+            return this.#endNode !== undefined;
+        }
+        selectEndNode(node) {
             // clear list
-            this._edges.splice(0, this._edges.length);
-            this._nodes.splice(0, this._nodes.length);
-            this._endNode = undefined;
-
+            this.#edges.splice(0, this.#edges.length);
+            this.#nodes.splice(0, this.#nodes.length);
+            this.#endNode = undefined;
             // if not available
-            if (i_node === undefined) {
+            if (node === undefined) {
                 // not selectable
                 return false;
             }
-            var i;
             // for all currently stored nodes
-            for (i = 0; i < this._nodeCount && this._endNode === undefined; i++) {
+            for (let i = 0; i < this.#nodeCount && this.#endNode === undefined; i++) {
                 // get the node
-                var node = this._nodePool.get(i);
-
+                const n = this.#nodePool.get(i);
                 // if identical to start node
-                if (node._nodeObject === i_node) {
+                if (n._nodeObject === node) {
                     // set end node
-                    this._endNode = node;
+                    this.#endNode = n;
                 }
             }
             // if not found
-            if (this._endNode === undefined) {
+            if (this.#endNode === undefined) {
                 // not selectable
                 return false;
             }
             // if not visited
-            if (!this._endNode._visited) {
+            if (!this.#endNode._visited) {
                 // reset
-                this._endNode = undefined;
-
+                this.#endNode = undefined;
                 // not selectable
                 return false;
             }
             // prepare the edges
-            this._prepareEdgesToEndNode();
-            this._prepareNodesToEndNode();
-
+            this.#prepareEdgesToEndNode();
+            this.#prepareNodesToEndNode();
             // success
             return true;
-        },
-        _prepareEdgesToEndNode: function () {
+        }
+        #prepareEdgesToEndNode() {
             // clear
-            this._edges.splice(0, this._edges.length);
-
+            this.#edges.splice(0, this.#edges.length);
             // store the node for the following iteration
-            var node = this._endNode;
-
+            let node = this.#endNode;
             // while predecessor available
             while (node._predecessorNode !== undefined) {
                 // get the edge
-                var edge = node._getEdgeToNode(node._predecessorNode);
-
+                const edge = node._getEdgeToNode(node._predecessorNode);
                 // if available
                 if (edge !== undefined && edge._edgeObject !== undefined) {
                     // add to the list
-                    this._edges.push(edge._edgeObject);
+                    this.#edges.push(edge._edgeObject);
                 }
                 // get the predecessor
                 node = node._predecessorNode;
             }
-        },
-        _prepareNodesToEndNode: function () {
+        }
+        #prepareNodesToEndNode() {
             // clear
-            this._nodes.splice(0, this._nodes.length);
-
+            this.#nodes.splice(0, this.#nodes.length);
             // store the node for the following iteration
-            var node = this._endNode;
-
+            let node = this.#endNode;
             // while available
             while (node !== undefined) {
-                this._nodes.push(node._nodeObject);
+                this.#nodes.push(node._nodeObject);
                 // get the predecessor
                 node = node._predecessorNode;
             }
-        },
-        getStartNode: function () {
-            return this._startNode !== undefined ? this._startNode._nodeObject : undefined;
-        },
-        isEndNodeReachable: function () {
-            return this._endNode !== undefined && this._endNode._visited;
-        },
-        getEndNode: function () {
-            return this._endNode !== undefined ? this._endNode._nodeObject : undefined;
-        },
-        getDistance: function () {
-            return this._endNode !== undefined ? this._endNode._distanceToStartNode : -1.0;
-        },
-        getEdgesCount: function () {
-            return this._edges.length;
-        },
-        getEdge: function (i_index) {
-            return this._edges[this._edges.length - 1 - i_index];
-        },
-        getNodesCount: function () {
-            return this._nodes.length;
-        },
-        getNode: function (i_index) {
-            return this._nodes[this._nodes.length - 1 - i_index];
         }
-    };
+        getStartNode() {
+            return this.#startNode !== undefined ? this.#startNode._nodeObject : undefined;
+        }
+        isEndNodeReachable() {
+            return this.#endNode !== undefined && this.#endNode._visited;
+        }
+        getEndNode() {
+            return this.#endNode !== undefined ? this.#endNode._nodeObject : undefined;
+        }
+        getDistance() {
+            return this.#endNode !== undefined ? this.#endNode._distanceToStartNode : -1.0;
+        }
+        getEdgesCount() {
+            return this.#edges.length;
+        }
+        getEdge(i_index) {
+            return this.#edges[this.#edges.length - 1 - i_index];
+        }
+        getNodesCount() {
+            return this.#nodes.length;
+        }
+        getNode(i_index) {
+            return this.#nodes[this.#nodes.length - 1 - i_index];
+        }
+    }
 
-    var exp = {
-        THIRD: THIRD,
-        TWO_PI: TWO_PI,
-        HALF_PI: HALF_PI,
-        QUARTER_PI: QUARTER_PI,
-        RAD2DEG: RAD2DEG,
-        DEG2RAD: DEG2RAD,
-        GOLDEN_CUT: GOLDEN_CUT,
-        GOLDEN_CUT_INVERTED: GOLDEN_CUT_INVERTED,
-        SPECIFIC_GRAVITY_OF_STEEL: SPECIFIC_GRAVITY_OF_STEEL,
-        EARTH_GRAVITATION: EARTH_GRAVITATION,
-        sinh: sinh,
-        cosh: cosh,
-        asinh: asinh,
-        acosh: acosh,
-        createBiomialCoefficients: createBiomialCoefficients,
-        getSmoothNormalizedTransfer: getSmoothNormalizedTransfer,
-        normalizeToPlusMinusPI: normalizeToPlusMinusPI,
-        normalizeToPlusMinus180deg: normalizeToPlusMinus180deg,
-        getHarmonicRGB: getHarmonicRGB,
-        Transform: Transform,
-        Adjuster: Adjuster,
-        getArc: getArc,
-        ArcLine: ArcLine,
-        CurveSection: CurveSection,
-        ChainFunction: ChainFunction,
-        RopeLine: RopeLine,
-        setOffset: setOffset,
-        DiscretizationIterator: DiscretizationIterator,
-        debug_dradation: debug_dradation,
-        debug_transforms1: debug_transforms1,
-        debug_transforms2: debug_transforms2,
-        debug_arc: debug_arc,
-        // debug_adjuster: debug_adjuster,
-        Maze: Maze,
-        WeightedGraph: WeightedGraph,
-        toBool: function (i_value) {
-            // 1 bit
-            return i_value === true;
-        },
-        toS8: function (i_value) {
+    const exp = Object.freeze({
+        THIRD,
+        TWO_PI,
+        HALF_PI,
+        QUARTER_PI,
+        RAD2DEG,
+        DEG2RAD,
+        GOLDEN_CUT,
+        GOLDEN_CUT_INVERTED,
+        SPECIFIC_GRAVITY_OF_STEEL,
+        EARTH_GRAVITATION,
+        sinh,
+        cosh,
+        asinh,
+        acosh,
+        createBiomialCoefficients,
+        getSmoothNormalizedTransfer,
+        normalizeToPlusMinusPI,
+        normalizeToPlusMinus180deg,
+        getHarmonicRGB,
+        Transform,
+        Adjuster,
+        getArc,
+        ArcLine,
+        CurveSection,
+        ChainFunction,
+        RopeLine,
+        setOffset,
+        DiscretizationIterator,
+        Maze,
+        WeightedGraph,
+        toBool: value => value === true,
+        toS8: value => {
             // 8 bit signed
-            var value = Math.floor(i_value) & 0xff;
-            return (value & 0x80) === 0x80 ? value - 0x100 : value;
+            const val = Math.floor(value) & 0xff;
+            return (val & 0x80) === 0x80 ? val - 0x100 : val;
         },
-        toU8: function (i_value) {
-            // 8 bit unsigned
-            return Math.floor(i_value) & 0xff;
-        },
-        toS16: function (i_value) {
+        toU8: value => Math.floor(value) & 0xff,
+        toS16: value => {
             // 16 bit signed
-            var value = Math.floor(i_value) & 0xffff;
-            return (value & 0x8000) === 0x8000 ? value - 0x10000 : value;
+            const val = Math.floor(value) & 0xffff;
+            return (val & 0x8000) === 0x8000 ? val - 0x10000 : val;
         },
-        toU16: function (i_value) {
-            // 16 bit unsigned
-            return Math.floor(i_value) & 0xffff;
-        },
-        toS32: function (i_value) {
+        toU16: value => Math.floor(value) & 0xffff,
+        toS32: value => {
             // 32 bit signed
-            var value = Math.floor(i_value) & 0xffffffff;
-            return (value & 0x80000000) === 0x80000000 ? value - 0x100000000 : value;
+            const val = Math.floor(value) & 0xffffffff;
+            return (val & 0x80000000) === 0x80000000 ? val - 0x100000000 : val;
         },
-        toU32: function (i_value) {
+        toU32: value => {
             // 32 bit unsigned
-            var value = Math.floor(i_value) & 0xffffffff;
-            return (value & 0x80000000) === -0x80000000 ? value + 0x100000000 : value;
+            const val = Math.floor(value) & 0xffffffff;
+            return (val & 0x80000000) === -0x80000000 ? val + 0x100000000 : val;
         },
-        getS32bit: function (i_value, i_bit) {
-            var mask = 1 << (i_bit % 32);
-            return (i_value & mask) === mask;
+        getS32bit: (value, bit) => {
+            const mask = 1 << (bit % 32);
+            return (value & mask) === mask;
         },
-    };
-
+    });
     if (isNodeJS) {
         module.exports = exp;
     } else {
