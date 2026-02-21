@@ -40,8 +40,6 @@
 
     const beautify_js = isNodeJS ? require('js-beautify').js : root.js_beautify;
 
-    var _pretty;
-
     function addQuotes(test, slapQuotes) {
         // If the string contains no control characters, no quote characters, and no
         // backslash characters, then we can safely slap some quotes around it.
@@ -66,7 +64,7 @@
         return txt;
     }
 
-    function getString(key, holder) {
+    function getString(key, holder, pretty) {
         // Produce a string from holder[i_key].
         let i, // The loop counter.
             k, // The member key.
@@ -104,7 +102,7 @@
                     // for non-JSON values.
                     length = value.length;
                     for (i = 0; i < length; i += 1) {
-                        partial[i] = getString(i, value) || 'null';
+                        partial[i] = getString(i, value, pretty) || 'null';
                     }
                     // Join all of the elements together, separated with commas, and wrap
                     // them in
@@ -115,9 +113,9 @@
                 // iterate through all of the keys in the object.
                 for (k in value) {
                     if (Object.prototype.hasOwnProperty.call(value, k)) {
-                        v = getString(k, value);
+                        v = getString(k, value, pretty);
                         if (v) {
-                            partial.push(addQuotes(k, !_pretty) + ':' + v);
+                            partial.push(addQuotes(k, !pretty) + ':' + v);
                         }
                     }
                 }
@@ -137,7 +135,7 @@
                 // remove leading and ending whitespaces
                 func_str = func_str.replace(/^\s*(.+?)\s*$/gm, '$1');
                 // return with or without qoutes
-                return _pretty ? func_str : addQuotes(func_str, true);
+                return pretty ? func_str : addQuotes(func_str, true);
         }
     }
 
@@ -148,14 +146,12 @@
         // that can replace values, or an array of strings that will select the
         // keys.
         // A default replacer method can be provided. Use of the space parameter
-        // can
-        // produce text that is more easily readable.
-        var i;
-        _pretty = pretty === true;
+        // can produce text that is more easily readable.
+
         // Make a fake root object containing our value under the key of ''.
         // Return the result of stringifying the value.
-        var str = getString('', { '': value });
-        return _pretty ? beautify_js(str, _beautify_opts) : str;
+        const str = getString('', { '': value }, pretty === true);
+        return pretty === true ? beautify_js(str, _beautify_opts) : str;
     }
     JsonFX.stringify = stringify;
 
