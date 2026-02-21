@@ -241,7 +241,6 @@
             this.mirrorX = false;
             this.mirrorY = false;
         }
-
         setToIdentity() {
             this.d00 = 1.0;
             this.d10 = 0.0;
@@ -261,7 +260,6 @@
             this.mirrorY = false;
             return this;
         }
-
         init(transform) {
             // could use this but to reduce function calls we perform directly ...
             // fn_copy_transform(this, i_transform);
@@ -283,7 +281,6 @@
             this.mirrorY = transform.mirrorY;
             return this;
         }
-
         setScale(scale) {
             this.d00 *= scale;
             this.d01 *= scale;
@@ -299,7 +296,6 @@
             this.i12 /= scale;
             return this;
         }
-
         translate(translateX, translateY) {
             // add the rotated and scaled translation vector
             this.x += this.d00 * translateX + this.d01 * translateY;
@@ -309,7 +305,6 @@
             this.i12 -= translateY;
             return this;
         }
-
         rotate(phi, mirrorX, mirrorY) {
             const nmx = mirrorX === true;
             const nmy = mirrorY === true;
@@ -352,7 +347,6 @@
             this.i12 = (m10 * m02 - m00 * m12) / det;
             return this;
         }
-
         concatenate(transform) {
             // does: [this] = [this] x [Tx]
             const d00 = this.d00;
@@ -410,7 +404,6 @@
 
             return this;
         }
-
         preConcatenate(transform) {
             // does: [this] = [Tx] x [this]
             const d00 = this.d00;
@@ -465,7 +458,6 @@
 
             return this;
         }
-
         invert() {
             // we already know the inverted transforms so just swap the parameters
             let swap = this.i00;
@@ -504,7 +496,6 @@
                 this.y = (d10 * x - d00 * y) / det;
             */
         }
-
         initForPoints(metricX1, metricY1, metricX2, metricY2, pixelX1, pixelY1, pixelX2, pixelY2) {
             // store for performance reasons
             const mx = this.mirrorX === true;
@@ -548,7 +539,6 @@
             this.scale = Math.sqrt(du2dv2 / mdiv);
             return this;
         }
-
         initForPoint(metricX, metricY, pixelX, pixelY) {
             // initialize transforms
             this.x = pixelX - this.d00 * metricX - this.d01 * metricY;
@@ -557,7 +547,6 @@
             this.i12 = metricY - this.i10 * pixelX - this.i11 * pixelY;
             return this;
         }
-
         initForBounds(metric, pixelWidth, pixelHeight, mirrorX, mirrorY) {
             // get the source rectangle bounds
             let x = metric ? metric.x : 0.0;
@@ -798,21 +787,18 @@
                 this.i12 = parent.i12;
             }
         }
-
         transform(x, y, point) {
             const p = point || {};
             p.x = this.d00 * x + this.d01 * y + this.x;
             p.y = this.d10 * x + this.d11 * y + this.y;
             return p;
         }
-
         transformInverse(x, y, point) {
             const p = point || {};
             p.x = this.i00 * x + this.i01 * y + this.i02;
             p.y = this.i10 * x + this.i11 * y + this.i12;
             return p;
         }
-
         save() {
             let stack = this._stack;
             if (!stack) {
@@ -823,7 +809,6 @@
             copyTransform(tf, this);
             stack.push(tf);
         }
-
         restore() {
             const stack = this._stack;
             const tf = stack ? stack.pop() : undefined;
@@ -834,7 +819,6 @@
             }
         }
     }
-
 
     /**
      * This mechanism maps positions given by an absolute value onto a track
@@ -854,7 +838,6 @@
             this.#cfg = [];
             this.reset();
         }
-
         reset(source, target, id) {
             this.#cfg.splice(0, this.#cfg.length);
             this.incrementSource = undefined;
@@ -864,7 +847,6 @@
             this.#t = typeof target === 'number' ? target : 0.0;
             this.valid = false;
         }
-
         add(source, target, id) {
             const s = this.#s;
             const ds = source - s;
@@ -896,7 +878,6 @@
             this.valid = true;
             return true;
         }
-
         adjust(source) {
             const config = this.#cfg;
             if (config.length > 0) {
@@ -925,7 +906,6 @@
             }
             return false;
         }
-
         adjustInverse(target) {
             const config = this.#cfg;
             if (config.length > 0) {
@@ -954,7 +934,6 @@
             }
             return false;
         }
-
         format() {
             const config = this.#cfg;
             if (config.length > 0) {
@@ -1088,102 +1067,94 @@
         };
     }
 
-    function fn_prepare_arc(i_context, i_contextTransform, i_point, i_part, i_start, i_end, i_left, i_curveTransform) {
-        var arc = i_part.arc;
-        var sphi = arc.startPhi;
-        var ephi = arc.endPhi;
-        var dphi = ephi - sphi;
-        var s1 = i_part.s1;
-        var slen = i_part.length;
-        var left = arc.left;
-        var ophi = left ? -HALF_PI : HALF_PI;
-        var phi1 = sphi + (i_start - s1) / slen * dphi + ophi;
-        var phi2 = sphi + (i_end - s1) / slen * dphi + ophi;
+    function prepareArc(context, contextTransform, point, part, start, end, left, curveTransform) {
+        const arc = part.arc;
+        const sphi = arc.startPhi;
+        const dphi = arc.endPhi - sphi;
+        const s1 = part.s1;
+        const slen = part.length;
+        const ophi = arc.left ? -HALF_PI : HALF_PI;
+        let phi1 = sphi + (start - s1) / slen * dphi + ophi;
+        let phi2 = sphi + (end - s1) / slen * dphi + ophi;
         // handler mirroring
-        var mx = i_contextTransform.mirrorX !== i_curveTransform.mirrorX;
+        const mx = contextTransform.mirrorX !== curveTransform.mirrorX;
         if (mx) {
             phi1 = PI - phi1;
             phi2 = PI - phi2;
         }
-        var my = i_contextTransform.mirrorY !== i_curveTransform.mirrorY;
+        const my = contextTransform.mirrorY !== curveTransform.mirrorY;
         if (my) {
             phi1 = -phi1;
             phi2 = -phi2;
         }
         // get center point
-        i_curveTransform.transform(arc.centerX, arc.centerY, i_point);
-        i_contextTransform.transform(i_point.x, i_point.y, i_point);
-        var tfrot = i_contextTransform.rotation - i_curveTransform.rotation;
-        var radius = arc.radius;
-        if (typeof i_left === 'number') {
-            radius += left ? -i_left : i_left;
+        curveTransform.transform(arc.centerX, arc.centerY, point);
+        contextTransform.transform(point.x, point.y, point);
+        const tfrot = contextTransform.rotation - curveTransform.rotation;
+        let radius = arc.radius;
+        if (typeof left === 'number') {
+            radius += arc.left ? -left : left;
         }
-        radius *= i_contextTransform.scale;
-        radius *= i_curveTransform.scale;
-        i_context.arc(i_point.x, i_point.y, radius, phi1 + tfrot, phi2 + tfrot, left === (mx !== my));
+        radius *= contextTransform.scale;
+        radius *= curveTransform.scale;
+        context.arc(point.x, point.y, radius, phi1 + tfrot, phi2 + tfrot, arc.left === (mx !== my));
     }
 
-    var ArcLine = function (i_curve) {
-        this._curve = i_curve;
-        this.length = 0.0;
-        this.closed = false;
-        this._p = {};
-        this._parts = [];
-        this._adjuster = new Adjuster();
-        this._tf = new Transform();
-
-        // initialize
-        this.adjust();
-        this._init();
-    };
-
-    ArcLine.prototype = {
-        adjust: function () {
-            var curve = this._curve;
-            this._tf.setToIdentity();
-            this._tf.setToCoordinateTransform(curve);
-        },
+    class ArcLine {
+        #curve;
+        #p;
+        #parts;
+        #adjuster;
+        #tf;
+        constructor(curve) {
+            this.#curve = curve;
+            this.length = 0.0;
+            this.closed = false;
+            this.#p = {};
+            this.#parts = [];
+            this.#adjuster = new Adjuster();
+            this.#tf = new Transform();
+            // initialize
+            this.adjust();
+            this.#init();
+        }
+        adjust() {
+            this.#tf.setToIdentity();
+            this.#tf.setToCoordinateTransform(this.#curve);
+        }
         /**
          * Initialize ArcLine with points
          */
-        _init: function () {
-            var curve = this._curve;
-            var points = curve.points;
+        #init() {
+            const curve = this.#curve;
+            const points = curve.points;
             // This method performs the following operations:
             // Collect all valid points in an array [1]
             // Build arcs for all points with radius [2]
-            // Collect all line and arc parts in an array and compute length [3]
-
-            // reset
-            var pts = [];
-            var parts = this._parts;
+            // Collect all line and arc parts in an array and compute length [3] reset
+            const pts = [];
+            const parts = this.#parts;
             parts.splice(0, parts.length);
-            var adjuster = this._adjuster;
+            const adjuster = this.#adjuster;
             adjuster.reset(0.0, 0.0, curve.id);
-            var length = 0.0;
-            var closed = curve.closed === true;
-            if ($.isArray(points) && points.length > 0) {
-                var position = points[0];
+            let length = 0.0;
+            const closed = curve.closed === true;
+            if (Array.isArray(points) && points.length > 0) {
                 // collect [1]
-                for (var i = 0; i < points.length; i++) {
-                    var position = points[i];
-                    var x = position.x;
-                    var y = position.y;
+                for (const position of points) {
+                    const x = position.x;
+                    const y = position.y;
                     if (typeof x === 'number' && typeof y === 'number') {
-                        var p = {
-                            x: x,
-                            y: y,
-                            arc: false
-                        };
-                        var r = position.r;
+                        const p = { x, y, arc: false };
+                        const r = position.r;
                         if (typeof r === 'number' && r > 0.0) {
                             p.r = r;
                         }
-                        var pos = position.position;
+                        const pos = position.position;
                         if (typeof pos === 'number') {
                             p.position = pos;
                         }
-                        var id = position.id;
+                        const id = position.id;
                         if (id !== undefined) {
                             p.id = id;
                         }
@@ -1191,37 +1162,37 @@
                     }
                 }
                 // for all points check if we need an arc [2]
-                for (var i = 0; i < pts.length; i++) {
-                    var point = pts[i];
-                    var r = point.r;
+                for (let i = 0; i < pts.length; i++) {
+                    const point = pts[i];
+                    const r = point.r;
                     if (r !== undefined && (closed || (i > 0 && i < pts.length - 1))) {
-                        var prev = i > 0 ? pts[i - 1] : pts[pts.length - 1];
-                        var next = i < pts.length - 1 ? pts[i + 1] : pts[0];
+                        const prev = i > 0 ? pts[i - 1] : pts[pts.length - 1];
+                        const next = i < pts.length - 1 ? pts[i + 1] : pts[0];
                         point.arc = getArc(prev.x, prev.y, point.x, point.y, next.x, next.y, r);
                     }
                 }
                 // collect parts [3]
-                for (var i = 1; closed ? i <= pts.length : i < pts.length; i++) {
-                    var sp = pts[i - 1];
-                    var ep = i === pts.length ? pts[0] : pts[i];
-                    var sa = sp.arc;
-                    var ea = ep.arc;
-                    var x1 = sa !== false ? sa.endX : sp.x;
-                    var y1 = sa !== false ? sa.endY : sp.y;
-                    var x2 = ea !== false ? ea.startX : ep.x;
-                    var y2 = ea !== false ? ea.startY : ep.y;
-                    var dx = x2 - x1;
-                    var dy = y2 - y1;
-                    var len = Math.sqrt(dx * dx + dy * dy);
+                for (let i = 1; closed ? i <= pts.length : i < pts.length; i++) {
+                    const sp = pts[i - 1];
+                    const ep = i === pts.length ? pts[0] : pts[i];
+                    const sa = sp.arc;
+                    const ea = ep.arc;
+                    const x1 = sa !== false ? sa.endX : sp.x;
+                    const y1 = sa !== false ? sa.endY : sp.y;
+                    const x2 = ea !== false ? ea.startX : ep.x;
+                    const y2 = ea !== false ? ea.startY : ep.y;
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+                    const len = Math.sqrt(dx * dx + dy * dy);
                     if (len > EPSILON) {
                         // we only want lines with an existing length
                         parts.push({
                             arc: false,
-                            x1: x1,
-                            y1: y1,
+                            x1,
+                            y1,
                             s1: length,
-                            x2: x2,
-                            y2: y2,
+                            x2,
+                            y2,
                             s2: length + len,
                             length: len,
                             ex: dx / len,
@@ -1231,7 +1202,7 @@
                     }
                     length += len;
                     if (ea !== false) {
-                        var angle = ea.endPhi - ea.startPhi;
+                        const angle = ea.endPhi - ea.startPhi;
                         len = Math.abs(angle) * ea.radius;
                         if (len > EPSILON) {
                             // we only want arcs with an existing length
@@ -1249,40 +1220,39 @@
             adjuster.add(length, length, curve.id);
             this.length = length;
             this.closed = closed;
-        },
-        getLength: function () {
+        }
+        getLength() {
             return this.length;
-        },
-        _get_position_on_arc_line: function (i_position, i_left, i_point) {
-            var parts = this._parts;
-            for (var i = 0; i < parts.length; i++) {
-                var part = parts[i];
-                var s1 = part.s1;
-                if (i_position >= s1 && i_position <= part.s2) {
-                    var tf = this._tf;
-                    var mirrored = tf.mirrorX !== tf.mirrorY;
-                    var p = i_point || {};
-                    var arc = part.arc;
-                    var rel = (i_position - s1) / part.length;
+        }
+        #getPositionOnArcLine(position, left, point) {
+            const parts = this.#parts;
+            for (const part of parts.length) {
+                const s1 = part.s1;
+                if (position >= s1 && position <= part.s2) {
+                    const tf = this.#tf;
+                    const mirrored = tf.mirrorX !== tf.mirrorY;
+                    const p = point || {};
+                    const arc = part.arc;
+                    const rel = (position - s1) / part.length;
                     if (arc === false) {
-                        var x = part.x1 + (part.x2 - part.x1) * rel - part.ey * i_left;
-                        var y = part.y1 + (part.y2 - part.y1) * rel + part.ex * i_left;
+                        const x = part.x1 + (part.x2 - part.x1) * rel - part.ey * left;
+                        const y = part.y1 + (part.y2 - part.y1) * rel + part.ex * left;
                         tf.transform(x, y, p);
                         p.phi = (mirrored ? -part.phi : part.phi) + tf.rotation;
                     }
                     else {
-                        var phi = arc.startPhi + (arc.endPhi - arc.startPhi) * rel;
-                        var cos = Math.cos(phi);
-                        var sin = Math.sin(phi);
-                        var x = arc.centerX + (arc.left ? sin * arc.radius : -sin * arc.radius) - sin * i_left;
-                        var y = arc.centerY + (arc.left ? -cos * arc.radius : cos * arc.radius) + cos * i_left;
+                        const phi = arc.startPhi + (arc.endPhi - arc.startPhi) * rel;
+                        const cos = Math.cos(phi);
+                        const sin = Math.sin(phi);
+                        const x = arc.centerX + (arc.left ? sin * arc.radius : -sin * arc.radius) - sin * left;
+                        const y = arc.centerY + (arc.left ? -cos * arc.radius : cos * arc.radius) + cos * left;
                         tf.transform(x, y, p);
                         p.phi = (mirrored ? -phi : phi) + tf.rotation;
                     }
                     return p;
                 }
             }
-        },
+        }
         /**
          * Transforms position on curve to point containing x/y location, rotation
          * angle and unit vector on curve. The curve has a length given through it's
@@ -1290,57 +1260,54 @@
          * will be a point on the curve. If we are outside and we are closed we turn
          * around as often as required (something like "module-length"). If outside
          * and not closed the position will be extrapolated linear.
-         * 
+         *
          * @name transform
          * @method
          * @memberof ArcLine.prototype
          * @param {Number}
-         *          i_position The position on the ArcLine
+         *          position The position on the ArcLine
          * @param {Object}
          *          i_point Optional object for the result
          * @returns {Object} If i_point is defined i_point will be returned.
          *          Otherwise a new object will be returned
          */
-        _transform: function (i_position, i_left, i_point) {
-            var parts = this._parts;
-            if (typeof i_position !== 'number' || parts.length === 0) {
+        #transform(position, i_left, i_point) {
+            const parts = this.#parts;
+            if (typeof position !== 'number' || parts.length === 0) {
                 return false;
             }
             if (this.closed) {
-                var curve_start = parts[0].s1;
-                var curve_end = parts[parts.length - 1].s2;
-                var length = curve_end - curve_start;
+                const curve_start = parts[0].s1;
+                const curve_end = parts[parts.length - 1].s2;
                 // normalize position
-                var position = i_position;
-                var length = this.length;
-                while (position >= curve_end) {
-                    position -= length;
+                let pos = position;
+                while (pos >= curve_end) {
+                    pos -= this.length;
                 }
-                while (position < curve_start) {
-                    position += length;
+                while (pos < curve_start) {
+                    pos += this.length;
                 }
-                return this._get_position_on_arc_line(position, i_left, i_point);
+                return this.#getPositionOnArcLine(pos, i_left, i_point);
             }
             // check if before first segment
-            var tf = this._tf;
-            var mirrored = tf.mirrorX !== tf.mirrorY;
-            var part = parts[0];
-            var s1 = part.s1;
-            if (i_position < s1) {
-                var offset = i_position - s1;
-                var arc = part.arc;
-                var p = i_point || {};
+            const tf = this.#tf;
+            const mirrored = tf.mirrorX !== tf.mirrorY;
+            let part = parts[0];
+            const s1 = part.s1;
+            if (position < s1) {
+                const offset = position - s1;
+                const arc = part.arc;
+                const p = i_point || {};
                 if (arc === false) {
-                    var x = part.x1 + part.ex * offset - part.ey * i_left;
-                    var y = part.y1 + part.ey * offset + part.ex * i_left;
+                    const x = part.x1 + part.ex * offset - part.ey * i_left;
+                    const y = part.y1 + part.ey * offset + part.ex * i_left;
                     tf.transform(x, y, p);
                     p.phi = (mirrored ? -part.phi : part.phi) + tf.rotation;
-                }
-                else {
-                    var cos = Math.cos(arc.startPhi);
-                    var sin = Math.sin(arc.startPhi);
-                    var x = arc.centerX + (arc.left ? sin * arc.radius : -sin * arc.radius) + cos * offset - sin * i_left;
-                    var y = arc.centerY + (arc.left ? -cos * arc.radius : cos * arc.radius) + sin * offset + cos * i_left;
+                } else {
+                    const cos = Math.cos(arc.startPhi);
+                    const sin = Math.sin(arc.startPhi);
+                    const x = arc.centerX + (arc.left ? sin * arc.radius : -sin * arc.radius) + cos * offset - sin * i_left;
+                    const y = arc.centerY + (arc.left ? -cos * arc.radius : cos * arc.radius) + sin * offset + cos * i_left;
                     tf.transform(x, y, p);
                     p.phi = (mirrored ? -arc.startPhi : arc.startPhi) + tf.rotation;
                 }
@@ -1348,62 +1315,57 @@
             }
             // check if behind last segment
             part = parts[parts.length - 1];
-            var s2 = part.s2;
-            if (i_position >= s2) {
-                var offset = i_position - s2;
-                var arc = part.arc;
-                var p = i_point || {};
+            const s2 = part.s2;
+            if (position >= s2) {
+                const offset = position - s2;
+                const arc = part.arc;
+                const p = i_point || {};
                 if (arc === false) {
-                    var x = part.x2 + part.ex * offset - part.ey * i_left;
-                    var y = part.y2 + part.ey * offset + part.ex * i_left;
+                    const x = part.x2 + part.ex * offset - part.ey * i_left;
+                    const y = part.y2 + part.ey * offset + part.ex * i_left;
                     tf.transform(x, y, p);
                     p.phi = (mirrored ? -part.phi : part.phi) + tf.rotation;
-                }
-                else {
-                    var cos = Math.cos(arc.endPhi);
-                    var sin = Math.sin(arc.endPhi);
-                    var x = arc.centerX + (arc.left ? sin * arc.radius : -sin * arc.radius) + cos * offset - sin * i_left;
-                    var y = arc.centerY + (arc.left ? -cos * arc.radius : cos * arc.radius) + sin * offset + cos * i_left;
+                } else {
+                    const cos = Math.cos(arc.endPhi);
+                    const sin = Math.sin(arc.endPhi);
+                    const x = arc.centerX + (arc.left ? sin * arc.radius : -sin * arc.radius) + cos * offset - sin * i_left;
+                    const y = arc.centerY + (arc.left ? -cos * arc.radius : cos * arc.radius) + sin * offset + cos * i_left;
                     tf.transform(x, y, p);
                     p.phi = (mirrored ? -arc.endPhi : arc.endPhi) + tf.rotation;
                 }
                 return p;
             }
             // must be in between
-            return this._get_position_on_arc_line(i_position, i_left, i_point);
-        },
-        transform: function (i_position, i_left, i_point) {
-            return this._transform(this._adjuster.adjust(i_position), i_left, i_point);
-        },
-        _stroke_arc_line: function (i_context, i_transform, i_start, i_end, i_left) {
-            var parts = this._parts;
-            var start_pos = i_start;
-            var p = this._p;
-            for (var i = 0; i < parts.length; i++) {
-                var part = parts[i];
-                var s2 = part.s2;
+            return this.#getPositionOnArcLine(position, i_left, i_point);
+        }
+        transform(position, left, point) {
+            return this.#transform(this.#adjuster.adjust(position), left, point);
+        }
+        #strokeArcLine(context, transform, start, end, left) {
+            const parts = this.#parts;
+            let start_pos = start;
+            const p = this.#p;
+            for (const part of parts) {
+                const s2 = part.s2;
                 if (start_pos < s2) {
-                    var is_last = i_end <= s2;
-                    var end_pos = is_last ? i_end : s2;
+                    const is_last = end <= s2;
+                    const end_pos = is_last ? end : s2;
                     if (Math.abs(end_pos - start_pos) > MIN_STROKE_LENGTH) {
-                        this._get_position_on_arc_line(start_pos, i_left, p);
-                        var start_phi = p.phi;
-                        i_transform.transform(p.x, p.y, p);
-                        var x1 = p.x;
-                        var y1 = p.y;
-                        i_context.beginPath();
-                        this._get_position_on_arc_line(end_pos, i_left, p);
-                        var end_phi = p.phi;
-                        i_transform.transform(p.x, p.y, p);
-                        var arc = part.arc;
+                        this.#getPositionOnArcLine(start_pos, left, p);
+                        transform.transform(p.x, p.y, p);
+                        const x1 = p.x;
+                        const y1 = p.y;
+                        context.beginPath();
+                        this.#getPositionOnArcLine(end_pos, left, p);
+                        transform.transform(p.x, p.y, p);
+                        const arc = part.arc;
                         if (arc === false) {
-                            i_context.moveTo(x1, y1);
-                            i_context.lineTo(p.x, p.y);
+                            context.moveTo(x1, y1);
+                            context.lineTo(p.x, p.y);
+                        } else {
+                            prepareArc(context, transform, p, part, start_pos, end_pos, left, this.#tf);
                         }
-                        else {
-                            fn_prepare_arc(i_context, i_transform, p, part, start_pos, end_pos, i_left, this._tf);
-                        }
-                        i_context.stroke();
+                        context.stroke();
                     }
                     start_pos = end_pos;
                     if (is_last) {
@@ -1411,22 +1373,22 @@
                     }
                 }
             }
-        },
-        stroke: function (i_context, i_transform, i_start, i_end, i_left) {
+        }
+        stroke(context, transform, start, end, left) {
             // get the stroke start and end position in curve coordinates
-            var adjuster = this._adjuster;
-            var stroke_start = adjuster.adjust(Math.min(i_start, i_end));
-            var stroke_end = adjuster.adjust(Math.max(i_start, i_end));
+            const adjuster = this.#adjuster;
+            let stroke_start = adjuster.adjust(Math.min(start, end));
+            let stroke_end = adjuster.adjust(Math.max(start, end));
             // if too short
             if (stroke_end - stroke_start < MIN_STROKE_LENGTH) {
                 // nothing more to do
                 return;
             }
-            var p = this._p;
+            const p = this.#p;
             // get the curves start and end position
-            var parts = this._parts;
-            var curve_start = parts[0].s1;
-            var curve_end = parts[parts.length - 1].s2;
+            const parts = this.#parts;
+            const curve_start = parts[0].s1;
+            const curve_end = parts[parts.length - 1].s2;
             // handle closed curve
             if (this.closed === true) {
                 // //////////////////////////////////////////////////////////////////////
@@ -1435,7 +1397,7 @@
                 // - stroke until end
                 // - if available handle overlapping rest
                 // //////////////////////////////////////////////////////////////////////
-                var length = curve_end - curve_start;
+                const length = curve_end - curve_start;
                 while (stroke_start >= curve_end) {
                     stroke_start -= length;
                     stroke_end -= length;
@@ -1444,35 +1406,34 @@
                     stroke_start += length;
                     stroke_end += length;
                 }
-                var stroke_end_is_behind_curve_end = stroke_end > curve_end;
-                var se = stroke_end_is_behind_curve_end ? curve_end : stroke_end;
+                const stroke_end_is_behind_curve_end = stroke_end > curve_end;
+                let se = stroke_end_is_behind_curve_end ? curve_end : stroke_end;
                 if (se - stroke_start > MIN_STROKE_LENGTH) {
-                    this._stroke_arc_line(i_context, i_transform, stroke_start, se, i_left);
+                    this.#strokeArcLine(context, transform, stroke_start, se, left);
                 }
                 if (stroke_end_is_behind_curve_end) {
                     se = stroke_end - length;
                     if (se - curve_start > MIN_STROKE_LENGTH) {
-                        this._stroke_arc_line(i_context, i_transform, curve_start, se, i_left);
+                        this.#strokeArcLine(context, transform, curve_start, se, left);
                     }
                 }
                 return;
             }
             // reaching this point our curve is not closed - so we extrapolate points
             // outside the range our curve
-
             // first handle stroke parts before actual curve
             if (stroke_start < curve_start) {
-                var stroke_end_is_before_curve_start = stroke_end <= curve_start;
-                var se = stroke_end_is_before_curve_start ? stroke_end : curve_start;
+                const stroke_end_is_before_curve_start = stroke_end <= curve_start;
+                const se = stroke_end_is_before_curve_start ? stroke_end : curve_start;
                 if (se - stroke_start > MIN_STROKE_LENGTH) {
-                    i_context.beginPath();
-                    this._transform(stroke_start, i_left, p);
-                    i_transform.transform(p.x, p.y, p);
-                    i_context.moveTo(p.x, p.y);
-                    this._transform(se, i_left, p);
-                    i_transform.transform(p.x, p.y, p);
-                    i_context.lineTo(p.x, p.y);
-                    i_context.stroke();
+                    context.beginPath();
+                    this.#transform(stroke_start, left, p);
+                    transform.transform(p.x, p.y, p);
+                    context.moveTo(p.x, p.y);
+                    this.#transform(se, left, p);
+                    transform.transform(p.x, p.y, p);
+                    context.lineTo(p.x, p.y);
+                    context.stroke();
                 }
                 if (stroke_end_is_before_curve_start) {
                     // nothing more to do
@@ -1482,10 +1443,10 @@
             }
             // next handle parts on actual curve
             if (stroke_start < curve_end) {
-                var stroke_end_is_before_curve_end = stroke_end <= curve_end;
-                var se = stroke_end_is_before_curve_end ? stroke_end : curve_end;
+                const stroke_end_is_before_curve_end = stroke_end <= curve_end;
+                const se = stroke_end_is_before_curve_end ? stroke_end : curve_end;
                 if (se - stroke_start > MIN_STROKE_LENGTH) {
-                    this._stroke_arc_line(i_context, i_transform, stroke_start, se, i_left);
+                    this.#strokeArcLine(context, transform, stroke_start, se, left);
                 }
                 if (stroke_end_is_before_curve_end) {
                     // nothing more to do
@@ -1495,26 +1456,24 @@
             }
             // last handle stroke parts behind actual curve
             if (stroke_end - stroke_start > MIN_STROKE_LENGTH) {
-                i_context.beginPath();
-                this._transform(stroke_start, i_left, p);
-                i_transform.transform(p.x, p.y, p);
-                i_context.moveTo(p.x, p.y);
-                this._transform(stroke_end, i_left, p);
-                i_transform.transform(p.x, p.y, p);
-                i_context.lineTo(p.x, p.y);
-                i_context.stroke();
+                context.beginPath();
+                this.#transform(stroke_start, left, p);
+                transform.transform(p.x, p.y, p);
+                context.moveTo(p.x, p.y);
+                this.#transform(stroke_end, left, p);
+                transform.transform(p.x, p.y, p);
+                context.lineTo(p.x, p.y);
+                context.stroke();
             }
         }
-    };
+    }
 
-    function fn_get_from_array(i_array, i_selector) {
-        if (typeof i_selector === 'number') {
-            return i_array[i_selector];
-        }
-        else {
-            for (var i = 0; i < i_array.length; i++) {
-                var obj = i_array[i];
-                if (obj.child === i_selector) {
+    function getFromArray(array, selector) {
+        if (typeof selector === 'number') {
+            return array[selector];
+        } else {
+            for (const obj of array) {
+                if (obj.child === selector) {
                     return obj;
                 }
             }
@@ -1536,117 +1495,110 @@
      * has to be 100m long an item at position 50m on the section will be at 40m
      * on the curve)
      */
-    var CurveSection = function (i_curve, i_id, i_curveStart, i_curveEnd, i_elements) {
-        var cu_start = typeof i_curveStart === 'number' ? i_curveStart : 0.0;
-        var cu_end = typeof i_curveEnd === 'number' ? i_curveEnd : i_curve.getLength();
-        // compute the length of all elements
-        var sec_len = 0.0;
-        if ($.isArray(i_elements)) {
-            for (var i = 0; i < i_elements.length; i++) {
-                var child = i_elements[i];
-                var sec_zone_length = child.length;
-                if (typeof sec_zone_length === 'number' && sec_zone_length > 0.0) {
-                    sec_len += sec_zone_length;
+    class CurveSection {
+        #length;
+        #elementsWithLength;
+        #elementsWithoutLength;
+        #cu_offset;
+        #sec_to_cu_factor;
+        #curve;
+        constructor(curve, id, curveStart, curveEnd, elements) {
+            const cu_start = typeof curveStart === 'number' ? curveStart : 0.0;
+            const cu_end = typeof curveEnd === 'number' ? curveEnd : curve.getLength();
+            // compute the length of all elements
+            let sec_len = 0.0;
+            if (Array.isArray(elements)) {
+                for (const child of elements) {
+                    const sec_zone_length = child.length;
+                    if (typeof sec_zone_length === 'number' && sec_zone_length > 0.0) {
+                        sec_len += sec_zone_length;
+                    }
                 }
             }
-        }
-        if (sec_len === 0.0) {
-            console.error('Exception! CurveSection �' + i_id + '� has no element with valid length!');
-        }
-        var elementsWithLength = [];
-        var elementsWithoutLength = [];
-        var sec_to_cu_factor = 1.0;
-        // if valid arc line and valid elements
-        var cu_len = cu_end - cu_start;
-        if (sec_len > 0.0 && Math.abs(cu_len) > MIN_STROKE_LENGTH) {
-            sec_to_cu_factor = cu_len / sec_len;
-            var cu_offset = cu_start;
-            var sec_offset = 0.0;
-            for (var i = 0; i < i_elements.length; i++) {
-                var child = i_elements[i];
-                var sec_zone_length = child.length;
-                if (typeof sec_zone_length === 'number' && sec_zone_length > 0.0) {
-                    // update the positions
-                    var cu_zone_start = cu_offset;
-                    var sec_zone_start = sec_offset;
-                    cu_offset += sec_zone_length * sec_to_cu_factor;
-                    sec_offset += sec_zone_length;
-                    var cu_zone_end = cu_offset;
-                    var sec_zone_end = sec_offset;
-                    elementsWithLength.push({
-                        child: child,
-                        start: sec_zone_start,
-                        end: sec_zone_end
-                    });
-                }
-                else {
-                    // If the element has no length it is located somewhere on the curve.
-                    // First of all it may be located by an explicit position parameter.
-                    // [1]
-                    // If no position has been defined we just locate where we
-                    // are right now. [2]
-                    // In the end our position may be moved by an explicit offset
-                    // parameter. [3]
-                    var object = child;
-                    var obj = object.object;
-                    while (obj !== null && typeof obj === 'object') {
-                        object = obj;
-                        obj = object.object;
+            if (sec_len === 0.0) {
+                console.error(`CurveSection '${id}' has no element with valid length!`);
+            }
+            const elementsWithLength = [];
+            const elementsWithoutLength = [];
+            let sec_to_cu_factor = 1.0;
+            // if valid arc line and valid elements
+            const cu_len = cu_end - cu_start;
+            if (sec_len > 0.0 && Math.abs(cu_len) > MIN_STROKE_LENGTH) {
+                sec_to_cu_factor = cu_len / sec_len;
+                let cu_offset = cu_start;
+                let sec_offset = 0.0;
+                for (const child of elements) {
+                    const sec_zone_length = child.length;
+                    if (typeof sec_zone_length === 'number' && sec_zone_length > 0.0) {
+                        // update the positions
+                        const sec_zone_start = sec_offset;
+                        cu_offset += sec_zone_length * sec_to_cu_factor;
+                        sec_offset += sec_zone_length;
+                        const sec_zone_end = sec_offset;
+                        elementsWithLength.push({ child, start: sec_zone_start, end: sec_zone_end });
+                    } else {
+                        // If the element has no length it is located somewhere on the curve.
+                        // First of all it may be located by an explicit position parameter.
+                        // [1]
+                        // If no position has been defined we just locate where we
+                        // are right now. [2]
+                        // In the end our position may be moved by an explicit offset
+                        // parameter. [3]
+                        let object = child;
+                        let obj = object.object;
+                        while (obj !== null && typeof obj === 'object') {
+                            object = obj;
+                            obj = object.object;
+                        }
+                        let sec_pos = undefined;
+                        if (typeof child.position === 'number') {
+                            // explicit position parameter [1]
+                            sec_pos = child.position;
+                        }
+                        if (sec_pos === undefined) {
+                            // locate where we are right now [2]
+                            sec_pos = sec_offset;
+                        }
+                        elementsWithoutLength.push({ child, position: sec_pos });
                     }
-                    var sec_pos = undefined;
-                    if (typeof child.position === 'number') {
-                        // explicit position parameter [1]
-                        sec_pos = child.position;
-                    }
-                    if (sec_pos === undefined) {
-                        // locate where we are right now [2]
-                        sec_pos = sec_offset;
-                    }
-                    elementsWithoutLength.push({
-                        child: child,
-                        position: sec_pos
-                    });
                 }
             }
+            this.#length = sec_len;
+            this.#elementsWithLength = elementsWithLength;
+            this.#elementsWithoutLength = elementsWithoutLength;
+            //this.#inc_pos = cu_len >= 0;
+            this.#cu_offset = cu_start;
+            this.#sec_to_cu_factor = sec_to_cu_factor;
+            this.#curve = curve;
         }
-        this.length = sec_len;
-        this._elementsWithLength = elementsWithLength;
-        this._elementsWithoutLength = elementsWithoutLength;
-        this._inc_pos = cu_len >= 0;
-        this._cu_offset = cu_start;
-        this._sec_to_cu_factor = sec_to_cu_factor;
-        this._curve = i_curve;
-    };
-
-    CurveSection.prototype = {
-        getLength: function () {
-            return this.length;
-        },
-        getZoneCount: function () {
-            return this._elementsWithLength.length;
-        },
-        getZoneObject: function (i_zone) {
-            var zone = this._elementsWithLength[i_zone];
-            return zone ? zone.child : undefined;
-        },
-        getZoneStart: function (i_zone) {
-            var zone = fn_get_from_array(this._elementsWithLength, i_zone);
-            return zone ? zone.start : undefined;
-        },
-        getZoneEnd: function (i_zone) {
-            var zone = fn_get_from_array(this._elementsWithLength, i_zone);
-            return zone ? zone.end : undefined;
-        },
-        getItemCount: function () {
-            return this._elementsWithoutLength.length;
-        },
-        getItem: function (i_item) {
-            return fn_get_from_array(this._elementsWithoutLength, i_item);
-        },
-        getItemPosition: function (i_item) {
-            var item = fn_get_from_array(this._elementsWithoutLength, i_item);
-            return item ? item.position : undefined;
-        },
+        getLength() {
+            return this.#length;
+        }
+        getZoneCount() {
+            return this.#elementsWithLength.length;
+        }
+        getZoneObject(zone) {
+            const z = this.#elementsWithLength[zone];
+            return z ? z.child : undefined;
+        }
+        getZoneStart(zone) {
+            const z = getFromArray(this.#elementsWithLength, zone);
+            return z ? z.start : undefined;
+        }
+        getZoneEnd(zone) {
+            const z = getFromArray(this.#elementsWithLength, zone);
+            return z ? z.end : undefined;
+        }
+        getItemCount() {
+            return this.#elementsWithoutLength.length;
+        }
+        getItem(item) {
+            return getFromArray(this.#elementsWithoutLength, item);
+        }
+        getItemPosition(item) {
+            const it = getFromArray(this.#elementsWithoutLength, item);
+            return it ? it.position : undefined;
+        }
         /**
          * Transforms position on curve to point containing x/y location, rotation
          * angle and unit vector on curve. The curve has a length given through it's
@@ -1655,7 +1607,7 @@
          * we are outside and we are closed we turn around as often as required
          * (something like "module-length"). If outside and not closed the position
          * will be extrapolated linear.
-         * 
+         *
          * @name transform
          * @method
          * @memberof CurveSection.prototype
@@ -1666,415 +1618,406 @@
          *          moves on the curve while an object with left or right will move
          *          beside the curve (bad english).
          * @param {Object}
-         *          i_point Optional object for the result
+         *          point Optional object for the result
          * @returns {Object} If i_point is defined i_point will be returned.
          *          Otherwise a new object will be returned
          */
-        transform: function (i_section_position, i_offset, i_point) {
-            var position = i_section_position;
-            if (typeof i_offset === 'number') {
-                position += i_offset;
+        transform(sectionPosition, offset, point) {
+            let position = sectionPosition;
+            if (typeof offset === 'number') {
+                position += offset;
+            } else if (offset !== null && typeof offset === 'object' && typeof offset.offset === 'number') {
+                position += offset.offset;
             }
-            else if (i_offset !== null && typeof i_offset === 'object' && typeof i_offset.offset === 'number') {
-                position += i_offset.offset;
-            }
-            var left = 0.0;
-            if (i_offset !== null && typeof i_offset === 'object') {
-                var l = i_offset.left;
+            let left = 0.0;
+            if (offset !== null && typeof offset === 'object') {
+                const l = offset.left;
                 if (typeof l === 'number') {
                     left = l;
-                }
-                else {
-                    var r = i_offset.right;
+                } else {
+                    const r = offset.right;
                     if (typeof r === 'number') {
                         left = -r;
                     }
                 }
             }
-            return this._curve.transform(this._cu_offset + position * this._sec_to_cu_factor, left, i_point);
-        },
+            return this.#curve.transform(this.#cu_offset + position * this.#sec_to_cu_factor, left, point);
+        }
         /**
          * This transforms from curve section coordinates (our real metric system)
          * to curve coordinates (pure mathematical position on curve geometry).
          */
-        fromSectionToCurve: function (i_position) {
-            return this._cu_offset + i_position * this._sec_to_cu_factor;
+        fromSectionToCurve(position) {
+            return this.#cu_offset + position * this.#sec_to_cu_factor;
         }
-    };
-
-    var THIRD_PART = 1.0 / 3.0;
-    var GOLDEN_SECTION_INTERVAL_PART = (3.0 - Math.sqrt(5.0)) * 0.5;
-
-    // the default iteration parameters
-    var DEFAULT_MAX_ITERATIONS = 1000;
-    var DEFAULT_DISTANCE_TOLERANCE = 1.0e-6;
-    var DEFAULT_LENGTH_TOLERANCE = 1.0e-3;
-    var POINT_SITUATION_VALID = 0;
-    var POINT_SITUATION_INVALID_DOUBLE_POINT = 1;
-    var POINT_SITUATION_INVALID_DOUBLE_START = 2;
-    var POINT_SITUATION_INVALID_DOUBLE_END = 3;
-    var POINT_SITUATION_INVALID_TRIPLE_POINT = 4;
-
-    function is_zero_infinit_or_invalid(i_value) {
-        return i_value === 0.0 || isNaN(i_value) || isFinite(i_value) !== true;
     }
 
-    function compare_with_tolerance(i_value1, i_value2, i_tolerance) {
-        var t = i_tolerance > 0.0 ? i_tolerance : 0.0;
-        if (i_value1 > i_value2 + t) {
+    const THIRD_PART = 1.0 / 3.0;
+    const GOLDEN_SECTION_INTERVAL_PART = (3.0 - Math.sqrt(5.0)) * 0.5;
+
+    // the default iteration parameters
+    const DEFAULT_MAX_ITERATIONS = 1000;
+    const DEFAULT_DISTANCE_TOLERANCE = 1.0e-6;
+    const DEFAULT_LENGTH_TOLERANCE = 1.0e-3;
+    const POINT_SITUATION_VALID = 0;
+    const POINT_SITUATION_INVALID_DOUBLE_POINT = 1;
+    const POINT_SITUATION_INVALID_DOUBLE_START = 2;
+    const POINT_SITUATION_INVALID_DOUBLE_END = 3;
+    const POINT_SITUATION_INVALID_TRIPLE_POINT = 4;
+
+    function isZeroInfinitOrInvalid(value) {
+        return value === 0.0 || isNaN(value) || isFinite(value) !== true;
+    }
+
+    function compareWithTolerance(value1, value2, tolerance) {
+        const t = tolerance > 0.0 ? tolerance : 0.0;
+        if (value1 > value2 + t) {
             return 1;
-        }
-        else if (i_value1 < i_value2 - t) {
+        } else if (value1 < value2 - t) {
             return -1;
-        }
-        else {
+        } else {
             return 0;
         }
     }
 
-    function init_tupel(i_tuple, i_x1, i_y1, i_x2, i_y2, i_tolerance) {
-        var res = compare_with_tolerance(i_x1, i_x2, i_tolerance);
+    function initTupel(tuple, x1, y1, x2, y2, tolerance) {
+        const res = compareWithTolerance(x1, x2, tolerance);
         if (res > 0) {
-            i_tuple.x1 = i_x2;
-            i_tuple.y1 = i_y2;
-            i_tuple.x2 = i_x1;
-            i_tuple.y2 = i_y1;
-            i_tuple.state = POINT_SITUATION_VALID;
-        }
-        else if (res === 0) {
-            i_tuple.x1 = i_x1;
-            i_tuple.y1 = i_y1;
-            i_tuple.x2 = i_x1;
-            i_tuple.y2 = i_y1;
-            i_tuple.state = POINT_SITUATION_INVALID_DOUBLE_POINT;
-        }
-        else {
-            i_tuple.x1 = i_x1;
-            i_tuple.y1 = i_y1;
-            i_tuple.x2 = i_x2;
-            i_tuple.y2 = i_y2;
-            i_tuple.state = POINT_SITUATION_VALID;
+            tuple.x1 = x2;
+            tuple.y1 = y2;
+            tuple.x2 = x1;
+            tuple.y2 = y1;
+            tuple.state = POINT_SITUATION_VALID;
+        } else if (res === 0) {
+            tuple.x1 = x1;
+            tuple.y1 = y1;
+            tuple.x2 = x1;
+            tuple.y2 = y1;
+            tuple.state = POINT_SITUATION_INVALID_DOUBLE_POINT;
+        } else {
+            tuple.x1 = x1;
+            tuple.y1 = y1;
+            tuple.x2 = x2;
+            tuple.y2 = y2;
+            tuple.state = POINT_SITUATION_VALID;
         }
     }
 
-    function init_triplet(i_triplet, i_x1, i_y1, i_x2, i_y2, i_x3, i_y3, i_tolerance) {
-        var res = compare_with_tolerance(i_x1, i_x2, i_tolerance);
+    function initTriplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
+        let res = compareWithTolerance(x1, x2, tolerance);
         if (res > 0) {
             // #1-5
-            res = compare_with_tolerance(i_x2, i_x3, i_tolerance);
+            res = compareWithTolerance(x2, x3, tolerance);
             if (res > 0) {
                 // #1
-                i_triplet.x1 = i_x3;
-                i_triplet.y1 = i_y3;
-                i_triplet.x2 = i_x2;
-                i_triplet.y2 = i_y2;
-                i_triplet.x3 = i_x1;
-                i_triplet.y3 = i_y1;
-                i_triplet.state = POINT_SITUATION_VALID;
-            }
-            else if (res === 0) {
+                triplet.x1 = x3;
+                triplet.y1 = y3;
+                triplet.x2 = x2;
+                triplet.y2 = y2;
+                triplet.x3 = x1;
+                triplet.y3 = y1;
+                triplet.state = POINT_SITUATION_VALID;
+            } else if (res === 0) {
                 // #2
-                i_triplet.x1 = i_x2;
-                i_triplet.y1 = i_y2;
-                i_triplet.x2 = i_x2;
-                i_triplet.y2 = i_y2;
-                i_triplet.x3 = i_x1;
-                i_triplet.y3 = i_y1;
-                i_triplet.state = POINT_SITUATION_INVALID_DOUBLE_START;
-            }
-            else {
+                triplet.x1 = x2;
+                triplet.y1 = y2;
+                triplet.x2 = x2;
+                triplet.y2 = y2;
+                triplet.x3 = x1;
+                triplet.y3 = y1;
+                triplet.state = POINT_SITUATION_INVALID_DOUBLE_START;
+            } else {
                 // #3-5
-                res = compare_with_tolerance(i_x1, i_x3, i_tolerance);
+                res = compareWithTolerance(x1, x3, tolerance);
                 if (res > 0) {
                     // #3
-                    i_triplet.x1 = i_x2;
-                    i_triplet.y1 = i_y2;
-                    i_triplet.x2 = i_x3;
-                    i_triplet.y2 = i_y3;
-                    i_triplet.x3 = i_x1;
-                    i_triplet.y3 = i_y1;
-                    i_triplet.state = POINT_SITUATION_VALID;
-                }
-                else if (res === 0) {
+                    triplet.x1 = x2;
+                    triplet.y1 = y2;
+                    triplet.x2 = x3;
+                    triplet.y2 = y3;
+                    triplet.x3 = x1;
+                    triplet.y3 = y1;
+                    triplet.state = POINT_SITUATION_VALID;
+                } else if (res === 0) {
                     // #4
-                    i_triplet.x1 = i_x2;
-                    i_triplet.y1 = i_y2;
-                    i_triplet.x2 = i_x1;
-                    i_triplet.y2 = i_y1;
-                    i_triplet.x3 = i_x1;
-                    i_triplet.y3 = i_y1;
-                    i_triplet.state = POINT_SITUATION_INVALID_DOUBLE_END;
-                }
-                else {
+                    triplet.x1 = x2;
+                    triplet.y1 = y2;
+                    triplet.x2 = x1;
+                    triplet.y2 = y1;
+                    triplet.x3 = x1;
+                    triplet.y3 = y1;
+                    triplet.state = POINT_SITUATION_INVALID_DOUBLE_END;
+                } else {
                     // #5
-                    i_triplet.x1 = i_x2;
-                    i_triplet.y1 = i_y2;
-                    i_triplet.x2 = i_x1;
-                    i_triplet.y2 = i_y1;
-                    i_triplet.x3 = i_x3;
-                    i_triplet.y3 = i_y3;
-                    i_triplet.state = POINT_SITUATION_VALID;
+                    triplet.x1 = x2;
+                    triplet.y1 = y2;
+                    triplet.x2 = x1;
+                    triplet.y2 = y1;
+                    triplet.x3 = x3;
+                    triplet.y3 = y3;
+                    triplet.state = POINT_SITUATION_VALID;
                 }
             }
-        }
-        else if (res === 0) {
+        } else if (res === 0) {
             // #6-8
-            res = compare_with_tolerance(i_x2, i_x3, i_tolerance);
+            res = compareWithTolerance(x2, x3, tolerance);
             if (res > 0) {
                 // #6
-                i_triplet.x1 = i_x3;
-                i_triplet.y1 = i_y3;
-                i_triplet.x2 = i_x1;
-                i_triplet.y2 = i_y1;
-                i_triplet.x3 = i_x1;
-                i_triplet.y3 = i_y1;
-                i_triplet.state = POINT_SITUATION_INVALID_DOUBLE_END;
-            }
-            else if (res === 0) {
+                triplet.x1 = x3;
+                triplet.y1 = y3;
+                triplet.x2 = x1;
+                triplet.y2 = y1;
+                triplet.x3 = x1;
+                triplet.y3 = y1;
+                triplet.state = POINT_SITUATION_INVALID_DOUBLE_END;
+            } else if (res === 0) {
                 // #7
-                i_triplet.x1 = i_x1;
-                i_triplet.y1 = i_y1;
-                i_triplet.x2 = i_x1;
-                i_triplet.y2 = i_y1;
-                i_triplet.x3 = i_x1;
-                i_triplet.y3 = i_y1;
-                i_triplet.state = POINT_SITUATION_INVALID_TRIPLE_POINT;
-            }
-            else {
+                triplet.x1 = x1;
+                triplet.y1 = y1;
+                triplet.x2 = x1;
+                triplet.y2 = y1;
+                triplet.x3 = x1;
+                triplet.y3 = y1;
+                triplet.state = POINT_SITUATION_INVALID_TRIPLE_POINT;
+            } else {
                 // #8
-                i_triplet.x1 = i_x1;
-                i_triplet.y1 = i_y1;
-                i_triplet.x2 = i_x1;
-                i_triplet.y2 = i_y1;
-                i_triplet.x3 = i_x3;
-                i_triplet.y3 = i_y3;
-                i_triplet.state = POINT_SITUATION_INVALID_DOUBLE_START;
+                triplet.x1 = x1;
+                triplet.y1 = y1;
+                triplet.x2 = x1;
+                triplet.y2 = y1;
+                triplet.x3 = x3;
+                triplet.y3 = y3;
+                triplet.state = POINT_SITUATION_INVALID_DOUBLE_START;
             }
-        }
-        else {
+        } else {
             // #9-13
-            res = compare_with_tolerance(i_x2, i_x3, i_tolerance);
+            res = compareWithTolerance(x2, x3, tolerance);
             if (res > 0) {
                 // #9-11
-                res = compare_with_tolerance(i_x1, i_x3, i_tolerance);
+                res = compareWithTolerance(x1, x3, tolerance);
                 if (res > 0) {
                     // #9
-                    i_triplet.x1 = i_x3;
-                    i_triplet.y1 = i_y3;
-                    i_triplet.x2 = i_x1;
-                    i_triplet.y2 = i_y1;
-                    i_triplet.x3 = i_x2;
-                    i_triplet.y3 = i_y2;
-                    i_triplet.state = POINT_SITUATION_VALID;
-                }
-                else if (res === 0) {
+                    triplet.x1 = x3;
+                    triplet.y1 = y3;
+                    triplet.x2 = x1;
+                    triplet.y2 = y1;
+                    triplet.x3 = x2;
+                    triplet.y3 = y2;
+                    triplet.state = POINT_SITUATION_VALID;
+                } else if (res === 0) {
                     // #10
-                    i_triplet.x1 = i_x1;
-                    i_triplet.y1 = i_y1;
-                    i_triplet.x2 = i_x1;
-                    i_triplet.y2 = i_y1;
-                    i_triplet.x3 = i_x2;
-                    i_triplet.y3 = i_y2;
-                    i_triplet.state = POINT_SITUATION_INVALID_DOUBLE_START;
-                }
-                else {
+                    triplet.x1 = x1;
+                    triplet.y1 = y1;
+                    triplet.x2 = x1;
+                    triplet.y2 = y1;
+                    triplet.x3 = x2;
+                    triplet.y3 = y2;
+                    triplet.state = POINT_SITUATION_INVALID_DOUBLE_START;
+                } else {
                     // #11
-                    i_triplet.x1 = i_x1;
-                    i_triplet.y1 = i_y1;
-                    i_triplet.x2 = i_x3;
-                    i_triplet.y2 = i_y3;
-                    i_triplet.x3 = i_x2;
-                    i_triplet.y3 = i_y2;
-                    i_triplet.state = POINT_SITUATION_VALID;
+                    triplet.x1 = x1;
+                    triplet.y1 = y1;
+                    triplet.x2 = x3;
+                    triplet.y2 = y3;
+                    triplet.x3 = x2;
+                    triplet.y3 = y2;
+                    triplet.state = POINT_SITUATION_VALID;
                 }
-            }
-            else if (res === 0) {
+            } else if (res === 0) {
                 // #12
-                i_triplet.x1 = i_x1;
-                i_triplet.y1 = i_y1;
-                i_triplet.x2 = i_x2;
-                i_triplet.y2 = i_y2;
-                i_triplet.x3 = i_x2;
-                i_triplet.y3 = i_y2;
-                i_triplet.state = POINT_SITUATION_INVALID_DOUBLE_END;
-            }
-            else {
+                triplet.x1 = x1;
+                triplet.y1 = y1;
+                triplet.x2 = x2;
+                triplet.y2 = y2;
+                triplet.x3 = x2;
+                triplet.y3 = y2;
+                triplet.state = POINT_SITUATION_INVALID_DOUBLE_END;
+            } else {
                 // #13
-                i_triplet.x1 = i_x1;
-                i_triplet.y1 = i_y1;
-                i_triplet.x2 = i_x2;
-                i_triplet.y2 = i_y2;
-                i_triplet.x3 = i_x3;
-                i_triplet.y3 = i_y3;
-                i_triplet.state = POINT_SITUATION_VALID;
+                triplet.x1 = x1;
+                triplet.y1 = y1;
+                triplet.x2 = x2;
+                triplet.y2 = y2;
+                triplet.x3 = x3;
+                triplet.y3 = y3;
+                triplet.state = POINT_SITUATION_VALID;
             }
         }
     }
 
-    function init_parabola_for_three_points(i_parabola, i_x1, i_y1, i_x2, i_y2, i_x3, i_y3) {
+    function initParabolaForThreePoints(parabola, x1, y1, x2, y2, x3, y3) {
         // compute some help values
-        var dx12 = i_x1 - i_x2;
-        var dx23 = i_x2 - i_x3;
-        var dx31 = i_x3 - i_x1;
-        var dy12 = i_y1 - i_y2;
-        var dy23 = i_y2 - i_y3;
-        var dy31 = i_y3 - i_y1;
-        var x1Sq = i_x1 * i_x1;
-        var x2Sq = i_x2 * i_x2;
-        var x3Sq = i_x3 * i_x3;
-        var r = (dx12 * dx23 * dx31);
-
+        const dx12 = x1 - x2;
+        const dx23 = x2 - x3;
+        const dx31 = x3 - x1;
+        const dy12 = y1 - y2;
+        const dy23 = y2 - y3;
+        const dy31 = y3 - y1;
+        const x1Sq = x1 * x1;
+        const x2Sq = x2 * x2;
+        const x3Sq = x3 * x3;
+        const r = (dx12 * dx23 * dx31);
         // compute the parameters for the equation
-        i_parabola.a = (i_x1 * dy23 + i_x2 * dy31 + i_x3 * dy12) / r;
-        i_parabola.b = -(x1Sq * dy23 + x2Sq * dy31 + x3Sq * dy12) / r;
-        i_parabola.c = -(x1Sq * (i_x2 * i_y3 - i_x3 * i_y2) + i_x1 * (x3Sq * i_y2 - x2Sq * i_y3) + i_x2 * i_x3 * i_y1 * dx23) / r;
+        parabola.a = (x1 * dy23 + x2 * dy31 + x3 * dy12) / r;
+        parabola.b = -(x1Sq * dy23 + x2Sq * dy31 + x3Sq * dy12) / r;
+        parabola.c = -(x1Sq * (x2 * y3 - x3 * y2) + x1 * (x3Sq * y2 - x2Sq * y3) + x2 * x3 * y1 * dx23) / r;
     }
 
-    function init_parabola_for_two_points(i_parabola, i_x1, i_y1, i_x2, i_y2) {
-        var r = i_x1 - i_x2;
-        i_parabola.a = 0.0;
-        i_parabola.b = (i_y1 - i_y2) / r;
-        i_parabola.c = (i_x1 * i_y2 - i_x2 * i_y1) / r;
+    function initParabolaForTwoPoints(parabola, x1, y1, x2, y2) {
+        const r = x1 - x2;
+        parabola.a = 0.0;
+        parabola.b = (y1 - y2) / r;
+        parabola.c = (x1 * y2 - x2 * y1) / r;
     }
 
-    function get_parabola_value(i_parabola, i_x) {
-        return i_x * (i_parabola.a * i_x + i_parabola.b) + i_parabola.c;
+    function getParabolaValue(parabola, x) {
+        return x * (parabola.a * x + parabola.b) + parabola.c;
     }
 
-    var ChainFunction = function (i_maxIterations, i_distanceTolerance, i_lengthTolerance) {
-        // internal parameters
-        this._maxIterations = typeof i_maxIterations === 'number' && i_maxIterations > 0 ? i_maxIterations : DEFAULT_MAX_ITERATIONS;
-        this._distanceTolerance = typeof i_distanceTolerance === 'number' && i_distanceTolerance > 0 ? i_distanceTolerance : DEFAULT_DISTANCE_TOLERANCE;
-        this._lengthTolerance = typeof i_lengthTolerance === 'number' && i_lengthTolerance > 0 ? i_lengthTolerance : DEFAULT_LENGTH_TOLERANCE;
-        this._parabola = {
-            a: 0.0,
-            b: 0.0,
-            c: 0.0
-        };
-        this._tuple = {};
-        this._triplet = {};
-        this._normA = 1.0;
-        this._normB = 0.0;
-        this._normC = 0.0;
-        this._valid = false;
-        this._cosinusHyperbolicus = false;
-        this._transScale = 1.0;
-        this._transScaleInv = 1.0;
-        this._transXOffset = 0.0;
-        this._transYOffset = 0.0;
-    };
-
-    ChainFunction.prototype = {
-        reset: function () {
-            var parabola = this._parabola;
+    class ChainFunction {
+        #maxIterations;
+        #distanceTolerance;
+        #lengthTolerance;
+        #parabola;
+        #tuple;
+        #triplet;
+        #normA;
+        #normB;
+        #normC;
+        #valid;
+        #cosinusHyperbolicus;
+        #transScale;
+        #transScaleInv;
+        #transXOffset;
+        #transYOffset;
+        constructor(maxIterations, distanceTolerance, lengthTolerance) {
+            // internal parameters
+            this.#maxIterations = typeof maxIterations === 'number' && maxIterations > 0 ? maxIterations : DEFAULT_MAX_ITERATIONS;
+            this.#distanceTolerance = typeof distanceTolerance === 'number' && distanceTolerance > 0 ? distanceTolerance : DEFAULT_DISTANCE_TOLERANCE;
+            this.#lengthTolerance = typeof lengthTolerance === 'number' && lengthTolerance > 0 ? lengthTolerance : DEFAULT_LENGTH_TOLERANCE;
+            this.#parabola = { a: 0.0, b: 0.0, c: 0.0 };
+            this.#tuple = {};
+            this.#triplet = {};
+            this.#normA = 1.0;
+            this.#normB = 0.0;
+            this.#normC = 0.0;
+            this.#valid = false;
+            this.#cosinusHyperbolicus = false;
+            this.#transScale = 1.0;
+            this.#transScaleInv = 1.0;
+            this.#transXOffset = 0.0;
+            this.#transYOffset = 0.0;
+        }
+        reset() {
+            const parabola = this.#parabola;
             parabola.a = 0.0;
             parabola.b = 0.0;
             parabola.c = 0.0;
-            this._normA = 1.0;
-            this._normB = 0.0;
-            this._normC = 0.0;
-            this._valid = false;
-            this._cosinusHyperbolicus = false;
-            this._transScale = 1.0;
-            this._transScaleInv = 1.0;
-            this._transXOffset = 0.0;
-            this._transYOffset = 0.0;
-        },
-        _init_transform: function (i_x1, i_y1, i_x2, i_y2) {
-            var transScaleInv = (i_x2 - i_x1) * 0.5;
-            var transScale = 1.0 / transScaleInv;
-            this._transXOffset = -(i_x1 + i_x2) * transScale * 0.5;
-            this._transYOffset = -(i_y1 + i_y2) * 0.5;
-            this._transScale = transScale;
-            this._transScaleInv = transScaleInv;
-        },
-        _to_normalized: function (i_value) {
-            return this._transScale * i_value;
-        },
-        _from_normalized: function (i_value) {
-            return this._transScaleInv * i_value;
-        },
-        _to_normalized_location: function (i_x) {
-            return this._transScale * i_x + this._transXOffset;
-        },
-        _from_normalized_location: function (i_x) {
-            return this._transScaleInv * (i_x - this._transXOffset);
-        },
-        _to_normalized_height: function (i_y) {
-            return this._transScale * (i_y + this._transYOffset);
-        },
-        _from_normalized_height: function (i_y) {
-            return this._transScaleInv * i_y - this._transYOffset;
-        },
-        _get_normalized_height: function (i_normX) {
-            return cosh(this._normA * i_normX + this._normB) / this._normA + this._normC;
-        },
-        _get_normalized_distance: function (i_normX1, i_normX2) {
-            var normB = this._normB;
-            return (sinh(this._normA * i_normX2 + normB) - sinh(this._normA * i_normX1 + normB)) / this._normA;
-        },
-        _get_normalized_force: function (i_normX) {
-            return cosh(this._normA * i_normX + this._normB) / this._normA;
-        },
-        _init_for_three_normalized_points: function (i_nx1, i_ny1, i_nx2, i_ny2, i_nx3, i_ny3) {
-            this._normA = 1.0;
+            this.#normA = 1.0;
+            this.#normB = 0.0;
+            this.#normC = 0.0;
+            this.#valid = false;
+            this.#cosinusHyperbolicus = false;
+            this.#transScale = 1.0;
+            this.#transScaleInv = 1.0;
+            this.#transXOffset = 0.0;
+            this.#transYOffset = 0.0;
+        }
+        #initTransform(x1, y1, x2, y2) {
+            const transScaleInv = (x2 - x1) * 0.5;
+            const transScale = 1.0 / transScaleInv;
+            this.#transXOffset = -(x1 + x2) * transScale * 0.5;
+            this.#transYOffset = -(y1 + y2) * 0.5;
+            this.#transScale = transScale;
+            this.#transScaleInv = transScaleInv;
+        }
+        #toNormalized(value) {
+            return this.#transScale * value;
+        }
+        #fromNormalized(value) {
+            return this.#transScaleInv * value;
+        }
+        #toNormalizedLocation(x) {
+            return this.#transScale * x + this.#transXOffset;
+        }
+        #fromNormalizedLocation(x) {
+            return this.#transScaleInv * (x - this.#transXOffset);
+        }
+        #toNormalizedHeight(y) {
+            return this.#transScale * (y + this.#transYOffset);
+        }
+        #fromNormalizedHeight(y) {
+            return this.#transScaleInv * y - this.#transYOffset;
+        }
+        #getNormalizedHeight(normX) {
+            return cosh(this.#normA * normX + this.#normB) / this.#normA + this.#normC;
+        }
+        #getNormalizedDistance(normX1, normX2) {
+            const normB = this.#normB;
+            return (sinh(this.#normA * normX2 + normB) - sinh(this.#normA * normX1 + normB)) / this.#normA;
+        }
+        #getNormalizedForce(normX) {
+            return cosh(this.#normA * normX + this.#normB) / this.#normA;
+        }
+        #initForThreeNormalizedPoints(nx1, ny1, nx2, ny2, nx3, ny3) {
+            this.#normA = 1.0;
             // some help values
-            var dy12 = i_ny1 - i_ny2;
-            var dy32 = i_ny3 - i_ny2;
+            const dy12 = ny1 - ny2;
+            const dy32 = ny3 - ny2;
 
             // First we compute a parabola through our three points. If we approximate
             // our cosh function as a Taylor polynomial function of second order we
             // get
             // a parabola as well. We use the polynomial parameters from our computed
             // parabola as start values for the following 2-D-Newton iteration.
-            var parabola = this._parabola;
-            init_parabola_for_three_points(parabola, i_nx1, i_ny1, i_nx2, i_ny2, i_nx3, i_ny3);
-            var normA = 2.0 * parabola.a;
-            var normB = parabola.b;
-            var maxIter = this._maxIterations;
-            var distTol = this._distanceTolerance;
-            for (var i = 0; i < maxIter; i++) {
+            const parabola = this.#parabola;
+            initParabolaForThreePoints(parabola, nx1, ny1, nx2, ny2, nx3, ny3);
+            let normA = 2.0 * parabola.a;
+            let normB = parabola.b;
+            const maxIter = this.#maxIterations;
+            const distTol = this.#distanceTolerance;
+            for (let i = 0; i < maxIter; i++) {
                 // the following calculations are done because of performance
                 // reasons
-                var ax1b = normA * i_nx1 + normB;
-                var ax2b = normA * i_nx2 + normB;
-                var ax3b = normA * i_nx3 + normB;
-                var eax1bp = Math.exp(ax1b);
-                var eax2bp = Math.exp(ax2b);
-                var eax3bp = Math.exp(ax3b);
-                var eax1bm = 1.0 / eax1bp;
-                var eax2bm = 1.0 / eax2bp;
-                var eax3bm = 1.0 / eax3bp;
-                var cax1b = (eax1bp + eax1bm) * 0.5;
-                var cax2b = (eax2bp + eax2bm) * 0.5;
-                var cax3b = (eax3bp + eax3bm) * 0.5;
+                const ax1b = normA * nx1 + normB;
+                const ax2b = normA * nx2 + normB;
+                const ax3b = normA * nx3 + normB;
+                const eax1bp = Math.exp(ax1b);
+                const eax2bp = Math.exp(ax2b);
+                const eax3bp = Math.exp(ax3b);
+                const eax1bm = 1.0 / eax1bp;
+                const eax2bm = 1.0 / eax2bp;
+                const eax3bm = 1.0 / eax3bp;
+                const cax1b = (eax1bp + eax1bm) * 0.5;
+                const cax2b = (eax2bp + eax2bm) * 0.5;
+                const cax3b = (eax3bp + eax3bm) * 0.5;
 
                 // these are our target functions
-                var f1 = normA * dy12 - cax1b + cax2b;
-                var f2 = normA * dy32 - cax3b + cax2b;
+                const f1 = normA * dy12 - cax1b + cax2b;
+                const f2 = normA * dy32 - cax3b + cax2b;
 
                 // this is our iteration stop criterion
                 if (Math.abs(f1) <= distTol && Math.abs(f2) <= distTol) {
                     // compute the other parameters
-                    this._normA = normA;
-                    this._normB = normB;
-                    this._normC = (i_ny1 + i_ny2 + i_ny3 - (cax1b + cax2b + cax3b) / normA) * THIRD_PART;
-                    this._cosinusHyperbolicus = true;
+                    this.#normA = normA;
+                    this.#normB = normB;
+                    this.#normC = (ny1 + ny2 + ny3 - (cax1b + cax2b + cax3b) / normA) * THIRD_PART;
+                    this.#cosinusHyperbolicus = true;
                     return true;
                 }
                 // our stop criterion is not reached so far, so we perform the next
                 // adjustment by 2-D-Newton iteration
-                var sax1b = (eax1bp - eax1bm) * 0.5;
-                var sax2b = (eax2bp - eax2bm) * 0.5;
-                var sax3b = (eax3bp - eax3bm) * 0.5;
-                var df1da = dy12 - sax1b * i_nx1 + sax2b * i_nx2;
-                var df1db = -sax1b + sax2b;
-                var df2da = dy32 - sax3b * i_nx3 + sax2b * i_nx2;
-                var df2db = -sax3b + sax2b;
-                var det = df1da * df2db - df1db * df2da;
+                const sax1b = (eax1bp - eax1bm) * 0.5;
+                const sax2b = (eax2bp - eax2bm) * 0.5;
+                const sax3b = (eax3bp - eax3bm) * 0.5;
+                const df1da = dy12 - sax1b * nx1 + sax2b * nx2;
+                const df1db = -sax1b + sax2b;
+                const df2da = dy32 - sax3b * nx3 + sax2b * nx2;
+                const df2db = -sax3b + sax2b;
+                const det = df1da * df2db - df1db * df2da;
 
                 // if our determinant is zero our iteration fails
-                if (is_zero_infinit_or_invalid(det)) {
+                if (isZeroInfinitOrInvalid(det)) {
                     return false;
                 }
                 normA -= (df2db * f1 - df1db * f2) / det;
@@ -2082,97 +2025,83 @@
             }
             // reaching this point our iteration has failed
             return false;
-        },
-
+        }
         /**
          * Compute a chain through the three given points
-         * 
-         * @param i_x1
+         *
+         * @param x1
          *          The first x coordinate
-         * @param i_y1
+         * @param y1
          *          The first y coordinate
-         * @param i_x2
+         * @param x2
          *          The second x coordinate
-         * @param i_y2
+         * @param y2
          *          The second y coordinate
-         * @param i_x3
+         * @param x3
          *          The third x coordinate
-         * @param i_y3
+         * @param y3
          *          The third y coordinate
          */
-        initForThreePoints: function (i_x1, i_y1, i_x2, i_y2, i_x3, i_y3) {
+        initForThreePoints(x1, y1, x2, y2, x3, y3) {
             // reset, initialize transformation and compute the normalized values
             this.reset();
-            var triplet = this._triplet;
-            init_triplet(triplet, i_x1, i_y1, i_x2, i_y2, i_x3, i_y3, this._distanceTolerance);
-            var x1 = triplet.x1;
-            var y1 = triplet.y1;
-            var x2 = triplet.x2;
-            var y2 = triplet.y2;
-            var x3 = triplet.x3;
-            var y3 = triplet.y3;
-            this._init_transform(x1, y1, x3, y3);
-            x1 = this._to_normalized_location(x1);
-            y1 = this._to_normalized_height(y1);
-            x2 = this._to_normalized_location(x2);
-            y2 = this._to_normalized_height(y2);
-            x3 = this._to_normalized_location(x3);
-            y3 = this._to_normalized_height(y3);
-
+            const triplet = this.#triplet;
+            initTriplet(triplet, x1, y1, x2, y2, x3, y3, this.#distanceTolerance);
+            this.#initTransform(triplet.x1, triplet.y1, triplet.x3, triplet.y3);
+            const nx1 = this.#toNormalizedLocation(triplet.x1);
+            const ny1 = this.#toNormalizedHeight(triplet.y1);
+            const nx2 = this.#toNormalizedLocation(triplet.x2);
+            const ny2 = this.#toNormalizedHeight(triplet.y2);
+            const nx3 = this.#toNormalizedLocation(triplet.x3);
+            const ny3 = this.#toNormalizedHeight(triplet.y3);
             // depending on the configuration we decide what to do
             switch (triplet.state) {
                 case POINT_SITUATION_VALID:
-                    this._init_for_three_normalized_points(x1, y1, x2, y2, x3, y3);
-                    this._valid = true;
+                    this.#initForThreeNormalizedPoints(nx1, ny1, nx2, ny2, nx3, ny3);
+                    this.#valid = true;
                     return true;
                 case POINT_SITUATION_INVALID_DOUBLE_START:
                 case POINT_SITUATION_INVALID_DOUBLE_END:
-                    init_parabola_for_two_points(this._parabola, x1, y1, x3, y3);
-                    this._cosinusHyperbolicus = false;
-                    this._valid = true;
+                    initParabolaForTwoPoints(this.#parabola, nx1, ny1, nx3, ny3);
+                    this.#cosinusHyperbolicus = false;
+                    this.#valid = true;
                     return true;
                 case POINT_SITUATION_INVALID_TRIPLE_POINT:
                 default:
                     this.reset();
                     return false;
             }
-        },
-
+        }
         /**
          * Compute a chain through the two given points and a given length. This
          * might not work if the length is to short.
-         * 
-         * @param i_x1
+         *
+         * @param x1
          *          The first x coordinate
-         * @param i_y1
+         * @param y1
          *          The first y coordinate
-         * @param i_x2
+         * @param x2
          *          The second x coordinate
-         * @param i_y2
+         * @param y2
          *          The second y coordinate
-         * @param i_length
+         * @param length
          *          The length
          */
-        initForLength: function (i_x1, i_y1, i_x2, i_y2, i_length) {
+        initForLength(x1, y1, x2, y2, length) {
             // reset, initialize transformation and compute the normalized values
             this.reset();
-            var distTol = this._distanceTolerance;
-            var tuple = this._tuple;
-            init_tupel(tuple, i_x1, i_y1, i_x2, i_y2, distTol);
-            var x1 = tuple.x1;
-            var y1 = tuple.y1;
-            var x2 = tuple.x2;
-            var y2 = tuple.y2;
-            this._init_transform(x1, y1, x2, y2);
-            x1 = this._to_normalized_location(x1);
-            y1 = this._to_normalized_height(y1);
-            x2 = this._to_normalized_location(x2);
-            y2 = this._to_normalized_height(y2);
-
+            const distTol = this.#distanceTolerance;
+            const tuple = this.#tuple;
+            initTupel(tuple, x1, y1, x2, y2, distTol);
+            this.#initTransform(tuple.x1, tuple.y1, tuple.x2, tuple.y2);
+            const nx1 = this.#toNormalizedLocation(tuple.x1);
+            const ny1 = this.#toNormalizedHeight(tuple.y1);
+            const nx2 = this.#toNormalizedLocation(tuple.x2);
+            const ny2 = this.#toNormalizedHeight(tuple.y2);
             // depending on the configuration we decide what to do
             switch (tuple.state) {
                 case POINT_SITUATION_VALID:
-                    init_parabola_for_two_points(this._parabola, x1, y1, x2, y2);
+                    initParabolaForTwoPoints(this.#parabola, nx1, ny1, nx2, ny2);
                     break;
                 case POINT_SITUATION_INVALID_DOUBLE_POINT:
                 default:
@@ -2182,32 +2111,31 @@
             // next we check if our rope length is long enough for the distance
             // between
             // our two points
-            var length = this._to_normalized(i_length);
-            var dx = x2 - x1;
-            var dy = y2 - y1;
-            var distSq = dx * dx + dy * dy;
-            var lenSq = length * length;
+            const nlen = this.#toNormalized(length);
+            const dx = nx2 - nx1;
+            const dy = ny2 - ny1;
+            const distSq = dx * dx + dy * dy;
+            const lenSq = nlen * nlen;
             if (lenSq <= distSq) {
                 this.reset();
                 return false;
             }
             // in the following loop we try to find a minimum and maximum sag, always
             // computing the resulting length
-            var xm = (x1 + x2) * 0.5;
-            var ym = (y1 + y2) * 0.5;
-            var sag1 = 0.0;
-            var sag2 = Math.abs(dx) + Math.abs(dy);
-            var found = false;
-            var maxIter = this._maxIterations;
-            var lenTol = this._lengthTolerance;
-            for (var i = 0; i < maxIter; i++) {
-                this._init_for_three_normalized_points(x1, y1, xm, ym - sag2, x2, y2);
-                var normLength = this._get_normalized_distance(x1, x2);
-                if (normLength < length - lenTol) {
+            const xm = (nx1 + nx2) * 0.5;
+            const ym = (ny1 + ny2) * 0.5;
+            let sag1 = 0.0;
+            let sag2 = Math.abs(dx) + Math.abs(dy);
+            let found = false;
+            const maxIter = this.#maxIterations;
+            const lenTol = this.#lengthTolerance;
+            for (let i = 0; i < maxIter; i++) {
+                this.#initForThreeNormalizedPoints(nx1, ny1, xm, ym - sag2, nx2, ny2);
+                const normLength = this.#getNormalizedDistance(nx1, nx2);
+                if (normLength < nlen - lenTol) {
                     sag1 = sag2;
                     sag2 *= 2.0;
-                }
-                else {
+                } else {
                     found = true;
                     break;
                 }
@@ -2218,19 +2146,17 @@
             }
             // now we perform a bisection iteration to find the best sag according to
             // our required length
-            var csag = (sag1 + sag2) * 0.5;
-            var dsag = (sag2 - sag1) * 0.25;
+            let csag = (sag1 + sag2) * 0.5;
+            let dsag = (sag2 - sag1) * 0.25;
             found = false;
-            for (var i = 0; i < maxIter; i++) {
-                this._init_for_three_normalized_points(x1, y1, xm, ym - csag, x2, y2);
-                var normLength = this._get_normalized_distance(x1, x2);
-                if (normLength > length + lenTol) {
+            for (let i = 0; i < maxIter; i++) {
+                this.#initForThreeNormalizedPoints(nx1, ny1, xm, ym - csag, nx2, ny2);
+                const normLength = this.#getNormalizedDistance(nx1, nx2);
+                if (normLength > nlen + lenTol) {
                     csag -= dsag;
-                }
-                else if (normLength < length - lenTol) {
+                } else if (normLength < nlen - lenTol) {
                     csag += dsag;
-                }
-                else {
+                } else {
                     found = true;
                     break;
                 }
@@ -2241,48 +2167,45 @@
                 return false;
             }
             found = false;
-            var normA = this._normA;
-            var normB = this._normB;
+            let normA = this.#normA;
+            let normB = this.#normB;
             // finally we do the 2-D-Newton iteration to find the best parameters
-            for (var i = 0; i < maxIter; i++) {
+            for (let i = 0; i < maxIter; i++) {
                 // the following calculations are done because of performance
                 // reasons
-                var ax1b = normA * x1 + normB;
-                var ax2b = normA * x2 + normB;
-                var eax1bp = Math.exp(ax1b);
-                var eax2bp = Math.exp(ax2b);
-                var eax1bm = 1.0 / eax1bp;
-                var eax2bm = 1.0 / eax2bp;
-                var sax1b = (eax1bp - eax1bm) * 0.5;
-                var sax2b = (eax2bp - eax2bm) * 0.5;
-                var cax1b = (eax1bp + eax1bm) * 0.5;
-                var cax2b = (eax2bp + eax2bm) * 0.5;
-                var dsax10b = sax2b - sax1b;
-                var dcax01b = cax1b - cax2b;
-
+                const ax1b = normA * nx1 + normB;
+                const ax2b = normA * nx2 + normB;
+                const eax1bp = Math.exp(ax1b);
+                const eax2bp = Math.exp(ax2b);
+                const eax1bm = 1.0 / eax1bp;
+                const eax2bm = 1.0 / eax2bp;
+                const sax1b = (eax1bp - eax1bm) * 0.5;
+                const sax2b = (eax2bp - eax2bm) * 0.5;
+                const cax1b = (eax1bp + eax1bm) * 0.5;
+                const cax2b = (eax2bp + eax2bm) * 0.5;
+                const dsax10b = sax2b - sax1b;
+                const dcax01b = cax1b - cax2b;
                 // these are our target functions
-                var f1 = -normA * dy - cax1b + cax2b;
-                var f2 = sax2b - sax1b - normA * length;
-
+                const f1 = -normA * dy - cax1b + cax2b;
+                const f2 = sax2b - sax1b - normA * nlen;
                 // this is our iteration stop criterion
                 if (Math.abs(f1) <= distTol && Math.abs(f2) <= distTol) {
                     // compute the other parameters
-                    this._normA = normA;
-                    this._normB = normB;
-                    this._normC = (y1 + y2 - (cosh(normA * x1 + normB) + cosh(normA * x2 + normB)) / normA) * 0.5;
-                    this._valid = true;
+                    this.#normA = normA;
+                    this.#normB = normB;
+                    this.#normC = (ny1 + ny2 - (cosh(normA * nx1 + normB) + cosh(normA * nx2 + normB)) / normA) * 0.5;
+                    this.#valid = true;
                     return true;
                 }
                 // our stop criterion is not reached so far, so we perform the next
                 // adjustment by 2-D-Newton iteration
-                var df1da = -dy - sax1b * x1 + sax2b * x2;
-                var df1db = -sax1b + sax2b;
-                var df2da = cax2b * x2 - cax1b * x1 - length;
-                var df2db = cax2b - cax1b;
-                var det = df1da * df2db - df1db * df2da;
-
+                const df1da = -dy - sax1b * nx1 + sax2b * nx2;
+                const df1db = -sax1b + sax2b;
+                const df2da = cax2b * nx2 - cax1b * nx1 - nlen;
+                const df2db = cax2b - cax1b;
+                const det = df1da * df2db - df1db * df2da;
                 // if our determinant is zero our iteration fails
-                if (is_zero_infinit_or_invalid(det)) {
+                if (isZeroInfinitOrInvalid(det)) {
                     break;
                 }
                 normA -= (df2db * f1 - df1db * f2) / det;
@@ -2290,40 +2213,35 @@
             }
             this.reset();
             return false;
-        },
-
+        }
         /**
          * Compute a chain through the two given points with the minimum force.
-         * 
-         * @param i_x1
+         *
+         * @param x1
          *          The first x coordinate
-         * @param i_y1
+         * @param y1
          *          The first y coordinate
-         * @param i_x2
+         * @param x2
          *          The second x coordinate
-         * @param i_y2
+         * @param y2
          *          The second y coordinate
-         * @param i_x
+         * @param x
          *          The x coordinate where we want the force to be minimal
          */
-        initForMinimumForce: function (i_x1, i_y1, i_x2, i_y2, i_x) {
+        initForMinimumForce(x1, y1, x2, y2, x) {
             this.reset();
-            var distTol = this._distanceTolerance;
-            var tuple = this._tuple;
-            init_tupel(tuple, i_x1, i_y1, i_x2, i_y2, distTol);
-            var x1 = tuple.x1;
-            var y1 = tuple.y1;
-            var x2 = tuple.x2;
-            var y2 = tuple.y2;
-            this._init_transform(x1, y1, x2, y2);
-            x1 = this._to_normalized_location(x1);
-            y1 = this._to_normalized_height(y1);
-            x2 = this._to_normalized_location(x2);
-            y2 = this._to_normalized_height(y2);
-            var x = this._to_normalized_location(i_x);
+            const distTol = this.#distanceTolerance;
+            const tuple = this.#tuple;
+            initTupel(tuple, x1, y1, x2, y2, distTol);
+            this.#initTransform(tuple.x1, tuple.y1, tuple.x2, tuple.y2);
+            const nx1 = this.#toNormalizedLocation(tuple.x1);
+            const ny1 = this.#toNormalizedHeight(tuple.y1);
+            const nx2 = this.#toNormalizedLocation(tuple.x2);
+            const ny2 = this.#toNormalizedHeight(tuple.y2);
+            const nx = this.#toNormalizedLocation(x);
             switch (tuple.state) {
                 case POINT_SITUATION_VALID:
-                    init_parabola_for_two_points(this._parabola, x1, y1, x2, y2);
+                    initParabolaForTwoPoints(this.#parabola, nx1, ny1, nx2, ny2);
                     break;
                 case POINT_SITUATION_INVALID_DOUBLE_POINT:
                 default:
@@ -2336,54 +2254,51 @@
             // infinite force and on the other hand a sag of the sum of the x and y
             // distances, which means our chain sags very deep, we start our
             // iteration.
-            var dx = x2 - x1;
-            var dy = y2 - y1;
-            var xm = (x1 + x2) * 0.5;
-            var ym = (y1 + y2) * 0.5;
-            var sag0 = 0.0;
-            var sag3 = Math.abs(dx) + Math.abs(dy);
-            var dsag = (sag3 - sag0) * GOLDEN_SECTION_INTERVAL_PART;
-            var sag1 = sag0 + dsag;
-            var sag2 = sag3 - dsag;
-            this._init_for_three_normalized_points(x1, y1, xm, ym - sag1, x2, y2);
-            var frc1 = this._get_normalized_force(x);
-            this._init_for_three_normalized_points(x1, y1, xm, ym - sag2, x2, y2);
-            var frc2 = this._get_normalized_force(x);
-            var maxIter = this._maxIterations;
-            for (var i = 0; i < maxIter && dsag > distTol; i++) {
+            const dx = nx2 - nx1;
+            const dy = ny2 - ny1;
+            const xm = (nx1 + nx2) * 0.5;
+            const ym = (ny1 + ny2) * 0.5;
+            let sag0 = 0.0;
+            let sag3 = Math.abs(dx) + Math.abs(dy);
+            let dsag = (sag3 - sag0) * GOLDEN_SECTION_INTERVAL_PART;
+            let sag1 = sag0 + dsag;
+            let sag2 = sag3 - dsag;
+            this.#initForThreeNormalizedPoints(nx1, ny1, xm, ym - sag1, nx2, ny2);
+            const frc1 = this.#getNormalizedForce(nx);
+            this.#initForThreeNormalizedPoints(nx1, ny1, xm, ym - sag2, nx2, ny2);
+            const frc2 = this.#getNormalizedForce(nx);
+            const maxIter = this.#maxIterations;
+            for (let i = 0; i < maxIter && dsag > distTol; i++) {
                 if (frc1 > frc2) {
                     sag0 = sag1;
                     sag1 = sag2;
                     frc1 = frc2;
                     dsag = (sag3 - sag0) * GOLDEN_SECTION_INTERVAL_PART;
                     sag2 = sag3 - dsag;
-                    this._init_for_three_normalized_points(x1, y1, xm, ym - sag2, x2, y2);
-                    frc2 = this._get_normalized_force(x);
-                }
-                else {
+                    this.#initForThreeNormalizedPoints(nx1, ny1, xm, ym - sag2, nx2, ny2);
+                    frc2 = this.#getNormalizedForce(nx);
+                } else {
                     sag3 = sag2;
                     sag2 = sag1;
                     frc2 = frc1;
                     dsag = (sag3 - sag0) * GOLDEN_SECTION_INTERVAL_PART;
                     sag1 = sag0 + dsag;
-                    this._init_for_three_normalized_points(x1, y1, xm, ym - sag1, x2, y2);
-                    frc1 = this._get_normalized_force(x);
+                    this.#initForThreeNormalizedPoints(nx1, ny1, xm, ym - sag1, nx2, ny2);
+                    frc1 = this.#getNormalizedForce(nx);
                 }
             }
             if (dsag <= distTol) {
-                this._valid = true;
+                this.#valid = true;
                 return true;
-            }
-            else {
+            } else {
                 this.reset();
                 return false;
             }
-        },
-
+        }
         /**
          * Compute a chain through the two given points and a given force at a given
          * location.
-         * 
+         *
          * @param i_x1
          *          The first x coordinate
          * @param i_y1
@@ -2399,38 +2314,38 @@
          * @param i_q0
          *          The weight per meter
          */
-        initForForce: function (i_x1, i_y1, i_x2, i_y2, i_x, i_force, i_q0) {
+        initForForce(i_x1, i_y1, i_x2, i_y2, i_x, i_force, i_q0) {
             // First we initialize our chain for the minimum possible force at the
             // given location. If the given force is less we return unsuccessfully.
             this.initForMinimumForce(i_x1, i_y1, i_x2, i_y2, i_x);
-            if (this._cosinusHyperbolicus !== true) {
+            if (this.#cosinusHyperbolicus !== true) {
                 this.reset();
                 return false;
             }
-            var tuple = this._tuple;
-            var x1 = this._to_normalized_location(tuple.x1);
-            var y1 = this._to_normalized_height(tuple.y1);
-            var x2 = this._to_normalized_location(tuple.x2);
-            var y2 = this._to_normalized_height(tuple.y2);
-            var x = this._to_normalized_location(i_x);
-            var force = typeof i_q0 === 'number' && i_q0 > 0.0 ? i_force / i_q0 : i_force;
-            var normForce = this._to_normalized(force);
-            var minForce = this._get_normalized_force(x);
+            const tuple = this.#tuple;
+            const nx1 = this.#toNormalizedLocation(tuple.x1);
+            const ny1 = this.#toNormalizedHeight(tuple.y1);
+            const nx2 = this.#toNormalizedLocation(tuple.x2);
+            const ny2 = this.#toNormalizedHeight(tuple.y2);
+            const nx = this.#toNormalizedLocation(i_x);
+            var force = typeof i_q0 === 'number' && i_q0 > 0.0 ? i_force / i_q0 : i_force; // TODO: Go on here
+            var normForce = this.#toNormalized(force);
+            var minForce = this.#getNormalizedForce(nx);
             if (normForce < minForce) {
                 this.reset();
                 return false;
             }
             // If we reach this point we know that the required force is reachable, By
             // varying the sag, we try to approximate a chain for the required force.
-            var xm = (x1 + x2) * 0.5;
-            var ym = (y1 + y2) * 0.5;
-            var csag = (ym - this._get_normalized_height(xm)) * 0.5;
+            var xm = (nx1 + nx2) * 0.5;
+            var ym = (ny1 + ny2) * 0.5;
+            var csag = (ym - this.#getNormalizedHeight(xm)) * 0.5;
             var dsag = csag * 0.5;
-            var maxIter = this._maxIterations;
-            var distTol = this._distanceTolerance;
+            var maxIter = this.#maxIterations;
+            var distTol = this.#distanceTolerance;
             for (var i = 0; i < maxIter && dsag > distTol; i++) {
-                this._init_for_three_normalized_points(x1, y1, xm, ym - csag, x2, y2);
-                var force = this._get_normalized_force(x);
+                this.#initForThreeNormalizedPoints(nx1, ny1, xm, ym - csag, nx2, ny2);
+                var force = this.#getNormalizedForce(nx);
                 if (force < normForce) {
                     csag -= dsag;
                 }
@@ -2441,13 +2356,13 @@
             }
             // To get the best results we finally perform a 2 D-Newton iteration with
             // our start values calculated in the loop before.
-            var dy = y2 - y1;
-            var normA = this._normA;
-            var normB = this._normB;
+            var dy = ny2 - ny1;
+            var normA = this.#normA;
+            var normB = this.#normB;
             for (var i = 0; i < maxIter; i++) {
-                var ax1b = normA * x1 + normB;
-                var ax2b = normA * x2 + normB;
-                var axb = normA * x + normB;
+                var ax1b = normA * nx1 + normB;
+                var ax2b = normA * nx2 + normB;
+                var axb = normA * nx + normB;
                 var eax1bp = Math.exp(ax1b);
                 var eax1bm = 1.0 / eax1bp;
                 var eax2bp = Math.exp(ax2b);
@@ -2460,27 +2375,27 @@
                 var f1 = -normA * dy - cax1b + cax2b;
                 var f2 = caxb - normA * normForce;
                 if (Math.abs(f1) <= distTol && Math.abs(f2) <= distTol) {
-                    var normC = (y1 + y2 - (cosh(normA * x1 + normB) + cosh(normA * x2 + normB)) / normA) * 0.5;
-                    var parabola = this._parabola;
+                    var normC = (ny1 + ny2 - (cosh(normA * nx1 + normB) + cosh(normA * nx2 + normB)) / normA) * 0.5;
+                    var parabola = this.#parabola;
                     parabola.a = normA * 0.5;
                     parabola.b = normB;
                     parabola.c = (2.0 + normB * normB) * 0.5 / normA + normC;
-                    this._normA = normA;
-                    this._normB = normB;
-                    this._normC = normC;
-                    this._cosinusHyperbolicus = true;
-                    this._valid = true;
+                    this.#normA = normA;
+                    this.#normB = normB;
+                    this.#normC = normC;
+                    this.#cosinusHyperbolicus = true;
+                    this.#valid = true;
                     return true;
                 }
                 var sax1b = (eax1bp - eax1bm) * 0.5;
                 var sax2b = (eax2bp - eax2bm) * 0.5;
                 var saxb = (eaxbp - eaxbm) * 0.5;
-                var df1da = -dy - sax1b * x1 + sax2b * x2;
+                var df1da = -dy - sax1b * nx1 + sax2b * nx2;
                 var df1db = -sax1b + sax2b;
-                var df2da = saxb * x - normForce;
+                var df2da = saxb * nx - normForce;
                 var df2db = saxb;
                 var det = df1da * df2db - df1db * df2da;
-                if (is_zero_infinit_or_invalid(det)) {
+                if (isZeroInfinitOrInvalid(det)) {
                     break;
                 }
                 normA -= (df2db * f1 - df1db * f2) / det;
@@ -2488,116 +2403,108 @@
             }
             this.reset();
             return false;
-        },
-
+        }
         /**
          * Get the y coordinate for the given x coordinate
-         * 
+         *
          * @param i_x
          *          The x coordinate
          * @return The y coordinate
          */
-        getHeight: function (i_x) {
-            if (this._cosinusHyperbolicus) {
-                var nx = this._to_normalized_location(i_x);
-                var ny = this._get_normalized_height(nx);
-                return this._from_normalized_height(ny);
+        getHeight(i_x) {
+            if (this.#cosinusHyperbolicus) {
+                var nx = this.#toNormalizedLocation(i_x);
+                var ny = this.#getNormalizedHeight(nx);
+                return this.#fromNormalizedHeight(ny);
             }
-            else if (this._valid) {
-                var nx = this._to_normalized_location(i_x);
-                var ny = get_parabola_value(this._parabola, nx);
-                return this._from_normalized_height(ny);
+            else if (this.#valid) {
+                var nx = this.#toNormalizedLocation(i_x);
+                var ny = getParabolaValue(this.#parabola, nx);
+                return this.#fromNormalizedHeight(ny);
             }
             else {
                 return 0.0;
             }
-        },
-
+        }
         /**
          * Get the gradient e.g. the first derivation value for the given x
          * coordinate
-         * 
+         *
          * @param i_x
          *          The x coordinate
          * @return The gradient value
          */
-        getGradient: function (i_x) {
-            var nx = this._to_normalized_location(i_x);
-            return sinh(this._normA * nx + this._normB);
-        },
-
+        getGradient(i_x) {
+            var nx = this.#toNormalizedLocation(i_x);
+            return sinh(this.#normA * nx + this.#normB);
+        }
         /**
          * Get the angle for the given x coordinate
-         * 
+         *
          * @param i_x
          *          The x coordinate
          * @return The angle
          */
-        getAngle: function (i_x) {
+        getAngle(i_x) {
             var grad = this.getGradient(i_x);
             return Math.atan2(grad, 1.0);
-        },
-
+        }
         /**
          * Get the x coordinate for the minimum y value
-         * 
+         *
          * @return The x coordinate
          */
-        getMinimumLocation: function () {
-            var nx = -this._normB / this._normA;
-            return this._from_normalized_location(nx);
-        },
-
+        getMinimumLocation() {
+            var nx = -this.#normB / this.#normA;
+            return this.#fromNormalizedLocation(nx);
+        }
         /**
          * Get the minimum y coordinate
-         * 
+         *
          * @return The minimum y coordinate
          */
-        getMinimumHeight: function () {
-            var ny = 1.0 / this._normA + this._normC;
-            return this._from_normalized_height(ny);
-        },
-
+        getMinimumHeight() {
+            var ny = 1.0 / this.#normA + this.#normC;
+            return this.#fromNormalizedHeight(ny);
+        }
         /**
          * Get the length between the given x coordinates
-         * 
+         *
          * @param i_x1
          *          The first x coordinate
          * @param i_x2
          *          The second x coordinate
          * @return The length
          */
-        getLength: function (i_x1, i_x2) {
+        getLength(i_x1, i_x2) {
             var x1 = Math.min(i_x1, i_x2);
             var x2 = Math.max(i_x1, i_x2);
-            var nx1 = this._to_normalized_location(x1);
-            var nx2 = this._to_normalized_location(x2);
-            var nd = this._get_normalized_distance(nx1, nx2);
-            return this._from_normalized(nd);
-        },
-
+            var nx1 = this.#toNormalizedLocation(x1);
+            var nx2 = this.#toNormalizedLocation(x2);
+            var nd = this.#getNormalizedDistance(nx1, nx2);
+            return this.#fromNormalized(nd);
+        }
         /**
          * Get the x coordinate for the given offset and distance
-         * 
+         *
          * @param i_offsetX
          *          The offset x coordinate
          * @param i_distance
          *          The distance (may be negative)
          * @return The x coordinate
          */
-        getLocation: function (i_offsetX, i_distance) {
-            var nx = this._to_normalized_location(i_offsetX);
-            var normA = this._normA;
-            var normB = this._normB;
+        getLocation(i_offsetX, i_distance) {
+            var nx = this.#toNormalizedLocation(i_offsetX);
+            var normA = this.#normA;
+            var normB = this.#normB;
             var sh = sinh(normA * nx + normB);
-            var nd = this._to_normalized(i_distance);
+            var nd = this.#toNormalized(i_distance);
             var nl = (asinh(normA * nd + sh) - normB) / normA;
-            return this._from_normalized_location(nl);
-        },
-
+            return this.#fromNormalizedLocation(nl);
+        }
         /**
          * Get the force for the given x coordinate
-         * 
+         *
          * @param i_x
          *          The x coordinate
          * @param i_weightPerMeter
@@ -2606,64 +2513,60 @@
          *          The gravitation constant
          * @return The force
          */
-        getForce: function (i_x, i_weightPerMeter, i_gravitation) {
-            var nx = this._to_normalized_location(i_x);
-            var nf = this._get_normalized_force(nx);
+        getForce(i_x, i_weightPerMeter, i_gravitation) {
+            var nx = this.#toNormalizedLocation(i_x);
+            var nf = this.#getNormalizedForce(nx);
             var q0 = typeof i_gravitation === 'number' && i_gravitation > 0.0 ? i_weightPerMeter * i_gravitation : i_weightPerMeter;
-            return this._from_normalized(nf) * q0;
-        },
-
+            return this.#fromNormalized(nf) * q0;
+        }
         /**
          * Returns the current state.
-         * 
+         *
          * @return true if a chain has been computed
          */
-        isValid: function () {
-            return this._valid;
-        },
-
+        isValid() {
+            return this.#valid;
+        }
         /**
          * Returns the current state.
-         * 
+         *
          * @return true if a chain has been computed with a cosinus hyperbolicus
          */
-        isCosinusHyperbolicus: function () {
-            return this._cosinusHyperbolicus;
-        },
-
+        isCosinusHyperbolicus() {
+            return this.#cosinusHyperbolicus;
+        }
         /**
          * Get the parameter "a" of the equation <code>
          *   y = f(x) = cosh(a*x + b)/a + c
          * </code>
-         * 
+         *
          * @return The parameter "a"
          */
-        getA: function () {
-            return this._normA * this._transScale;
-        },
-
+        getA() {
+            return this.#normA * this.#transScale;
+        }
         /**
          * Get the parameter "b" of the equation <code>
          *   y = f(x) = cosh(a*x + b)/a + c
          * </code>
-         * 
+         *
          * @return The parameter "b"
          */
-        getB: function () {
-            return this._normA * this._transXOffset + this._normB;
-        },
-
+        getB() {
+            return this.#normA * this.#transXOffset + this.#normB;
+        }
         /**
          * Get the parameter "c" of the equation <code>
          *   y = f(x) = cosh(a*x + b)/a + c
          * </code>
-         * 
+         *
          * @return The parameter "c"
          */
-        getC: function () {
-            return this._normC * this._transScaleInv - this._transYOffset;
-        },
-    };
+        getC() {
+            return this.#normC * this.#transScaleInv - this.#transYOffset;
+        }
+    }
+
 
     function fn_normalize_rope_angle(i_phi) {
         var phi = i_phi;
@@ -2758,7 +2661,7 @@
             var det = df1dx1 * df2dx2 - df1dx2 * df2dx1;
 
             // if our determinant is zero our iteration fails
-            if (is_zero_infinit_or_invalid(det)) {
+            if (isZeroInfinitOrInvalid(det)) {
                 return false;
             }
             x1 -= (df2dx2 * f1 - df1dx2 * f2) / det;
@@ -3597,7 +3500,7 @@
                                 }
                                 else {
                                     var left = this._increasingX === false && typeof i_left === 'number' ? -i_left : i_left;
-                                    fn_prepare_arc(i_context, i_transform, p, part, start_pos, end_pos, left, this._tf);
+                                    prepareArc(i_context, i_transform, p, part, start_pos, end_pos, left, this._tf);
                                 }
                                 i_context.stroke();
                             }
