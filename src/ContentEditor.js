@@ -809,7 +809,7 @@
                     x: 0,
                     y: 0,
                     align: 'right',
-                    text: 'hmijs-content-manager'
+                    text: 'js_hmi content manager'
                 }, button_select_browse, button_select_search, button_reload]
             }, browserTree, searchContainer],
             showBrowser: () => update_mode(button_select_browse)

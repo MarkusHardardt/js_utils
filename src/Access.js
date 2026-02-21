@@ -70,7 +70,9 @@
                         this.#logger.debug('Node.registerObserver(): Registered observer on source');
                         this.#state = NodeState.Registered;
                     } catch (error) {
-                        this.#logger.error('Node.registerObserver(): Failed to register observer on source', error);
+                        // TODO: Reuse or remove this.#logger.error('Node.registerObserver(): Failed to register observer on source', error);
+                        // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not yet running.
+                        this.#logger.warn(`Node.registerObserver(): Failed to register observer on source: ${error.message}`);
                         this.#state = NodeState.NotRegistered;
                     }
                     break;
@@ -121,7 +123,9 @@
                                     this.#source.unregisterObserver(this.#onRefresh);
                                     this.#logger.debug('Node.unregisterObserver(): Unregistered on source after delay has expired');
                                 } catch (error) {
-                                    this.#logger.error('Node.unregisterObserver(): Failed to unregister on source after delay has expired', error);
+                                    // TODO: Reuse or remove this.#logger.error('Node.unregisterObserver(): Failed to unregister on source after delay has expired', error);
+                                    // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not running anymore.
+                                    this.#logger.warn(`Node.unregisterObserver(): Failed to unregister on source after delay has expired: ${error.message}`);
                                 }
                                 this.#state = NodeState.Destructed;
                                 this.#onLastObserverUnregistered();
@@ -132,7 +136,9 @@
                                 this.#source.unregisterObserver(this.#onRefresh);
                                 this.#logger.debug('Node.unregisterObserver(): Unregistered on source without delay');
                             } catch (error) {
-                                this.#logger.error('Node.unregisterObserver(): Failed to unregister on source without delay', error);
+                                // TODO: Reuse or remove this.#logger.error('Node.unregisterObserver(): Failed to unregister on source without delay', error);
+                                // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not running anymore.
+                                this.#logger.warn(`Node.unregisterObserver(): Failed to unregister on source without delay: ${error.message}`);
                             }
                             this.#state = NodeState.Destructed;
                             this.#onLastObserverUnregistered();
@@ -150,7 +156,8 @@
                         this.#logger.debug('Node.registerObserverOnSource(): Registered on source');
                         this.#state = NodeState.Registered;
                     } catch (error) {
-                        this.#logger.error('Node.registerObserverOnSource(): Failed to register on source', error);
+                        // TODO: Reuse or remove this.#logger.error('Node.registerObserverOnSource(): Failed to register on source', error);
+                        this.#logger.warn(`Node.registerObserverOnSource(): Failed to register on source: ${error.message}`);
                     }
                     return;
             }
@@ -163,7 +170,8 @@
                         this.#source.unregisterObserver(this.#onRefresh);
                         this.#logger.debug('Node.unregisterObserverOnSource(): Unregistered on source');
                     } catch (error) {
-                        this.#logger.error('Node.unregisterObserverOnSource(): Failed to unregister on source', error);
+                        // TODO: Reuse or remove this.#logger.error('Node.unregisterObserverOnSource(): Failed to unregister on source', error);
+                        this.#logger.warn(`Node.unregisterObserverOnSource(): Failed to unregister on source: ${error.message}`);
                     }
                     this.#state = NodeState.NotRegistered;
                     return;
@@ -174,7 +182,8 @@
                         this.#source.unregisterObserver(this.#onRefresh);
                         this.#logger.debug('Node.unregisterObserverOnSource(): Interruppted unregister timer and unregistered on source');
                     } catch (error) {
-                        this.#logger.error('Node.unregisterObserverOnSource(): Interruppted unregister timer but failed to unregister on source', error);
+                        // TODO: Reuse or remove this.#logger.error('Node.unregisterObserverOnSource(): Interruppted unregister timer but failed to unregister on source', error);
+                        this.#logger.warn(`Node.unregisterObserverOnSource(): Interruppted unregister timer but failed to unregister on source: ${error.message}`);
                     }
                     this.#state = NodeState.NotRegistered;
                     return;
