@@ -28,6 +28,8 @@
 
         // create 'hmi' environment object
         const hmi = {
+            applicationName: config.applicationName,
+            logger: new Logger(config.applicationName),
             // add hmi-object-framweork
             createObject: (object, element, onSuccess, onError, initData) =>
                 ObjectLifecycleManager.createObject(object, element, onSuccess, onError, hmi, initData),
@@ -53,7 +55,6 @@
             },
             // Environment
             env: {
-                logger: new Logger(config.applicationName),
                 isInstance: instance => false, // TODO: Implement isInstance(instance)
                 isSimulationEnabled: () => false // TODO: Implement isSimulationEnabled()
             },
@@ -159,26 +160,26 @@
         }, false)));
         // prepare content management system
         // we need the handler for database access
-        const sqlAdapterFactory = SqlHelper.getAdapterFactory(hmi.env.logger);
+        const sqlAdapterFactory = SqlHelper.getAdapterFactory(hmi.logger);
         // Setting up content manager and add directory containing the icons for the configurator
         const configIconDirectory = webServer.addStaticDirectory('./node_modules/@markus.hardardt/js_utils/cfg/icons');
-        const contentManager = ContentManager.getInstance(hmi.env.logger, sqlAdapterFactory, configIconDirectory);
-        hmi.env.cms = contentManager;
+        const contentManager = ContentManager.getInstance(hmi.logger, sqlAdapterFactory, configIconDirectory);
+        hmi.cms = contentManager;
         contentManager.registerOnWebServer(webServer);
         // Set up task manager
-        const taskManager = TaskManager.getInstance(hmi);
-        hmi.env.tasks = taskManager;
+        const taskManager = TaskManager.getInstance(hmi.logger, hmi.cms, hmi);
+        hmi.tasks = taskManager;
         contentManager.registerAffectedTypesListener(ContentManager.DataType.Task, taskManager.onTasksChanged);
         // Set up the handler for routing to individual target systems
-        const dataAccessRouter = new Access.Router(hmi.env.logger);
-        hmi.env.router = dataAccessRouter;
+        const dataAccessRouter = new Access.Router(hmi.logger);
+        hmi.router = dataAccessRouter;
         // Set up a simple router using the target system router
         const dataAccessSwitch = new Access.Switch(dataAccessRouter.getDataAccessObject); // Use the access router handler as source
         // Set up the server side access point
-        const dataAccessProvider = new Access.Provider(hmi.env.logger, dataAccessSwitch, config.serverAccessPointUnregisterObserverDelay); // Use the switch as source
-        dataAccessRouter.onRegisterObserversOnSource = filter => dataAccessProvider.registerObserversOnSource(filter);
-        dataAccessRouter.onUnregisterObserversOnSource = filter => dataAccessProvider.unregisterObserversOnSource(filter);
-        hmi.access = dataAccessProvider; // Enable access from anyhwere
+        const bufferedDataAccess = new Access.Buffer(hmi.logger, dataAccessSwitch, config.serverAccessPointUnregisterObserverDelay); // Use the switch as source
+        dataAccessRouter.onRegisterObserversOnSource = filter => bufferedDataAccess.registerObserversOnSource(filter);
+        dataAccessRouter.onUnregisterObserversOnSource = filter => bufferedDataAccess.unregisterObserversOnSource(filter);
+        hmi.access = bufferedDataAccess; // Enable access from anyhwere
 
         // Add static files
         /* function addStaticFiles(file) {
@@ -210,15 +211,15 @@
         );
         tasks.push((onSuccess, onError) => {
             try {
-                webSocketServer = new WebSocketConnection.Server(hmi.env.logger, config.webSocketPort, {
+                webSocketServer = new WebSocketConnection.Server(hmi.logger, config.webSocketPort, {
                     secure: webServer.isSecure,
                     autoConnect: config.autoConnect,
                     closedConnectionDisposeTimeout: config.closedConnectionDisposeTimeout,
                     onOpen: connection => {
-                        hmi.env.logger.info(`web socket client opened (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
+                        hmi.logger.info(`web socket client opened (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
                         taskManager.onOpen(connection);
-                        const dataConnector = DataConnector.getInstance(hmi.env.logger);
-                        dataConnector.source = dataAccessProvider;
+                        const dataConnector = DataConnector.getInstance(hmi.logger);
+                        dataConnector.source = bufferedDataAccess;
                         dataConnector.connection = connection;
                         dataConnector.sendDelay = config.dataConnectorSendDelay;
                         dataConnector.sendObserverRequestDelay = config.sendObserverRequestDelay;
@@ -227,21 +228,21 @@
                         dataConnector.onOpen();
                     },
                     onReopen: connection => {
-                        hmi.env.logger.info(`web socket client reopened (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
+                        hmi.logger.info(`web socket client reopened (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
                         taskManager.onOpen(connection);
                         const dataConnector = dataConnectors[connection.sessionId];
                         dataConnector.onOpen();
                         dataAccessRouter.registerDataConnector(dataConnector);
                     },
                     onClose: connection => {
-                        hmi.env.logger.info(`web socket client closed (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
+                        hmi.logger.info(`web socket client closed (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
                         taskManager.onClose(connection);
                         const dataConnector = dataConnectors[connection.sessionId];
                         dataConnector.onClose();
                         dataAccessRouter.unregisterDataConnector(dataConnector);
                     },
                     onDispose: connection => {
-                        hmi.env.logger.info(`web socket client disposed (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
+                        hmi.logger.info(`web socket client disposed (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
                         taskManager.onClose(connection);
                         const dataConnector = dataConnectors[connection.sessionId];
                         dataConnector.onClose();
@@ -250,7 +251,7 @@
                         dataConnector.source = null;
                     },
                     onError: (connection, error) => {
-                        hmi.env.logger.error(`error in connection (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}') to server`, error);
+                        hmi.logger.error(`error in connection (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}') to server`, error);
                     }
                 });
                 onSuccess();
@@ -265,29 +266,29 @@
 
         tasks.push((onSuccess, onError) => {
             webServer.listen(config.webServerPort, () => {
-                hmi.env.logger.info(`${config.applicationName} web server listening on port: ${config.webServerPort}`);
+                hmi.logger.info(`${config.applicationName} web server listening on port: ${config.webServerPort}`);
                 onSuccess();
             });
         });
 
         Executor.run(tasks,
-            () => hmi.env.logger.info(`${config.applicationName} running`),
-            error => hmi.env.logger.error(`Failed starting ${config.applicationName}`, error)
+            () => hmi.logger.info(`${config.applicationName} running`),
+            error => hmi.logger.error(`Failed starting ${config.applicationName}`, error)
         );
 
         function shutdownTaskManagerAsync() {
             return new Promise((resolve, reject) => {
                 taskManager.shutdown(() => resolve(), error => {
-                    hmi.env.logger.error('Failed to shutdown task manager', error);
+                    hmi.logger.error('Failed to shutdown task manager', error);
                     reject(error);
                 });
             });
         }
 
         async function cleanupAsync() {
-            hmi.env.logger.info('cleaning up ...');
+            hmi.logger.info('cleaning up ...');
             await shutdownTaskManagerAsync();
-            hmi.env.logger.info('cleanup done');
+            hmi.logger.info('cleanup done');
         }
         const cleanup = () => { (async () => await cleanupAsync())(); }
 
@@ -300,7 +301,7 @@
 
         if (false) { // TODO: Remove debug stuff
             setTimeout(() => {
-                hmi.env.logger.info('Trigger debug shutdown');
+                hmi.logger.info('Trigger debug shutdown');
                 cleanup();
             }, 5000);
         }

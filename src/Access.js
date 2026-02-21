@@ -201,7 +201,7 @@
         }
     }
 
-    class Provider {
+    class Buffer {
         #logger;
         #source;
         #unregisterObserverDelay;
@@ -301,7 +301,7 @@
             }
         }
     }
-    Access.Provider = Provider;
+    Access.Buffer = Buffer;
 
     class Switch {
         #getDataAccessObject;

@@ -47,6 +47,7 @@
         tasks.push((onSuccess, onError) => {
             Client.fetch('/get_client_config', null, response => {
                 config = JSON.parse(response);
+                hmi.applicationName = config.applicationName;
                 Logger.setLevel(config.logLevel);
                 onSuccess();
             }, onError);
@@ -54,14 +55,14 @@
 
         // prepare logging
         tasks.push((onSuccess, onError) => {
-            hmi.env.logger = new Logger(config.applicationName);
+            hmi.logger = new Logger(config.applicationName);
             onSuccess();
         });
 
         // prepare content management system
-        tasks.push((onSuccess, onError) => hmi.env.cms = ContentManager.getInstance(onSuccess, onError));
+        tasks.push((onSuccess, onError) => hmi.cms = ContentManager.getInstance(onSuccess, onError));
         tasks.push((onSuccess, onError) => {
-            const languages = hmi.env.lang = LanguageSwitching.getInstance(hmi.env.logger, hmi.env.cms);
+            const languages = hmi.lang = LanguageSwitching.getInstance(hmi.logger, hmi.cms);
             const language = languages.isAvailable(languageQueryParameterValue) ? languageQueryParameterValue : languages.getLanguage();
             languages.loadLanguage(language, onSuccess, onError);
         });
@@ -69,37 +70,37 @@
         // Load web socket session config from server
         tasks.push((onSuccess, onError) => Client.fetch('/get_web_socket_session_config', undefined, response => {
             webSocketSessionConfig = JSON.parse(response);
-            hmi.env.logger.debug('Loaded web socket session configuration successfully. Session ID:', webSocketSessionConfig.sessionId);
+            hmi.logger.debug('Loaded web socket session configuration successfully. Session ID:', webSocketSessionConfig.sessionId);
             onSuccess();
         }, error => {
-            hmi.env.logger.error('Failed loading web socket session configuration', error);
+            hmi.logger.error('Failed loading web socket session configuration', error);
             onError(error);
         }));
         let dataConnector = undefined;
         let webSocketConnection = undefined;
         tasks.push((onSuccess, onError) => {
-            dataConnector = DataConnector.getInstance(hmi.env.logger);
-            const taskManager = TaskManager.getInstance(hmi);
-            hmi.env.tasks = taskManager;
+            dataConnector = DataConnector.getInstance(hmi.logger);
+            const taskManager = TaskManager.getInstance(hmi.logger);
+            hmi.tasks = taskManager;
             try {
-                webSocketConnection = new WebSocketConnection.ClientConnection(hmi.env.logger, document.location.hostname, webSocketSessionConfig, {
+                webSocketConnection = new WebSocketConnection.ClientConnection(hmi.logger, document.location.hostname, webSocketSessionConfig, {
                     heartbeatInterval: 2000,
                     heartbeatTimeout: 1000,
                     reconnectStart: 1000,
                     reconnectMax: 32000,
                     onOpen: () => {
-                        hmi.env.logger.debug(`web socket client opened (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}')`);
+                        hmi.logger.debug(`web socket client opened (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}')`);
                         taskManager.onOpen();
                         dataConnector.onOpen();
                     },
                     onClose: () => {
-                        hmi.env.logger.debug(`web socket client closed (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}')`);
+                        hmi.logger.debug(`web socket client closed (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}')`);
                         taskManager.onClose();
                         dataConnector.onClose();
 
                     },
                     onError: error => {
-                        hmi.env.logger.error(`error in connection (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}') to server`, error);
+                        hmi.logger.error(`error in connection (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}') to server`, error);
                     }
                 });
                 taskManager.connection = webSocketConnection;
@@ -112,18 +113,18 @@
         // Provide data access from any context to any source
         tasks.push((onSuccess, onError) => {
             // Create router for delegation to language or data values 
-            const isValidLanguageValueId = hmi.env.cms.getIdValidTestFunctionForLanguageValue();
-            const dataAccessSwitch = new Access.Switch(dataId => isValidLanguageValueId(dataId) ? hmi.env.lang : dataConnector);
+            const isValidLanguageValueId = hmi.cms.getIdValidTestFunctionForLanguageValue();
+            const dataAccessSwitch = new Access.Switch(dataId => isValidLanguageValueId(dataId) ? hmi.lang : dataConnector);
             // Create collection providing multiple subscriptions from any context
-            const dataAccessProvider = new Access.Provider(hmi.env.logger, dataAccessSwitch, config.accessPointUnregisterObserverDelay); // Use the router as source
-            hmi.access = dataAccessProvider; // Enable access from anyhwere
+            const bufferedDataAccess = new Access.Buffer(hmi.logger, dataAccessSwitch, config.accessPointUnregisterObserverDelay); // Use the router as source
+            hmi.access = bufferedDataAccess; // Enable access from anyhwere
             onSuccess();
         });
 
         let rootObject = null;
         tasks.push((onSuccess, onError) => {
             if (hmiQueryParameterValue) {
-                hmi.env.cms.getHMIObject(hmiQueryParameterValue, hmi.env.lang.getLanguage(), object => {
+                hmi.cms.getHMIObject(hmiQueryParameterValue, hmi.lang.getLanguage(), object => {
                     if (object !== null && typeof object === 'object' && !Array.isArray(object)) {
                         rootObject = object;
                     } else {
@@ -151,13 +152,13 @@
             body.empty();
             body.addClass('hmi-body');
             hmi.createObject(rootObject, body,
-                () => hmi.env.logger.info(`${config.applicationName} started`),
-                error => hmi.env.logger.error(`Failed starting ${config.applicationName}`, error)
+                () => hmi.logger.info(`${config.applicationName} started`),
+                error => hmi.logger.error(`Failed starting ${config.applicationName}`, error)
             );
             body.on('unload', () => hmi.killObject(rootObject,
-                () => hmi.env.logger.info(`${config.applicationName} stopped`),
-                error => hmi.env.logger.error(`Failed stopping ${config.applicationName}`, error)
+                () => hmi.logger.info(`${config.applicationName} stopped`),
+                error => hmi.logger.error(`Failed stopping ${config.applicationName}`, error)
             ));
-        }, error => hmi.env.logger.error(`Failed building ${config.applicationName}`, error));
+        }, error => hmi.logger.error(`Failed building ${config.applicationName}`, error));
     });
 }(globalThis));
