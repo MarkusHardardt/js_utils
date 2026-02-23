@@ -216,7 +216,7 @@
                     autoConnect: config.autoConnect,
                     closedConnectionDisposeTimeout: config.closedConnectionDisposeTimeout,
                     onOpen: connection => {
-                        hmi.logger.info(`web socket client opened (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
+                        hmi.logger.debug(`web socket client opened (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
                         taskManager.onOpen(connection);
                         const dataConnector = DataConnector.getInstance(hmi.logger);
                         dataConnector.source = bufferedDataAccess;
@@ -228,21 +228,21 @@
                         dataConnector.onOpen();
                     },
                     onReopen: connection => {
-                        hmi.logger.info(`web socket client reopened (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
+                        hmi.logger.debug(`web socket client reopened (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
                         taskManager.onOpen(connection);
                         const dataConnector = dataConnectors[connection.sessionId];
                         dataConnector.onOpen();
                         dataAccessRouter.registerDataConnector(dataConnector);
                     },
                     onClose: connection => {
-                        hmi.logger.info(`web socket client closed (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
+                        hmi.logger.debug(`web socket client closed (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
                         taskManager.onClose(connection);
                         const dataConnector = dataConnectors[connection.sessionId];
                         dataConnector.onClose();
                         dataAccessRouter.unregisterDataConnector(dataConnector);
                     },
                     onDispose: connection => {
-                        hmi.logger.info(`web socket client disposed (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
+                        hmi.logger.debug(`web socket client disposed (sessionId: '${WebSocketConnection.formatSesionId(connection.sessionId)}')`);
                         taskManager.onClose(connection);
                         const dataConnector = dataConnectors[connection.sessionId];
                         dataConnector.onClose();

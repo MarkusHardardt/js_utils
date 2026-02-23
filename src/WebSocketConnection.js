@@ -518,7 +518,7 @@
                         if (isUTC) {
                             instance.createdUTC = createdUTC;
                         } else {
-                            this.#logger.warn(`Web socket connected with unknown session id: '${formatSesionId(sessionId)}'`)
+                            this.#logger.debug(`Web socket connected with unknown session id: '${formatSesionId(sessionId)}'`)
                         }
                         instance.connection = new WebSocketServerConnection(logger, sessionId, {
                             onOpen: () => {
