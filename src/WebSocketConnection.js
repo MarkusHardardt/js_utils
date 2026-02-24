@@ -59,7 +59,7 @@
                     }
                 }
             };
-            this._nextId = Core.createIdGenerator('#');
+            this._nextId = Core.createIdGenerator('#', '');
             this._remoteMediumUTC = 0;
             this._remoteToLocalOffsetMillis = 0;
             Common.validateAsConnection(this, true);
