@@ -35,18 +35,15 @@
             this.#state = NodeState.Constructed;
             Common.validateAsObservable(this, true);
         }
-
         get value() {
             return this.#value;
         }
-
         set value(value) {
             this.#value = value;
             for (const onRefresh of this.#observers) {
                 this.#refresh('Access.Node.value', onRefresh);
             }
         }
-
         registerObserver(onRefresh) {
             if (typeof onRefresh !== 'function') {
                 throw new Error('Access.Node.registerObserver(): onRefresh(value) is not a function');
@@ -67,12 +64,11 @@
                 case NodeState.NotRegistered:
                     try {
                         this.#source.registerObserver(this.#onRefresh);
-                        this.#logger.debug('Access.Node.registerObserver(): Registered observer on source');
+                        this.#logger.trace('Access.Node.registerObserver(): Registered observer on source');
                         this.#state = NodeState.Registered;
                     } catch (error) {
-                        // TODO: Reuse or remove this.#logger.error('Access.Node.registerObserver(): Failed to register observer on source', error);
                         // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not yet running.
-                        this.#logger.warn(`Access.Node.registerObserver(): Failed to register observer on source: ${error.message}`);
+                        this.#logger.warn('Access.Node.registerObserver(): Failed to register observer on source', error);
                         this.#state = NodeState.NotRegistered;
                     }
                     break;
@@ -82,13 +78,12 @@
                 case NodeState.UnregisterTimerRunning:
                     clearTimeout(this.#unregisterObserverTimer);
                     this.#unregisterObserverTimer = null;
-                    this.#logger.debug('Access.Node.registerObserver(): Timer to unregister has been interrupted because another observer has been registered');
+                    this.#logger.trace('Access.Node.registerObserver(): Timer to unregister has been interrupted because another observer has been registered');
                     this.#state = NodeState.Registered;
                     this.#refresh('Access.Node.registerObserver()', onRefresh);
                     break;
             }
         }
-
         unregisterObserver(onRefresh) {
             if (typeof onRefresh !== 'function') {
                 throw new Error('Access.Node.unregisterObserver(): onRefresh(value) is not a function');
@@ -121,11 +116,10 @@
                                 this.#unregisterObserverTimer = null;
                                 try {
                                     this.#source.unregisterObserver(this.#onRefresh);
-                                    this.#logger.debug('Access.Node.unregisterObserver(): Unregistered on source after delay has expired');
+                                    this.#logger.trace('Access.Node.unregisterObserver(): Unregistered on source after delay has expired');
                                 } catch (error) {
-                                    // TODO: Reuse or remove this.#logger.error('Access.Node.unregisterObserver(): Failed to unregister on source after delay has expired', error);
                                     // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not running anymore.
-                                    this.#logger.warn(`Access.Node.unregisterObserver(): Failed to unregister on source after delay has expired: ${error.message}`);
+                                    this.#logger.warn('Access.Node.unregisterObserver(): Failed to unregister on source after delay has expired', error);
                                 }
                                 this.#state = NodeState.Destructed;
                                 this.#onLastObserverUnregistered();
@@ -134,11 +128,10 @@
                         } else {
                             try {
                                 this.#source.unregisterObserver(this.#onRefresh);
-                                this.#logger.debug('Access.Node.unregisterObserver(): Unregistered on source without delay');
+                                this.#logger.trace('Access.Node.unregisterObserver(): Unregistered on source without delay');
                             } catch (error) {
-                                // TODO: Reuse or remove this.#logger.error('Access.Node.unregisterObserver(): Failed to unregister on source without delay', error);
                                 // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not running anymore.
-                                this.#logger.warn(`Access.Node.unregisterObserver(): Failed to unregister on source without delay: ${error.message}`);
+                                this.#logger.warn('Access.Node.unregisterObserver(): Failed to unregister on source without delay', error);
                             }
                             this.#state = NodeState.Destructed;
                             this.#onLastObserverUnregistered();
@@ -147,31 +140,27 @@
                     break;
             }
         }
-
         registerObserverOnSource() {
             switch (this.#state) {
                 case NodeState.NotRegistered:
                     try {
                         this.#source.registerObserver(this.#onRefresh);
-                        this.#logger.debug('Access.Node.registerObserverOnSource(): Registered on source');
+                        this.#logger.trace('Access.Node.registerObserverOnSource(): Registered on source');
                         this.#state = NodeState.Registered;
                     } catch (error) {
-                        // TODO: Reuse or remove this.#logger.error('Access.Node.registerObserverOnSource(): Failed to register on source', error);
-                        this.#logger.warn(`Access.Node.registerObserverOnSource(): Failed to register on source: ${error.message}`);
+                        this.#logger.warn('Access.Node.registerObserverOnSource(): Failed to register on source', error);
                     }
                     return;
             }
         }
-
         unregisterObserverOnSource() {
             switch (this.#state) {
                 case NodeState.Registered:
                     try {
                         this.#source.unregisterObserver(this.#onRefresh);
-                        this.#logger.debug('Access.Node.unregisterObserverOnSource(): Unregistered on source');
+                        this.#logger.trace('Access.Node.unregisterObserverOnSource(): Unregistered on source');
                     } catch (error) {
-                        // TODO: Reuse or remove this.#logger.error('Access.Node.unregisterObserverOnSource(): Failed to unregister on source', error);
-                        this.#logger.warn(`Access.Node.unregisterObserverOnSource(): Failed to unregister on source: ${error.message}`);
+                        this.#logger.warn('Access.Node.unregisterObserverOnSource(): Failed to unregister on source', error);
                     }
                     this.#state = NodeState.NotRegistered;
                     return;
@@ -180,16 +169,14 @@
                     this.#unregisterObserverTimer = null;
                     try {
                         this.#source.unregisterObserver(this.#onRefresh);
-                        this.#logger.debug('Access.Node.unregisterObserverOnSource(): Interruppted unregister timer and unregistered on source');
+                        this.#logger.trace('Access.Node.unregisterObserverOnSource(): Interruppted unregister timer and unregistered on source');
                     } catch (error) {
-                        // TODO: Reuse or remove this.#logger.error('Access.Node.unregisterObserverOnSource(): Interruppted unregister timer but failed to unregister on source', error);
-                        this.#logger.warn(`Access.Node.unregisterObserverOnSource(): Interruppted unregister timer but failed to unregister on source: ${error.message}`);
+                        this.#logger.warn('Access.Node.unregisterObserverOnSource(): Interruppted unregister timer but failed to unregister on source', error);
                     }
                     this.#state = NodeState.NotRegistered;
                     return;
             }
         }
-
         #refresh(context, onRefresh) {
             if (this.#value !== undefined && this.#value !== null) {
                 try {
@@ -213,11 +200,9 @@
             this.#dataPointsByDataId = {};
             Common.validateAsDataAccessObject(this, true);
         }
-
         getType(dataId) {
             return this.#source.getType(dataId);
         }
-
         registerObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Access.Buffer.registerObserver(): Invalid data id '${dataId}'`);
@@ -234,13 +219,12 @@
                     delete dataPoint.node;
                     delete this.#dataPointsByDataId[dataId];
                 });
-                this.#logger.debug(`Access.Buffer.registerObserver(): Register first '${dataId}' on node`);
+                this.#logger.trace(`Access.Buffer.registerObserver(): Register first '${dataId}' on node`);
             } else {
-                this.#logger.debug(`Access.Buffer.registerObserver(): Register next '${dataId}' on node`);
+                this.#logger.trace(`Access.Buffer.registerObserver(): Register next '${dataId}' on node`);
             }
             dataPoint.node.registerObserver(onRefresh);
         }
-
         unregisterObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Access.Buffer.unregisterObserver(): Invalid data id '${dataId}'`);
@@ -252,32 +236,29 @@
                 this.#logger.error(`Access.Buffer.unregisterObserver(): Data id '${dataId}' is not registered`);
                 return;
             }
-            this.#logger.debug(`Access.Buffer.unregisterObserver(): Unregister data id '${dataId}' on node`);
+            this.#logger.trace(`Access.Buffer.unregisterObserver(): Unregister data id '${dataId}' on node`);
             dataPoint.node.unregisterObserver(onRefresh);
         }
-
         registerObserversOnSource(filter) {
-            this.#logger.debug(`Access.Buffer.registerObserverOnSource(): Called with filter: '${typeof filter === 'function'}'`);
+            this.#logger.trace(`Access.Buffer.registerObserverOnSource(): Called with filter: '${typeof filter === 'function'}'`);
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
                     const dataPoint = this.#dataPointsByDataId[dataId];
-                    this.#logger.debug(`Access.Buffer.registerObserverOnSource(): Calling registerObserverOnSource() for data id '${dataId}' on node`);
+                    this.#logger.trace(`Access.Buffer.registerObserverOnSource(): Calling registerObserverOnSource() for data id '${dataId}' on node`);
                     dataPoint.node.registerObserverOnSource();
                 }
             }
         }
-
         unregisterObserversOnSource(filter) {
-            this.#logger.debug(`Access.Buffer.unregisterObserverOnSource(): Called with filter: '${typeof filter === 'function'}'`);
+            this.#logger.trace(`Access.Buffer.unregisterObserverOnSource(): Called with filter: '${typeof filter === 'function'}'`);
             for (const dataId in this.#dataPointsByDataId) {
                 if (this.#dataPointsByDataId.hasOwnProperty(dataId) && (!filter || filter(dataId))) {
                     const dataPoint = this.#dataPointsByDataId[dataId];
-                    this.#logger.debug(`Access.Buffer.unregisterObserverOnSource(): Calling unregisterObserverOnSource() for data id '${dataId}' on node`);
+                    this.#logger.trace(`Access.Buffer.unregisterObserverOnSource(): Calling unregisterObserverOnSource() for data id '${dataId}' on node`);
                     dataPoint.node.unregisterObserverOnSource();
                 }
             }
         }
-
         read(dataId, onResponse, onError) {
             this.#source.read(dataId, value => {
                 try {
@@ -291,13 +272,12 @@
                 }
             }, onError);
         }
-
         write(dataId, value) {
             try {
                 this.#source.write(dataId, value);
-                this.#logger.debug(`Access.Buffer.write(): Called write(${value}) for data id '${dataId}'`);
+                this.#logger.trace(`Access.Buffer.write(): Called write(${value}) for data id '${dataId}'`);
             } catch (error) {
-                this.#logger.error(`Access.Buffer.write(): Failed calling write(${value}) for data id '${dataId}'`, error);
+                this.#logger.warn(`Access.Buffer.write(): Failed calling write(${value}) for data id '${dataId}'`, error);
             }
         }
     }
@@ -312,27 +292,21 @@
             this.#getDataAccessObject = getDataAccessObject;
             Common.validateAsDataAccessObject(this, true);
         }
-
         getType(dataId) {
             return this._dao(dataId, 'getType:function').getType(dataId);
         }
-
         registerObserver(dataId, onRefresh) {
             this._dao(dataId, 'registerObserver:function').registerObserver(dataId, onRefresh);
         }
-
         unregisterObserver(dataId, onRefresh) {
             this._dao(dataId, 'unregisterObserver:function').unregisterObserver(dataId, onRefresh);
         }
-
         read(dataId, onResponse, onError) {
             this._dao(dataId, 'read:function').read(dataId, onResponse, onError);
         }
-
         write(dataId, value) {
             this._dao(dataId, 'write:function').write(dataId, value);
         }
-
         _dao(dataId, aspect) {
             return Core.validateAs('DataAccessObject', this.#getDataAccessObject(dataId), aspect);
         }
@@ -368,21 +342,18 @@
             this.#onUnregisterObserversOnSource = null;
             this.#onRegisterObserversOnSource = null;
         }
-
         set onUnregisterObserversOnSource(value) {
             if (typeof value !== 'function') {
                 throw new Error('Access.Router.onUnregisterObserversOnSource: Set value is not a function');
             }
             this.#onUnregisterObserversOnSource = value;
         }
-
         set onRegisterObserversOnSource(value) {
             if (typeof value !== 'function') {
                 throw new Error('Access.Router.onRegisterObserversOnSource: Set value is not a function');
             }
             this.#onRegisterObserversOnSource = value;
         }
-
         // This will be called on server side when a new web socket connection has opened or an existing has reopened
         registerDataConnector(dataConnector) {
             for (const connector in this.#dataConnectors) {
@@ -395,7 +366,6 @@
             const dataPoints = this.#getDataPoints();
             dataConnector.setDataPoints(dataPoints);
         }
-
         // This will be called on server side when a web socket connection has been closed
         unregisterDataConnector(dataConnector) {
             for (let i = 0; i < this.#dataConnectors.length; i++) {
@@ -406,7 +376,6 @@
             }
             this.#logger.warn('Router.unregisterDataConnector(): Data connector is not registered');
         }
-
         registerDataAccessObject(targetId, accessObject) {
             if (typeof targetId !== 'string') {
                 throw new Error(`Access.Router.registerDataAccessObject(): Invalid target id '${targetId}'`);
@@ -444,7 +413,6 @@
                 }
             }
         }
-
         unregisterDataAccessObject(targetId, accessObject) {
             if (typeof targetId !== 'string') {
                 throw new Error(`Access.Router.unregisterDataAccessObject(): Invalid target id: '${targetId}'`);
@@ -473,7 +441,6 @@
                 }
             }
         }
-
         #getDataPoints() {
             const result = [];
             for (const targetId in this.#dataAccessObjects) {
@@ -487,7 +454,6 @@
             }
             return result;
         }
-
         get getDataAccessObject() {
             return this.#getDataAccessObject;
         }
