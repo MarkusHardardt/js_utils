@@ -25,7 +25,6 @@
             this._connection = null;
             this.#handler = (data, onResponse, onError) => this._handleReceived(data, onResponse, onError);
         }
-
         set connection(value) {
             if (value) {
                 if (this._connection) {
@@ -40,7 +39,6 @@
                 this._connection = null;
             }
         }
-
         _handleReceived(data, onResponse, onError) {
             throw new Error('Not implemented in base class: _handleReceived(data, onResponse, onError)')
         }
@@ -67,8 +65,9 @@
         return dataPointConfigsByShortId;
     }
 
-    const SHORT_ID_PREFIX = '#';
-    const subscribeRequestShortIdRegex = /#[a-z0-9]+/g;
+    const SHORT_ID_PREFIX = '[';
+    const SHORT_ID_SUFFIX = ']';
+    const subscribeRequestShortIdRegex = /\[[a-z0-9]+\]/g;
     class ServerDataConnector extends BaseConnector {
         #logger;
         #isOpen;
@@ -84,7 +83,7 @@
             this.#logger = Common.validateAsLogger(logger, true);
             this.#isOpen = false;
             this.#source = null;
-            this.#getNextShortId = Core.createIdGenerator(SHORT_ID_PREFIX);
+            this.#getNextShortId = Core.createIdGenerator(SHORT_ID_PREFIX, SHORT_ID_SUFFIX);
             this.#dataPointConfigsByShortId = null;
             this.#dataPointsByDataId = {};
             this.#sendObserverRequestDelay = false;
@@ -92,7 +91,6 @@
             this.#sendTimer = null;
             Common.validateAsServerConnector(this, true);
         }
-
         set source(value) {
             if (value) {
                 Common.validateAsDataAccessObject(value, true);
@@ -101,17 +99,13 @@
                 this.#source = null;
             }
         }
-
         set sendDelay(value) {
             this.#sendDelay = typeof value === 'number' && value > 0 ? value : false;
         }
-
         set sendObserverRequestDelay(value) {
             this.#sendObserverRequestDelay = typeof value === 'number' && value > 0 ? value : false;
         }
-
         setDataPoints(dataPoints) {
-            this.#logger.debug(`DataConnector.setDataPoints(): Set ${dataPoints.length} data points`);
             const dataPointConfigsByShortId = this.#dataPointConfigsByShortId = getDataPointConfigsByShortId(dataPoints, this.#getNextShortId);
             const that = this;
             // For all data point configurations we ether reuse an existing or add a new data point.
@@ -122,11 +116,11 @@
                         const dataId = config.dataId;
                         let dataPoint = that.#dataPointsByDataId[dataId];
                         if (dataPoint) {
-                            that.#logger.debug(`DataConnector.setDataPoints(): Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.isObserved ? '' : '!'}observed)`);
+                            that.#logger.trace(`DataConnector.setDataPoints(): Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.isObserved ? '' : '!'}observed)`);
                             dataPoint.shortId = shortId; // Note: Only data points with a short id exists!
                             dataPoint.type = config.type;
                         } else {
-                            that.#logger.debug(`DataConnector.setDataPoints(): Create data point ${shortId}:'${dataId}'`);
+                            that.#logger.trace(`DataConnector.setDataPoints(): Create data point ${shortId}:'${dataId}'`);
                             that.#dataPointsByDataId[dataId] = dataPoint = {
                                 shortId,
                                 type: config.type,
@@ -162,16 +156,16 @@
                             if (this.#source) {
                                 try {
                                     this.#source.unregisterObserver(dataId, dataPoint.onRefresh);
-                                    this.#logger.debug(`DataConnector.setDataPoints(): Removed observer for data point ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
+                                    this.#logger.trace(`DataConnector.setDataPoints(): Removed observer for data point ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
                                 } catch (error) {
                                     this.#logger.error(`DataConnector.setDataPoints(): Failed removing observer for data point with id ${dataPoint.shortId}:'${dataId}'`, error);
                                 }
                                 dataPoint.isObserved = false;
                             }
-                            this.#logger.debug(`DataConnector.setDataPoints(): Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
+                            this.#logger.trace(`DataConnector.setDataPoints(): Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
                             delete dataPoint.shortId; // Note: Only data points with a short id exists!
                         } else {
-                            this.#logger.debug(`DataConnector.setDataPoints(): Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !observed)`);
+                            this.#logger.trace(`DataConnector.setDataPoints(): Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !observed)`);
                             delete this.#dataPointsByDataId[dataId];
                         }
                     };
@@ -181,13 +175,11 @@
                 this.#sendConfiguration();
             }
         }
-
         onOpen() {
             this.#isOpen = true;
             this.#sendConfiguration();
             this.#sendValues();
         }
-
         onClose() {
             this.#isOpen = false;
             clearTimeout(this.#sendTimer);
@@ -195,7 +187,6 @@
             this.#logger.debug('DataConnector.onClose(): Reset all observers onClose()');
             this.#updateObservations('');
         }
-
         #sendConfiguration() {
             Core.validateAs('Connection', this._connection, 'send:function').send(RECEIVER, {
                 type: TransmissionType.ConfigurationRefresh,
@@ -203,12 +194,11 @@
                 dataPointConfigsByShortId: this.#dataPointConfigsByShortId
             });
         }
-
         _handleReceived(data, onResponse, onError) {
             if (this.#isOpen) {
                 switch (data.type) {
                     case TransmissionType.ObserverRequest:
-                        this.#logger.debug(`DataConnector._handleReceived(): Update observers from client: [${data.observations}]`);
+                        this.#logger.trace(`DataConnector._handleReceived(): Update observers from client: [${data.observations}]`);
                         this.#updateObservations(data.observations);
                         break;
                     case TransmissionType.ReadRequest:
@@ -240,7 +230,6 @@
                 }
             }
         }
-
         #updateObservations(observationShorts) {
             Core.validateAs('DataAccessObject', this.#source, ['registerObserver:function', 'unregisterObserver:function']);
             // First we unsubscribe all that have been observed but are no longer requested
@@ -251,7 +240,7 @@
                     if (dataPoint.isObserved && (!dataPoint.shortId || observationShorts.indexOf(dataPoint.shortId) < 0)) {
                         try {
                             this.#source.unregisterObserver(dataId, dataPoint.onRefresh);
-                            this.#logger.debug(`DataConnector.updateObservations(): Unsubscribed datapoint ${dataPoint.shortId}:'${dataId}'`);
+                            this.#logger.trace(`DataConnector.updateObservations(): Unsubscribed datapoint ${dataPoint.shortId}:'${dataId}'`);
                         } catch (error) {
                             this.#logger.error(`DataConnector.updateObservations(): Failed unsubscribing data point with id ${dataPoint.shortId}:'${dataId}'`, error);
                         }
@@ -271,7 +260,7 @@
                             try {
                                 this.#source.registerObserver(dataId, dataPoint.onRefresh);
                                 dataPoint.isObserved = true;
-                                this.#logger.debug(`DataConnector.updateObservations(): Observed data point ${shortId}:'${dataId}'`);
+                                this.#logger.trace(`DataConnector.updateObservations(): Observed data point ${shortId}:'${dataId}'`);
                             } catch (error) {
                                 this.#logger.error(`DataConnector.updateObservations(): Failed observing data point with id ${shortId}:'${dataId}'`, error);
                             }
@@ -285,7 +274,6 @@
                 }
             }, true);
         }
-
         #valuesChanged() {
             if (!this.#sendDelay) {
                 this.#sendValues();
@@ -296,7 +284,6 @@
                 }, this.#sendDelay);
             }
         }
-
         #sendValues() {
             if (this.#isOpen) {
                 const values = {};
@@ -344,7 +331,6 @@
             Common.validateAsDataAccessObject(this, true);
             Common.validateAsConnector(this, true);
         }
-
         getType(dataId) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid data id: '${dataId}'`);
@@ -352,7 +338,6 @@
             const dataPoint = this.#dataPointsByDataId[dataId];
             return dataPoint ? dataPoint.type : Core.DataType.Unknown;
         }
-
         registerObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid id '${dataId}'`);
@@ -383,7 +368,6 @@
                 }
             }
         }
-
         unregisterObserver(dataId, onRefresh) {
             if (typeof dataId !== 'string') {
                 throw new Error(`Invalid unsubscription id '${dataId}'`);
@@ -405,7 +389,6 @@
             }
             this.#observationsChanged();
         }
-
         read(dataId, onResponse, onError) {
             if (!this.#open) {
                 onError('Cannot read() because not connected');
@@ -439,7 +422,6 @@
                 onError
             );
         }
-
         write(dataId, value) {
             if (!this.#open) {
                 throw new Error('Cannot write() because not connected');
@@ -452,11 +434,9 @@
                 { type: TransmissionType.WriteRequest, shortId: dataPoint.shortId, value }
             );
         }
-
         onOpen() {
             this.#open = true;
         }
-
         onClose() {
             this.#open = false;
             if (this.#addObserverTimer) {
@@ -464,7 +444,6 @@
                 this.#addObserverTimer = null;
             }
         }
-
         _handleReceived(data, onResponse, onError) {
             if (this.#open) {
                 switch (data.type) {
@@ -481,7 +460,6 @@
                 }
             }
         }
-
         #setDataPointConfigsByShortId(dataPointConfigsByShortId) {
             this.#dataPointConfigsByShortId = dataPointConfigsByShortId; // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
             const that = this;
@@ -493,11 +471,11 @@
                         const dataId = config.dataId;
                         let dataPoint = that.#dataPointsByDataId[dataId];
                         if (dataPoint) {
-                            that.#logger.debug(`Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.onRefresh !== null ? '' : '!'}observed)`);
+                            that.#logger.trace(`Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.onRefresh !== null ? '' : '!'}observed)`);
                             dataPoint.shortId = shortId;
                             dataPoint.type = config.type;
                         } else {
-                            that.#logger.debug(`Create data point ${shortId}:'${dataId}'`);
+                            that.#logger.trace(`Create data point ${shortId}:'${dataId}'`);
                             that.#dataPointsByDataId[dataId] = dataPoint = {
                                 shortId,
                                 type: config.type,
@@ -526,17 +504,16 @@
                     if (!exists) {
                         const dataPoint = this.#dataPointsByDataId[dataId];
                         if (dataPoint.onRefresh) {
-                            this.#logger.debug(`Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
+                            this.#logger.trace(`Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
                             delete dataPoint.shortId;
                         } else {
-                            this.#logger.debug(`Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !observed)`);
+                            this.#logger.trace(`Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !observed)`);
                             delete this.#dataPointsByDataId[dataId];
                         }
                     };
                 }
             }
         }
-
         #observationsChanged() {
             if (!this.#sendObserverRequestDelay) {
                 this.#sendObserverRequest();
@@ -547,7 +524,6 @@
                 }, this.#sendObserverRequestDelay);
             }
         }
-
         #sendObserverRequest() {
             if (this.#open) {
                 // Build a string with all short ids of the currently observed data point and send to server
@@ -565,7 +541,6 @@
                 );
             }
         }
-
         #refresh(values) {
             for (const shortId in values) {
                 if (values.hasOwnProperty(shortId)) {
