@@ -33,7 +33,8 @@
             isSimulationEnabled: () => false // TODO: Implement isSimulationEnabled()
         },
         // here all droppables will be stored
-        droppables: {}
+        droppables: {},
+        fetch: (receiver, request, onResponse, onError) => Client.fetchJsonFX(Client.HANDLE_REQUEST, { receiver, request }, onResponse, onError)
     };
     // all static files have been loaded and now we create the hmi.
     $(() => {
@@ -45,7 +46,7 @@
         // load client config
         let config = false;
         tasks.push((onSuccess, onError) => {
-            Client.fetch('/get_client_config', null, response => {
+            Client.fetch(Client.GET_CLIENT_CONFIG, null, response => {
                 config = JSON.parse(response);
                 hmi.applicationName = config.applicationName;
                 Logger.setLevel(config.logLevel);
@@ -68,7 +69,7 @@
         });
         let webSocketSessionConfig = undefined;
         // Load web socket session config from server
-        tasks.push((onSuccess, onError) => Client.fetch('/get_web_socket_session_config', undefined, response => {
+        tasks.push((onSuccess, onError) => Client.fetch(WebSocketConnection.GET_WEB_SOCKET_SESSION_CONFIG, undefined, response => {
             webSocketSessionConfig = JSON.parse(response);
             hmi.logger.debug('Loaded web socket session configuration successfully. Session ID:', webSocketSessionConfig.sessionId);
             onSuccess();
@@ -144,10 +145,22 @@
             Client.startRefreshCycle(config.requestAnimationFrameCycle, () => ObjectLifecycleManager.refreshRootObjects(new Date()));
             onSuccess();
         });
+        tasks.push((onSuccess, onError) => {
+            try {
+                // Validate services
+                Common.validateAsLogger(hmi.logger, true);
+                Common.validateAsContentManager(hmi.cms, true);
+                Common.validateAsDataAccessObject(hmi.access, true);
+                // Freeze the hmi object and it's content
+                Object.freeze(hmi.env);
+                Object.freeze(hmi);
+                onSuccess();
+            } catch (error) {
+                onError('Failed validation of services', error);
+            }
+        });
         // load hmi
         Executor.run(tasks, () => {
-            Object.seal(hmi.env);
-            Object.seal(hmi);
             const body = $(document.body);
             body.empty();
             body.addClass('hmi-body');

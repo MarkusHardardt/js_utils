@@ -1,5 +1,6 @@
 (function () {
     "use strict";
+    const Client = require('../src/Client.js');
     const Executor = require('../src/Executor.js');
     const HashLists = require('../src/HashLists.js');
     const JsonFX = require('../src/JsonFX.js');
@@ -62,7 +63,9 @@
         };
         // Prepare web server
         const minimized = config.minimized === true;
-        const webServer = new WebServer.Server({ secureKeyFile: config.secureKeyFile, secureCertFile: config.secureCertFile });
+        const webServer = new WebServer.Server({ secureKeyFile: config.secureKeyFile, secureCertFile: config.secureCertFile, postRequestUrl: Client.HANDLE_REQUEST });
+        hmi.registerPostRequestHandler = (receiver, onRequest) => webServer.registerPostRequestHandler(receiver, onRequest);
+        hmi.unregisterPostRequestHandler = (receiver, onRequest) => webServer.unregisterPostRequestHandler(receiver, onRequest);
         webServer.randomFileIdEnabled = false;
         webServer.setTitle(config.applicationName);
         for (const name in config.staticWebServerDirectories) {
@@ -148,16 +151,27 @@
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/ext/md5.js'); // external
         // And last but not least add client side 'main' program using the previously added files:
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/client/main.js');
-
         // No content - will be generated at runtime inside browser
         webServer.setBody('');
         // deliver main config to client
-        webServer.post('/get_client_config', (request, response) => response.send(JsonFX.stringify({
+        webServer.post(Client.GET_CLIENT_CONFIG, (request, response) => response.send(JsonFX.stringify({
             applicationName: config.applicationName,
             logLevel: config.clientLogLevel,
             requestAnimationFrameCycle: config.clientRequestAnimationFrameCycle,
             accessPointUnregisterObserverDelay: config.clientAccessPointUnregisterObserverDelay
         }, false)));
+        // handle requests
+        if (config.postRequestHandler) {
+            if (typeof config.postRequestHandler !== 'object') {
+                throw new Error('The request handler is not an object');
+            }
+            for (const receiver in config.postRequestHandler) {
+                if (config.postRequestHandler.hasOwnProperty(receiver)) {
+                    const onRequest = config.postRequestHandler[receiver];
+                    webServer.registerPostRequestHandler(receiver, onRequest)
+                }
+            }
+        }
         // prepare content management system
         // we need the handler for database access
         const sqlAdapterFactory = SqlHelper.getAdapterFactory(hmi.logger);
@@ -194,19 +208,13 @@
         addStaticFiles(config.staticClientFiles);*/
         webServer.addStaticFile(config.touch ? config.scrollbar_hmi : config.scrollbar_config);
 
-        // Freeze the hmi object and it's content
-        Object.freeze(hmi.utils);
-        Object.freeze(hmi.env);
-        Object.freeze(hmi.ext);
-        Object.freeze(hmi);
-
         // Here we store the tasks to be executed as a sequence in order to start the server environment.
         const tasks = [];
 
         // Prepare web socket server
         const dataConnectors = {};
         let webSocketServer = undefined;
-        webServer.post('/get_web_socket_session_config',
+        webServer.post(WebSocketConnection.GET_WEB_SOCKET_SESSION_CONFIG,
             (request, response) => response.send(JsonFX.stringify(webSocketServer.createSessionConfig(), false))
         );
         tasks.push((onSuccess, onError) => {
@@ -269,6 +277,23 @@
                 hmi.logger.info(`${config.applicationName} web server listening on port: ${config.webServerPort}`);
                 onSuccess();
             });
+        });
+
+        tasks.push((onSuccess, onError) => {
+            try {
+                // Validate services
+                Common.validateAsLogger(hmi.logger, true);
+                Common.validateAsContentManagerOnServer(hmi.cms, true);
+                Common.validateAsDataAccessObject(hmi.access, true);
+                // Freeze the hmi object and it's content
+                Object.freeze(hmi.utils);
+                Object.freeze(hmi.env);
+                Object.freeze(hmi.ext);
+                Object.freeze(hmi);
+                onSuccess();
+            } catch (error) {
+                onError('Failed validation of services', error);
+            }
         });
 
         Executor.run(tasks,

@@ -6,17 +6,17 @@
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Executor.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/HashLists.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/JsonFX.js');
-        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Mathematics.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectPositionSystem.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Regex.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Sorting.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Utilities.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Mathematics.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Core.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Common.js');
-        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentManager.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectLifecycleManager.js');
-        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Access.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentManager.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Logger.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
@@ -31,20 +31,20 @@
         Executor: require('./src/Executor.js'),
         HashLists: require('./src/HashLists.js'),
         JsonFX: require('./src/JsonFX.js'),
-        Mathematics: require('./src/Mathematics.js'),
         ObjectPositionSystem: require('./src/ObjectPositionSystem.js'),
         Regex: require('./src/Regex.js'),
         Server: require('./src/Server.js'),
         Sorting: require('./src/Sorting.js'),
         SqlHelper: require('./src/SqlHelper.js'),
         Utilities: require('./src/Utilities.js'),
+        Mathematics: require('./src/Mathematics.js'),
         Core: require('./src/Core.js'),
         WebServer: require('./src/WebServer.js'),
         Common: require('./src/Common.js'),
-        ContentManager: require('./src/ContentManager.js'),
         ObjectLifecycleManager: require('./src/ObjectLifecycleManager.js'),
-        DataConnector: require('./src/DataConnector.js'),
         Access: require('./src/Access.js'),
+        ContentManager: require('./src/ContentManager.js'),
+        DataConnector: require('./src/DataConnector.js'),
         Logger: require('./src/Logger.js'),
         WebSocketConnection: require('./src/WebSocketConnection.js'),
         ContentEditor: require('./src/ContentEditor.js'),

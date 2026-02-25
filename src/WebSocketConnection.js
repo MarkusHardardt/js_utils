@@ -13,6 +13,8 @@
     }
     WebSocketConnection.formatSesionId = formatSesionId;
 
+    WebSocketConnection.GET_WEB_SOCKET_SESSION_CONFIG = '/get_web_socket_session_config';
+
     const TelegramType = Object.freeze({
         PingRequest: 1,
         PingResponse: 2,
