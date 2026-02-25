@@ -75,6 +75,49 @@
     }
     Common.validateAsServerConnector = validateAsServerConnector;
 
+    /*  ContentManager inferface  */
+    function validateAsContentManager(instance, validateMethodArguments) {
+        return Core.validateAs('ContentManager', instance, [
+            'getExchangeHandler()',
+            'getLanguages(array)',
+            'isValidIdForType(id, type)',
+            'getIdValidTestFunctionForType(type)',
+            'getIdValidTestFunctionForLanguageValue()',
+            'analyzeId(id)',
+            'getExtensionForType(type)',
+            'getIcon(id)',
+            'compareIds(id1, id2)',
+            'exists(id, onResponse, onError)',
+            'getChecksum(id, onResponse, onError)',
+            'getObject(id, language, mode, onResponse, onError)',
+            'getModificationParams(id, language, value, onResponse, onError)',
+            'setObject(id, language, value, checksum, onResponse, onError)',
+            'getRefactoringParams(source, target, action, onResponse, onError)',
+            'performRefactoring(source, target, action, checksum, onResponse, onError)',
+            'getSearchResults(key, value, onResponse, onError)',
+            'getIdKeyValues(id, onResponse, onError)',
+            'getAllIdsForType(type, onResponse, onError)',
+            'getAllForLanguage(language, onResponse, onError)',
+            'isHMIObject(id, onResponse, onError)',
+            'addDefaultHMIObject(id, onResponse, onError)',
+            'getHMIObject(queryParameterValue, language, onResponse, onError)',
+            'getHMIObjects(onResponse, onError)',
+            'isTaskObject(id, onResponse, onError)',
+            'addDefaultTaskObject(id, onResponse, onError)'
+        ], validateMethodArguments);
+    }
+    Common.validateAsContentManager = validateAsContentManager;
+
+    function validateAsContentManagerOnServer(instance, validateMethodArguments) {
+        validateAsContentManager(instance, validateMethodArguments);
+        return Core.validateAs('ServerContentManager', instance, [
+            'getTaskObjects(onResponse, onError)',
+            'registerAffectedTypesListener(type, onChanged)',
+            'registerOnWebServer(webServer)' // Registers web server 'POST' and 'GET' (for fancy tree) handling
+        ], validateMethodArguments);
+    }
+    Common.validateAsContentManagerOnServer = validateAsContentManagerOnServer;
+
     Object.freeze(Common);
     if (isNodeJS) {
         module.exports = Common;

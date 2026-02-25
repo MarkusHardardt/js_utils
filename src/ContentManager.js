@@ -10,51 +10,7 @@
     const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
     const SqlHelper = isNodeJS ? require('./SqlHelper.js') : root.SqlHelper;
     const Utilities = isNodeJS ? require('./Utilities.js') : root.Utilities;
-    const Core = isNodeJS ? require('./Core.js') : root.Core;
     const Common = isNodeJS ? require('./Common.js') : root.Common;
-
-    /*  ContentManager inferface  */
-    function validateAsContentManager(instance, validateMethodArguments) {
-        return Core.validateAs('ContentManager', instance, [
-            'getExchangeHandler()',
-            'getLanguages(array)',
-            'isValidIdForType(id, type)',
-            'getIdValidTestFunctionForType(type)',
-            'getIdValidTestFunctionForLanguageValue()',
-            'analyzeId(id)',
-            'getExtensionForType(type)',
-            'getIcon(id)',
-            'compareIds(id1, id2)',
-            'exists(id, onResponse, onError)',
-            'getChecksum(id, onResponse, onError)',
-            'getObject(id, language, mode, onResponse, onError)',
-            'getModificationParams(id, language, value, onResponse, onError)',
-            'setObject(id, language, value, checksum, onResponse, onError)',
-            'getRefactoringParams(source, target, action, onResponse, onError)',
-            'performRefactoring(source, target, action, checksum, onResponse, onError)',
-            'getSearchResults(key, value, onResponse, onError)',
-            'getIdKeyValues(id, onResponse, onError)',
-            'getAllIdsForType(type, onResponse, onError)',
-            'getAllForLanguage(language, onResponse, onError)',
-            'isHMIObject(id, onResponse, onError)',
-            'addDefaultHMIObject(id, onResponse, onError)',
-            'getHMIObject(queryParameterValue, language, onResponse, onError)',
-            'getHMIObjects(onResponse, onError)',
-            'isTaskObject(id, onResponse, onError)',
-            'addDefaultTaskObject(id, onResponse, onError)'
-        ], validateMethodArguments);
-    }
-    ContentManager.validateAsContentManager = validateAsContentManager;
-
-    function validateAsContentManagerOnServer(instance, validateMethodArguments) {
-        validateAsContentManager(instance, validateMethodArguments);
-        return Core.validateAs('ContentManager', instance, [
-            'getTaskObjects(onResponse, onError)',
-            'registerAffectedTypesListener(type, onChanged)',
-            'registerOnWebServer(webServer)' // Registers web server 'POST' and 'GET' (for fancy tree) handling
-        ], validateMethodArguments);
-    }
-    ContentManager.validateAsContentManagerOnServer = validateAsContentManagerOnServer;
 
     const DataType = Object.freeze({
         JsonFX: 'JsonFX',
@@ -189,15 +145,12 @@
                 throw new Error('The abstract base class ContentManagerBase cannot be instantiated.')
             }
         }
-
         getExchangeHandler() {
             return new ExchangeHandler(this);
         }
-
         getLanguages(array) {
             return Utilities.copyArray(this._config.languages, array);
         }
-
         isValidIdForType(id, type) {
             const regex = this._validIdForTypeRegex[type];
             if (regex) {
@@ -206,7 +159,6 @@
                 throw new Error(`Unsupported type: '${type}'`);
             }
         }
-
         getIdValidTestFunctionForType(type) {
             const regex = this._validIdForTypeRegex[type];
             if (regex) {
@@ -215,12 +167,10 @@
                 throw new Error(`Unsupported type: '${type}'`);
             }
         }
-
         getIdValidTestFunctionForLanguageValue() {
             const regex = this._validIdForLanguageValueRegex;
             return id => regex.test(id);
         }
-
         analyzeId(id) {
             let match = this._contentTablesKeyRegex.exec(id);
             if (match) {
@@ -232,7 +182,6 @@
             }
             return { id };
         }
-
         #getDescriptor(extension, description) {
             const table = this._contentTablesByExtension[extension];
             if (table) {
@@ -243,11 +192,9 @@
                 return false;
             }
         }
-
         getExtensionForType(type) {
             return this._extensionsForType[type];
         }
-
         getIcon(id) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
@@ -263,7 +210,6 @@
                 return false;
             }
         }
-
         compareIds(id1, id2) {
             if (FOLDER_REGEX.test(id1)) {
                 return FOLDER_REGEX.test(id2) ? Sorting.compareTextsAndNumbers(id1, id2, false, false) : -1;
@@ -393,9 +339,8 @@
             this._refactoring_match = `((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?\\.(?:${tabexts}))\\b`;
             this._include_regex_build = new RegExp(`(\'|")?include:\\$((?:${VALID_NAME_CHAR}+\\/)*${VALID_NAME_CHAR}+?)\\.(${tabexts})\\b\\1`, 'g');
             this._exchangeHeaderRegex = new RegExp(`\\[\\{\\((${tabexts}|language|${Regex.escape(EXCHANGE_HEADER)})<>([a-f0-9]{32})\\)\\}\\]\\n(.*)\\n`, 'g');
-            validateAsContentManagerOnServer(this, true);
+            Common.validateAsContentManagerOnServer(this, true);
         }
-
         #getRawString(adapter, table, rawKey, language, onResponse, onError) {
             const valueColumn = table.valueColumn, column = typeof valueColumn === 'string' ? valueColumn : valueColumn[language];
             if (typeof column === 'string') {
@@ -416,7 +361,6 @@
                 onError(`Invalid value column for table '${table.name}' and language '${language}'`);
             }
         }
-
         exists(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
@@ -436,13 +380,11 @@
                 onResponse(false);
             }
         }
-
         #exists(adapter, table, rawKey, onResponse, onError) {
             adapter.addColumn('COUNT(*) AS cnt');
             adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
             adapter.performSelect(table.name, undefined, undefined, undefined, result => onResponse(result[0].cnt > 0), onError);
         }
-
         getChecksum(id, onResponse, onError) {
             // first we try to get table object matching to the given key
             const match = this._contentTablesKeyRegex.exec(id);
@@ -506,7 +448,6 @@
                 }
             }, onError);
         }
-
         getObject(id, language, mode, onResponse, onError) {
             // This method works in four modes:
             // 1. JsonFX-object: build object and return
@@ -532,7 +473,6 @@
                 onError(error);
             }), onError);
         }
-
         #getObject(adapter, id, rawKey, table, language, mode, onResponse, onError) {
             const that = this;
             const parse = mode === ContentManager.PARSE, include = parse || mode === ContentManager.INCLUDE;
@@ -651,7 +591,6 @@
                     onError(`Cannot get object for unsupported type: ${table.type}`);
             }
         }
-
         #include(adapter, object, ids, language, onResponse, onError) {
             const that = this;
             if (Array.isArray(object)) {
@@ -762,7 +701,6 @@
                 onResponse(object);
             }
         }
-
         #buildProperties(adapter, object, ids, language, onResponse, onError) {
             const that = this;
             const tasks = [];
@@ -782,7 +720,6 @@
             tasks.parallel = this.#parallel;
             Executor.run(tasks, () => onResponse(object), onError);
         }
-
         #getModificationParams(adapter, id, language, value, onResponse, onError) {
             // here we store the result
             const params = {};
@@ -937,7 +874,6 @@
                 onResponse(params);
             }, onError);
         }
-
         getModificationParams(id, language, value, onResponse, onError) {
             const that = this;
             this.#getSqlAdapter(adapter => {
@@ -963,7 +899,6 @@
                 });
             }, onError);
         }
-
         setObject(id, language, value, checksum, onResponse, onError) {
             const that = this, match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
@@ -1085,7 +1020,6 @@
                 });
             }, onError);
         }
-
         #getRefactoringParams(adapter, source, target, action, onResponse, onError) {
             // here we store the result
             const params = {};
@@ -1354,7 +1288,6 @@
                 onResponse(params);
             }, onError);
         }
-
         getRefactoringParams(source, target, action, onResponse, onError) {
             const that = this;
             this.#getSqlAdapter(adapter => {
@@ -1367,7 +1300,6 @@
                 });
             }, onError);
         }
-
         performRefactoring(source, target, action, checksum, onResponse, onError) {
             const that = this;
             this.#getSqlAdapter(adapter => {
@@ -1457,7 +1389,6 @@
                 });
             }, onError);
         }
-
         #performRefactoring(adapter, source, params, getReplacement, affectedTypes, onResponse, onError) {
             const that = this;
             const match = this._contentTablesKeyRegex.exec(source);
@@ -1625,7 +1556,6 @@
             }
             Executor.run(main, onResponse, onError);
         }
-
         registerAffectedTypesListener(type, onChanged) {
             const listeners = this.#affectedTypesListeners[type];
             if (listeners === undefined) {
@@ -1641,7 +1571,6 @@
                 listeners.push(onChanged);
             }
         }
-
         #nofifyAffectedTypes(affectedTypes) {
             for (const type in affectedTypes) {
                 if (affectedTypes.hasOwnProperty(type) && affectedTypes[type] === true) {
@@ -1656,7 +1585,6 @@
                 }
             }
         }
-
         #getReferencesTo(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
@@ -1710,7 +1638,6 @@
                 onResponse([]);
             }
         }
-
         #getReferencesToCount(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (match) {
@@ -1755,7 +1682,6 @@
                 onResponse(0);
             }
         }
-
         #getReferencesFromObjectWithId(adapter, id, onResponse, onError) {
             const that = this, key = SqlHelper.escape(id), keys = {}, tasks = [];
             for (const extension in this._contentTablesByExtension) {
@@ -1802,7 +1728,6 @@
                 onResponse(array);
             }, onError);
         }
-
         #getReferencesFrom(id, onResponse, onError) {
             if (this._contentTablesKeyRegex.test(id)) {
                 const that = this;
@@ -1820,7 +1745,6 @@
                 onResponse([]);
             }
         }
-
         #getReferencesFromCount(id, onResponse, onError) {
             if (this._contentTablesKeyRegex.test(id)) {
                 const that = this;
@@ -1872,7 +1796,6 @@
                 onResponse(0);
             }
         }
-
         #getTreeChildNodes(id, onResponse, onError) {
             const match = FOLDER_REGEX.exec(id);
             if (match) {
@@ -1948,7 +1871,6 @@
                 onError(`Invalid key: '${id}'`);
             }
         }
-
         getSearchResults(key, value, onResponse, onError) {
             if (key.length > 0 || value.length > 0) {
                 const that = this;
@@ -2016,7 +1938,6 @@
                 }, onError);
             }
         }
-
         getIdKeyValues(id, onResponse, onError) {
             const that = this, data = this.analyzeId(id);
             if (data.file || data.folder) {
@@ -2054,7 +1975,6 @@
                 onError(`Invalid selection: '${data.string}'`);
             }
         }
-
         getAllIdsForType(type, onResponse, onError) {
             const extension = this._extensionsForType[type];
             if (!extension) {
@@ -2074,7 +1994,6 @@
                 onError(error);
             }), onError);
         }
-
         #getAllIdsForType(adapter, table, extension, onResponse, onError) {
             adapter.addColumn(`${table.name}.${table.keyColumn} AS path`);
             adapter.performSelect(table.name, undefined, 'path ASC', undefined, result => {
@@ -2085,7 +2004,6 @@
                 onResponse(response);
             }, onError);
         }
-
         getAllForLanguage(language, onResponse, onError) {
             this.#getSqlAdapter(adapter => {
                 const that = this, values = {};
@@ -2134,7 +2052,6 @@
                 });
             }, onError);
         }
-
         isHMIObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
@@ -2159,7 +2076,6 @@
                 });
             }, onError);
         }
-
         addDefaultHMIObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
@@ -2222,7 +2138,6 @@
                 });
             }, onError);
         }
-
         getHMIObject(queryParameterValue, language, onResponse, onError) {
             const hmiTable = this.#hmiTable;
             this.#getSqlAdapter(adapter => {
@@ -2271,7 +2186,6 @@
                 });
             }, onError);
         }
-
         getHMIObjects(onResponse, onError) {
             const hmiTable = this.#hmiTable;
             this.#getSqlAdapter(adapter => {
@@ -2291,7 +2205,6 @@
                 });
             }, onError);
         }
-
         isTaskObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
@@ -2316,7 +2229,6 @@
                 });
             }, onError);
         }
-
         addDefaultTaskObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
@@ -2378,7 +2290,6 @@
                 });
             }, onError);
         }
-
         getTaskObjects(onResponse, onError) {
             const taskTable = this.#taskTable;
             this.#getSqlAdapter(adapter => {
@@ -2398,7 +2309,6 @@
                 });
             }, onError);
         }
-
         #handleRequest(request, onResponse, onError) {
             switch (request.command) {
                 case COMMAND_GET_CONFIG:
@@ -2477,7 +2387,6 @@
                     break;
             }
         }
-
         #handleFancyTreeRequest(request, identifier, onResponse, onError) {
             const that = this, id = typeof identifier === 'string' && identifier.length > 0 ? identifier : '$';
             switch (request) {
@@ -2586,7 +2495,6 @@
                     break;
             }
         }
-
         registerOnWebServer(webServer) {
             // we need access via ajax from clients
             webServer.post(ContentManager.GET_CONTENT_DATA_URL, (request, response) => this.#handleRequest(
@@ -2602,7 +2510,6 @@
                 error => response.send(JsonFX.stringify(error.toString(), false))
             ));
         }
-
         // Note: this next is a template method - copy when new request has to be implemented
         #tempdateMethodUsingTransaction(onResponse, onError) {
             this.#getSqlAdapter(adapter => {
@@ -2636,7 +2543,7 @@
     class ClientManager extends ContentManagerBase {
         constructor(onResponse, onError) {
             super();
-            validateAsContentManager(this, true);
+            Common.validateAsContentManager(this, true);
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_CONFIG }, config => {
                 this._config = config;
                 this._iconDirectory = config.iconDirectory;
@@ -2654,15 +2561,12 @@
                 onResponse();
             }, onError);
         }
-
         exists(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_EXISTS, id }, onResponse, onError);
         }
-
         getChecksum(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_CHECKSUM, id }, onResponse, onError);
         }
-
         getObject(id, language, mode, onResponse, onError) {
             const parse = mode === ContentManager.PARSE;
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, {
@@ -2689,47 +2593,36 @@
                 }
             } : onResponse, onError);
         }
-
         getModificationParams(id, language, value, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_MODIFICATION_PARAMS, id, language, value }, onResponse, onError);
         }
-
         setObject(id, language, value, checksum, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_SET_OBJECT, id, language, value, checksum }, onResponse, onError);
         }
-
         getRefactoringParams(source, target, action, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_REFACTORING_PARAMS, source, target, action }, onResponse, onError);
         }
-
         performRefactoring(source, target, action, checksum, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_PERFORM_REFACTORING, source, target, action, checksum }, onResponse, onError);
         }
-
         getSearchResults(key, value, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_SEARCH_RESULTS, key, value }, onResponse, onError);
         }
-
         getIdKeyValues(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_ID_KEY_VALUES, id }, onResponse, onError);
         }
-
         getAllIdsForType(type, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_ALL_IDS_FOR_TYPE, type }, onResponse, onError);
         }
-
         getAllForLanguage(language, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_ALL_FOR_LANGUAGE, language }, onResponse, onError);
         }
-
         isHMIObject(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_IS_HMI_OBJECT, id }, onResponse, onError);
         }
-
         addDefaultHMIObject(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT, id }, onResponse, onError);
         }
-
         getHMIObject(queryParameterValue, language, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_HMI_OBJECT, queryParameterValue, language }, response => {
                 if (response !== undefined) {
@@ -2751,15 +2644,12 @@
                 }
             }, onError);
         }
-
         getHMIObjects(onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_HMI_OBJECTS }, onResponse, onError);
         }
-
         isTaskObject(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_IS_TASK_OBJECT, id }, onResponse, onError);
         }
-
         addDefaultTaskObject(id, onResponse, onError) {
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT, id }, onResponse, onError);
         }
@@ -2782,7 +2672,6 @@
         constructor(cms) {
             this.#cms = cms;
         }
-
         #readConfigData(ids, path, languages, onProgressChanged, onError) {
             const exports = [createHeader(EXCHANGE_HEADER, path), '\n'];
             const cms = this.#cms, tasks = [], len = ids.length;
@@ -2847,7 +2736,6 @@
                 saveAs(new Blob(exports, { type: "text/plain;charset=utf-8" }), 'js_hmi_export.txt');
             }, onError);
         }
-
         #parse(text, results, onProgressChanged, onError) {
             // separate ids and data
             const cms = this.#cms, elements = [];
@@ -2916,7 +2804,6 @@
             onProgressChanged(`parsed ${idx}/${elements.length} elements`);
             return filter;
         }
-
         #writeConfigData(data, onProgressChanged, onError) {
             const cms = this.#cms, tasks = [];
             for (let i = 0, len = data.length; i < len; i++) {
@@ -2953,7 +2840,6 @@
             tasks.parallel = false;
             Executor.run(tasks, () => onProgressChanged(), onError);
         }
-
         handleImport(hmi, text, onProgressChanged, onError) {
             // separate ids and data
             const that = this, data = [], prefix = this.#parse(text, data, onProgressChanged, onError);
@@ -2971,7 +2857,6 @@
                 cancel: () => onProgressChanged()
             });
         }
-
         handleExport(id, onProgressChanged, onError) {
             const that = this, cms = this.#cms, data = cms.analyzeId(id);
             onProgressChanged('load languages ...');
