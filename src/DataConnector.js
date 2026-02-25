@@ -65,9 +65,9 @@
         return dataPointConfigsByShortId;
     }
 
-    const SHORT_ID_PREFIX = '[';
-    const SHORT_ID_SUFFIX = ']';
-    const subscribeRequestShortIdRegex = /\[[a-z0-9]+\]/g;
+    const SHORT_ID_PREFIX = '<';
+    const SHORT_ID_SUFFIX = '>';
+    const subscribeRequestShortIdRegex = /<[a-z0-9]+>/g;
     class ServerDataConnector extends BaseConnector {
         #logger;
         #isOpen;
