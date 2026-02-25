@@ -10,6 +10,7 @@
     Regex.Linebreaks = /\r?\n|\r/m;
     Regex.Comments = /(?:\(\*(?:[^*]|(?:\*+[^*\)]))*\*+\)\s*)|(?:\/\/.*\s*)/m; // for IEC61131-3 source code
     Regex.Spaces = /\s+/m;
+    Regex.EmptyString = /^\s*$/m;
 
     function each(rx, text, callback, matches) {
         let match, off = 0, idx, len;
