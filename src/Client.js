@@ -1,8 +1,9 @@
 (function (root) {
     "use strict";
     const Client = {};
-
     const isNodeJS = typeof require === 'function';
+    Client.GET_CLIENT_CONFIG = '/get_client_config';
+    Client.HANDLE_REQUEST = '/handle_request';
 
     if (!isNodeJS) {
         // polyfill for requestAnimationFrame (by Opera engineer Erik Möller)
@@ -96,7 +97,7 @@
             }, onError);
         }
         Client.fetchJsonFX = fetchJsonFX;
-        
+
         /*  fetch text by 'POST'  */
         async function fetchGetAsync(url, requestData, onResponse, onError, useMethodGet) {
             let getUrl;
@@ -117,8 +118,12 @@
         }
         Client.fetchGetAsync = fetchGetAsync;
         Client.fetchGet = (url, request, onResponse, onError) => { (async () => await fetchGetAsync(url, request, onResponse, onError))(); }
+    }
 
-        Object.freeze(Client);
+    Object.freeze(Client);
+    if (isNodeJS) {
+        module.exports = Client;
+    } else {
         root.Client = Client;
     }
 }(globalThis));
