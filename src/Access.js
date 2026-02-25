@@ -385,6 +385,8 @@
                 throw new Error(`Access.Router.registerDataAccessObject(): Target id '${targetId}' is already registered`);
             } else {
                 Common.validateAsDataAccessServerObject(accessObject, true);
+                // The router uses the target ID at the start of the data ID to identify the desired target system.
+                // When a target system is accessed, only the raw data ID is passed to it, for which the following function is used.
                 const prefix = `${targetId}:`
                 function getRawDataId(dataId) {
                     return dataId.substring(prefix.length);
@@ -397,11 +399,10 @@
                     read: (dataId, onResponse, onError) => accessObject.read(getRawDataId(dataId), onResponse, onError),
                     write: (dataId, value) => accessObject.write(getRawDataId(dataId), value)
                 }, true);
-                function filter(dataId) {
-                    return dataId.startsWith(prefix);
-                }
                 if (this.#onRegisterObserversOnSource) {
-                    this.#onRegisterObserversOnSource(filter);
+                    // Note: Both in the browser and by services on the server, data points can be registered for monitoring purposes 
+                    // before the actual service has started. This triggers the actual registration process on the service.
+                    this.#onRegisterObserversOnSource(dataId => dataId.startsWith(prefix));
                 }
                 const dataPoints = this.#getDataPoints();
                 for (const dataConnector of this.#dataConnectors) {
@@ -424,11 +425,10 @@
                 throw new Error(`Access.Router.unregisterDataAccessObject(): Target id '${targetId}' is registered for another data access object`);
             } else {
                 const prefix = `${targetId}:`
-                function filter(dataId) {
-                    return dataId.startsWith(prefix);
-                }
                 if (this.#onUnregisterObserversOnSource) {
-                    this.#onUnregisterObserversOnSource(filter);
+                    // Note: Both in the browser and by services on the server, data points may have been registered for monitoring purposes 
+                    // while the actual service was stopped. This triggers the actual unregistration on the service.
+                    this.#onUnregisterObserversOnSource(dataId => dataId.startsWith(prefix));
                 }
                 delete this.#dataAccessObjects[targetId];
                 const dataPoints = this.#getDataPoints();
