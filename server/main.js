@@ -16,6 +16,7 @@
     const ContentManager = require('../src/ContentManager.js');
     const ObjectLifecycleManager = require('../src/ObjectLifecycleManager.js');
     const DataConnector = require('../src/DataConnector.js');
+    const OPCUA = require('../src/OPCUA.js');
     const Access = require('../src/Access.js');
     const Logger = require('../src/Logger.js');
     const WebSocketConnection = require('../src/WebSocketConnection.js');
@@ -49,6 +50,7 @@
                 Common,
                 ContentManager,
                 ObjectLifecycleManager,
+                OPCUA,
                 Access,
                 Logger,
                 ContentEditor,

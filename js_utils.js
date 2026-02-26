@@ -14,6 +14,7 @@
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Core.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Common.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectLifecycleManager.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/OPCUA.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Access.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentManager.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
@@ -42,6 +43,7 @@
         WebServer: require('./src/WebServer.js'),
         Common: require('./src/Common.js'),
         ObjectLifecycleManager: require('./src/ObjectLifecycleManager.js'),
+        OPCUA: require('./src/OPCUA.js'),
         Access: require('./src/Access.js'),
         ContentManager: require('./src/ContentManager.js'),
         DataConnector: require('./src/DataConnector.js'),

@@ -42,9 +42,7 @@
     /*  DataAccessServerObject inferface  */
     function validateAsDataAccessServerObject(instance, validateMethodArguments) {
         validateAsDataAccessObject(instance, validateMethodArguments);
-        return Core.validateAs('DataAccessServerObject', instance, [
-            'getDataPoints()'
-        ], validateMethodArguments);
+        return Core.validateAs('DataAccessServerObject', instance, 'getDataPoints()', validateMethodArguments);
     }
     Common.validateAsDataAccessServerObject = validateAsDataAccessServerObject;
 
