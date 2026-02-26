@@ -81,7 +81,7 @@
         try {
             onSuccess(getKeysAndValues(fs.readFileSync(file, 'utf8')));
         } catch (error) {
-            onError(`OPCUA.loadKeysAndValuesFromCSVFile(): Failed reading csv file '${file}'`, error);
+            onError(`OPCUA.loadKeysAndValuesFromCSVFile(): Failed reading csv file '${file}': ${error.message}`);
         }
     }
     OPCUA.loadKeysAndValuesFromCSVFile = loadKeysAndValuesFromCSVFile;
@@ -547,12 +547,18 @@
                 const tasks = [];
                 if (toRemove.length > 0) {
                     toRemove.parallel = true;
-                    tasks.push((onSuc, onErr) => Executor.run(toRemove, onSuc, error => onSuc()));
+                    tasks.push((onSuc, onErr) => Executor.run(toRemove, onSuc, error => {
+                        this.#logger.error('OPCUA.Client: Failed to un-monitor', error);
+                        onSuc();
+                    }));
                     tasks.push((onSuc, onErr) => setTimeout(() => onSuc(), 500));
                 }
                 if (toAdd.length > 0) {
                     toAdd.parallel = true;
-                    tasks.push((onSuc, onErr) => Executor.run(toAdd, onSuc, error => onSuc()));
+                    tasks.push((onSuc, onErr) => Executor.run(toAdd, onSuc, error => {
+                        this.#logger.error('OPCUA.Client: Failed to monitor', error);
+                        onSuc();
+                    }));
                     tasks.push((onSuc, onErr) => setTimeout(() => onSuc(), 500));
                 }
                 Executor.run(tasks, () => {
