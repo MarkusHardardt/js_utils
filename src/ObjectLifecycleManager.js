@@ -295,7 +295,7 @@
     }
     ObjectLifecycleManager.updateCoordinates = updateCoordinates;
 
-    function ListenerSupport() {
+    function applyListenerSupport() {
         let that = this;
         let listeners = [];
         this._hmi_addEditListener = listener => {
@@ -333,45 +333,45 @@
 
     var _lastUserActionDate = undefined;
 
-    function prevent_default_and_stop_propagation(i_event) {
+    function preventDefaultAndStopPropagation(event) {
         // do not perform default browser actions
-        if (typeof i_event.preventDefault === 'function') {
-            i_event.preventDefault();
+        if (typeof event.preventDefault === 'function') {
+            event.preventDefault();
         }
         // do not delegate to parent elements
-        if (typeof i_event.stopPropagation === 'function') {
-            i_event.stopPropagation();
+        if (typeof event.stopPropagation === 'function') {
+            event.stopPropagation();
         }
         _lastUserActionDate = new Date().getTime();
     }
 
-    function get_last_user_action_date() {
+    function getLastUserActionDate() {
         return _lastUserActionDate;
     }
-    ObjectLifecycleManager.getLastUserActionDate = get_last_user_action_date;
+    ObjectLifecycleManager.getLastUserActionDate = getLastUserActionDate;
 
     // mouse events
-    var MOUSEEVENT_CLICK = 1;
-    var MOUSEEVENT_DBLCLICK = 2;
-    var MOUSEEVENT_HOVER = 3;
-    var MOUSEEVENT_MOUSEDOWN = 4;
-    var MOUSEEVENT_MOUSEENTER = 5;
-    var MOUSEEVENT_MOUSELEAVE = 6;
-    var MOUSEEVENT_MOUSEMOVE = 7;
-    var MOUSEEVENT_MOUSEOUT = 8;
-    var MOUSEEVENT_MOUSEOVER = 9;
-    var MOUSEEVENT_MOUSEUP = 10;
-    var MOUSEEVENT_CONTEXTMENU = 11;
-    var MOUSEEVENT_MOUSEWHEEL = 12;
+    const MOUSEEVENT_CLICK = 1;
+    const MOUSEEVENT_DBLCLICK = 2;
+    const MOUSEEVENT_HOVER = 3;
+    const MOUSEEVENT_MOUSEDOWN = 4;
+    const MOUSEEVENT_MOUSEENTER = 5;
+    const MOUSEEVENT_MOUSELEAVE = 6;
+    const MOUSEEVENT_MOUSEMOVE = 7;
+    const MOUSEEVENT_MOUSEOUT = 8;
+    const MOUSEEVENT_MOUSEOVER = 9;
+    const MOUSEEVENT_MOUSEUP = 10;
+    const MOUSEEVENT_CONTEXTMENU = 11;
+    const MOUSEEVENT_MOUSEWHEEL = 12;
     // touch events
-    var TOUCHEVENT_TOUCHSTART = 20;
-    var TOUCHEVENT_TOUCHENTER = 21;
-    var TOUCHEVENT_TOUCHMOVE = 22;
-    var TOUCHEVENT_TOUCHEND = 23;
-    var TOUCHEVENT_TOUCHLEAVE = 24;
-    var TOUCHEVENT_TOUCHCANCEL = 25;
+    const TOUCHEVENT_TOUCHSTART = 20;
+    const TOUCHEVENT_TOUCHENTER = 21;
+    const TOUCHEVENT_TOUCHMOVE = 22;
+    const TOUCHEVENT_TOUCHEND = 23;
+    const TOUCHEVENT_TOUCHLEAVE = 24;
+    const TOUCHEVENT_TOUCHCANCEL = 25;
 
-    var s_event_listeners = [];
+    const s_event_listeners = [];
 
     function initObject(object, data) {
         if (typeof object.init === 'function') {
@@ -389,85 +389,85 @@
         }
     }
 
-    function EventListener(i_context, i_callback) {
-        var that = this;
-        var _cont = i_context.container;
-        var _listening = false;
+    function applyEventListener(i_context, i_callback) {
+        let that = this;
+        let _cont = i_context.container;
+        let _listening = false;
         // callbacks for mouse events
-        function mouseevent_click(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, MOUSEEVENT_CLICK);
+        function mouseevent_click(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, MOUSEEVENT_CLICK);
         }
-        function mouseevent_dblclick(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, MOUSEEVENT_DBLCLICK);
+        function mouseevent_dblclick(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, MOUSEEVENT_DBLCLICK);
         }
-        function mouseevent_hover(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, MOUSEEVENT_HOVER);
+        function mouseevent_hover(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, MOUSEEVENT_HOVER);
         }
-        function mouseevent_mousedown(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, MOUSEEVENT_MOUSEDOWN);
+        function mouseevent_mousedown(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, MOUSEEVENT_MOUSEDOWN);
         }
-        function mouseevent_mouseenter(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, MOUSEEVENT_MOUSEENTER);
+        function mouseevent_mouseenter(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, MOUSEEVENT_MOUSEENTER);
         }
-        function mouseevent_mouseleave(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, MOUSEEVENT_MOUSELEAVE);
+        function mouseevent_mouseleave(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, MOUSEEVENT_MOUSELEAVE);
         }
-        function mouseevent_mousemove(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, MOUSEEVENT_MOUSEMOVE);
+        function mouseevent_mousemove(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, MOUSEEVENT_MOUSEMOVE);
         }
-        function mouseevent_mouseout(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, MOUSEEVENT_MOUSEOUT);
+        function mouseevent_mouseout(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, MOUSEEVENT_MOUSEOUT);
         }
-        function mouseevent_mouseover(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, MOUSEEVENT_MOUSEOVER);
+        function mouseevent_mouseover(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, MOUSEEVENT_MOUSEOVER);
         }
-        function mouseevent_mouseup(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, MOUSEEVENT_MOUSEUP);
+        function mouseevent_mouseup(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, MOUSEEVENT_MOUSEUP);
         }
-        function mouseevent_contextmenu(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, MOUSEEVENT_CONTEXTMENU);
+        function mouseevent_contextmenu(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, MOUSEEVENT_CONTEXTMENU);
         }
-        function mouseevent_mousewheel(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, MOUSEEVENT_MOUSEWHEEL);
+        function mouseevent_mousewheel(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, MOUSEEVENT_MOUSEWHEEL);
         }
         // callbacks for touch events
-        function touchevent_touchstart(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, TOUCHEVENT_TOUCHSTART);
+        function touchevent_touchstart(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, TOUCHEVENT_TOUCHSTART);
         }
-        function touchevent_touchenter(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, TOUCHEVENT_TOUCHENTER);
+        function touchevent_touchenter(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, TOUCHEVENT_TOUCHENTER);
         }
-        function touchevent_touchmove(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, TOUCHEVENT_TOUCHMOVE);
+        function touchevent_touchmove(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, TOUCHEVENT_TOUCHMOVE);
         }
-        function touchevent_touchend(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, TOUCHEVENT_TOUCHEND);
+        function touchevent_touchend(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, TOUCHEVENT_TOUCHEND);
         }
-        function touchevent_touchleave(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, TOUCHEVENT_TOUCHLEAVE);
+        function touchevent_touchleave(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, TOUCHEVENT_TOUCHLEAVE);
         }
-        function touchevent_touchcancel(i_event) {
-            prevent_default_and_stop_propagation(i_event);
-            i_callback(i_event, TOUCHEVENT_TOUCHCANCEL);
+        function touchevent_touchcancel(event) {
+            preventDefaultAndStopPropagation(event);
+            i_callback(event, TOUCHEVENT_TOUCHCANCEL);
         }
-        this._hmi_addEventListeners = function () {
+        this._hmi_addEventListeners = () => {
             if (_listening === false) {
                 _listening = true;
                 if (typeof i_callback === 'function') {
@@ -492,7 +492,7 @@
                 }
             }
         };
-        this._hmi_removeEventListeners = function () {
+        this._hmi_removeEventListeners = () => {
             if (_listening === true) {
                 _listening = false;
                 if (typeof i_callback === 'function') {
@@ -517,8 +517,8 @@
                 }
             }
         };
-        this._hmi_destroys.push(function () {
-            for (var i = 0; i < s_event_listeners.length; i++) {
+        this._hmi_destroys.push(() => {
+            for (let i = 0; i < s_event_listeners.length; i++) {
                 if (s_event_listeners[i] === that) {
                     s_event_listeners.splice(i, 1);
                     break;
@@ -659,13 +659,13 @@
                 }
             }
         }
-        function pressed(i_event) {
-            prevent_default_and_stop_propagation(i_event);
+        function pressed(event) {
+            preventDefaultAndStopPropagation(event);
             // handle the event
             updateState(true, false);
         }
-        function released(i_event) {
-            prevent_default_and_stop_propagation(i_event);
+        function released(event) {
+            preventDefaultAndStopPropagation(event);
             // handle the event
             updateState(false, false);
         }
@@ -1356,7 +1356,7 @@
         _grid.calculateGrid(_mainDiv.width(), _mainDiv.height(), typeof that.separator === 'number' ? that.separator : 0);
         var _placeholders = undefined;
         if (i_enableEditorEvents === true) {
-            ListenerSupport.call(that);
+            applyListenerSupport.call(that);
             _placeholders = [];
             for (var col = _grid.getColumns() - 1; col >= 0; col--) {
                 for (var row = _grid.getRows() - 1; row >= 0; row--) {
@@ -1383,7 +1383,7 @@
                             // this method will be called when dragged element has been
                             // dropped
                             drop: function (i_event, i_ui) {
-                                prevent_default_and_stop_propagation(i_event);
+                                preventDefaultAndStopPropagation(i_event);
                                 // get the source object and data
                                 var source = i_ui.draggable.data('hmi_object');
                                 for (var i = 0; i < _children.length; i++) {
@@ -1426,7 +1426,7 @@
                                 placeholder._hmi_gridElement.removeClass('default-background-hover');
                             });
                             placeholder._hmi_clickedForEdit = function (i_event) {
-                                prevent_default_and_stop_propagation(i_event);
+                                preventDefaultAndStopPropagation(i_event);
                                 that._hmi_forAllEditListeners(function (i_listener) {
                                     if (typeof i_listener.showChildObjectEditor === 'function') {
                                         i_listener.showChildObjectEditor(-1, placeholder);
@@ -1462,7 +1462,7 @@
                         // this method will be called when dragged element has been
                         // dropped
                         drop: function (i_event, i_ui) {
-                            prevent_default_and_stop_propagation(i_event);
+                            preventDefaultAndStopPropagation(i_event);
                             // get the source object and data
                             var source = i_ui.draggable.data('hmi_object');
                             var data = source && source.data !== null && typeof source.data === 'object' ? source.data : undefined;
@@ -1713,7 +1713,7 @@
                             }
                             if (i_enableEditorEvents === true) {
                                 child._hmi_clickedForEdit = function (i_event) {
-                                    prevent_default_and_stop_propagation(i_event);
+                                    preventDefaultAndStopPropagation(i_event);
                                     that._hmi_forAllEditListeners(function (i_listener) {
                                         if (typeof i_listener.showChildObjectEditor === 'function') {
                                             i_listener.showChildObjectEditor(idx, child);
@@ -1826,14 +1826,14 @@
         var _children = Array.isArray(this.children) ? this.children : [];
         var _scope = undefined;
         if (i_enableEditorEvents === true) {
-            ListenerSupport.call(that);
+            applyListenerSupport.call(that);
             _scope = Utilities.getUniqueId();
             _mainDiv.droppable({
                 scope: _scope,
                 tolerance: 'pointer',
                 hoverClass: 'default-background-hover',
                 drop: function (i_event, i_ui) {
-                    prevent_default_and_stop_propagation(i_event);
+                    preventDefaultAndStopPropagation(i_event);
                     var source = i_ui.draggable.data('hmi_object');
                     for (var i = 0; i < _children.length; i++) {
                         var child = _children[i];
@@ -1919,7 +1919,7 @@
                         }
                         if (i_enableEditorEvents === true) {
                             child._hmi_clickedForEdit = function (i_event) {
-                                prevent_default_and_stop_propagation(i_event);
+                                preventDefaultAndStopPropagation(i_event);
                                 that._hmi_forAllEditListeners(function (i_listener) {
                                     if (typeof i_listener.showChildObjectEditor === 'function') {
                                         i_listener.showChildObjectEditor(idx, child);
@@ -1934,7 +1934,7 @@
         }
         if (i_enableEditorEvents === true) {
             this._hmi_clickedForEdit = function (i_event) {
-                prevent_default_and_stop_propagation(i_event);
+                preventDefaultAndStopPropagation(i_event);
                 that._hmi_forAllEditListeners(function (i_listener) {
                     if (typeof i_listener.showChildObjectEditor === 'function') {
                         var w = _cont.width();
@@ -4891,7 +4891,7 @@
                         that._hmi_handleZoomEvent(i_event, i_type);
                     }
                 };
-                EventListener.call(that, i_context, event);
+                applyEventListener.call(that, i_context, event);
             }
             else {
                 this._hmi_canvas.remove();
@@ -7134,7 +7134,7 @@
                                         if ($(this).is('.ui-draggable-dragging')) {
                                             return;
                                         }
-                                        prevent_default_and_stop_propagation(i_event);
+                                        preventDefaultAndStopPropagation(i_event);
                                         var target = that.hmi.droppables[that.draggable];
                                         var data = that.data;
                                         if (target !== null && typeof target === 'object' && typeof target.add === 'function' && data !== null && typeof data === 'object' && typeof data.object === 'string') {
