@@ -11,6 +11,7 @@
             ObjectLifecycleManager.showDialog(hmi, object, onSuccess, onError),
         showDefaultConfirmationDialog: (object, onSuccess, onError) =>
             ObjectLifecycleManager.showDefaultConfirmationDialog(hmi, object, onSuccess, onError),
+        /*  TODO: Remove or reuse
         utils: {
             Executor,
             HashLists,
@@ -26,7 +27,7 @@
             ObjectLifecycleManager,
             Access,
             Logger
-        },
+        },*/ 
         // Environment
         env: {
             isInstance: instance => false, // TODO: Implement isInstance(instance)
@@ -61,7 +62,7 @@
         });
 
         // prepare content management system
-        tasks.push((onSuccess, onError) => hmi.cms = ContentManager.getInstance(onSuccess, onError));
+        tasks.push((onSuccess, onError) => hmi.cms = ContentManager.getInstance(hmi.logger, onSuccess, onError));
         tasks.push((onSuccess, onError) => {
             const languages = hmi.lang = LanguageSwitching.getInstance(hmi.logger, hmi.cms);
             const language = languages.isAvailable(languageQueryParameterValue) ? languageQueryParameterValue : languages.getLanguage();
