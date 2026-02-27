@@ -1344,8 +1344,7 @@
                     case ContentManager.RAW:
                         container.hmi_removeContent(function () {
                             cms.getObject(data.file, language, ContentManager.RAW, raw => {
-                                let value = raw !== undefined ? JsonFX.stringify(JsonFX.reconstruct(raw), true) : '';
-                                textarea.value = value;
+                                textarea.value = raw !== undefined ? JsonFX.stringify(JsonFX.reconstruct(raw), true) : '';
                                 container.hmi_setContent(textarea, () => {
                                     if (raw !== undefined) {
                                         textarea.file_raw = data.file;
@@ -1359,8 +1358,7 @@
                     case ContentManager.INCLUDE:
                         container.hmi_removeContent(() => {
                             cms.getObject(data.file, language, ContentManager.INCLUDE, build => {
-                                var value = build !== undefined ? JsonFX.stringify(JsonFX.reconstruct(build), true) : '';
-                                textarea.value = value;
+                                textarea.value = build !== undefined ? JsonFX.stringify(JsonFX.reconstruct(build), true) : '';
                                 container.hmi_setContent(textarea, () => {
                                     if (build !== undefined) {
                                         textarea.file_build = data.file;
