@@ -1,5 +1,6 @@
 (function () {
     "use strict";
+    // Note: Read the comment below before removing any of the following lines! The required module is possibly used from evaluated text during runtime!
     const Client = require('../src/Client.js');
     const Executor = require('../src/Executor.js');
     const HashLists = require('../src/HashLists.js');
@@ -24,6 +25,14 @@
     const LanguageSwitching = require('../src/LanguageSwitching.js');
     const TaskManager = require('../src/TaskManager.js');
     const md5 = require('../ext/md5.js'); // external
+    /*  Note: This eval function must be defined here!
+        When tasks on server side must be executed, they will be loaded from the database as text and then evaluated to get the executable task object.
+        The evaluated text possibly references modules in js_utils.
+        If the eval function would be located in JsonFX none of the js_utils modules would be available, because JsonFX does not use any other module.
+        We also evaluate text in ContentManager but if the eval function would be called there, only the modules used by ContentManager would be available.
+        By instead defining the eval function here, all modules we require above will be available from the context of any server task object.
+        So this enables direct use on any js_utils module just by the name as if the module would be accessible from a global context.  */
+    const evalFunction = text => eval(text);
 
     function main(config = {}) {
         Logger.setLevel(config.serverLogLevel);
@@ -36,6 +45,7 @@
             createObject: (object, element, onSuccess, onError, initData) =>
                 ObjectLifecycleManager.createObject(object, element, onSuccess, onError, hmi, initData),
             killObject: ObjectLifecycleManager.killObject,
+            /*  TODO: Remove or reuse
             utils: {
                 Executor,
                 HashLists,
@@ -55,7 +65,7 @@
                 Logger,
                 ContentEditor,
                 md5
-            },
+            }, */
             // Environment
             env: {
                 isInstance: instance => false, // TODO: Implement isInstance(instance)
@@ -179,7 +189,7 @@
         const sqlAdapterFactory = SqlHelper.getAdapterFactory(hmi.logger);
         // Setting up content manager and add directory containing the icons for the configurator
         const configIconDirectory = webServer.addStaticDirectory('./node_modules/@markus.hardardt/js_utils/cfg/icons');
-        const contentManager = ContentManager.getInstance(hmi.logger, sqlAdapterFactory, configIconDirectory);
+        const contentManager = ContentManager.getInstance(hmi.logger, sqlAdapterFactory, evalFunction, configIconDirectory);
         hmi.cms = contentManager;
         contentManager.registerOnWebServer(webServer);
         // Set up task manager
