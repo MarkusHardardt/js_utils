@@ -155,16 +155,16 @@
     }
     JsonFX.stringify = stringify;
 
-    function reconstruct(object) {
+    function reconstruct(object, evalFunction) {
         if (object !== undefined && object !== null) {
             if (Array.isArray(object)) {
                 for (let i = 0, l = object.length; i < l; i++) {
-                    object[i] = reconstruct(object[i]);
+                    object[i] = reconstruct(object[i], evalFunction);
                 }
             } else if (typeof object === 'object') {
                 for (const attr in object) {
                     if (object.hasOwnProperty(attr)) {
-                        object[attr] = reconstruct(object[attr]);
+                        object[attr] = reconstruct(object[attr], evalFunction);
                     }
                 }
             } else if (typeof object === 'string' && object.length > 0) {
@@ -175,7 +175,7 @@
                         object = false;
                     } else if (standardFunctionRegex.test(object) || lambdaFunctionRegex.test(object) || lambdaFunctionSingleArgumentRegex.test(object)) {
                         try {
-                            object = eval('(' + object + ')');
+                            object = evalFunction ? evalFunction(`(${object})`) : eval(`(${object})`);
                         } catch (exc) {
                             console.error('EXCEPTION! Cannot evaluate function: ' + exc);
                         }
@@ -189,7 +189,7 @@
     }
     JsonFX.reconstruct = reconstruct;
 
-    function parse(text, sourceIsPretty, doReconstruct) {
+    function parse(text, sourceIsPretty, doReconstruct, evalFunction) {
         // Parsing happens in four stages. In the first stage, we replace certain
         // Unicode characters with escape sequences. JavaScript handles many
         // characters
@@ -220,18 +220,13 @@
         // or
         // ',' or ':' or '{' or '}'. If that is so, then the text is safe for eval.
         if (sourceIsPretty === true || /^[\],:{}\s]*$/.test(txt.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '@').replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']').replace(/(?:^|:|,)(?:\s*\[)+/g, ""))) {
-            // In the third stage we use the eval function to compile the text into a
-            // JavaScript structure. The '{' operator is subject to a syntactic
-            // ambiguity
-            // in JavaScript: it can begin a block or an object literal. We wrap the
-            // text
-            // in parens to eliminate the ambiguity.
-            const value = eval('(' + txt + ')');
-            // In the optional fourth stage, we recursively walk the new structure,
-            // passing
-            // each name/value pair to a reviver function for possible
-            // transformation.
-            return doReconstruct === true ? reconstruct(value) : value;
+            // In the third stage we use the eval function to compile the text into a JavaScript structure. 
+            // The '{' operator is subject to a syntactic ambiguity in JavaScript: it can begin a block or an object literal. 
+            // We wrap the text in parens to eliminate the ambiguity.
+            const value = evalFunction ? evalFunction(`(${txt})`) : eval(`(${txt})`);
+            // In the optional fourth stage, we recursively walk the new structure, 
+            // passing each name/value pair to a reviver function for possible transformation.
+            return doReconstruct === true ? reconstruct(value, evalFunction) : value;
         }
         // If the text is not JSON parseable, then a SyntaxError is thrown.
         throw new SyntaxError('JsonFX.parse systax error');
