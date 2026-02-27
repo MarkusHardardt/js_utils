@@ -140,13 +140,15 @@
     const AUTO_KEY_LENGTH = 8;
 
     class ContentManagerBase {
-        constructor() {
+        #logger;
+        constructor(logger) {
             if (this.constructor === ContentManagerBase) {
                 throw new Error('The abstract base class ContentManagerBase cannot be instantiated.')
             }
+            this.#logger = logger;
         }
         getExchangeHandler() {
-            return new ExchangeHandler(this);
+            return new ExchangeHandler(this.#logger, this);
         }
         getLanguages(array) {
             return Utilities.copyArray(this._config.languages, array);
@@ -224,17 +226,22 @@
     class ServerManager extends ContentManagerBase {
         #logger;
         #getSqlAdapter;
+        #evalFunction;
         #parallel;
         #affectedTypesListeners;
         #hmiTable;
         #taskTable;
-        constructor(logger, getSqlAdapter, iconDirectory, config) {
-            super();
+        constructor(logger, getSqlAdapter, evalFunction, iconDirectory, config) {
+            super(logger);
             this.#logger = Common.validateAsLogger(logger, true);
             if (typeof getSqlAdapter !== 'function') {
                 throw new Error('No database access provider available!');
             }
             this.#getSqlAdapter = getSqlAdapter;
+            if (typeof evalFunction !== 'function') {
+                throw new Error('No eval function available!');
+            }
+            this.#evalFunction = evalFunction;
             this._iconDirectory = `/${iconDirectory}/`;
             const db_config = require(typeof config === 'string' ? config : '../cfg/db_config.json');
             this._config = db_config;
@@ -479,12 +486,12 @@
             function success(response) {
                 try {
                     if (parse) {
-                        let object = JsonFX.reconstruct(response);
+                        let object = JsonFX.reconstruct(response, that.#evalFunction);
                         if (that._config.jsonfxPretty === true) {
                             // the 'jsonfxPretty' flag may be used to format our dynamically
                             // parsed JavaScript sources for more easy debugging purpose
-                            // TODO: object = eval('(' + JsonFX.stringify(object, true) + ')\n//# sourceURL=' + rawKey + '.js');
-                            object = eval('(' + JsonFX.stringify(object, true) + ')');
+                            // TODO: object = eval ('(' + JsonFX.stringify(object, true) + ')\n//# sourceURL=' + rawKey + '.js');
+                            object = that.#evalFunction(`(${JsonFX.stringify(object, true)})`);
                         }
                         onResponse(object);
                     } else {
@@ -1579,7 +1586,7 @@
                         try {
                             onChanged();
                         } catch (error) {
-                            console.error(`Failed calling onChanged() for type '${type}': ${error}`);
+                            this.#logger.error(`Failed calling onChanged() for type '${type}'`, error);
                         }
                     }
                 }
@@ -2541,8 +2548,8 @@
     }
 
     class ClientManager extends ContentManagerBase {
-        constructor(onResponse, onError) {
-            super();
+        constructor(logger, onResponse, onError) {
+            super(logger);
             Common.validateAsContentManager(this, true);
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_CONFIG }, config => {
                 this._config = config;
@@ -2581,8 +2588,8 @@
                         if (this._config !== undefined && this._config.jsonfxPretty === true) {
                             // the 'jsonfxPretty' flag may be used to format our dynamically
                             // parsed JavaScript sources for more easy debugging purpose
-                            // TOOD: response = eval('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
-                            object = eval('(' + JsonFX.stringify(object, true) + ')');
+                            // TOOD: response = eval ('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
+                            object = eval(`(${JsonFX.stringify(object, true)})`);
                         }
                         onResponse(object);
                     } catch (exc) {
@@ -2632,8 +2639,8 @@
                             // the 'jsonfxPretty' flag may be used to format our dynamically
                             // parsed JavaScript sources for more easy debugging purpose
                             // TODO: reuse or remove const match = that._contentTablesKeyRegex.exec(id);
-                            // TOOD: response = eval('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
-                            object = eval('(' + JsonFX.stringify(object, true) + ')');
+                            // TOOD: response = eval ('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
+                            object = eval(`(${JsonFX.stringify(object, true)})`);
                         }
                         onResponse(object);
                     } catch (exc) {
@@ -2668,8 +2675,10 @@
     }
 
     class ExchangeHandler {
+        #logger;
         #cms;
-        constructor(cms) {
+        constructor(logger, cms) {
+            this.#logger = this.#logger;
             this.#cms = cms;
         }
         #readConfigData(ids, path, languages, onProgressChanged, onError) {
@@ -2725,7 +2734,7 @@
                             });
                             break;
                         default:
-                            console.error(`Invalid type '${data.type}'`);
+                            this.#logger.error(`Invalid type '${data.type}'`);
                             break;
                     }
                 }());
@@ -2792,7 +2801,7 @@
                                 results.push(data);
                                 break;
                             default:
-                                console.error(`Invalid type '${data.type}'`);
+                                this.#logger.error(`Invalid type '${data.type}'`);
                                 break;
                         }
                     } else {
@@ -2828,7 +2837,7 @@
                             });
                             break;
                         default:
-                            console.error(`Invalid type '${d.type}'`);
+                            this.#logger.error(`Invalid type '${d.type}'`);
                             break;
                     }
                     tasks.push((onSuc, onErr) => {
@@ -2876,9 +2885,9 @@
     }
 
     if (isNodeJS) {
-        ContentManager.getInstance = (logger, getSqlAdapter, iconDirectory, config) => new ServerManager(logger, getSqlAdapter, iconDirectory, config);
+        ContentManager.getInstance = (logger, getSqlAdapter, evalFunction, iconDirectory, config) => new ServerManager(logger, getSqlAdapter, evalFunction, iconDirectory, config);
     } else {
-        ContentManager.getInstance = (onResponse, onError) => new ClientManager(onResponse, onError);
+        ContentManager.getInstance = (logger, onResponse, onError) => new ClientManager(logger, onResponse, onError);
     }
     Object.freeze(ContentManager);
     if (isNodeJS) {
