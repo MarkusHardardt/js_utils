@@ -7,7 +7,7 @@
 
     // TODO: Must be modified if file structure changed. This is a very simple solution so far
     const moduleNameRegex = /^([a-zA-Z][_a-zA-Z0-9]*)\.js$/;
-    const moduleRegex = /\bconst\s+([a-zA-Z][_a-zA-Z0-9]*)\s*=\s*isNodeJS\s*\?\s*require\s*\(\s*'\.\/\1\.js'\s*\)\s*:\s*root\s*\.\s*\1\s*;/g;
+    const moduleRegex = /^\s*const\s+([a-zA-Z][_a-zA-Z0-9]*)\s*=\s*isNodeJS\s*\?\s*require\s*\(\s*'\.\/\1\.js'\s*\)\s*:\s*root\s*\.\s*\1\s*;\s*$/mg;
 
     function loadDependencies(directory, ignorables, onSuccess, onError) {
         fs.readdir(directory, (error, files) => {
