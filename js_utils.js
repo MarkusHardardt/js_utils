@@ -20,6 +20,7 @@
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Logger.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Evaluate.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/LanguageSwitching.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/TaskManager.js');
@@ -49,6 +50,7 @@
         DataConnector: require('./src/DataConnector.js'),
         Logger: require('./src/Logger.js'),
         WebSocketConnection: require('./src/WebSocketConnection.js'),
+        Evaluate: require('./src/Evaluate.js'),
         ContentEditor: require('./src/ContentEditor.js'),
         LanguageSwitching: require('./src/LanguageSwitching.js'),
         TaskManager: require('./src/TaskManager.js'),
