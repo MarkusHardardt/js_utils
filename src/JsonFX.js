@@ -82,29 +82,25 @@
                 // the remote chance that this gets fixed someday.
                 return String(value);
             // If the type is 'object', we might be dealing with an object or an array
-            // or
-            // null.
+            // or null.
             case 'object':
                 // Due to a specification blunder in ECMAScript, typeof null is 'object',
                 // so watch out for that case.
                 if (!value) {
                     return 'null';
                 }
-                // Make an array to hold the partial results of stringifying this object
-                // value.
+                // Make an array to hold the partial results of stringifying this object value.
                 partial = [];
                 // Is the value an array?
                 if (Array.isArray(value)) {
                     // The value is an array. Stringify every element. Use null as a
-                    // placeholder
-                    // for non-JSON values.
+                    // placeholder for non-JSON values.
                     length = value.length;
                     for (i = 0; i < length; i += 1) {
                         partial[i] = getString(i, value, pretty) || 'null';
                     }
                     // Join all of the elements together, separated with commas, and wrap
-                    // them in
-                    // brackets.
+                    // them in brackets.
                     v = partial.length === 0 ? '[]' : '[' + partial.join(',') + ']';
                     return v;
                 }
@@ -146,11 +142,9 @@
      * @returns The string representation of the passed value.
      */
     function stringify(value, pretty) {
-        // The stringify method takes a value and an optional replacer, and an
-        // optional
+        // The stringify method takes a value and an optional replacer, and an optional
         // space parameter, and returns a JSON text. The replacer can be a function
-        // that can replace values, or an array of strings that will select the
-        // keys.
+        // that can replace values, or an array of strings that will select the keys.
         // A default replacer method can be provided. Use of the space parameter
         // can produce text that is more easily readable.
 
@@ -197,36 +191,37 @@
     }
     JsonFX.reconstruct = reconstruct;
 
+    /**
+     * 
+     * @param {string} text - the text to parse
+     * @param {boolean} sourceIsPretty - If the text to parse comes from a JavaScript source code editor this must be true. 
+     * If the test is mode pure JSON pass false.
+     * @param {boolean} doReconstruct - Set true if strings containg only boolean, number or functions should be cnverted to it raw type.
+     * @param {Function} evalFunc - The eval function to use (allows using eval from a certain context)
+     * @returns The resulting object like a boolean, number, string, object array or function. If not parseable a systax error will be thrown.
+     */
     function parse(text, sourceIsPretty, doReconstruct, evalFunc) {
-        // Parsing happens in four stages. In the first stage, we replace certain
-        // Unicode characters with escape sequences. JavaScript handles many
-        // characters
-        // incorrectly, either silently deleting them, or treating them as line
-        // endings.
+        // Parsing happens in four stages. 
+        // In the first stage, we replace certain Unicode characters with escape sequences.
+        // JavaScript handles many characters incorrectly, either silently deleting them, 
+        // or treating them as line endings.
         let txt = String(text);
         _cx.lastIndex = 0;
         if (_cx.test(txt)) {
             txt = txt.replace(_cx, a => '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4));
         }
         // In the second stage, we run the text against regular expressions that
-        // look
-        // for non-JSONFX patterns. We are especially concerned with '()' and 'new'
-        // because they can cause invocation, and '=' because it can cause
-        // mutation.
+        // look for non-JsonFX patterns. We are especially concerned with '()' and 'new'
+        // because they can cause invocation, and '=' because it can cause mutation.
         // But just to be safe, we want to reject all unexpected forms.
 
         // We split the second stage into 4 regexp operations in order to work
-        // around
-        // crippling inefficiencies in IE's and Safari's regexp engines. First we
-        // replace the JSONFX backslash pairs with '@' (a non-JSONFX character).
-        // Second, we
-        // replace all simple value tokens with ']' characters. Third, we delete
-        // all
-        // open brackets that follow a colon or comma or that begin the text.
-        // Finally,
-        // we look to see that the remaining characters are only whitespace or ']'
-        // or
-        // ',' or ':' or '{' or '}'. If that is so, then the text is safe for eval.
+        // around crippling inefficiencies in IE's and Safari's regexp engines. 
+        // First we replace the JsonFX backslash pairs with '@' (a non-JsonFX character).
+        // Second, we replace all simple value tokens with ']' characters. 
+        // Third, we delete all open brackets that follow a colon or comma or that begin the text.
+        // Finally, we look to see that the remaining characters are only whitespace or ']'
+        // or ',' or ':' or '{' or '}'. If that is so, then the text is safe for eval.
         if (sourceIsPretty === true || /^[\],:{}\s]*$/.test(txt.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '@').replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']').replace(/(?:^|:|,)(?:\s*\[)+/g, ""))) {
             // In the third stage we use the eval function to compile the text into a JavaScript structure. 
             // The '{' operator is subject to a syntactic ambiguity in JavaScript: it can begin a block or an object literal. 
