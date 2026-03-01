@@ -1,38 +1,30 @@
 (function () {
     "use strict";
-    // Note: Read the comment below before removing any of the following lines! The required module is possibly used from evaluated text during runtime!
     const Client = require('../src/Client.js');
     const Executor = require('../src/Executor.js');
-    const HashLists = require('../src/HashLists.js');
+    // const HashLists = require('../src/HashLists.js');
     const JsonFX = require('../src/JsonFX.js');
-    const Mathematics = require('../src/Mathematics.js');
-    const Regex = require('../src/Regex.js');
-    const Server = require('../src/Server.js');
-    const Sorting = require('../src/Sorting.js');
+    // const Mathematics = require('../src/Mathematics.js');
+    // const Regex = require('../src/Regex.js');
+    // const Server = require('../src/Server.js');
+    // const Sorting = require('../src/Sorting.js');
     const SqlHelper = require('../src/SqlHelper.js');
-    const Utilities = require('../src/Utilities.js');
-    const Core = require('../src/Core.js');
+    // const Utilities = require('../src/Utilities.js');
+    // const Core = require('../src/Core.js');
     const WebServer = require('../src/WebServer.js');
     const Common = require('../src/Common.js');
     const ContentManager = require('../src/ContentManager.js');
     const ObjectLifecycleManager = require('../src/ObjectLifecycleManager.js');
     const DataConnector = require('../src/DataConnector.js');
-    const OPCUA = require('../src/OPCUA.js');
+    // const OPCUA = require('../src/OPCUA.js');
     const Access = require('../src/Access.js');
     const Logger = require('../src/Logger.js');
     const WebSocketConnection = require('../src/WebSocketConnection.js');
-    const ContentEditor = require('../src/ContentEditor.js');
-    const LanguageSwitching = require('../src/LanguageSwitching.js');
+    // const ContentEditor = require('../src/ContentEditor.js');
+    // const LanguageSwitching = require('../src/LanguageSwitching.js');
     const TaskManager = require('../src/TaskManager.js');
-    const md5 = require('../ext/md5.js'); // external
-    /*  Note: This eval function must be defined here!
-        When tasks on server side must be executed, they will be loaded from the database as text and then evaluated to get the executable task object.
-        The evaluated text possibly references modules in js_utils.
-        If the eval function would be located in JsonFX none of the js_utils modules would be available, because JsonFX does not use any other module.
-        We also evaluate text in ContentManager but if the eval function would be called there, only the modules used by ContentManager would be available.
-        By instead defining the eval function here, all modules we require above will be available from the context of any server task object.
-        So this enables direct use on any js_utils module just by the name as if the module would be accessible from a global context.  */
-    const evalFunction = text => eval(text);
+    const Evaluate = require('../src/Evaluate.js');
+    // const md5 = require('../ext/md5.js'); // external
 
     function main(config = {}) {
         Logger.setLevel(config.serverLogLevel);
@@ -45,27 +37,6 @@
             createObject: (object, element, onSuccess, onError, initData) =>
                 ObjectLifecycleManager.createObject(object, element, onSuccess, onError, hmi, initData),
             killObject: ObjectLifecycleManager.killObject,
-            /*  TODO: Remove or reuse
-            utils: {
-                Executor,
-                HashLists,
-                JsonFX,
-                Mathematics,
-                Regex,
-                Server,
-                Sorting,
-                SqlHelper,
-                Utilities,
-                Core,
-                Common,
-                ContentManager,
-                ObjectLifecycleManager,
-                OPCUA,
-                Access,
-                Logger,
-                ContentEditor,
-                md5
-            }, */
             // Environment
             env: {
                 isInstance: instance => false, // TODO: Implement isInstance(instance)
@@ -160,6 +131,7 @@
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/LanguageSwitching.js');
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/TaskManager.js');
+        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Evaluate.js');
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/ext/md5.js'); // external
         // And last but not least add client side 'main' program using the previously added files:
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/client/main.js');
@@ -189,7 +161,7 @@
         const sqlAdapterFactory = SqlHelper.getAdapterFactory(hmi.logger);
         // Setting up content manager and add directory containing the icons for the configurator
         const configIconDirectory = webServer.addStaticDirectory('./node_modules/@markus.hardardt/js_utils/cfg/icons');
-        const contentManager = ContentManager.getInstance(hmi.logger, sqlAdapterFactory, evalFunction, configIconDirectory);
+        const contentManager = ContentManager.getInstance(hmi.logger, Evaluate.evalFunc, sqlAdapterFactory, configIconDirectory);
         hmi.cms = contentManager;
         contentManager.registerOnWebServer(webServer);
         // Set up task manager

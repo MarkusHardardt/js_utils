@@ -226,22 +226,22 @@
     class ServerManager extends ContentManagerBase {
         #logger;
         #getSqlAdapter;
-        #evalFunction;
+        #evalFunc;
         #parallel;
         #affectedTypesListeners;
         #hmiTable;
         #taskTable;
-        constructor(logger, getSqlAdapter, evalFunction, iconDirectory, config) {
+        constructor(logger, evalFunc, getSqlAdapter, iconDirectory, config) {
             super(logger);
             this.#logger = Common.validateAsLogger(logger, true);
             if (typeof getSqlAdapter !== 'function') {
                 throw new Error('No database access provider available!');
             }
             this.#getSqlAdapter = getSqlAdapter;
-            if (typeof evalFunction !== 'function') {
+            if (typeof evalFunc !== 'function') {
                 throw new Error('No eval function available!');
             }
-            this.#evalFunction = evalFunction;
+            this.#evalFunc = evalFunc;
             this._iconDirectory = `/${iconDirectory}/`;
             const db_config = require(typeof config === 'string' ? config : '../cfg/db_config.json');
             this._config = db_config;
@@ -472,7 +472,7 @@
                 onError(`Invalid table name: '${id}'`);
                 return;
             }
-            this.#getSqlAdapter(adapter => this.#getObject(adapter, id, match[1], table, language, mode, response => {
+            this.#getSqlAdapter(adapter => this.#resolveObject(adapter, id, match[1], table, language, mode, response => {
                 adapter.close();
                 onResponse(response);
             }, error => {
@@ -480,20 +480,20 @@
                 onError(error);
             }), onError);
         }
-        #getObject(adapter, id, rawKey, table, language, mode, onResponse, onError) {
+        #resolveObject(adapter, id, rawKey, table, language, mode, onResponse, onError) {
             const that = this;
             const parse = mode === ContentManager.PARSE, include = parse || mode === ContentManager.INCLUDE;
             function success(response) {
                 try {
                     if (parse) {
-                        let object = JsonFX.reconstruct(response, that.#evalFunction);
+                        let object = JsonFX.reconstruct(response, that.#evalFunc);
                         if (that._config.jsonfxPretty === true) {
-                            // the 'jsonfxPretty' flag may be used to format our dynamically
-                            // parsed JavaScript sources for more easy debugging purpose
-                            // TODO: object = eval ('(' + JsonFX.stringify(object, true) + ')\n//# sourceURL=' + rawKey + '.js');
-                            object = that.#evalFunction(`(${JsonFX.stringify(object, true)})`);
+                            object = that.#evalFunc(JsonFX.stringify(object, true));
                         }
                         onResponse(object);
+                    } else if (include) {
+                        // TODO: Remove console.log(`### ==> include:\n${JSON.stringify(response, undefined, 4)}`);
+                        onResponse(response);
                     } else {
                         onResponse(response);
                     }
@@ -2035,7 +2035,7 @@
                                     if (!match) {
                                         oe(`Invalid id: '${id}'`);
                                     } else {
-                                        that.#getObject(adapter, id, match[1], table, language, ContentManager.INCLUDE, value => {
+                                        that.#resolveObject(adapter, id, match[1], table, language, ContentManager.INCLUDE, value => {
                                             values[id] = value;
                                             os();
                                         }, oe)
@@ -2180,7 +2180,7 @@
                         onError(`HMI could not be loaded: Invalid table name: '${id}' for query parameter '${queryParameterValue}'`);
                         return;
                     }
-                    this.#getObject(adapter, id, match[1], table, language, ContentManager.PARSE, response => {
+                    this.#resolveObject(adapter, id, match[1], table, language, ContentManager.PARSE, response => {
                         adapter.close();
                         onResponse(response);
                     }, error => {
@@ -2524,7 +2524,7 @@
                 main.parallel = false;
                 main.push((onSuc, onErr) => adapter.startTransaction(onSuc, onErr));
                 main.push((onSuc, onErr) => {
-                    // add this as often as reqzured and implement actions
+                    // add this as often as required and implement actions
                 });
                 Executor.run(main, () => {
                     adapter.commitTransaction(() => {
@@ -2548,8 +2548,13 @@
     }
 
     class ClientManager extends ContentManagerBase {
-        constructor(logger, onResponse, onError) {
+        #evalFunc;
+        constructor(logger, evalFunc, onResponse, onError) {
             super(logger);
+            if (typeof evalFunc !== 'function') {
+                throw new Error('No eval function available!');
+            }
+            this.#evalFunc = evalFunc;
             Common.validateAsContentManager(this, true);
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_CONFIG }, config => {
                 this._config = config;
@@ -2586,14 +2591,11 @@
                     try {
                         let object = JsonFX.reconstruct(response);
                         if (this._config !== undefined && this._config.jsonfxPretty === true) {
-                            // the 'jsonfxPretty' flag may be used to format our dynamically
-                            // parsed JavaScript sources for more easy debugging purpose
-                            // TOOD: response = eval ('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
-                            object = eval(`(${JsonFX.stringify(object, true)})`);
+                            object = this.#evalFunc(JsonFX.stringify(object, true));
                         }
                         onResponse(object);
-                    } catch (exc) {
-                        onError(exc);
+                    } catch (error) {
+                        onError(error);
                     }
                 } else {
                     onResponse();
@@ -2636,15 +2638,11 @@
                     try {
                         let object = JsonFX.reconstruct(response);
                         if (this._config !== undefined && this._config.jsonfxPretty === true) {
-                            // the 'jsonfxPretty' flag may be used to format our dynamically
-                            // parsed JavaScript sources for more easy debugging purpose
-                            // TODO: reuse or remove const match = that._contentTablesKeyRegex.exec(id);
-                            // TOOD: response = eval ('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
-                            object = eval(`(${JsonFX.stringify(object, true)})`);
+                            object = this.#evalFunc(JsonFX.stringify(object, true));
                         }
                         onResponse(object);
-                    } catch (exc) {
-                        onError(exc);
+                    } catch (error) {
+                        onError(error);
                     }
                 } else {
                     onResponse();
@@ -2885,9 +2883,9 @@
     }
 
     if (isNodeJS) {
-        ContentManager.getInstance = (logger, getSqlAdapter, evalFunction, iconDirectory, config) => new ServerManager(logger, getSqlAdapter, evalFunction, iconDirectory, config);
+        ContentManager.getInstance = (logger, evalFunc, getSqlAdapter, iconDirectory, config) => new ServerManager(logger, evalFunc, getSqlAdapter, iconDirectory, config);
     } else {
-        ContentManager.getInstance = (logger, onResponse, onError) => new ClientManager(logger, onResponse, onError);
+        ContentManager.getInstance = (logger, evalFunc, onResponse, onError) => new ClientManager(logger, evalFunc, onResponse, onError);
     }
     Object.freeze(ContentManager);
     if (isNodeJS) {

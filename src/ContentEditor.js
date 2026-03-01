@@ -1014,26 +1014,13 @@
         };
         function reload(data, language, onSuccess, onError) {
             if (data && data.file) {
-                switch (mode) {
-                    case ContentManager.RAW:
-                        hmi.cms.getObject(data.file, language, ContentManager.RAW, raw => {
-                            preview.hmi_html(raw !== undefined ? raw : '');
-                            onSuccess();
-                        }, error => {
-                            preview.hmi_html('');
-                            onError(error);
-                        });
-                        break;
-                    case ContentManager.INCLUDE:
-                        hmi.cms.getObject(data.file, language, ContentManager.INCLUDE, build => {
-                            preview.hmi_html(build !== undefined ? build : '');
-                            onSuccess();
-                        }, error => {
-                            preview.hmi_html('');
-                            onError(error);
-                        });
-                        break;
-                }
+                hmi.cms.getObject(data.file, language, mode, response => {
+                    preview.hmi_html(response !== undefined ? response : '');
+                    onSuccess();
+                }, error => {
+                    preview.hmi_html('');
+                    onError(error);
+                });
             } else {
                 preview.hmi_html('');
                 onSuccess();
@@ -1162,43 +1149,38 @@
             adapter.triggerReload();
         };
         function reload(data, language, onSuccess, onError) {
-            if (textarea.file_raw) {
-                handleScrolls(scrolls_raw, textarea.file_raw, textarea, false);
-                delete textarea.file_raw;
-            }
-            if (textarea.file_build) {
-                handleScrolls(scrolls_build, textarea.file_build, textarea, false);
-                delete textarea.file_build;
-            }
-            if (data && data.file) {
-                switch (mode) {
+            if (textarea._mode) {
+                switch (textarea._mode) {
                     case ContentManager.RAW:
-                        cms.getObject(data.file, language, ContentManager.RAW, raw => {
-                            textarea.hmi_value(raw !== undefined ? raw : '');
-                            if (raw !== undefined) {
-                                textarea.file_raw = data.file;
-                                handleScrolls(scrolls_raw, textarea.file_raw, textarea, true);
-                            }
-                            onSuccess();
-                        }, error => {
-                            textarea.hmi_value('');
-                            onError(error);
-                        });
+                        handleScrolls(scrolls_raw, textarea._file, textarea, false);
                         break;
                     case ContentManager.INCLUDE:
-                        cms.getObject(data.file, language, ContentManager.INCLUDE, build => {
-                            textarea.hmi_value(build !== undefined ? build : '');
-                            if (build !== undefined) {
-                                textarea.file_build = data.file;
-                                handleScrolls(scrolls_build, textarea.file_build, textarea, true);
-                            }
-                            onSuccess();
-                        }, error => {
-                            textarea.hmi_value('');
-                            onError(error);
-                        });
+                        handleScrolls(scrolls_build, textarea._file, textarea, false);
                         break;
                 }
+                delete textarea._file;
+                delete textarea._mode;
+            }
+            if (data && data.file) {
+                cms.getObject(data.file, language, mode, response => {
+                    textarea.hmi_value(response !== undefined ? response : '');
+                    if (response !== undefined) {
+                        textarea._file = data.file;
+                        textarea._mode = mode;
+                        switch (mode) {
+                            case ContentManager.RAW:
+                                handleScrolls(scrolls_raw, data.file, textarea, true);
+                                break;
+                            case ContentManager.INCLUDE:
+                                handleScrolls(scrolls_build, data.file, textarea, true);
+                                break;
+                        }
+                    }
+                    onSuccess();
+                }, error => {
+                    textarea.hmi_value('');
+                    onError(error);
+                });
             } else {
                 textarea.hmi_value('');
                 onSuccess();
@@ -1331,62 +1313,51 @@
             adapter.triggerReload();
         };
         function reload(data, language, onSuccess, onError) {
-            if (textarea.file_raw) {
-                handleScrolls(scrolls_raw, textarea.file_raw, textarea, false);
-                delete textarea.file_raw;
-            }
-            if (textarea.file_build) {
-                handleScrolls(scrolls_build, textarea.file_build, textarea, false);
-                delete textarea.file_build;
-            }
-            if (data && data.file) {
-                switch (mode) {
+            if (textarea._mode) {
+                switch (textarea._mode) {
                     case ContentManager.RAW:
-                        container.hmi_removeContent(function () {
-                            cms.getObject(data.file, language, ContentManager.RAW, raw => {
-                                textarea.value = raw !== undefined ? JsonFX.stringify(JsonFX.reconstruct(raw), true) : '';
-                                container.hmi_setContent(textarea, () => {
-                                    if (raw !== undefined) {
-                                        textarea.file_raw = data.file;
-                                        handleScrolls(scrolls_raw, textarea.file_raw, textarea, true);
-                                    }
-                                    onSuccess();
-                                }, onError);
-                            }, onError);
-                        }, onError);
+                        handleScrolls(scrolls_raw, textarea._file, textarea, false);
                         break;
                     case ContentManager.INCLUDE:
-                        container.hmi_removeContent(() => {
-                            cms.getObject(data.file, language, ContentManager.INCLUDE, build => {
-                                textarea.value = build !== undefined ? JsonFX.stringify(JsonFX.reconstruct(build), true) : '';
+                        handleScrolls(scrolls_build, textarea._file, textarea, false);
+                        break;
+                }
+                delete textarea._file;
+                delete textarea._mode;
+            }
+            if (data && data.file) {
+                container.hmi_removeContent(() => {
+                    cms.getObject(data.file, language, mode, response => {
+                        switch (mode) {
+                            case ContentManager.RAW:
+                            case ContentManager.INCLUDE:
+                                textarea.value = response !== undefined ? JsonFX.stringify(JsonFX.reconstruct(response), true) : '';
                                 container.hmi_setContent(textarea, () => {
-                                    if (build !== undefined) {
-                                        textarea.file_build = data.file;
-                                        handleScrolls(scrolls_build, textarea.file_build, textarea, true);
+                                    if (response !== undefined) {
+                                        textarea._mode = mode;
+                                        textarea._file = data.file;
+                                        const scrolls = mode === ContentManager.RAW ? scrolls_raw : scrolls_build;
+                                        handleScrolls(scrolls, data.file, textarea, true);
                                     }
                                     onSuccess();
                                 }, onError);
-                            }, onError);
-                        }, onError);
-                        break;
-                    case ContentManager.PARSE:
-                        container.hmi_removeContent(() => {
-                            cms.getObject(data.file, language, ContentManager.PARSE, parsed => {
-                                if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
-                                    container.hmi_setContent(parsed, onSuccess, onError);
-                                } else if (parsed !== undefined) {
+                                break;
+                            case ContentManager.PARSE:
+                                if (response !== null && typeof response === 'object' && !Array.isArray(response)) {
+                                    container.hmi_setContent(response, onSuccess, onError);
+                                } else if (response !== undefined) {
                                     container.hmi_setContent({
-                                        html: '<b>Invalid hmi-object: "' + data.file + '"</b><br>Type is: ' + (Array.isArray(parsed) ? 'array' : typeof parsed)
+                                        html: '<b>Invalid hmi-object: "' + data.file + '"</b><br>Type is: ' + (Array.isArray(response) ? 'array' : typeof response)
                                     }, onSuccess, onError);
                                 } else {
                                     container.hmi_setContent({
                                         html: '<b>No data available: "' + data.file + '"</b>'
                                     }, onSuccess, onError);
                                 }
-                            }, onError);
-                        }, onError);
-                        break;
-                }
+                                break;
+                        }
+                    }, onError);
+                }, onError);
             } else {
                 container.hmi_removeContent(onSuccess, onError);
             }
