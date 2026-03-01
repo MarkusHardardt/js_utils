@@ -1,8 +1,8 @@
 (function (root) {
     "use strict";
-    const JsonFX = {}; // TODO: Rename to 'JsonFX' JSONFX
-
+    const JsonFX = {};
     const isNodeJS = typeof require === 'function';
+    const beautify_js = isNodeJS ? require('js-beautify').js : root.js_beautify;
 
     const standardFunctionRegex = /^\s*function\s*\(\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*\{(?:.|\n)*?\}\s*$/m;
     const lambdaFunctionRegex = /^\s*\(\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*=>\s*(?:(?:\{(?:.|\n)*?\})|(?:(?:.|\n)*?))\s*$/;
@@ -37,8 +37,6 @@
         comma_first: false,
         e4x: false,
     });
-
-    const beautify_js = isNodeJS ? require('js-beautify').js : root.js_beautify;
 
     function addQuotes(test, slapQuotes) {
         // If the string contains no control characters, no quote characters, and no
@@ -124,21 +122,29 @@
                 v = partial.length === 0 ? '{}' : '{' + partial.join(',') + '}';
                 return v;
             case 'function':
-                // this is the main JSON'X' feature: functions as strings (added by Hm -
-                // 2014)
+                // this is the main JsonFX feature: functions as strings
                 // get the function source
-                let func_str = value.toString();
-                // replace all different styles of line ending with single linefeed
-                func_str = func_str.replace(/\r?\n|\r/g, '\n');
-                // replace tabs with whitespaces
-                func_str = func_str.replace(/\t/g, ' ');
-                // remove leading and ending whitespaces
-                func_str = func_str.replace(/^\s*(.+?)\s*$/gm, '$1');
+                const func_str = value.toString()
+                    // replace all different styles of line ending with single linefeed
+                    .replace(/\r?\n|\r/g, '\n')
+                    // replace tabs with whitespaces
+                    .replace(/\t/g, ' ')
+                    // remove leading and ending whitespaces
+                    .replace(/^\s*(.+?)\s*$/gm, '$1');
                 // return with or without qoutes
                 return pretty ? func_str : addQuotes(func_str, true);
         }
     }
 
+    /** Converts a value into a string
+     * @param {boolean|number|string|object|array|function} value - The value for converting into a string
+     * @param {boolean} pretty - If false a compact string without linebreaks as known from JSON.stringify(value) will be returned. 
+     * On functions toString() will be called, all different styles of line endings will be replaced by single linefeeds, 
+     * tabulators will be replaced by single whitespace, and on each line leading and ending whitespaces will be removed.
+     * If true the value will be converted into multiline text. Object attribute names will be written without quotes 
+     * and functions will be formatted with indentation using a beautyfier (like a programming tool would do).
+     * @returns The string representation of the passed value.
+     */
     function stringify(value, pretty) {
         // The stringify method takes a value and an optional replacer, and an
         // optional
@@ -155,19 +161,21 @@
     }
     JsonFX.stringify = stringify;
 
-    function reconstruct(object, evalFunction) {
+    /*  Call this function recursive on each object attribute or array element.
+        Transforms strings to boolean, number or function if possible.  */
+    function reconstruct(object, evalFunc) {
         if (object !== undefined && object !== null) {
-            if (Array.isArray(object)) {
+            if (Array.isArray(object)) { // Handle array elements by calling recursive
                 for (let i = 0, l = object.length; i < l; i++) {
-                    object[i] = reconstruct(object[i], evalFunction);
+                    object[i] = reconstruct(object[i], evalFunc);
                 }
-            } else if (typeof object === 'object') {
+            } else if (typeof object === 'object') { // Handle object attributes by calling recursive
                 for (const attr in object) {
                     if (object.hasOwnProperty(attr)) {
-                        object[attr] = reconstruct(object[attr], evalFunction);
+                        object[attr] = reconstruct(object[attr], evalFunc);
                     }
                 }
-            } else if (typeof object === 'string' && object.length > 0) {
+            } else if (typeof object === 'string' && object.length > 0) { // Check if boolean, number or function as string and convert
                 if (isNaN(object)) {
                     if (object === 'true') {
                         object = true;
@@ -175,9 +183,9 @@
                         object = false;
                     } else if (standardFunctionRegex.test(object) || lambdaFunctionRegex.test(object) || lambdaFunctionSingleArgumentRegex.test(object)) {
                         try {
-                            object = evalFunction ? evalFunction(`(${object})`) : eval(`(${object})`);
-                        } catch (exc) {
-                            console.error('EXCEPTION! Cannot evaluate function: ' + exc);
+                            object = evalFunc ? evalFunc(object) : eval(`(${object})`);
+                        } catch (error) {
+                            console.error('Failed evaluating function', error);
                         }
                     }
                 } else {
@@ -189,7 +197,7 @@
     }
     JsonFX.reconstruct = reconstruct;
 
-    function parse(text, sourceIsPretty, doReconstruct, evalFunction) {
+    function parse(text, sourceIsPretty, doReconstruct, evalFunc) {
         // Parsing happens in four stages. In the first stage, we replace certain
         // Unicode characters with escape sequences. JavaScript handles many
         // characters
@@ -223,10 +231,10 @@
             // In the third stage we use the eval function to compile the text into a JavaScript structure. 
             // The '{' operator is subject to a syntactic ambiguity in JavaScript: it can begin a block or an object literal. 
             // We wrap the text in parens to eliminate the ambiguity.
-            const value = evalFunction ? evalFunction(`(${txt})`) : eval(`(${txt})`);
+            const value = evalFunc ? evalFunc(txt) : eval(`(${txt})`);
             // In the optional fourth stage, we recursively walk the new structure, 
             // passing each name/value pair to a reviver function for possible transformation.
-            return doReconstruct === true ? reconstruct(value, evalFunction) : value;
+            return doReconstruct === true ? reconstruct(value, evalFunc) : value;
         }
         // If the text is not JSON parseable, then a SyntaxError is thrown.
         throw new SyntaxError('JsonFX.parse systax error');
