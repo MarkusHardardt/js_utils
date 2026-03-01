@@ -1,6 +1,5 @@
 {
     "folderIcon": "folder.gif",
-    "jsonfxPretty": true,
     "maxParallelQueries": 8,
     "languages": [
         "de",

@@ -486,15 +486,13 @@
             function success(response) {
                 try {
                     if (parse) {
-                        let object = JsonFX.reconstruct(response, that.#evalFunc);
-                        if (that._config.jsonfxPretty === true) {
-                            object = that.#evalFunc(JsonFX.stringify(object, true));
-                        }
+                        // TODO: simplify this
+                        const object = that.#evalFunc(JsonFX.stringify(JsonFX.reconstruct(response, that.#evalFunc), true));
                         onResponse(object);
-                    } else if (include) {
+                    } else if (include) { // TODO: Respond JsonFX.stringify(JsonFX.reconstruct(response, that.#evalFunc), true)
                         // TODO: Remove console.log(`### ==> include:\n${JSON.stringify(response, undefined, 4)}`);
                         onResponse(response);
-                    } else {
+                    } else { // TODO: Respond JsonFX.stringify(JsonFX.reconstruct(response, that.#evalFunc), true)
                         onResponse(response);
                     }
                 } catch (err) {
@@ -2329,7 +2327,6 @@
                         iconDirectory: this._iconDirectory,
                         languages: this._config.languages,
                         folderIcon: this._config.folderIcon,
-                        jsonfxPretty: this._config.jsonfxPretty,
                         extensionsForType: this._extensionsForType,
                         contentTablesByExtension: this._contentTablesByExtension,
                         contentTablesKeyRegex: this._contentTablesKeyRegex.source,
@@ -2589,10 +2586,8 @@
             }, parse ? response => {
                 if (response !== undefined) {
                     try {
-                        let object = JsonFX.reconstruct(response);
-                        if (this._config !== undefined && this._config.jsonfxPretty === true) {
-                            object = this.#evalFunc(JsonFX.stringify(object, true));
-                        }
+                        // TODO: simplify this
+                        const object = this.#evalFunc(JsonFX.stringify(JsonFX.reconstruct(response), true));
                         onResponse(object);
                     } catch (error) {
                         onError(error);
@@ -2636,10 +2631,8 @@
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_HMI_OBJECT, queryParameterValue, language }, response => {
                 if (response !== undefined) {
                     try {
-                        let object = JsonFX.reconstruct(response);
-                        if (this._config !== undefined && this._config.jsonfxPretty === true) {
-                            object = this.#evalFunc(JsonFX.stringify(object, true));
-                        }
+                        // TODO: simplify this
+                        const object = this.#evalFunc(JsonFX.stringify(JsonFX.reconstruct(response), true));
                         onResponse(object);
                     } catch (error) {
                         onError(error);
