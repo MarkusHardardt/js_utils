@@ -133,7 +133,7 @@
             try {
                 // Validate services
                 Common.validateAsLogger(hmi.logger, true);
-                Common.validateAsContentManager(hmi.cms, true);
+                Common.validateAsClientContentManager(hmi.cms, true);
                 Common.validateAsDataAccessObject(hmi.access, true);
                 // Freeze the hmi object and it's content
                 Object.freeze(hmi.env);

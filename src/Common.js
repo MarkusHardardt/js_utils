@@ -95,7 +95,13 @@
             'getSearchResults(key, value, onResponse, onError)',
             'getIdKeyValues(id, onResponse, onError)',
             'getAllIdsForType(type, onResponse, onError)',
-            'getAllForLanguage(language, onResponse, onError)',
+            'getAllForLanguage(language, onResponse, onError)'
+        ], validateMethodArguments);
+    }
+
+    function validateAsClientContentManager(instance, validateMethodArguments) {
+        validateAsContentManager(instance, validateMethodArguments);
+        return Core.validateAs('ServerContentManager', instance, [
             'isHMIObject(id, onResponse, onError)',
             'addDefaultHMIObject(id, onResponse, onError)',
             'getHMIObject(queryParameterValue, language, onResponse, onError)',
@@ -104,9 +110,9 @@
             'addDefaultTaskObject(id, onResponse, onError)'
         ], validateMethodArguments);
     }
-    Common.validateAsContentManager = validateAsContentManager;
+    Common.validateAsClientContentManager = validateAsClientContentManager;
 
-    function validateAsContentManagerOnServer(instance, validateMethodArguments) {
+    function validateAsServerContentManager(instance, validateMethodArguments) {
         validateAsContentManager(instance, validateMethodArguments);
         return Core.validateAs('ServerContentManager', instance, [
             'getTaskObjects(onResponse, onError)',
@@ -114,7 +120,7 @@
             'registerOnWebServer(webServer)' // Registers web server 'POST' and 'GET' (for fancy tree) handling
         ], validateMethodArguments);
     }
-    Common.validateAsContentManagerOnServer = validateAsContentManagerOnServer;
+    Common.validateAsServerContentManager = validateAsServerContentManager;
 
     Object.freeze(Common);
     if (isNodeJS) {

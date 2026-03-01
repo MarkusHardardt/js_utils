@@ -1332,7 +1332,8 @@
                             case ContentManager.RAW:
                             case ContentManager.INCLUDE:
                                 // TODO: simplify this
-                                textarea.value = response !== undefined ? JsonFX.stringify(JsonFX.reconstruct(response), true) : '';
+                                // textarea.value = response !== undefined ? JsonFX.stringify(JsonFX.reconstruct(response), true) : '';
+                                textarea.value = response !== undefined ? response : '';
                                 container.hmi_setContent(textarea, () => {
                                     if (response !== undefined) {
                                         textarea._mode = mode;
@@ -1463,8 +1464,9 @@
                         container.hmi_removeContent(() => {
                             cms.getObject(data.file, language, ContentManager.RAW, raw => {
                                 // TODO: simplify this
-                                raw = raw !== undefined ? JsonFX.reconstruct(raw) : undefined;
-                                textarea.value = raw !== undefined ? JsonFX.stringify(raw, true) : '';
+                                // raw = raw !== undefined ? JsonFX.reconstruct(raw) : undefined;
+                                // textarea.value = raw !== undefined ? JsonFX.stringify(raw, true) : '';
+                                textarea.value = raw !== undefined ? raw : '';
                                 container.hmi_setContent(textarea, () => {
                                     if (raw !== undefined) {
                                         textarea.file = data.file;
@@ -1722,11 +1724,12 @@
         function onKeyChanged(data, language, onSuccess, onError) {
             watchEditActions = false;
             if (data && data.file) {
-                cms.getObject(data.file, undefined, ContentManager.RAW, data => {
-                    if (data !== undefined) {
-                        viewObjectValue.hmi_value(data.viewObjectColumn);
-                        queryParameterValue.hmi_value(data.queryParameterColumn);
-                        enableCheckbox.setValue((data.flagsColumn & ContentManager.HMI_FLAG_ENABLE) !== 0);
+                cms.getObject(data.file, undefined, ContentManager.RAW, response => {
+                    if (response !== undefined) {
+                        const object = JsonFX.parse(response, true, true);
+                        viewObjectValue.hmi_value(object.viewObjectColumn);
+                        queryParameterValue.hmi_value(object.queryParameterColumn);
+                        enableCheckbox.setValue((object.flagsColumn & ContentManager.HMI_FLAG_ENABLE) !== 0);
                         enableCheckbox.setOnChanged(editable === true ? onEdited : null);
                         watchEditActions = true;
                     } else {
@@ -1860,12 +1863,13 @@
         function onKeyChanged(data, language, onSuccess, onError) {
             watchEditActions = false;
             if (data && data.file) {
-                cms.getObject(data.file, undefined, ContentManager.RAW, data => {
-                    if (data !== undefined) {
-                        taskObjectValue.hmi_value(data.taskObjectColumn);
-                        autorunCheckbox.setValue((data.flagsColumn & ContentManager.TASK_FLAG_AUTORUN) !== 0);
+                cms.getObject(data.file, undefined, ContentManager.RAW, response => {
+                    if (response !== undefined) {
+                        const object = JsonFX.parse(response, true, true);
+                        taskObjectValue.hmi_value(object.taskObjectColumn);
+                        autorunCheckbox.setValue((object.flagsColumn & ContentManager.TASK_FLAG_AUTORUN) !== 0);
                         autorunCheckbox.setOnChanged(editable === true ? onEdited : null);
-                        cycleIntervalMillisValue.hmi_value(data.cycleIntervalMillisColumn.toString());
+                        cycleIntervalMillisValue.hmi_value(object.cycleIntervalMillisColumn.toString());
                         watchEditActions = true;
                     } else {
                         taskObjectValue.hmi_value('');

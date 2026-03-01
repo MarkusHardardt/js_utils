@@ -127,7 +127,7 @@
     const COMMAND_GET_ALL_FOR_LANGUAGE = 'get_all_for_language';
     const COMMAND_IS_HMI_OBJECT = 'is_hmi_object';
     const COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT = 'set_availability_as_hmi_object';
-    const COMMAND_GET_HMI_OBJECT = 'get_hmi_object';
+    const COMMAND_GET_HMI_OBJECT_SOURCE = 'get_hmi_object';
     const COMMAND_GET_HMI_OBJECTS = 'get_hmi_objects';
     const COMMAND_IS_TASK_OBJECT = 'is_task_object';
     const COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT = 'set_availability_as_task_object';
@@ -346,7 +346,7 @@
             this._refactoring_match = `((?:${VALID_NAME_CHAR}+\\/)*?${VALID_NAME_CHAR}+?\\.(?:${tabexts}))\\b`;
             this._include_regex_build = new RegExp(`(\'|")?include:\\$((?:${VALID_NAME_CHAR}+\\/)*${VALID_NAME_CHAR}+?)\\.(${tabexts})\\b\\1`, 'g');
             this._exchangeHeaderRegex = new RegExp(`\\[\\{\\((${tabexts}|language|${Regex.escape(EXCHANGE_HEADER)})<>([a-f0-9]{32})\\)\\}\\]\\n(.*)\\n`, 'g');
-            Common.validateAsContentManagerOnServer(this, true);
+            Common.validateAsServerContentManager(this, true);
         }
         #getRawString(adapter, table, rawKey, language, onResponse, onError) {
             const valueColumn = table.valueColumn, column = typeof valueColumn === 'string' ? valueColumn : valueColumn[language];
@@ -482,64 +482,47 @@
         }
         #resolveObject(adapter, id, rawKey, table, language, mode, onResponse, onError) {
             const that = this;
-            const parse = mode === ContentManager.PARSE, include = parse || mode === ContentManager.INCLUDE;
-            function success(response) {
-                try {
-                    if (parse) {
-                        // TODO: simplify this
-                        const object = that.#evalFunc(JsonFX.stringify(JsonFX.reconstruct(response, that.#evalFunc), true));
-                        onResponse(object);
-                    } else if (include) { // TODO: Respond JsonFX.stringify(JsonFX.reconstruct(response, that.#evalFunc), true)
-                        // TODO: Remove console.log(`### ==> include:\n${JSON.stringify(response, undefined, 4)}`);
-                        onResponse(response);
-                    } else { // TODO: Respond JsonFX.stringify(JsonFX.reconstruct(response, that.#evalFunc), true)
-                        onResponse(response);
-                    }
-                } catch (error) {
-                    onError(error);
-                }
-            }
-            function tryRespond(response) {
-                try {
-                    onResponse(response);
-                } catch (error) {
-                    onError(error);
-                }
-            }
             // if JsonFX or plain text is available we decode the string and
             // return with or without all includes included
             switch (table.type) {
                 case DataType.JsonFX:
-                    // note: no language required here because we got only one anyway
+                    // Note: No language required here because we got only one text value column
                     that.#getRawString(adapter, table, rawKey, undefined, rawString => {
                         if (rawString !== false) {
-                            const object = table.type === DataType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
-                            if (include) {
+                            // TODO: simplify this
+                            const object = JsonFX.parse(rawString, false, false);
+                            if (mode === ContentManager.RAW) {
+                                onResponse(JsonFX.stringify(JsonFX.reconstruct(object, that.#evalFunc), true));
+                            } else {
                                 const ids = {};
                                 ids[id] = true;
-                                that.#include(adapter, object, ids, language, success, onError);
-                            } else {
-                                success(object);
+                                that.#include(adapter, object, ids, language, result => {
+                                    const json = JsonFX.stringify(JsonFX.reconstruct(result, that.#evalFunc), true);
+                                    if (mode === ContentManager.PARSE) {
+                                        onResponse(that.#evalFunc(json));
+                                    } else {
+                                        onResponse(json);
+                                    }
+                                }, onError);
                             }
                         } else {
-                            tryRespond();
+                            onResponse();
                         }
                     }, onError);
                     break;
                 case DataType.Text:
-                    // note: no language required here because we got only one anyway
+                    // Note: No language required here because we got only one text value column
                     that.#getRawString(adapter, table, rawKey, undefined, rawString => {
                         if (rawString !== false) {
-                            const object = table.type === DataType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
-                            if (include) {
+                            if (mode === ContentManager.INCLUDE) {
                                 const ids = {};
                                 ids[id] = true;
-                                that.#include(adapter, object, ids, language, tryRespond, onError);
+                                that.#include(adapter, rawString, ids, language, onResponse, onError);
                             } else {
-                                tryRespond(object);
+                                onResponse(rawString);
                             }
                         } else {
-                            tryRespond();
+                            onResponse();
                         }
                     }, onError);
                     break;
@@ -549,15 +532,15 @@
                         // if language selection is available we return string with or without all includes included
                         that.#getRawString(adapter, table, rawKey, language, rawString => {
                             if (rawString !== false) {
-                                if (include) {
+                                if (mode === ContentManager.INCLUDE) {
                                     const ids = {};
                                     ids[id] = true;
-                                    that.#include(adapter, rawString, ids, language, tryRespond, onError);
+                                    that.#include(adapter, rawString, ids, language, onResponse, onError);
                                 } else {
-                                    tryRespond(rawString);
+                                    onResponse(rawString);
                                 }
                             } else {
-                                tryRespond();
+                                onResponse();
                             }
                         }, onError);
                     } else {
@@ -570,7 +553,7 @@
                         adapter.performSelect(table.name, undefined, undefined, 1, (results, fields) => {
                             if (results.length === 1) {
                                 const object = results[0];
-                                if (include) {
+                                if (mode === ContentManager.INCLUDE) {
                                     const tasks = [];
                                     for (const attr in object) {
                                         if (object.hasOwnProperty(attr)) {
@@ -588,12 +571,12 @@
                                         }
                                     }
                                     tasks.parallel = that.#parallel;
-                                    Executor.run(tasks, () => tryRespond(object), onError);
+                                    Executor.run(tasks, () => onResponse(object), onError);
                                 } else {
-                                    tryRespond(object);
+                                    onResponse(object);
                                 }
                             } else {
-                                tryRespond();
+                                onResponse();
                             }
                         }, onError);
                     }
@@ -608,9 +591,11 @@
                     adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
                     adapter.performSelect(table.name, undefined, undefined, 1, (results, fields) => {
                         if (results.length === 1) {
-                            tryRespond(results[0]);
+                            // TODO: simplify this
+                            const json = JsonFX.stringify(JsonFX.reconstruct(results[0], that.#evalFunc), true);
+                            onResponse(json);
                         } else {
-                            tryRespond();
+                            onResponse();
                         }
                     }, onError);
                     break;
@@ -2079,7 +2064,7 @@
                 });
             }, onError);
         }
-        isHMIObject(id, onResponse, onError) {
+        #isHMIObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onResponse(false);
@@ -2103,7 +2088,7 @@
                 });
             }, onError);
         }
-        addDefaultHMIObject(id, onResponse, onError) {
+        #addDefaultHMIObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
@@ -2165,7 +2150,7 @@
                 });
             }, onError);
         }
-        getHMIObject(queryParameterValue, language, onResponse, onError) {
+        #getHMIObjectSource(queryParameterValue, language, onResponse, onError) {
             const hmiTable = this.#hmiTable;
             this.#getSqlAdapter(adapter => {
                 adapter.addColumn(`${hmiTable.name}.${hmiTable.viewObjectColumn} AS path`);
@@ -2200,7 +2185,7 @@
                         onError(`HMI could not be loaded: Invalid table name: '${id}' for query parameter '${queryParameterValue}'`);
                         return;
                     }
-                    this.#resolveObject(adapter, id, match[1], table, language, ContentManager.PARSE, response => {
+                    this.#resolveObject(adapter, id, match[1], table, language, ContentManager.INCLUDE, response => {
                         adapter.close();
                         onResponse(response);
                     }, error => {
@@ -2213,7 +2198,7 @@
                 });
             }, onError);
         }
-        getHMIObjects(onResponse, onError) {
+        #getHMIObjects(onResponse, onError) {
             const hmiTable = this.#hmiTable;
             this.#getSqlAdapter(adapter => {
                 adapter.addColumn(`${hmiTable.name}.${hmiTable.keyColumn} AS path`);
@@ -2232,7 +2217,7 @@
                 });
             }, onError);
         }
-        isTaskObject(id, onResponse, onError) {
+        #isTaskObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onResponse(false);
@@ -2256,7 +2241,7 @@
                 });
             }, onError);
         }
-        addDefaultTaskObject(id, onResponse, onError) {
+        #addDefaultTaskObject(id, onResponse, onError) {
             const match = this._contentTablesKeyRegex.exec(id);
             if (!match) {
                 onError(`Invalid id: '${id}'`);
@@ -2391,22 +2376,22 @@
                     this.getAllForLanguage(request.language, onResponse, onError);
                     break;
                 case COMMAND_IS_HMI_OBJECT:
-                    this.isHMIObject(request.id, onResponse, onError);
+                    this.#isHMIObject(request.id, onResponse, onError);
                     break;
                 case COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT:
-                    this.addDefaultHMIObject(request.id, onResponse, onError);
+                    this.#addDefaultHMIObject(request.id, onResponse, onError);
                     break;
-                case COMMAND_GET_HMI_OBJECT:
-                    this.getHMIObject(request.queryParameterValue, request.language, onResponse, onError);
+                case COMMAND_GET_HMI_OBJECT_SOURCE:
+                    this.#getHMIObjectSource(request.queryParameterValue, request.language, onResponse, onError);
                     break;
                 case COMMAND_GET_HMI_OBJECTS:
-                    this.getHMIObjects(onResponse, onError);
+                    this.#getHMIObjects(onResponse, onError);
                     break;
                 case COMMAND_IS_TASK_OBJECT:
-                    this.isTaskObject(request.id, onResponse, onError);
+                    this.#isTaskObject(request.id, onResponse, onError);
                     break;
                 case COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT:
-                    this.addDefaultTaskObject(request.id, onResponse, onError);
+                    this.#addDefaultTaskObject(request.id, onResponse, onError);
                     break;
                 default:
                     onError(`EXCEPTION! Unexpected command: '${request.command}'`);
@@ -2574,7 +2559,7 @@
                 throw new Error('No eval function available!');
             }
             this.#evalFunc = evalFunc;
-            Common.validateAsContentManager(this, true);
+            Common.validateAsClientContentManager(this, true);
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_CONFIG }, config => {
                 this._config = config;
                 this._iconDirectory = config.iconDirectory;
@@ -2604,13 +2589,14 @@
                 command: COMMAND_GET_OBJECT,
                 id,
                 language,
-                mode: parse ? ContentManager.INCLUDE : mode
+                mode: parse ? ContentManager.INCLUDE : mode // Note: If mode is 'parse' the server will be asked with mode 'include'
             }, parse ? response => {
                 if (response !== undefined) {
                     try {
                         // TODO: simplify this
-                        const object = this.#evalFunc(JsonFX.stringify(JsonFX.reconstruct(response), true));
-                        onResponse(object);
+                        // const object = this.#evalFunc(JsonFX.stringify(JsonFX.reconstruct(response), true));
+                        // onResponse(object);
+                        onResponse(this.#evalFunc(response));
                     } catch (error) {
                         onError(error);
                     }
@@ -2650,12 +2636,13 @@
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_SET_AVAILABILITY_AS_HMI_OBJECT, id }, onResponse, onError);
         }
         getHMIObject(queryParameterValue, language, onResponse, onError) {
-            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_HMI_OBJECT, queryParameterValue, language }, response => {
+            Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_HMI_OBJECT_SOURCE, queryParameterValue, language }, response => {
                 if (response !== undefined) {
                     try {
                         // TODO: simplify this
-                        const object = this.#evalFunc(JsonFX.stringify(JsonFX.reconstruct(response), true));
-                        onResponse(object);
+                        //  const object = this.#evalFunc(JsonFX.stringify(JsonFX.reconstruct(response), true));
+                        // onResponse(object);
+                        onResponse(this.#evalFunc(response));
                     } catch (error) {
                         onError(error);
                     }
@@ -2709,7 +2696,8 @@
                                 cms.getObject(id, undefined, ContentManager.RAW, object => {
                                     exports.push(createHeader(data.extension, id));
                                     // TODO: simplify this
-                                    exports.push(JsonFX.stringify(JsonFX.reconstruct(object), true));
+                                    // exports.push(JsonFX.stringify(JsonFX.reconstruct(object), true));
+                                    exports.push(object);
                                     exports.push('\n\n');
                                     onProgressChanged(formatProgressInPercent(idx / len));
                                     onSuc();
