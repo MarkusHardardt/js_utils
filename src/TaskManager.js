@@ -38,11 +38,9 @@
             this.#reloadingTasks = false;
             this.#reloadTasksTimeout = null;
         }
-
         get onTasksChanged() {
             return this.#onTasksChanged;
         }
-
         #handleTasksChanged() {
             if (this.#reloadTasksTimeout) {
                 clearTimeout(this.#reloadTasksTimeout);
@@ -52,11 +50,9 @@
                 this.#reloadTasks(() => this.#logger.debug('Loaded tasks'), error => this.#logger.error(error));
             }, RELOAD_TASKS_TIMEOUT);
         }
-
         initialize(onSuccess, onError) {
             this.#reloadTasks(onSuccess, onError);
         }
-
         #reloadTasks(onSuccess, onError) {
             if (this.#reloadingTasks) {
                 onError('Reloading tasks is already in progress');
@@ -148,7 +144,6 @@
                 }, onError);
             }
         }
-
         #onLifecycleStateChanged(path, state) {
             const data = { type: TransmissionType.StateRefresh, path, state };
             for (const sessionId in this.#connections) {
@@ -157,7 +152,6 @@
                 }
             }
         }
-
         onOpen(connection) {
             const sessionId = connection.sessionId;
             if (this.#connections[sessionId] === undefined) {
@@ -168,7 +162,6 @@
                 connection.register(TASK_MANAGER_RECEIVER, con.handler);
             }
         }
-
         onClose(connection) {
             const sessionId = connection.sessionId;
             if (this.#connections[sessionId] !== undefined) {
@@ -176,7 +169,6 @@
                 delete this.#connections[sessionId];
             }
         }
-
         #handleReceived(data, onResponse, onError) {
             switch (data.type) {
                 case TransmissionType.ConfigurationRequest:
@@ -192,7 +184,6 @@
                     this.#logger.error(`Invalid transmission type: ${data.type}`);
             }
         }
-
         #getTasksConfigAndState() {
             const configs = [];
             for (const path in this.#taskObjects) {
@@ -203,7 +194,6 @@
             }
             return configs;
         }
-
         #startTask(path, onSuccess, onError) {
             const taskObject = this.#taskObjects[path];
             if (!taskObject) {
@@ -229,7 +219,6 @@
                 }, error => onError(`Failed loading task '${path}' object '${taskObject.config.taskObject}':\n${error}`));
             }
         }
-
         #stopTask(path, onSuccess, onError) {
             const taskObject = this.#taskObjects[path];
             if (!taskObject) {
@@ -252,7 +241,6 @@
                 }, taskObject.onLifecycleStateChanged);
             }
         }
-
         startAutorunTasks(onSuccess, onError) {
             const that = this, taskObjects = this.#taskObjects, tasks = [];
             for (const path in taskObjects) {
@@ -268,7 +256,6 @@
             tasks.parallel = true;
             Executor.run(tasks, onSuccess, onError);
         }
-
         shutdown(onSuccess, onError) {
             const that = this, taskObjects = this.#taskObjects, tasks = [];
             for (const path in taskObjects) {
@@ -303,7 +290,6 @@
             this.#onConfigChanged = null;
             this.#onStateChanged = null;
         }
-
         set connection(value) {
             if (value) {
                 if (this.#connection) {
@@ -318,7 +304,6 @@
                 this.#connection = null;
             }
         }
-
         set onConfigChanged(value) {
             if (value) {
                 if (typeof value !== 'function') {
@@ -329,7 +314,6 @@
                 this.#onConfigChanged = null;
             }
         }
-
         set onStateChanged(value) {
             if (value) {
                 if (typeof value !== 'function') {
@@ -340,16 +324,13 @@
                 this.#onStateChanged = null;
             }
         }
-
         onOpen() {
             this.#open = true;
             this.#loadConfiguration();
         }
-
         onClose() {
             this.#open = false;
         }
-
         #handleReceived(data, onResponse, onError) {
             switch (data.type) {
                 case TransmissionType.ConfigurationRefresh:
@@ -362,7 +343,6 @@
                     this.#logger.error(`Invalid transmission type: ${data.type}`);
             }
         }
-
         #loadConfiguration() {
             Core.validateAs('Connection', this.#connection, 'send:function').send(
                 TASK_MANAGER_RECEIVER,
@@ -371,7 +351,6 @@
                 error => this.#logger.error(error)
             );
         }
-
         #updateConfiguration(tasksConfigAndState) {
             for (let configAndState of tasksConfigAndState) {
                 const path = configAndState.config.path;
@@ -405,7 +384,6 @@
                 }
             }
         }
-
         #updateTaskState(path, state) {
             const taskObject = this.#taskObjects[path];
             if (taskObject) {
@@ -419,7 +397,6 @@
                 }
             }
         }
-
         getTasks() {
             const result = [];
             for (const path in this.#taskObjects) {
@@ -433,7 +410,6 @@
             }
             return result;
         }
-
         startTask(path, onResponse, onError) {
             if (!this.#connection) {
                 onError('Web socket connection is not available');
@@ -443,7 +419,6 @@
                 this.#connection.send(TASK_MANAGER_RECEIVER, { type: TransmissionType.StartTask, path }, onResponse, onError);
             }
         }
-
         stopTask(path, onResponse, onError) {
             if (!this.#connection) {
                 onError('Web socket connection is not available');
