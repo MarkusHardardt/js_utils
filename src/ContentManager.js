@@ -495,15 +495,21 @@
                     } else { // TODO: Respond JsonFX.stringify(JsonFX.reconstruct(response, that.#evalFunc), true)
                         onResponse(response);
                     }
-                } catch (err) {
-                    onError(err);
+                } catch (error) {
+                    onError(error);
+                }
+            }
+            function tryRespond(response) {
+                try {
+                    onResponse(response);
+                } catch (error) {
+                    onError(error);
                 }
             }
             // if JsonFX or plain text is available we decode the string and
             // return with or without all includes included
             switch (table.type) {
                 case DataType.JsonFX:
-                case DataType.Text:
                     // note: no language required here because we got only one anyway
                     that.#getRawString(adapter, table, rawKey, undefined, rawString => {
                         if (rawString !== false) {
@@ -516,26 +522,42 @@
                                 success(object);
                             }
                         } else {
-                            success();
+                            tryRespond();
+                        }
+                    }, onError);
+                    break;
+                case DataType.Text:
+                    // note: no language required here because we got only one anyway
+                    that.#getRawString(adapter, table, rawKey, undefined, rawString => {
+                        if (rawString !== false) {
+                            const object = table.type === DataType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
+                            if (include) {
+                                const ids = {};
+                                ids[id] = true;
+                                that.#include(adapter, object, ids, language, tryRespond, onError);
+                            } else {
+                                tryRespond(object);
+                            }
+                        } else {
+                            tryRespond();
                         }
                     }, onError);
                     break;
                 case DataType.Label:
                 case DataType.HTML:
                     if (typeof language === 'string') {
-                        // if selection is available we return string with or without all
-                        // includes included
+                        // if language selection is available we return string with or without all includes included
                         that.#getRawString(adapter, table, rawKey, language, rawString => {
                             if (rawString !== false) {
                                 if (include) {
                                     const ids = {};
                                     ids[id] = true;
-                                    that.#include(adapter, rawString, ids, language, success, onError);
+                                    that.#include(adapter, rawString, ids, language, tryRespond, onError);
                                 } else {
-                                    success(rawString);
+                                    tryRespond(rawString);
                                 }
                             } else {
-                                success();
+                                tryRespond();
                             }
                         }, onError);
                     } else {
@@ -566,12 +588,12 @@
                                         }
                                     }
                                     tasks.parallel = that.#parallel;
-                                    Executor.run(tasks, () => success(object), onError);
+                                    Executor.run(tasks, () => tryRespond(object), onError);
                                 } else {
-                                    success(object);
+                                    tryRespond(object);
                                 }
                             } else {
-                                success();
+                                tryRespond();
                             }
                         }, onError);
                     }
@@ -586,9 +608,9 @@
                     adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
                     adapter.performSelect(table.name, undefined, undefined, 1, (results, fields) => {
                         if (results.length === 1) {
-                            success(results[0]);
+                            tryRespond(results[0]);
                         } else {
-                            success();
+                            tryRespond();
                         }
                     }, onError);
                     break;
@@ -2686,6 +2708,7 @@
                             tasks.push((onSuc, onErr) => {
                                 cms.getObject(id, undefined, ContentManager.RAW, object => {
                                     exports.push(createHeader(data.extension, id));
+                                    // TODO: simplify this
                                     exports.push(JsonFX.stringify(JsonFX.reconstruct(object), true));
                                     exports.push('\n\n');
                                     onProgressChanged(formatProgressInPercent(idx / len));

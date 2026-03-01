@@ -1331,6 +1331,7 @@
                         switch (mode) {
                             case ContentManager.RAW:
                             case ContentManager.INCLUDE:
+                                // TODO: simplify this
                                 textarea.value = response !== undefined ? JsonFX.stringify(JsonFX.reconstruct(response), true) : '';
                                 container.hmi_setContent(textarea, () => {
                                     if (response !== undefined) {
@@ -1461,6 +1462,7 @@
                     case ContentManager.RAW:
                         container.hmi_removeContent(() => {
                             cms.getObject(data.file, language, ContentManager.RAW, raw => {
+                                // TODO: simplify this
                                 raw = raw !== undefined ? JsonFX.reconstruct(raw) : undefined;
                                 textarea.value = raw !== undefined ? JsonFX.stringify(raw, true) : '';
                                 container.hmi_setContent(textarea, () => {
@@ -1477,6 +1479,7 @@
                         container.hmi_removeContent(() => {
                             cms.getObject(data.file, language, ContentManager.RAW, raw => {
                                 if (raw !== undefined) {
+                                    // TODO: simplify this
                                     raw = JsonFX.reconstruct(raw);
                                     cms.getObject(data.file, language, ContentManager.PARSE, parsed => {
                                         if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
@@ -1556,6 +1559,7 @@
                             classes: 'highlighted-yellow',
                             text: 'enter text here',
                         };
+                        // TODO: simplify this
                         const value = JsonFX.stringify(JsonFX.reconstruct(obj), true);
                         const src_obj = {
                             x: 0,
