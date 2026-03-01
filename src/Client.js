@@ -61,7 +61,13 @@
         Client.startRefreshCycle = startRefreshCycle;
         Client.stopRefreshCycle = () => refreshCycleEnabled = false;
 
-        /*  fetch text by 'POST'  */
+        /** Fetch text by 'POST'
+         * This function sends the passed request string unchanged and returns the resulting response string anchanged via callback.
+         * @param {string} url - The url string
+         * @param {string} requestString - The request formatted as string (will be send unchanged)
+         * @param {Function} onResponse - Callback for response - resulting unchanged string will be passed as argument
+         * @param {Function} onError - Callback for error event - occurred error will be passed as argument
+         */
         async function fetchAsync(url, requestString, onResponse, onError) {
             const response = await fetch(url, {
                 method: 'POST',
@@ -69,15 +75,26 @@
                 body: requestString !== undefined && requestString !== null ? requestString : undefined
             });
             if (!response.ok) {
-                onError(`url: '${url}' failed: ${response.status}, ${response.statusText}`);
+                onError(`Fetch for url '${url}' failed: ${response.status}, ${response.statusText}`);
             } else {
                 const result = await response.text();
                 onResponse(result)
             }
         }
         Client.fetchAsync = fetchAsync;
-        Client.fetch = (url, request, onResponse, onError) => { (async () => await fetchAsync(url, request, onResponse, onError))(); }
+        Client.fetch = (url, requestString, onResponse, onError) => { (async () => await fetchAsync(url, requestString, onResponse, onError))(); }
 
+        /** Fetch object by 'POST'
+         * This function transformes the passed request object by using JsonFX.stringify(request, false) and 
+         * returns the resulting response as object using JsonFX.parse(response, false, false) via callback.
+         * If the response object contains the attribute 'error' the 'onError' callback will be called.
+         * Therwise the attribute 'result' will be passed via 'onResponse' callback argument.
+         * @param {string} url - The url string
+         * @param {object} request - Request object - will be transformed to string by JsonFX.stringify(request, false)
+         * @param {Function} onResponse - Callback for response for success
+         * @param {Function} onError - Callback for error event - occurred error will be passed as argument - 
+         * the reason can be connection errors during fetch or application errors passed as error property.
+         */
         function fetchJsonFX(url, request, onResponse, onError) {
             Client.fetch(url, JsonFX.stringify(request, false), response => {
                 if (response.length > 0) {
