@@ -2,7 +2,7 @@
     "use strict";
     const OPCUA = {};
     const isNodeJS = typeof require === 'function';
-    const fs = require('fs');
+    const fs = isNodeJS ? require('fs') : undefined;
     // doc: https://node-opcua.github.io/api_doc/0.2.0/classes/OPCUAClient.html
     const { OPCUAClient, DataType, AttributeIds, TimestampsToReturn, ClientSubscription, resolveNodeId } = require('node-opcua-client');
     const Executor = isNodeJS ? require('./Executor.js') : root.Executor;

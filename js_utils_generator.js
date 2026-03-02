@@ -58,7 +58,7 @@
         scope: '@markus.hardardt/',
         directory: './src',
         ignorables: ['EmptyTemplate', 'hmi_object_DEPRECATED'],
-        browserIgnorables: ['Server', 'WebServer', 'SqlHelper', 'EmptyTemplate'],
+        browserIgnorables: ['Server', 'WebServer', 'SqlHelper', 'OPCUA', 'EmptyTemplate'],
         ext: ['ext/md5.js'],
         index_js_outputFile: './js_utils.js'
     });
