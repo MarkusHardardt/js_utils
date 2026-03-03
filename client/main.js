@@ -3,6 +3,7 @@
 
     // create 'hmi' environment object
     const hmi = {
+        evalFunc: Evaluate.evalFunc,
         // add hmi-object-framweork
         createObject: (object, element, onSuccess, onError, initData) =>
             ObjectLifecycleManager.createObject(object, element, onSuccess, onError, hmi, initData),

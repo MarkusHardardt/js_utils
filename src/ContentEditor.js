@@ -1331,8 +1331,6 @@
                         switch (mode) {
                             case ContentManager.RAW:
                             case ContentManager.INCLUDE:
-                                // TODO: simplify this
-                                // textarea.value = response !== undefined ? JsonFX.stringify(JsonFX.reconstruct(response), true) : '';
                                 textarea.value = response !== undefined ? response : '';
                                 container.hmi_setContent(textarea, () => {
                                     if (response !== undefined) {
@@ -1462,13 +1460,10 @@
                 switch (mode) {
                     case ContentManager.RAW:
                         container.hmi_removeContent(() => {
-                            cms.getObject(data.file, language, ContentManager.RAW, raw => {
-                                // TODO: simplify this
-                                // raw = raw !== undefined ? JsonFX.reconstruct(raw) : undefined;
-                                // textarea.value = raw !== undefined ? JsonFX.stringify(raw, true) : '';
-                                textarea.value = raw !== undefined ? raw : '';
+                            cms.getObject(data.file, language, ContentManager.RAW, response => {
+                                textarea.value = response !== undefined ? response : '';
                                 container.hmi_setContent(textarea, () => {
-                                    if (raw !== undefined) {
+                                    if (response !== undefined) {
                                         textarea.file = data.file;
                                         handleScrolls(scrolls, textarea.file, textarea, true);
                                     }
@@ -1479,10 +1474,9 @@
                         break;
                     case ContentManager.PARSE:
                         container.hmi_removeContent(() => {
-                            cms.getObject(data.file, language, ContentManager.RAW, raw => {
-                                if (raw !== undefined) {
-                                    // TODO: simplify this
-                                    raw = JsonFX.reconstruct(raw);
+                            cms.getObject(data.file, language, ContentManager.RAW, response => {
+                                if (response !== undefined) {
+                                    raw = hmi.evalFunc(response);
                                     cms.getObject(data.file, language, ContentManager.PARSE, parsed => {
                                         if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
                                             object = parsed;
@@ -1561,7 +1555,6 @@
                             classes: 'highlighted-yellow',
                             text: 'enter text here',
                         };
-                        // TODO: simplify this
                         const value = JsonFX.stringify(JsonFX.reconstruct(obj), true);
                         const src_obj = {
                             x: 0,
@@ -1607,7 +1600,7 @@
                                 }
                             }, {
                                 text: 'cancel',
-                                click: onClose
+                                click: onClose => onClose()
                             }]
                         });
                     }
@@ -1707,12 +1700,6 @@
     // ///////////////////////////////////////////////////////////////////////////////////////////////
     // HMIS - PREVIEW & EDITOR
     // ///////////////////////////////////////////////////////////////////////////////////////////////
-
-    /*
-    adapter = {
-        edited: () => { }, must be called if data has been edited
-    }
-    */
     function getHmiView(hmi, adapter, editable) {
         const cms = hmi.cms;
         let watchEditActions = false;

@@ -33,6 +33,7 @@
         const hmi = {
             applicationName: config.applicationName,
             logger: new Logger(config.applicationName),
+            evalFunc: Evaluate.evalFunc,
             // add hmi-object-framweork
             createObject: (object, element, onSuccess, onError, initData) =>
                 ObjectLifecycleManager.createObject(object, element, onSuccess, onError, hmi, initData),

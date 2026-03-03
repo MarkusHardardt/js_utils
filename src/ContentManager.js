@@ -489,7 +489,6 @@
                     // Note: No language required here because we got only one text value column
                     that.#getRawString(adapter, table, rawKey, undefined, rawString => {
                         if (rawString !== false) {
-                            // TODO: simplify this
                             const object = JsonFX.parse(rawString, false, false);
                             if (mode === ContentManager.RAW) {
                                 onResponse(JsonFX.stringify(JsonFX.reconstruct(object, that.#evalFunc), true));
@@ -591,7 +590,6 @@
                     adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
                     adapter.performSelect(table.name, undefined, undefined, 1, (results, fields) => {
                         if (results.length === 1) {
-                            // TODO: simplify this
                             const json = JsonFX.stringify(JsonFX.reconstruct(results[0], that.#evalFunc), true);
                             onResponse(json);
                         } else {
@@ -2593,9 +2591,6 @@
             }, parse ? response => {
                 if (response !== undefined) {
                     try {
-                        // TODO: simplify this
-                        // const object = this.#evalFunc(JsonFX.stringify(JsonFX.reconstruct(response), true));
-                        // onResponse(object);
                         onResponse(this.#evalFunc(response));
                     } catch (error) {
                         onError(error);
@@ -2639,9 +2634,6 @@
             Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_GET_HMI_OBJECT_SOURCE, queryParameterValue, language }, response => {
                 if (response !== undefined) {
                     try {
-                        // TODO: simplify this
-                        //  const object = this.#evalFunc(JsonFX.stringify(JsonFX.reconstruct(response), true));
-                        // onResponse(object);
                         onResponse(this.#evalFunc(response));
                     } catch (error) {
                         onError(error);
@@ -2695,8 +2687,6 @@
                             tasks.push((onSuc, onErr) => {
                                 cms.getObject(id, undefined, ContentManager.RAW, object => {
                                     exports.push(createHeader(data.extension, id));
-                                    // TODO: simplify this
-                                    // exports.push(JsonFX.stringify(JsonFX.reconstruct(object), true));
                                     exports.push(object);
                                     exports.push('\n\n');
                                     onProgressChanged(formatProgressInPercent(idx / len));
