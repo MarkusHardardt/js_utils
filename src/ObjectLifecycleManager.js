@@ -331,7 +331,7 @@
         });
     }
 
-    var _lastUserActionDate = undefined;
+    let _lastUserActionDate = undefined;
 
     function preventDefaultAndStopPropagation(event) {
         // do not perform default browser actions
@@ -553,31 +553,31 @@
         s_event_listeners.push(this);
     }
 
-    function DivButtonImpl(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
-        var that = this;
-        var _timeout = undefined;
-        var _pressed = false;
-        var _minimumTimeout = undefined;
-        var _enabled = true;
-        var _cont = i_context.container;
-        function updateState(i_pressed, i_longClickTimeoutExpired) {
+    function applyButtonHandling(context, disableVisuEvents, enableEditorEvents, onSuccess, onError) {
+        let that = this;
+        let _timeout = undefined;
+        let _pressed = false;
+        let _minimumTimeoutTimer = undefined;
+        let _enabled = true;
+        let _cont = context.container;
+        function updateState(isDown, longClickTimeoutExpired) {
             // only if the pressed state has changed
-            if (_pressed !== i_pressed) {
+            if (_pressed !== isDown) {
                 // update for the next call
-                _pressed = i_pressed === true;
+                _pressed = isDown === true;
                 // if we want a border we got to update
                 if (that.hmi_updateBorder) {
                     that.hmi_updateBorder(_pressed);
                 }
                 // if the button has been touched or the mouse pointer went down on it
                 if (_pressed) {
-                    if (_minimumTimeout !== undefined) {
-                        clearTimeout(_minimumTimeout);
-                        _minimumTimeout = undefined;
+                    if (_minimumTimeoutTimer !== undefined) {
+                        clearTimeout(_minimumTimeoutTimer);
+                        _minimumTimeoutTimer = undefined;
                     }
                     if (typeof that.minimumTimeout === 'number' && that.minimumTimeout > 0) {
-                        _minimumTimeout = setTimeout(function () {
-                            _minimumTimeout = undefined;
+                        _minimumTimeoutTimer = setTimeout(function () {
+                            _minimumTimeoutTimer = undefined;
                             if (_pressed !== true) {
                                 _pressed = true;
                                 updateState(false, false);
@@ -600,16 +600,11 @@
                     if (typeof that.pressed === 'function') {
                         try {
                             that.pressed();
-                        }
-                        catch (exc) {
-                            console.error('EXCEPTION in pressed(): ' + exc + ' ' + that.pressed.toString());
+                        } catch (error) {
+                            console.error(`Failed calling pressed(): ${that.pressed.toString()}`, error);
                         }
                     }
-                }
-                // if the button has been untouched, the mouse pointer went up or
-                // leaves
-                // the element or the timeout expired
-                else if (_minimumTimeout === undefined) {
+                } else if (_minimumTimeoutTimer === undefined) { // if the button has been untouched, the mouse pointer went up or leaves the element or the timeout expired
                     // first we got to clear eventual timeouts
                     if (_timeout !== undefined) {
                         clearTimeout(_timeout);
@@ -622,13 +617,12 @@
                     if (typeof that.released === 'function') {
                         try {
                             that.released();
-                        }
-                        catch (exc) {
-                            console.error('EXCEPTION in released(): ' + exc + ' ' + that.released.toString());
+                        } catch (error) {
+                            console.error(`Failed calling released(): ${that.released.toString()}`, error);
                         }
                     }
                     // if we got a timeout
-                    if (i_longClickTimeoutExpired === true) {
+                    if (longClickTimeoutExpired === true) {
                         if (that.verbose === true) {
                             console.log('button long clicked');
                         }
@@ -636,13 +630,11 @@
                         if (typeof that.longClicked === 'function') {
                             try {
                                 that.longClicked();
-                            }
-                            catch (exc) {
-                                console.error('EXCEPTION in longClicked(): ' + exc + ' ' + that.longClicked.toString());
+                            } catch (error) {
+                                console.error(`Failed calling longClicked(): ${that.longClicked.toString()}`, error);
                             }
                         }
-                    }
-                    else {
+                    } else {
                         if (that.verbose === true) {
                             console.log('button clicked');
                         }
@@ -650,9 +642,8 @@
                         if (typeof that.clicked === 'function') {
                             try {
                                 that.clicked();
-                            }
-                            catch (exc) {
-                                console.error('EXCEPTION in clicked(): ' + exc + ' ' + that.clicked.toString());
+                            } catch (error) {
+                                console.error(`Failed calling clicked(): ${that.clicked.toString()}`, error);
                             }
                         }
                     }
@@ -682,9 +673,8 @@
             if (typeof that.updateEnabled === 'function') {
                 try {
                     that.updateEnabled(_enabled);
-                }
-                catch (exc) {
-                    console.error('EXCEPTION in updateEnabled(): ' + exc + ' ' + that.updateEnabled.toString());
+                } catch (error) {
+                    console.error(`Failed calling updateEnabled(): ${that.updateEnabled.toString()}`, error);
                 }
             }
         };
@@ -704,11 +694,11 @@
             that.hmi_setEnabled(false);
         }
         updateEnabled();
-        this._hmi_destroys.push(function () {
+        this._hmi_destroys.push(() => {
             _enabled = false;
-            if (_minimumTimeout !== undefined) {
-                clearTimeout(_minimumTimeout);
-                _minimumTimeout = undefined;
+            if (_minimumTimeoutTimer !== undefined) {
+                clearTimeout(_minimumTimeoutTimer);
+                _minimumTimeoutTimer = undefined;
             }
             if (_timeout !== undefined) {
                 clearTimeout(_timeout);
@@ -717,19 +707,15 @@
             updateEnabled();
             delete that.hmi_setEnabled;
             delete that.hmi_isEnabled;
-            updateEnabled = undefined;
-            released = undefined;
-            pressed = undefined;
-            updateState = undefined;
             _timeout = undefined;
             _pressed = undefined;
             _enabled = undefined;
             _cont = undefined;
             that = undefined;
         });
-        i_success();
+        onSuccess();
     };
-    DivButtonImpl.isRequired = function (i_object, i_context, i_disableVisuEvents) {
+    applyButtonHandling.isRequired = function (i_object, i_context, i_disableVisuEvents) {
         if (i_disableVisuEvents === true) {
             return false;
         }
@@ -7087,9 +7073,9 @@
                         });
                     }
                     // EXTENSIONS
-                    if (DivButtonImpl.isRequired(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents)) {
+                    if (applyButtonHandling.isRequired(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents)) {
                         tasks.push(function (i_suc, i_err) {
-                            DivButtonImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
+                            applyButtonHandling.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
                         });
                     }
                     if (TimeRangeSelectorImpl.isRequired(that)) {
