@@ -47,7 +47,9 @@
 
     const SHOW_SERVER_ERROR_POPUP = true;
     const DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION = '<div style="box-sizing: border-box;position: relative;width: 100%;height: 100%;" />';
+    ObjectLifecycleManager.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION = DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION;
     const DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION = '<div style="box-sizing: border-box;position: absolute;" />';
+    ObjectLifecycleManager.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION = DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION;
     const NUMBER_EDITOR_OPEN_EDITOR_TIMEOUT = 1000;
     // In javascript integer numbers are 64 bit values.
     // That means the value range reaches from -9223372036854775808 to
@@ -98,6 +100,7 @@
             return (isNodeJS && object.type === undefined) || object.type === 'task';
         }
     }
+    ObjectLifecycleManager.isTaskType = isTaskType;
 
     const s_types = {};
 
@@ -211,6 +214,7 @@
         }
         return parseFloat(px);
     }
+    ObjectLifecycleManager.getPixelValue = getPixelValue;
 
     function isNumberOrPixelValue(value) {
         if (typeof value === 'string') {
@@ -295,10 +299,9 @@
     }
     ObjectLifecycleManager.updateCoordinates = updateCoordinates;
 
-    function applyListenerSupport() {
-        let that = this;
+    function applyListenerSupport(that) {
         let listeners = [];
-        this._hmi_addEditListener = listener => {
+        that._hmi_addEditListener = listener => {
             for (let i = 0, l = listeners.length; i < l; i++) {
                 if (listeners[i] === listener) {
                     return false;
@@ -307,7 +310,7 @@
             listeners.push(listener);
             return true;
         };
-        this._hmi_removeEditListener = listener => {
+        that._hmi_removeEditListener = listener => {
             for (let i = 0, l = listeners.length; i < l; i++) {
                 if (listeners[i] === listener) {
                     listeners.splice(i, 1);
@@ -316,12 +319,12 @@
             }
             return false;
         };
-        this._hmi_forAllEditListeners = callback => {
+        that._hmi_forAllEditListeners = callback => {
             for (let i = 0, l = listeners.length; i < l; i++) {
                 callback(listeners[i]);
             }
         };
-        this._hmi_destroys.push(() => {
+        that._hmi_destroys.push(() => {
             delete that._hmi_forAllEditListeners;
             delete that._hmi_addEditListener;
             delete that._hmi_removeEditListener;
@@ -344,6 +347,7 @@
         }
         _lastUserActionDate = new Date().getTime();
     }
+    ObjectLifecycleManager.preventDefaultAndStopPropagation = preventDefaultAndStopPropagation;
 
     function getLastUserActionDate() {
         return _lastUserActionDate;
@@ -389,88 +393,87 @@
         }
     }
 
-    function applyEventListener(i_context, i_callback) {
-        let that = this;
-        let _cont = i_context.container;
+    function applyEventListener(that, context, onEvent) {
+        let _cont = context.container;
         let _listening = false;
         // callbacks for mouse events
         function mouseevent_click(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, MOUSEEVENT_CLICK);
+            onEvent(event, MOUSEEVENT_CLICK);
         }
         function mouseevent_dblclick(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, MOUSEEVENT_DBLCLICK);
+            onEvent(event, MOUSEEVENT_DBLCLICK);
         }
         function mouseevent_hover(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, MOUSEEVENT_HOVER);
+            onEvent(event, MOUSEEVENT_HOVER);
         }
         function mouseevent_mousedown(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, MOUSEEVENT_MOUSEDOWN);
+            onEvent(event, MOUSEEVENT_MOUSEDOWN);
         }
         function mouseevent_mouseenter(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, MOUSEEVENT_MOUSEENTER);
+            onEvent(event, MOUSEEVENT_MOUSEENTER);
         }
         function mouseevent_mouseleave(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, MOUSEEVENT_MOUSELEAVE);
+            onEvent(event, MOUSEEVENT_MOUSELEAVE);
         }
         function mouseevent_mousemove(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, MOUSEEVENT_MOUSEMOVE);
+            onEvent(event, MOUSEEVENT_MOUSEMOVE);
         }
         function mouseevent_mouseout(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, MOUSEEVENT_MOUSEOUT);
+            onEvent(event, MOUSEEVENT_MOUSEOUT);
         }
         function mouseevent_mouseover(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, MOUSEEVENT_MOUSEOVER);
+            onEvent(event, MOUSEEVENT_MOUSEOVER);
         }
         function mouseevent_mouseup(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, MOUSEEVENT_MOUSEUP);
+            onEvent(event, MOUSEEVENT_MOUSEUP);
         }
         function mouseevent_contextmenu(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, MOUSEEVENT_CONTEXTMENU);
+            onEvent(event, MOUSEEVENT_CONTEXTMENU);
         }
         function mouseevent_mousewheel(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, MOUSEEVENT_MOUSEWHEEL);
+            onEvent(event, MOUSEEVENT_MOUSEWHEEL);
         }
         // callbacks for touch events
         function touchevent_touchstart(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, TOUCHEVENT_TOUCHSTART);
+            onEvent(event, TOUCHEVENT_TOUCHSTART);
         }
         function touchevent_touchenter(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, TOUCHEVENT_TOUCHENTER);
+            onEvent(event, TOUCHEVENT_TOUCHENTER);
         }
         function touchevent_touchmove(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, TOUCHEVENT_TOUCHMOVE);
+            onEvent(event, TOUCHEVENT_TOUCHMOVE);
         }
         function touchevent_touchend(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, TOUCHEVENT_TOUCHEND);
+            onEvent(event, TOUCHEVENT_TOUCHEND);
         }
         function touchevent_touchleave(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, TOUCHEVENT_TOUCHLEAVE);
+            onEvent(event, TOUCHEVENT_TOUCHLEAVE);
         }
         function touchevent_touchcancel(event) {
             preventDefaultAndStopPropagation(event);
-            i_callback(event, TOUCHEVENT_TOUCHCANCEL);
+            onEvent(event, TOUCHEVENT_TOUCHCANCEL);
         }
-        this._hmi_addEventListeners = () => {
+        that._hmi_addEventListeners = () => {
             if (_listening === false) {
                 _listening = true;
-                if (typeof i_callback === 'function') {
+                if (typeof onEvent === 'function') {
                     _cont.on('mousedown', mouseevent_mousedown);
                     _cont.on('touchstart', touchevent_touchstart);
                     _cont.on('click', mouseevent_click);
@@ -492,10 +495,10 @@
                 }
             }
         };
-        this._hmi_removeEventListeners = () => {
+        that._hmi_removeEventListeners = () => {
             if (_listening === true) {
                 _listening = false;
-                if (typeof i_callback === 'function') {
+                if (typeof onEvent === 'function') {
                     _cont.off('mousedown', mouseevent_mousedown);
                     _cont.off('touchstart', touchevent_touchstart);
                     _cont.off('click', mouseevent_click);
@@ -517,7 +520,7 @@
                 }
             }
         };
-        this._hmi_destroys.push(() => {
+        that._hmi_destroys.push(() => {
             for (let i = 0; i < s_event_listeners.length; i++) {
                 if (s_event_listeners[i] === that) {
                     s_event_listeners.splice(i, 1);
@@ -549,12 +552,11 @@
             _cont = undefined;
             that = undefined;
         });
-        this._hmi_addEventListeners();
-        s_event_listeners.push(this);
+        that._hmi_addEventListeners();
+        s_event_listeners.push(that);
     }
 
-    function applyButtonHandling(context, disableVisuEvents, enableEditorEvents, onSuccess, onError) {
-        let that = this;
+    function applyButtonHandling(that, context) {
         let _timeout = undefined;
         let _pressed = false;
         let _minimumTimeoutTimer = undefined;
@@ -678,15 +680,13 @@
                 }
             }
         };
-        this.hmi_setEnabled = function (i_enabled) {
-            if (_enabled !== i_enabled) {
-                _enabled = i_enabled === true;
+        that.hmi_setEnabled = enabled => {
+            if (_enabled !== enabled) {
+                _enabled = enabled === true;
                 updateEnabled();
             }
         };
-        this.hmi_isEnabled = function (i_enabled) {
-            return _enabled === true;
-        };
+        that.hmi_isEnabled = () => _enabled === true;
         if (that.hmi_updateBorder) {
             that.hmi_updateBorder(false);
         }
@@ -694,7 +694,7 @@
             that.hmi_setEnabled(false);
         }
         updateEnabled();
-        this._hmi_destroys.push(() => {
+        that._hmi_destroys.push(() => {
             _enabled = false;
             if (_minimumTimeoutTimer !== undefined) {
                 clearTimeout(_minimumTimeoutTimer);
@@ -713,13 +713,12 @@
             _cont = undefined;
             that = undefined;
         });
-        onSuccess();
     };
-    applyButtonHandling.isRequired = function (i_object, i_context, i_disableVisuEvents) {
-        if (i_disableVisuEvents === true) {
+    applyButtonHandling.isRequired = (object, disableVisuEvents) => {
+        if (disableVisuEvents === true) {
             return false;
         }
-        return typeof i_object.pressed === 'function' || typeof i_object.released === 'function' || typeof i_object.clicked === 'function' || typeof i_object.longClicked === 'function';
+        return typeof object.pressed === 'function' || typeof object.released === 'function' || typeof object.clicked === 'function' || typeof object.longClicked === 'function';
     };
 
     function dumpLifecycle(state) { // TODO: Replace with monitoring of server tasks
@@ -728,26 +727,25 @@
         }
     }
 
-    s_types['container'] = function (i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
-        var that = this;
-        var _cont = that._hmi_context.container;
+    function applyContainer(that, context, disableVisuEvents, enableEditorEvents) {
+        let _cont = that._hmi_context.container;
         _cont.addClass('overflow-hidden');
-        var _div = $(DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
+        let _div = $(DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
         _div.appendTo(_cont);
-        var _object = undefined;
-        this.hmi_getContent = () => _object;
-        this.hmi_setContent = (i_object, i_success, i_error, i_initData, i_disableVisuEvents, i_enableEditorEvents) => {
-            if (_object === undefined && i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
-                createObjectSubTree(i_object, _div, () => {
-                    _object = i_object;
-                    i_success();
+        let _object = undefined;
+        that.hmi_getContent = () => _object;
+        that.hmi_setContent = (object, onSuccess, onError, initData, disableVisuEvents, enableEditorEvents) => {
+            if (_object === undefined && object !== null && typeof object === 'object' && !Array.isArray(object)) {
+                createObjectSubTree(object, _div, () => {
+                    _object = object;
+                    onSuccess();
                 }, i_exception => {
                     _div.empty();
-                    i_error(i_exception);
-                }, that.hmi, i_initData, that, i_object.id, that.hmi_node(), i_disableVisuEvents, i_enableEditorEvents, dumpLifecycle);
+                    onError(i_exception);
+                }, that.hmi, initData, that, object.id, that.hmi_node(), disableVisuEvents, enableEditorEvents, dumpLifecycle);
             }
         };
-        this.hmi_removeContent = (onSuccess, onError) => {
+        that.hmi_removeContent = (onSuccess, onError) => {
             if (_object !== undefined) {
                 const obj = _object;
                 _object = undefined;
@@ -763,20 +761,19 @@
                         console.error(error);
                     }
                 }, dumpLifecycle);
-            }
-            else if (typeof onSuccess === 'function') {
+            } else if (typeof onSuccess === 'function') {
                 onSuccess();
             }
         };
-        this._hmi_resizes.push(() => {
+        that._hmi_resizes.push(() => {
             if (_object) {
-                var hmiobj = _object._hmi_object;
+                const hmiobj = _object._hmi_object;
                 if (hmiobj._hmi_resize) {
                     hmiobj._hmi_resize();
                 }
             }
         });
-        this._hmi_destroys.push(() => {
+        that._hmi_destroys.push(() => {
             _div.remove();
             _div = undefined;
             delete that.hmi_getContent;
@@ -786,1023 +783,10 @@
             _cont = undefined;
             that = undefined;
         });
-        i_success();
-    };
-
-    function create_grid_coordinates(i_param) {
-        // here we store the resulting coordinates
-        var coordinates = [];
-        // if our parameter is just a simple number we create an array containing
-        // equidistant parts
-        if (typeof i_param === 'number') {
-            var len = i_param > 0 ? i_param : 1;
-            var part = 1.0 / len;
-            for (var i = 0; i < len; i++) {
-                coordinates.push({
-                    part: part
-                });
-            }
-        }
-        // in case of an array we add relative parts and absolute pixels
-        else if (i_param !== undefined && i_param !== null && Array.isArray(i_param) && i_param.length > 0) {
-            var validPartCnt = 0;
-            var validPixelCnt = 0;
-            var sum = 0.0;
-            for (var i = 0; i < i_param.length; i++) {
-                var param = i_param[i];
-                var coor = {};
-                var pixel = getPixelValue(param);
-                if (typeof pixel === 'number') {
-                    coor.pixel = Math.floor(pixel);
-                    validPixelCnt++;
-                }
-                else if (typeof param === 'number' && param > 0.0) {
-                    sum += param;
-                    validPartCnt++;
-                }
-                coordinates.push(coor);
-            }
-            // if only valid pixels
-            if (validPixelCnt === i_param.length) {
-                // exchange last coordinates pixel against part
-                var coor = coordinates[coordinates.length - 1];
-                delete coor.pixel;
-                coor.part = 1.0;
-            }
-            else {
-                var invalidPart = 1.0 / (i_param.length - validPixelCnt);
-                var validSum = validPartCnt * invalidPart;
-                for (var i = 0; i < i_param.length; i++) {
-                    var param = i_param[i];
-                    var coor = coordinates[i];
-                    if (coor.pixel === undefined) {
-                        if (typeof param === 'number' && param > 0.0 && sum > 0) {
-                            coor.part = param / sum * validSum;
-                        }
-                        else {
-                            coor.part = invalidPart;
-                        }
-                    }
-                }
-            }
-        }
-        else {
-            coordinates.push({
-                part: 1.0
-            });
-        }
-        return coordinates;
     }
+    s_types['container'] = applyContainer;
 
-    function compute_grid_axis_pixel(i_coordinates, i_size, i_separator, i_startMargin, i_endMargin) {
-        var marginCount = i_coordinates.length - 1;
-        var offset = i_startMargin;
-        var sizeForRelativeParts = i_size - i_startMargin - i_separator * (i_coordinates.length - 1) - i_endMargin;
-        for (var i = 0; i < i_coordinates.length; i++) {
-            var coor = i_coordinates[i];
-            if (typeof coor.pixel === 'number') {
-                sizeForRelativeParts -= coor.pixel;
-            }
-        }
-        for (var i = 0; i < i_coordinates.length; i++) {
-            var coor = i_coordinates[i];
-            var start = offset;
-            var end = offset + (typeof coor.pixel === 'number' ? coor.pixel : coor.part * sizeForRelativeParts);
-            coor.start = Math.floor(start);
-            coor.end = Math.floor(end);
-            offset = end + i_separator;
-        }
-    }
-
-    function get_grid_coordinate(i_coordinates, i_index, i_param) {
-        var coor = i_index >= 0 ? (i_index < i_coordinates.length ? i_coordinates[i_index] : i_coordinates[i_coordinates.length - 1]) : i_coordinates[0];
-        return coor[i_param];
-    }
-
-    var DEFAULT_MAX_STACK_SIZE = 1;
-
-    /**
-     * Determines whether or not the rectangle 1 and the rectangle 2 are equal.
-     * 
-     * @param {Object}
-     *          i_rect1 The first rectangle
-     * @param {Object}
-     *          i_rect2 The second rectangle
-     * @return <code>true</code> if the rectangles are equal; <code>false</code>
-     *         otherwise.
-     */
-    function is_equal_rectangle(i_rect1, i_rect2) {
-        // the rectangles are equal if identical
-        if (i_rect1 === i_rect2) {
-            return true;
-        }
-        // not equal if different location
-        if (i_rect1.x !== i_rect2.x || i_rect1.y !== i_rect2.y) {
-            return false;
-        }
-        // not equal if different size
-        if (i_rect1.width !== i_rect2.width || i_rect1.height !== i_rect2.height) {
-            return false;
-        }
-        // if reaching this point and the id is equal
-        return i_rect1.id === i_rect2.id;
-    }
-
-    /**
-     * Determines whether or not the rectangle 1 and the rectangle 2 intersect.
-     * Two rectangles intersect if their intersection is nonempty.
-     * 
-     * @param {Object}
-     *          i_rect1 The first rectangle
-     * @param {Object}
-     *          i_rect2 The second rectangle
-     * @return <code>true</code> if the rectangles intersect; <code>false</code>
-     *         otherwise.
-     */
-    function rectangles_intersect(i_x1, i_y1, i_width1, i_height1, i_x2, i_y2, i_width2, i_height2) {
-        var w1 = i_width1;
-        var h1 = i_height1;
-        var w2 = i_width2;
-        var h2 = i_height2;
-        // if any empty rectangle
-        if (w2 <= 0 || h2 <= 0 || w1 <= 0 || h1 <= 0) {
-            return false;
-        }
-        w2 += i_x2;
-        h2 += i_y2;
-        w1 += i_x1;
-        h1 += i_y1;
-        // overflow || intersect
-        return ((w2 < i_x2 || w2 > i_x1) && (h2 < i_y2 || h2 > i_y1) && (w1 < i_x1 || w1 > i_x2) && (h1 < i_y1 || h1 > i_y2));
-    }
-
-    function RectangleHandler(i_columns, i_rows, i_maxStackSize, i_loadRectangle, i_reloadRectangle, i_unloadRectangle) {
-        var that = this;
-        var _maxStackSize = i_maxStackSize ? i_maxStackSize : DEFAULT_MAX_STACK_SIZE;
-        var _stack = [];
-        var _currentLevel = -1;
-        var _set = null;
-
-        function perform_modification(i_rectanglesToHandle, i_rectanglesToIgnore, i_method, i_success, i_error) {
-            var cnt = 0;
-            if (Array.isArray(i_rectanglesToHandle)) {
-                var tasks = [], i, hl = i_rectanglesToHandle.length, j, il;
-                for (i = 0; i < hl; i++) {
-                    var rect = i_rectanglesToHandle[i];
-                    if (Array.isArray(i_rectanglesToIgnore)) {
-                        il = i_rectanglesToIgnore.length;
-                        for (j = 0; j < il; j++) {
-                            if (is_equal_rectangle(rect, i_rectanglesToIgnore[j])) {
-                                rect = false;
-                                break;
-                            }
-                        }
-                    }
-                    // if not found we perform the given method
-                    if (rect) {
-                        (function () {
-                            var r = rect;
-                            tasks.push(function (i_suc, i_err) {
-                                try {
-                                    i_method(r.x, r.y, r.width, r.height, r.id, i_suc, i_err, r.init);
-                                }
-                                catch (exc) {
-                                    i_err('ERROR in rectangle handler call: ' + exc.toString() + ' ' + i_method.toString());
-                                }
-                                cnt++;
-                            });
-                        }());
-                    }
-                }
-                tasks.parallel = true;
-                Executor.run(tasks, function () {
-                    i_success(cnt);
-                }, i_error);
-            }
-            else {
-                i_success(0);
-            }
-        };
-
-        function change_constellation(i_source, i_target, i_success, i_error) {
-            // first we iterate over all sources and check if they still exist in the
-            // targets
-            perform_modification(i_source, i_target, i_unloadRectangle, function (i_removedCount) {
-                perform_modification(i_target, i_source, i_loadRectangle, function (i_addedCount) {
-                    i_success(i_removedCount + i_addedCount);
-                }, i_error);
-            }, i_error);
-        };
-
-        this.prepareNextSet = function (i_empty) {
-            if (_set === null) {
-                _set = [];
-            }
-            else {
-                _set.splice(0, _set.length);
-            }
-            // add all current existing rectangles if available
-            if (i_empty === undefined && i_empty !== true && _currentLevel !== -1) {
-                var curr = _stack[_currentLevel];
-                for (var i = 0; i < curr.length; i++) {
-                    _set.push(curr[i]);
-                }
-            }
-            return true;
-        };
-
-        this.addRectangleForNextSetToDefinedLocation = function (i_x, i_y, i_width, i_height, i_id, i_init) {
-            // if not valid we do not proceed
-            if (_set === null) {
-                return false;
-            }
-            // store these parameters because we might modify them
-            var x = i_x;
-            var y = i_y;
-            // if outside of the range
-            if (x < 0 || x >= i_columns || y < 0 || y >= i_rows) {
-                return false;
-            }
-            // just in case we are too far on the right or bottom we update the
-            // location
-            if (x + i_width > i_columns) {
-                x = i_columns - i_width;
-            }
-            if (y + i_height > i_rows) {
-                y = i_rows - i_height;
-            }
-            // if not insertable because of the dimension
-            if (x < 0 || x + i_width > i_columns || y < 0 || y + i_height > i_rows) {
-                return false;
-            }
-            // now we got to check all currently existing id objects if available
-            for (var i = 0; i < _set.length; i++) {
-                // get the rectangle
-                var rect = _set[i];
-                // if same location and equal id
-                if (x === rect.x && y === rect.y && i_id === rect.id) {
-                    try {
-                        i_reloadRectangle(i_id, i_init);
-                    }
-                    catch (exc) {
-                        console.error('ERROR in rectangle handler ' + i_reloadRectangle + ' call: ' + exc.message + ' ' + i_reloadRectangle.toString());
-                    }
-                    return false;
-                }
-            }
-            // for all in reverse order
-            for (var i = _set.length - 1; i >= 0; i--) {
-                // get the other rect
-                var other = _set[i];
-                // if we got an equal id (at a different location) or the rectangles
-                // intersect
-                if (i_id === other.id || rectangles_intersect(x, y, i_width, i_height, other.x, other.y, other.width, other.height)) {
-                    _set.splice(i, 1);
-                }
-            }
-            // finally we got to add and load the new rectangle
-            _set.push({
-                x: x,
-                y: y,
-                width: i_width,
-                height: i_height,
-                id: i_id,
-                init: i_init
-            });
-            return true;
-        };
-
-        this.addRectangleForNextSetToDefaultLocation = function (i_width, i_height, i_id, i_init) {
-            if (_set === null) {
-                return false;
-            }
-            // if we do not have a current level or the level is empty
-            if (_set.length === 0) {
-                // add to first place
-                return that.addRectangleForNextSetToDefinedLocation(0, 0, i_width, i_height, i_id, i_init);
-            }
-            // we got to check if already exists
-            for (var i = 0; i < _set.length; i++) {
-                if (_set[i].id === i_id) {
-                    try {
-                        i_reloadRectangle(i_id, i_init);
-                    }
-                    catch (exc) {
-                        console.error('ERROR in rectangle handler ' + i_reloadRectangle + ' call: ' + exc.message + ' ' + i_reloadRectangle.toString());
-                    }
-                    return false;
-                }
-            }
-            // reaching this point we check for the first empty space
-            for (var row = 0; row <= i_rows - i_height; row++) {
-                for (var col = 0; col <= i_columns - i_width; col++) {
-                    var empty = true;
-                    for (var i = 0; i < _set.length; i++) {
-                        var rect = _set[i];
-                        if (rectangles_intersect(col, row, i_width, i_height, rect.x, rect.y, rect.width, rect.height)) {
-                            empty = false;
-                            break;
-                        }
-                    }
-                    if (empty) {
-                        return that.addRectangleForNextSetToDefinedLocation(col, row, i_width, i_height, i_id, i_init);
-                    }
-                }
-            }
-            // if we reach this point we did not find an empty place so we just add to
-            // the front
-            return that.addRectangleForNextSetToDefinedLocation(0, 0, i_width, i_height, i_id, i_init);
-        };
-
-        this.activateNextSet = function (i_success, i_error) {
-            if (_set !== null) {
-                // get the current constellation if available
-                var prevCon = _currentLevel !== -1 ? _stack[_currentLevel] : null;
-                change_constellation(prevCon, _set, function (i_count) {
-                    if (i_count > 0) {
-                        // if the stack stores something after the current index we remove
-                        // this
-                        // constellations
-                        if (_currentLevel < _stack.length - 1) {
-                            _stack.splice(_currentLevel + 1, _stack.length - 1 - _currentLevel);
-                        }
-                        // add constellation to the stack
-                        _stack.push(_set);
-                        // if too many remove the constellations at front
-                        if (_maxStackSize !== -1 && _stack.length > _maxStackSize) {
-                            _stack.splice(0, _stack.length - _maxStackSize);
-                        }
-                        _currentLevel = _stack.length - 1;
-                    }
-                    _set = null;
-                    if (typeof i_success === 'function') {
-                        i_success();
-                    }
-                }, i_error);
-            }
-            else if (typeof i_success === 'function') {
-                i_success();
-            }
-        };
-
-        this.isBackAvailable = function () {
-            return _currentLevel > -1;
-        };
-
-        this.isForwardAvailable = function () {
-            return _currentLevel < _stack.length - 1;
-        };
-
-        this.goBack = function (i_success, i_error) {
-            if (_currentLevel > 0) {
-                change_constellation(_stack[_currentLevel], _stack[_currentLevel - 1], function () {
-                    _currentLevel--;
-                    if (typeof i_success === 'function') {
-                        i_success();
-                    }
-                }, i_error);
-            }
-            else if (_currentLevel === 0) {
-                change_constellation(_stack[_currentLevel], null, function () {
-                    _currentLevel--;
-                    if (typeof i_success === 'function') {
-                        i_success();
-                    }
-                }, i_error);
-            }
-            else if (typeof i_success === 'function') {
-                i_success();
-            }
-        };
-
-        this.goForward = function (i_success, i_error) {
-            if (_currentLevel === -1) {
-                change_constellation(null, _stack[_currentLevel + 1], function () {
-                    _currentLevel++;
-                    if (typeof i_success === 'function') {
-                        i_success();
-                    }
-                }, i_error);
-            }
-            else if (_currentLevel < _stack.length - 1) {
-                change_constellation(_stack[_currentLevel], _stack[_currentLevel + 1], function () {
-                    _currentLevel++;
-                    if (typeof i_success === 'function') {
-                        i_success();
-                    }
-                }, i_error);
-            }
-            else if (typeof i_success === 'function') {
-                i_success();
-            }
-        };
-
-        this.goToStart = function (i_success, i_error) {
-            if (_currentLevel !== -1) {
-                change_constellation(_stack[_currentLevel], null, function () {
-                    _currentLevel = -1;
-                    if (typeof i_success === 'function') {
-                        i_success();
-                    }
-                }, i_error);
-            }
-            else if (typeof i_success === 'function') {
-                i_success();
-            }
-        };
-
-        this.clear = function (i_success, i_error) {
-            if (_currentLevel !== -1) {
-                change_constellation(_stack[_currentLevel], null, function () {
-                    _stack.splice(0, _stack.length);
-                    _currentLevel = -1;
-                    if (typeof i_success === 'function') {
-                        i_success();
-                    }
-                }, i_error);
-            }
-            else if (typeof i_success === 'function') {
-                i_success();
-            }
-        };
-
-        this.getCurrentSituation = function () {
-            return _currentLevel !== -1 ? _stack[_currentLevel] : [];
-        };
-        // TODO i_error
-        this.setCurrentSituation = function (i_rectangles, i_success, i_error) {
-            // if we don't have a loader we do not proceed
-            if (Array.isArray(i_rectangles)) {
-                // try to read new constellation
-                that.prepareNextSet(true);
-                for (var i = 0; i < i_rectangles.length; i++) {
-                    var rect = i_rectangles[i];
-                    that.addRectangleForNextSetToDefinedLocation(rect.x, rect.y, rect.width, rect.height, rect.id, rect.init);
-                }
-                that.activateNextSet(i_success, i_error);
-                return true;
-            }
-            return false;
-        };
-    };
-
-    function Grid(i_config) {
-        // init coordinates
-        this._columnCoordinates = create_grid_coordinates(i_config.columns);
-        this._rowCoordinates = create_grid_coordinates(i_config.rows);
-        this._margin = i_config.margin;
-    }
-    Grid.prototype = {
-        getColumns: function () {
-            return this._columnCoordinates.length;
-        },
-
-        getRows: function () {
-            return this._rowCoordinates.length;
-        },
-
-        calculateGrid: function (i_widthPixels, i_heightPixels, i_separatorPixels) {
-            var width = typeof i_widthPixels === 'number' && i_widthPixels > 0 ? i_widthPixels : 100;
-            var height = typeof i_heightPixels === 'number' && i_heightPixels > 0 ? i_heightPixels : 100;
-            var separator = typeof i_separatorPixels === 'number' && i_separatorPixels >= 0 ? i_separatorPixels : 0;
-            var margin = this._margin;
-            var leftMargin = get_dimension_parameter(margin, 'left', separator);
-            var rightMargin = get_dimension_parameter(margin, 'right', separator);
-            var topMargin = get_dimension_parameter(margin, 'top', separator);
-            var bottomMargin = get_dimension_parameter(margin, 'bottom', separator);
-            compute_grid_axis_pixel(this._columnCoordinates, width, separator, leftMargin, rightMargin);
-            compute_grid_axis_pixel(this._rowCoordinates, height, separator, topMargin, bottomMargin);
-        },
-
-        getStartX: function (i_columnIndex) {
-            return get_grid_coordinate(this._columnCoordinates, i_columnIndex, 'start');
-        },
-
-        getEndX: function (i_columnIndex) {
-            return get_grid_coordinate(this._columnCoordinates, i_columnIndex, 'end');
-        },
-
-        getStartY: function (i_rowIndex) {
-            return get_grid_coordinate(this._rowCoordinates, i_rowIndex, 'start');
-        },
-
-        getEndY: function (i_rowIndex) {
-            return get_grid_coordinate(this._rowCoordinates, i_rowIndex, 'end');
-        },
-
-        getBounds: function (i_rectangle) {
-            var x = typeof i_rectangle.x === 'number' ? i_rectangle.x : 0;
-            var y = typeof i_rectangle.y === 'number' ? i_rectangle.y : 0;
-            var width = typeof i_rectangle.width === 'number' ? i_rectangle.width : 1;
-            var height = typeof i_rectangle.height === 'number' ? i_rectangle.height : 1;
-            var colCoorStart = this.getStartX(x);
-            var colCoorEnd = this.getEndX(x + width - 1);
-            var rowCoorStart = this.getStartY(y);
-            var rowCoorEnd = this.getEndY(y + height - 1);
-            return {
-                x: Math.floor(colCoorStart),
-                y: Math.floor(rowCoorStart),
-                width: Math.floor(colCoorEnd - colCoorStart),
-                height: Math.floor(rowCoorEnd - rowCoorStart)
-            };
-        }
-    };
-    ObjectLifecycleManager.Grid = Grid;
-
-    s_types['grid'] = function (i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
-        var that = this;
-        var _cont = that._hmi_context.container;
-        var _scope = i_enableEditorEvents === true ? Utilities.getUniqueId() : undefined;
-        _cont.addClass('overflow-hidden');
-        var _mainDiv = $(DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
-        _mainDiv.appendTo(_cont);
-        var _children = Array.isArray(this.children) ? this.children : [];
-        // get the columns and rows (at least one single cell)
-        var columns = 1;
-        var rows = 1;
-        for (var i = 0; i < _children.length; i++) {
-            var child = _children[i];
-            var hmiobj = child._hmi_object;
-            if (hmiobj && !isTaskType(hmiobj)) {
-                var x = typeof child.x === 'number' ? child.x : 0;
-                var y = typeof child.y === 'number' ? child.y : 0;
-                var width = typeof child.width === 'number' ? child.width : 1;
-                var height = typeof child.height === 'number' ? child.height : 1;
-                columns = Math.max(columns, x + width);
-                rows = Math.max(rows, y + height);
-            }
-        }
-        var _grid = new Grid({
-            columns: that.columns !== undefined && that.columns !== null ? that.columns : columns,
-            rows: that.rows !== undefined && that.rows !== null ? that.rows : rows,
-            margin: that.margin
-        });
-        rows = undefined;
-        columns = undefined;
-        _grid.calculateGrid(_mainDiv.width(), _mainDiv.height(), typeof that.separator === 'number' ? that.separator : 0);
-        var _placeholders = undefined;
-        if (i_enableEditorEvents === true) {
-            applyListenerSupport.call(that);
-            _placeholders = [];
-            for (var col = _grid.getColumns() - 1; col >= 0; col--) {
-                for (var row = _grid.getRows() - 1; row >= 0; row--) {
-                    // closure
-                    (function () {
-                        var placeholder = {};
-                        placeholder.x = col;
-                        placeholder.y = row;
-                        var hmiobj = {};
-                        placeholder.object = hmiobj;
-                        placeholder._hmi_object = hmiobj;
-                        placeholder.hmi_object = hmiobj;
-                        hmiobj._hmi_object = hmiobj;
-                        hmiobj.hmi_object = hmiobj;
-                        placeholder._hmi_gridElement = $(DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
-                        placeholder._hmi_gridElement.appendTo(_mainDiv);
-                        placeholder._hmi_gridElement.data('hmi_object', hmiobj);
-                        setBounds(placeholder._hmi_gridElement, _grid.getBounds(placeholder));
-                        _placeholders.push(placeholder);
-                        placeholder._hmi_gridElement.droppable({
-                            scope: _scope,
-                            tolerance: 'pointer',
-                            hoverClass: 'default-background-hover',
-                            // this method will be called when dragged element has been
-                            // dropped
-                            drop: function (i_event, i_ui) {
-                                preventDefaultAndStopPropagation(i_event);
-                                // get the source object and data
-                                var source = i_ui.draggable.data('hmi_object');
-                                for (var i = 0; i < _children.length; i++) {
-                                    var child = _children[i];
-                                    if (child._hmi_gridElement && child._hmi_object === source) {
-                                        child.x = placeholder.x;
-                                        child.y = placeholder.y;
-                                        setBounds(child._hmi_gridElement, _grid.getBounds(child));
-                                        var hmiobj = child._hmi_object;
-                                        if (hmiobj && hmiobj._hmi_resize) {
-                                            hmiobj._hmi_resize();
-                                        }
-                                        that._hmi_forAllEditListeners(function (i_listener) {
-                                            if (typeof i_listener.notifyEdited === 'function') {
-                                                i_listener.notifyEdited();
-                                            }
-                                        });
-                                    }
-                                }
-                            }
-                        });
-                        var intersects = false;
-                        for (var i = 0; intersects === false && i < _children.length; i++) {
-                            var child = _children[i];
-                            var hmiobj = child._hmi_object;
-                            if (hmiobj && !isTaskType(hmiobj)) {
-                                var x = typeof child.x === 'number' ? child.x : 0;
-                                var y = typeof child.y === 'number' ? child.y : 0;
-                                var width = typeof child.width === 'number' ? child.width : 1;
-                                var height = typeof child.height === 'number' ? child.height : 1;
-                                if (rectangles_intersect(x, y, width, height, col, row, 1, 1)) {
-                                    intersects = true;
-                                }
-                            }
-                        }
-                        if (intersects === false) {
-                            placeholder._hmi_gridElement.hover(function (i_event) {
-                                placeholder._hmi_gridElement.addClass('default-background-hover');
-                            }, function (i_event) {
-                                placeholder._hmi_gridElement.removeClass('default-background-hover');
-                            });
-                            placeholder._hmi_clickedForEdit = function (i_event) {
-                                preventDefaultAndStopPropagation(i_event);
-                                that._hmi_forAllEditListeners(function (i_listener) {
-                                    if (typeof i_listener.showChildObjectEditor === 'function') {
-                                        i_listener.showChildObjectEditor(-1, placeholder);
-                                    }
-                                });
-                            };
-                            placeholder._hmi_gridElement.on('click', placeholder._hmi_clickedForEdit);
-                        }
-                    }());
-                }
-            }
-        }
-        var _rectHandler = undefined;
-        var _rectHandlerPipe = undefined;
-        var _dropable = undefined;
-        var droppableCellAdded = undefined;
-        var addPlaceholders = undefined;
-        var loadRectangle = undefined;
-        var reloadRectangle = undefined;
-        var unloadRectangle = undefined;
-        var tasks = [];
-        if (typeof this.droppable === 'string') {
-            if (i_enableEditorEvents !== true) {
-                droppableCellAdded = function (i_child) {
-                    i_child._hmi_gridElement.droppable({
-                        // set the drag and drop scope
-                        scope: that.droppable,
-                        // only mouse pointer is relevant
-                        tolerance: 'pointer',
-                        // If specified, the class will be added to the droppable while an
-                        // acceptable iconConfig is being hovered over the droppable.
-                        hoverClass: typeof that.hoverClass === 'string' ? that.hoverClass : 'default-background-hover',
-                        // this method will be called when dragged element has been
-                        // dropped
-                        drop: function (i_event, i_ui) {
-                            preventDefaultAndStopPropagation(i_event);
-                            // get the source object and data
-                            var source = i_ui.draggable.data('hmi_object');
-                            var data = source && source.data !== null && typeof source.data === 'object' ? source.data : undefined;
-                            if (data && typeof data.object === 'string' && data.object.length > 0) {
-                                var width = typeof data.width === 'number' ? data.width : 1;
-                                var height = typeof data.height === 'number' ? data.height : 1;
-                                _rectHandlerPipe(function (i_rectHandlerSuccess, i_rectHandlerError) {
-                                    _rectHandler.prepareNextSet();
-                                    _rectHandler.addRectangleForNextSetToDefinedLocation(i_child.x, i_child.y, width, height, data.object, data.init);
-                                    _rectHandler.activateNextSet(i_rectHandlerSuccess, i_rectHandlerError);
-                                });
-                            }
-                        }
-                    });
-                };
-
-                addPlaceholders = function (i_x, i_y, i_width, i_height) {
-                    // CLASSES
-                    var classes = typeof that.dropClasses === 'string' ? that.dropClasses.split(' ') : that.dropClasses;
-                    for (var col = i_x + i_width - 1; col >= i_x; col--) {
-                        for (var row = i_y + i_height - 1; row >= i_y; row--) {
-                            var child = {};
-                            child.x = col;
-                            child.y = row;
-                            var hmiobj = {};
-                            child.object = hmiobj;
-                            child._hmi_object = hmiobj;
-                            child.hmi_object = hmiobj;
-                            hmiobj._hmi_object = hmiobj;
-                            hmiobj.hmi_object = hmiobj;
-                            child._hmi_gridElement = $(DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
-                            child._hmi_gridElement.appendTo(_mainDiv);
-                            if (Array.isArray(classes)) {
-                                for (var i = 0; i < classes.length; i++) {
-                                    var cls = classes[i];
-                                    if (typeof cls === 'string' && cls.length > 0) {
-                                        child._hmi_gridElement.addClass(cls);
-                                    }
-                                }
-                            }
-                            child._hmi_gridElement.data('hmi_object', hmiobj);
-                            setBounds(child._hmi_gridElement, _grid.getBounds(child));
-                            _children.push(child);
-                            droppableCellAdded(child);
-                        }
-                    }
-                };
-
-                // this method will be called from inside of the rectangle handler in
-                // case a new rectangle must be loaded
-                loadRectangle = function (i_x, i_y, i_width, i_height, i_objectReference, i_suc, i_err, i_initData) {
-                    that.hmi.cms.getObject(i_objectReference, that.hmi.lang.getLanguage(), ContentManager.PARSE, function (i_object) {
-                        if (i_object !== null && typeof i_object === 'object' && !Array.isArray(i_object)) {
-                            // first we got to remove all place holders
-                            for (var col = i_x + i_width - 1; col >= i_x; col--) {
-                                for (var row = i_y + i_height - 1; row >= i_y; row--) {
-                                    for (var i = 0; i < _children.length; i++) {
-                                        var child = _children[i];
-                                        if (child.x === col && child.y === row) {
-                                            child._hmi_gridElement.remove();
-                                            delete child._hmi_gridElement;
-                                            delete child._hmi_object;
-                                            delete child.hmi_object;
-                                            _children.splice(i, 1);
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            var child = {};
-                            child.objectReference = i_objectReference;
-                            // use .object (see code below)
-                            child.object = i_object;
-                            child.x = i_x;
-                            child.y = i_y;
-                            child.width = i_width;
-                            child.height = i_height;
-                            child._hmi_gridElement = $(DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
-                            child._hmi_gridElement.appendTo(_mainDiv);
-                            setBounds(child._hmi_gridElement, _grid.getBounds(child));
-                            _children.push(child);
-                            droppableCellAdded(child);
-                            createObjectSubTree(i_object, child._hmi_gridElement, function () {
-                                child._hmi_object = i_object._hmi_object;
-                                child.hmi_object = i_object._hmi_object;
-                                i_suc();
-                            }, i_err, that.hmi, i_initData, that, child.id, that.hmi_node());
-                        }
-                        else {
-                            // in case object is not available we at least call the callback
-                            i_suc();
-                        }
-                        // in case of an error we at least call the callback
-                    }, i_err);
-                };
-
-                // this method will be called from inside of the rectangle handler in
-                // case a new rectangle must be reloaded
-                reloadRectangle = function (i_objectReference, i_initData) {
-                    for (var i = 0; i < _children.length; i++) {
-                        var child = _children[i];
-                        if (child.objectReference === i_objectReference && child.object) {
-                            initObject(child.object, i_initData);
-                        }
-                    }
-                };
-                // this method will be called from inside of the rectangle handler in
-                // case an existing rectangle must be unloaded
-                unloadRectangle = function (i_x, i_y, i_width, i_height, i_objectReference, i_suc, i_err) {
-                    for (var i = 0; i < _children.length; i++) {
-                        var child = _children[i];
-                        if (child.objectReference === i_objectReference) {
-                            // here we use .object because we placed our object there (see
-                            // code above)
-                            killObjectSubTree(child.object, () => {
-                                delete child._hmi_object;
-                                delete child.hmi_object;
-                                delete child.object;
-                                delete child.objectReference;
-                                child._hmi_gridElement.data('hmi_object', null);
-                                if (i_enableEditorEvents !== true) {
-                                    child._hmi_gridElement.droppable('destroy');
-                                }
-                                child._hmi_gridElement.remove();
-                                delete child._hmi_gridElement;
-                                _children.splice(i, 1);
-                                addPlaceholders(i_x, i_y, i_width, i_height);
-                                i_suc();
-                            }, i_err);
-                            break;
-                        }
-                    }
-                };
-                _rectHandler = new RectangleHandler(_grid.getColumns(), _grid.getRows(), typeof this.maxStackSize === 'number' ? this.maxStackSize : 64, loadRectangle, reloadRectangle, unloadRectangle);
-                _rectHandlerPipe = new Executor.pipe(function (i_exception) {
-                    console.error('TODO: handle errors!\nEXCEPTION: ' + i_exception);
-                });
-                addPlaceholders(0, 0, _grid.getColumns(), _grid.getRows());
-                if (that.hmi.droppables[that.droppable] === undefined || that.hmi.droppables[that.droppable] === null) {
-                    _dropable = {
-                        add: function (i_path, i_width, i_height, i_init, i_callback) {
-                            var width = typeof i_width === 'number' ? i_width : 1;
-                            var height = typeof i_height === 'number' ? i_height : 1;
-                            _rectHandlerPipe(function (i_rectHandlerSuccess, i_rectHandlerError) {
-                                _rectHandler.prepareNextSet();
-                                _rectHandler.addRectangleForNextSetToDefaultLocation(width, height, i_path, i_init);
-                                _rectHandler.activateNextSet(function () {
-                                    i_rectHandlerSuccess();
-                                    if (typeof i_callback === 'function') {
-                                        i_callback();
-                                    }
-                                }, i_rectHandlerError);
-                            });
-                        },
-                        home: function (i_callback) {
-                            _rectHandlerPipe(function (i_rectHandlerSuccess, i_rectHandlerError) {
-                                _rectHandler.goToStart(function () {
-                                    i_rectHandlerSuccess();
-                                    if (typeof i_callback === 'function') {
-                                        i_callback();
-                                    }
-                                }, i_rectHandlerError);
-                            });
-                        },
-                        undo: function (i_callback) {
-                            _rectHandlerPipe(function (i_rectHandlerSuccess, i_rectHandlerError) {
-                                _rectHandler.goBack(function () {
-                                    i_rectHandlerSuccess();
-                                    if (typeof i_callback === 'function') {
-                                        i_callback();
-                                    }
-                                }, i_rectHandlerError);
-                            });
-                        },
-                        redo: function (i_callback) {
-                            _rectHandlerPipe(function (i_rectHandlerSuccess, i_rectHandlerError) {
-                                _rectHandler.goForward(function () {
-                                    i_rectHandlerSuccess();
-                                    if (typeof i_callback === 'function') {
-                                        i_callback();
-                                    }
-                                }, i_rectHandlerError);
-                            });
-                        },
-                        getCurrentSituation: function () {
-                            return _rectHandler.getCurrentSituation();
-                        },
-                        setCurrentSituation: function (i_rectangles, i_callback) {
-                            _rectHandlerPipe(function (i_rectHandlerSuccess, i_rectHandlerError) {
-                                _rectHandler.setCurrentSituation(i_rectangles, function () {
-                                    i_rectHandlerSuccess();
-                                    if (typeof i_callback === 'function') {
-                                        i_callback();
-                                    }
-                                });
-                            }, i_rectHandlerError);
-                        }
-                    };
-                    this.hmi_dropable = function () {
-                        return _dropable;
-                    };
-                    that.hmi.droppables[that.droppable] = _dropable;
-                }
-            }
-        }
-        else {
-            for (var i = 0, l = _children.length; i < l; i++) {
-                // closure
-                (function () {
-                    var idx = i;
-                    var child = _children[idx];
-                    var hmiobj = child._hmi_object;
-                    if (hmiobj) {
-                        if (isTaskType(hmiobj)) {
-                            if (hmiobj._hmi_init_dom) {
-                                tasks.push(function (i_suc, i_err) {
-                                    // #grid: 1
-                                    hmiobj._hmi_init_dom({
-                                        container: _cont
-                                    }, i_suc, i_err);
-                                });
-                            }
-                        }
-                        else {
-                            child._hmi_gridElement = $(DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
-                            child._hmi_gridElement.appendTo(_mainDiv);
-                            setBounds(child._hmi_gridElement, _grid.getBounds(child));
-                            if (hmiobj._hmi_init_dom) {
-                                tasks.push(function (i_suc, i_err) {
-                                    // #grid: 2
-                                    hmiobj._hmi_init_dom({
-                                        container: child._hmi_gridElement
-                                    }, i_suc, i_err);
-                                });
-                            }
-                            if (i_enableEditorEvents === true) {
-                                child._hmi_gridElement.draggable({
-                                    scope: _scope,
-                                    // helper : 'clone',
-                                    revert: 'invalid',
-                                    revertDuration: 777,
-                                    appendTo: 'body',
-                                    // opacity : 0.7,
-                                    distance: 20,
-                                    iframeFix: true,
-                                    scroll: false
-                                });
-                            }
-                            if (i_enableEditorEvents === true) {
-                                child._hmi_clickedForEdit = function (i_event) {
-                                    preventDefaultAndStopPropagation(i_event);
-                                    that._hmi_forAllEditListeners(function (i_listener) {
-                                        if (typeof i_listener.showChildObjectEditor === 'function') {
-                                            i_listener.showChildObjectEditor(idx, child);
-                                        }
-                                    });
-                                };
-                                child._hmi_gridElement.on('click', child._hmi_clickedForEdit);
-                            }
-                        }
-                    }
-                }());
-            }
-        }
-        this._hmi_resizes.push(function () {
-            _grid.calculateGrid(_mainDiv.width(), _mainDiv.height(), typeof that.separator === 'number' ? that.separator : 0);
-            if (Array.isArray(_placeholders)) {
-                for (var i = 0; i < _placeholders.length; i++) {
-                    var child = _placeholders[i];
-                    setBounds(child._hmi_gridElement, _grid.getBounds(child));
-                }
-            }
-            for (var i = 0; i < _children.length; i++) {
-                var child = _children[i];
-                if (child._hmi_gridElement) {
-                    setBounds(child._hmi_gridElement, _grid.getBounds(child));
-                    var hmiobj = child._hmi_object;
-                    if (hmiobj && hmiobj._hmi_resize) {
-                        hmiobj._hmi_resize();
-                    }
-                }
-            }
-        });
-        this._hmi_destroys.push(function () {
-            if (i_enableEditorEvents !== true && typeof that.droppable === 'string') {
-                // clean up drop grid elements first ...
-                var rect = that.hmi.droppables[that.droppable];
-                if (rect && typeof rect.home === 'function') {
-                    // ... by calling the home function (which empties the drop
-                    // containers)
-                    rect.home();
-                }
-                delete rect.add;
-                delete rect.home;
-                delete rect.undo;
-                delete rect.redo;
-                delete rect.getCurrentSituation;
-                delete rect.setCurrentSituation;
-                delete that.hmi.droppables[that.droppable];
-            }
-            delete this.hmi_dropable;
-            _dropable = undefined;
-            _scope = undefined;
-            for (var i = _children.length - 1; i >= 0; i--) {
-                var child = _children[i];
-                var hmiobj = child._hmi_object;
-                if (hmiobj && hmiobj._hmi_destroy_dom) {
-                    // #grid: 1 + 2
-                    hmiobj._hmi_destroy_dom();
-                }
-                if (child._hmi_gridElement) {
-                    if (i_enableEditorEvents === true) {
-                        child._hmi_gridElement.off('click', child._hmi_clickedForEdit);
-                        delete child._hmi_clickedForEdit;
-                    }
-                    child._hmi_gridElement.remove();
-                    delete child._hmi_gridElement;
-                }
-            }
-            if (Array.isArray(_placeholders)) {
-                for (var i = _placeholders.length - 1; i >= 0; i--) {
-                    var placeholder = _placeholders[i];
-                    if (typeof placeholder._hmi_clickedForEdit === 'function') {
-                        placeholder._hmi_gridElement.off('click', placeholder._hmi_clickedForEdit);
-                        delete placeholder._hmi_clickedForEdit;
-                    }
-                    placeholder._hmi_gridElement.remove();
-                    delete placeholder._hmi_gridElement;
-                }
-            }
-            if (typeof that.droppable === 'string') {
-                _children.splice(0, _children.length);
-            }
-            if (_rectHandlerPipe !== undefined) {
-                // TODO _rectHandlerPipe.stop();
-            }
-            _rectHandlerPipe = undefined;
-            _rectHandler = undefined;
-            droppableCellAdded = undefined;
-            addPlaceholders = undefined;
-            loadRectangle = undefined;
-            reloadRectangle = undefined;
-            unloadRectangle = undefined;
-            _children = undefined;
-            _mainDiv.empty();
-            _mainDiv = undefined;
-            _cont.empty();
-            _cont = undefined;
-            _grid = undefined;
-            that = undefined;
-        });
-        Executor.run(tasks, i_success, i_error);
-    };
-
+    // TODO: Go on here
     s_types['float'] = function (i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
         var that = this, tasks = [];
         var _cont = that._hmi_context.container;
@@ -1812,7 +796,7 @@
         var _children = Array.isArray(this.children) ? this.children : [];
         var _scope = undefined;
         if (i_enableEditorEvents === true) {
-            applyListenerSupport.call(that);
+            applyListenerSupport(that);
             _scope = Utilities.getUniqueId();
             _mainDiv.droppable({
                 scope: _scope,
@@ -3402,40 +2386,37 @@
      * @param {Object}
      *          i_margin The margin configuration parameter
      * @param {Object}
-     *          i_attributeName The selective attribute name (top, bottom, left or
+     *          attributeName The selective attribute name (top, bottom, left or
      *          right)
      * @param {Object}
-     *          i_separator The separator value
+     *          separator The separator value
      */
-    function get_dimension_parameter(i_object, i_attributeName, i_separator) {
-        if (i_object === true) {
-            return i_separator;
-        }
-        else if (typeof i_object === 'number') {
-            return i_object;
-        }
-        else if (i_object !== null && typeof i_object === 'object') {
-            var margin = i_object[i_attributeName];
+    function getDimensionParameter(object, attributeName, separator) {
+        if (object === true) {
+            return separator;
+        } else if (typeof object === 'number') {
+            return object;
+        } else if (object !== null && typeof object === 'object') {
+            const margin = object[attributeName];
             if (margin === true) {
-                return i_separator;
-            }
-            else if (typeof margin === 'number') {
+                return separator;
+            } else if (typeof margin === 'number') {
                 return margin;
-            }
-            else {
+            } else {
                 return 0;
             }
-        }
-        else {
+        } else {
             return 0;
         }
-    };
+    }
+    ObjectLifecycleManager.getDimensionParameter = getDimensionParameter;
+
     function compute_central_rectangle(i_sourceWidth, i_sourceHeight, i_targetWidth, i_targetHeight, i_targetMargin, i_targetBorder, i_relativeX, i_relativeY) {
         // first we compute the maximum dimension we have for our image
-        var marginLeft = get_dimension_parameter(i_targetMargin, 'left', i_targetBorder);
-        var marginRight = get_dimension_parameter(i_targetMargin, 'right', i_targetBorder);
-        var marginTop = get_dimension_parameter(i_targetMargin, 'top', i_targetBorder);
-        var marginBottom = get_dimension_parameter(i_targetMargin, 'bottom', i_targetBorder);
+        var marginLeft = getDimensionParameter(i_targetMargin, 'left', i_targetBorder);
+        var marginRight = getDimensionParameter(i_targetMargin, 'right', i_targetBorder);
+        var marginTop = getDimensionParameter(i_targetMargin, 'top', i_targetBorder);
+        var marginBottom = getDimensionParameter(i_targetMargin, 'bottom', i_targetBorder);
         var border = typeof i_targetBorder === 'number' && i_targetBorder > 0 ? i_targetBorder : 0;
         var targetWidth = i_targetWidth - marginLeft - marginRight - border * 2;
         var targetHeight = i_targetHeight - marginTop - marginBottom - border * 2;
@@ -4583,7 +3564,7 @@
         // here we store some internal data for performance reasons
         var _children = undefined;
         var _curves = undefined;
-        var event = undefined;
+        var onEvent = undefined;
         var clicked = undefined;
         var _p = {};
         var _cont = this._hmi_context.container;
@@ -4841,19 +3822,23 @@
                     });
                     _ctx.restore();
                 };
-                event = function (i_event, i_type) {
-                    switch (i_type) {
+                onEvent = (event, type) => {
+                    switch (type) {
                         case MOUSEEVENT_MOUSEDOWN:
-                            var offs = _cont.offset();
-                            clicked(i_event, i_event.clientX - offs.left, i_event.clientY - offs.top);
-                            break;
-                        case TOUCHEVENT_TOUCHSTART:
-                            var offs = _cont.offset();
-                            var tt = i_event.originalEvent ? i_event.originalEvent.targetTouches : undefined;
-                            if (tt && tt[0]) {
-                                clicked(i_event, tt[0].clientX - offs.left, tt[0].clientY - offs.top);
+                            {
+                                const offs = _cont.offset();
+                                clicked(event, event.clientX - offs.left, event.clientY - offs.top);
+                                break;
                             }
-                            break;
+                        case TOUCHEVENT_TOUCHSTART:
+                            {
+                                const offs = _cont.offset();
+                                const tt = event.originalEvent ? event.originalEvent.targetTouches : undefined;
+                                if (tt && tt[0]) {
+                                    clicked(event, tt[0].clientX - offs.left, tt[0].clientY - offs.top);
+                                }
+                                break;
+                            }
                         case MOUSEEVENT_CLICK:
                         case MOUSEEVENT_DBLCLICK:
                         case MOUSEEVENT_HOVER:
@@ -4874,12 +3859,11 @@
                             break;
                     }
                     if (that._hmi_handleZoomEvent) {
-                        that._hmi_handleZoomEvent(i_event, i_type);
+                        that._hmi_handleZoomEvent(event, type);
                     }
                 };
-                applyEventListener.call(that, i_context, event);
-            }
-            else {
+                applyEventListener(that, i_context, onEvent);
+            } else {
                 this._hmi_canvas.remove();
                 var div = '<div style="box-sizing: border-box;position: relative;width: 100%;height: 100%;"><h1>';
                 div += '!!! INVALID CANVAS CONTEXT 2D !!!';
@@ -6866,7 +5850,7 @@
         this._hmi_destroys.push(function () {
             if (that._hmi_graphicsRoot === true) {
                 clicked = undefined;
-                event = undefined;
+                onEvent = undefined;
             }
             if (_children) {
                 for (var i = _children.length - 1; i >= 0; i--) {
@@ -7035,55 +6019,64 @@
 
         // INITIALIZE THE DOCUMENT
         // TODO use: i_success, i_error
-        this._hmi_init_dom = function (i_context, i_success, i_error) {
+        this._hmi_init_dom = function (i_context, onSuccess, onError) {
             const tasks = [];
             that._hmi_context = i_context;
             _cont = i_context.container;
             if (isTaskType(that)) {
-                tasks.push(function (i_suc, i_err) {
-                    TaskObjectImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
+                tasks.push(function (onSuc, onErr) {
+                    TaskObjectImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr);
                 });
-            }
-            else {
+            } else {
                 if (that.type === 'graph') {
                     // if a graphics object apply graphic functionality
-                    tasks.push(function (i_suc, i_err) {
-                        GraphicObjectImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
+                    tasks.push(function (onSuc, onErr) {
+                        GraphicObjectImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr);
                     });
-                }
-                else {
-                    tasks.push(function (i_suc, i_err) {
+                } else {
+                    tasks.push(function (onSuc, onErr) {
                         DefaultHtmlObjectImpl.call(that);
-                        i_suc();
+                        onSuc();
                     });
                     // get type if available
-                    var type = typeof that.type === 'string' ? s_types[that.type] : false;
+                    const applyType = typeof that.type === 'string' ? s_types[that.type] : false;
                     // if type is available
-                    if (typeof type === 'function') {
-                        tasks.push(function (i_suc, i_err) {
+                    if (typeof applyType === 'function') {
+                        tasks.push((onSuc, onErr) => {
                             // apply type specific functionality
-                            type.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
+                            switch (that.type) {
+                                case 'container':
+                                    applyType(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents);
+                                    onSuc();
+                                    break;
+                                case 'grid':
+                                    applyType(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr);
+                                    onSuc();
+                                    break;
+                                default:
+                                    applyType.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr);
+                                    break;
+                            }
                         });
-                    }
-                    // no type
-                    else {
-                        tasks.push(function (i_suc, i_err) {
+                    } else { // no type
+                        tasks.push((onSuc, onErr) => {
                             SimpleHtmlObjectImpl.call(that);
-                            i_suc();
+                            onSuc();
                         });
                     }
                     // EXTENSIONS
-                    if (applyButtonHandling.isRequired(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents)) {
-                        tasks.push(function (i_suc, i_err) {
-                            applyButtonHandling.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
+                    if (applyButtonHandling.isRequired(that, i_disableVisuEvents)) {
+                        tasks.push((onSuc, onErr) => {
+                            applyButtonHandling(that, that._hmi_context);
+                            onSuc();
                         });
                     }
                     if (TimeRangeSelectorImpl.isRequired(that)) {
-                        tasks.push(function (i_suc, i_err) {
-                            TimeRangeSelectorImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
+                        tasks.push(function (onSuc, onErr) {
+                            TimeRangeSelectorImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr);
                         });
                     }
-                    tasks.push(function (i_suc, i_err) {
+                    tasks.push(function (onSuc, onErr) {
                         // used for editor only! move somewhere?
                         if (typeof that.draggable === 'string' && i_enableEditorEvents !== true) {
                             if (_cont) {
@@ -7132,10 +6125,10 @@
                                 }
                             }
                         }
-                        i_suc();
+                        onSuc();
                     });
                 }
-                tasks.push(function (i_suc, i_err) {
+                tasks.push(function (onSuc, onErr) {
                     try {
                         // VISIBILITY (default is true)
                         if (isVisible(that.visible) === false) {
@@ -7153,10 +6146,10 @@
                         else {
                             that.hmi_setVisible(true);
                         }
-                        i_suc();
+                        onSuc();
                     }
                     catch (e) {
-                        i_err(e);
+                        onErr(e);
                     }
                 });
             }
@@ -7164,17 +6157,17 @@
             for (var i = 0; i < s_extensions.length; i++) {
                 var impl = s_extensions[i];
                 if (impl.isExtension(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents)) {
-                    tasks.push(function (i_suc, i_err) {
-                        impl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, i_suc, i_err);
+                    tasks.push(function (onSuc, onErr) {
+                        impl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr);
                     });
                 }
             }
             tasks.parallel = false;
-            Executor.run(tasks, function () {
+            Executor.run(tasks, () => {
                 // delete method to prevent other calls
                 delete that._hmi_init_dom;
-                i_success();
-            }, i_error);
+                onSuccess();
+            }, onError);
         };
 
         // ADD LISTENERS
@@ -8281,23 +7274,20 @@
      * destroying your object.
      * 
      * @param {Object}
-     *          i_type Function as closure for type specific features.
+     *          type Function as closure for type specific features.
      */
-    function _add_type(i_type, i_impl) {
-        if (typeof i_type !== 'string' || i_type.length === 0) {
+    function addApplyFunctionForType(type, apply) {
+        if (typeof type !== 'string' || type.length === 0) {
             throw new Error('Invalid type');
-        }
-        else if (s_types[i_type] !== undefined) {
-            throw new Error('Type "' + i_type + '" alreday exists');
-        }
-        else if (typeof i_impl !== 'function') {
-            throw new Error('Invalid type "' + i_type + '" implmentation');
-        }
-        else {
-            s_types[i_type] = i_impl;
+        } else if (s_types[type] !== undefined) {
+            throw new Error(`Type '${type}' alreday exists`);
+        } else if (typeof apply !== 'function') {
+            throw new Error(`Invalid type '${type}' apply function`);
+        } else {
+            s_types[type] = apply;
         }
     }
-    ObjectLifecycleManager._add_type = _add_type;
+    ObjectLifecycleManager.addApplyFunctionForType = addApplyFunctionForType;
     function _add_extension(i_impl) {
         if (typeof i_impl === 'function' && typeof i_impl.isExtension === 'function') {
             s_extensions.push(i_impl);
