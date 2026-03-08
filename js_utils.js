@@ -19,7 +19,9 @@
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Logger.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/FloatLayout.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/GridLayout.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/SplitLayout.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Evaluate.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/LanguageSwitching.js');
@@ -52,7 +54,9 @@
         DataConnector: require('./src/DataConnector.js'),
         Logger: require('./src/Logger.js'),
         WebSocketConnection: require('./src/WebSocketConnection.js'),
+        FloatLayout: require('./src/FloatLayout.js'),
         GridLayout: require('./src/GridLayout.js'),
+        SplitLayout: require('./src/SplitLayout.js'),
         Evaluate: require('./src/Evaluate.js'),
         ContentEditor: require('./src/ContentEditor.js'),
         LanguageSwitching: require('./src/LanguageSwitching.js'),
