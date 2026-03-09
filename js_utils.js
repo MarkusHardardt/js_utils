@@ -22,6 +22,9 @@
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/FloatLayout.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/GridLayout.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/SplitLayout.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/TableControl.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/TextControl.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/TreeControl.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Evaluate.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/LanguageSwitching.js');
@@ -57,6 +60,9 @@
         FloatLayout: require('./src/FloatLayout.js'),
         GridLayout: require('./src/GridLayout.js'),
         SplitLayout: require('./src/SplitLayout.js'),
+        TableControl: require('./src/TableControl.js'),
+        TextControl: require('./src/TextControl.js'),
+        TreeControl: require('./src/TreeControl.js'),
         Evaluate: require('./src/Evaluate.js'),
         ContentEditor: require('./src/ContentEditor.js'),
         LanguageSwitching: require('./src/LanguageSwitching.js'),

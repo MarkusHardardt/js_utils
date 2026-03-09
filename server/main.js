@@ -132,6 +132,9 @@
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/GridLayout.js');
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/FloatLayout.js');
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/SplitLayout.js');
+        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/TableControl.js');
+        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/TextControl.js');
+        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/TreeControl.js');
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/LanguageSwitching.js');
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/TaskManager.js');
