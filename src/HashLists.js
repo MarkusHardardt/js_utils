@@ -214,7 +214,7 @@
                     return false;
                 } else if (List.prototype.isPrototypeOf(object)) {
                     const result = collection ? collection : [];
-                    for (var i = 0, l = object.length; i < l; i++) {
+                    for (let i = 0, l = object.length; i < l; i++) {
                         result.push(object[i]);
                     }
                     return result;

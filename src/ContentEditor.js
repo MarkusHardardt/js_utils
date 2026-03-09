@@ -259,7 +259,7 @@
     }
 
     function performRefactoring(hmi, source, target, action, onSuccess, onEerror) {
-        var cms = hmi.cms;
+        const cms = hmi.cms;
         cms.getRefactoringParams(source, target, action, params => {
             if (typeof params.error === 'string') {
                 hmi.showDefaultConfirmationDialog({
@@ -573,13 +573,13 @@
             prepare: (that, onSuccess, onError) => {
                 that._keyup = event => {
                     if (event.which === 13) {
-                        var path = that.hmi_value().trim();
+                        const path = that.hmi_value().trim();
                         adapter.keySelected(cms.analyzeId(path));
                     }
                 };
                 that.hmi_getTextField().on('keyup', that._keyup);
                 that._on_change = () => {
-                    var data = cms.analyzeId(that.hmi_value().trim());
+                    const data = cms.analyzeId(that.hmi_value().trim());
                     that._update_color(data);
                     adapter.keyEdited(data);
                 };
@@ -3267,7 +3267,7 @@
             y: 0,
             refresh: (that, date) => {
                 // clock (updates every second)
-                var last = footer._last, sec = Math.ceil(date.getTime() / 1000);
+                let last = footer._last, sec = Math.ceil(date.getTime() / 1000);
                 if (last !== sec) {
                     last = sec;
                     time.hmi_text(date.toLocaleString());

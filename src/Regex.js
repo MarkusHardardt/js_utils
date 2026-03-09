@@ -77,7 +77,7 @@
         }
         // get the current element and set our next search start offset to
         // the elements start
-        var elem = elements[elementIndex.value], match;
+        let elem = elements[elementIndex.value], match;
         rx.lastIndex = elem.start;
         // while we have any matches
         while (match = rx.exec(text)) {
@@ -116,11 +116,11 @@
     }
 
     function followMatches(config, text, elements) {
-        var elem_idx = {
+        let elem_idx = {
             value: 0
         }, elem, match, end, id;
-        var Regex = config.first;
-        while (match = getNextMatch(text, elements, elem_idx, Regex)) {
+        let regex = config.first;
+        while (match = getNextMatch(text, elements, elem_idx, regex)) {
             id = typeof config.convertMatchToId === 'function' ? config.convertMatchToId(match[0]) : match[0];
             elem = elements[elem_idx.value];
             end = match.index + match[0].length;
@@ -154,13 +154,13 @@
                     elements.splice(elem_idx.value, 1, id);
                 }
             }
-            Regex = config.next[id];
-            if (Regex === null) {
+            regex = config.next[id];
+            if (regex === null) {
                 return id;
-            } else if (Regex === undefined) {
+            } else if (regex === undefined) {
                 throw new Error('EXCEPTION! Unexpected match: "' + match[0] + '" at index: ' + match.index);
-            } else if (Regex.global !== true) {
-                throw new Error('EXCEPTION! Regex is not global: "' + Regex.toString() + '"');
+            } else if (regex.global !== true) {
+                throw new Error('EXCEPTION! Regex is not global: "' + regex.toString() + '"');
             }
         }
         if (config.finalNullRequired === true) {
@@ -172,36 +172,25 @@
         }
     }
 
+    const not_empty_regex = /[^\s]/gi;
     function analyse(config, text, elements) {
-        var offset = 0;
         if (config.comment !== undefined) {
             // first we separate code and comments
-            each(config.comment, text, function (i_start, i_end, i_match) {
-                // add all segments - if we got a comment match the segment represents
-                // code
-                elements.push({
-                    code: !i_match,
-                    start: i_start,
-                    end: i_end
-                });
-            });
+            // add all segments - if we got a comment match the segment represents code
+            each(config.comment, text, (start, end, match) => elements.push({ code: !match, start: start, end: end }));
         } else {
             // we start with a single segment containing all
-            elements.push({
-                code: true,
-                start: 0,
-                end: text.length
-            });
+            elements.push({ code: true, start: 0, end: text.length });
         }
         // next we follow all found matches
-        var final = followMatches(config, text, elements);
+        const final = followMatches(config, text, elements);
         // finally we remove empty segments
-        var idx = 0, elem, not_empty_regex = /[^\s]/gi, match;
+        let idx = 0;
         while (idx < elements.length) {
-            elem = elements[idx];
+            const elem = elements[idx];
             if (typeof elem !== 'string' && elem.code) {
                 not_empty_regex.lastIndex = elem.start;
-                match = not_empty_regex.exec(text);
+                const match = not_empty_regex.exec(text);
                 if (match && match.index < elem.end) {
                     elem.start = match.index;
                     idx++;

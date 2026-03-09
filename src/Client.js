@@ -8,27 +8,23 @@
     if (!isNodeJS) {
         // polyfill for requestAnimationFrame (by Opera engineer Erik Möller)
         (function () {
-            var lastTime = 0;
-            var vendors = ['webkit', 'moz'];
-            for (var x = 0; x < vendors.length && !root.requestAnimationFrame; ++x) {
+            let lastTime = 0;
+            const vendors = ['webkit', 'moz'];
+            for (let x = 0; x < vendors.length && !root.requestAnimationFrame; ++x) {
                 root.requestAnimationFrame = root[vendors[x] + 'RequestAnimationFrame'];
                 root.cancelAnimationFrame = root[vendors[x] + 'CancelAnimationFrame'] || root[vendors[x] + 'CancelRequestAnimationFrame'];
             }
             if (!root.requestAnimationFrame) {
                 root.requestAnimationFrame = (callback, element) => {
-                    var currTime = new Date().getTime();
-                    var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-                    var id = root.setTimeout(() => {
-                        callback(currTime + timeToCall);
-                    }, timeToCall);
+                    const currTime = new Date().getTime();
+                    const timeToCall = Math.max(0, 16 - (currTime - lastTime));
+                    const id = root.setTimeout(() => callback(currTime + timeToCall), timeToCall);
                     lastTime = currTime + timeToCall;
                     return id;
                 };
             }
             if (!root.cancelAnimationFrame) {
-                root.cancelAnimationFrame = timeout => {
-                    clearTimeout(timeout);
-                };
+                root.cancelAnimationFrame = timeout => clearTimeout(timeout);
             }
         }());
 

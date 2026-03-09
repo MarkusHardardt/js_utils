@@ -320,7 +320,7 @@
 
     function getTextsAndNumbersCompareFunction(ignoreCase, signed, upward) {
         return function (s1, s2) {
-            var res = compareTextsAndNumbers(s1, s2, ignoreCase, signed);
+            const res = compareTextsAndNumbers(s1, s2, ignoreCase, signed);
             return upward !== false ? res : -res;
         };
     }

@@ -40,7 +40,6 @@
      * ==> all initialized objects destroyed! (Hm, 2015-07-29)
      */
 
-    const SHOW_SERVER_ERROR_POPUP = true;
     const DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION = '<div style="box-sizing: border-box;position: relative;width: 100%;height: 100%;" />';
     ObjectLifecycleManager.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION = DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION;
     const DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION = '<div style="box-sizing: border-box;position: absolute;" />';
