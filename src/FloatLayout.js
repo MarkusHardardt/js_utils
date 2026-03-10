@@ -14,7 +14,7 @@
         let _children = Array.isArray(that.children) ? that.children : [];
         let _scope = undefined;
         if (enableEditorEvents === true) {
-            applyListenerSupport(that);
+            ObjectLifecycleManager.applyListenerSupport(that);
             _scope = Utilities.getUniqueId();
             _mainDiv.droppable({
                 scope: _scope,

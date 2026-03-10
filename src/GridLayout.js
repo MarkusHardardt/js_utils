@@ -514,10 +514,10 @@
         _grid.calculateGrid(_mainDiv.width(), _mainDiv.height(), typeof that.separator === 'number' ? that.separator : 0);
         let _placeholders = undefined;
         if (enableEditorEvents === true) {
-            applyListenerSupport(that);
+            ObjectLifecycleManager.applyListenerSupport(that);
             _placeholders = [];
-            for (const col = _grid.getColumns() - 1; col >= 0; col--) {
-                for (const row = _grid.getRows() - 1; row >= 0; row--) {
+            for (let col = _grid.getColumns() - 1; col >= 0; col--) {
+                for (let row = _grid.getRows() - 1; row >= 0; row--) {
                     // closure
                     (function () {
                         const placeholder = {};
