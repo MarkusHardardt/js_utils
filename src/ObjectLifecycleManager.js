@@ -316,6 +316,7 @@
             that = undefined;
         });
     }
+    ObjectLifecycleManager.applyListenerSupport = applyListenerSupport;
 
     let _lastUserActionDate = undefined;
 
@@ -769,21 +770,18 @@
     }
     s_types['container'] = applyContainer;
 
-    // TODO: Go on here
-    function TimeRangeSelectorImpl() {
-        var that = this;
-        var _min = undefined;
-        var _max = undefined;
-        var _from = undefined;
-        var _to = undefined;
-        var _syncInterval = undefined;
-        var _shiftUpInterval = undefined;
-        var _shiftDownInterval = undefined;
-        var doublingClickCount = typeof that.doublingClickCount === 'number' && that.doublingClickCount >= 1 ? that.doublingClickCount : 2;
-        var _zoom = Math.exp(Math.log(2.0) / doublingClickCount);
-        var _zoomInv = 1.0 / _zoom;
-        var _shiftFactor = typeof that.shiftFactor === 'number' && that.shiftFactor > 0.0 && that.shiftFactor < 1.0 ? that.shiftFactor : 0.2;
-
+    function applyTimeRangeSelector(that) {
+        let _min = undefined;
+        let _max = undefined;
+        let _from = undefined;
+        let _to = undefined;
+        let _syncInterval = undefined;
+        let _shiftUpInterval = undefined;
+        let _shiftDownInterval = undefined;
+        let doublingClickCount = typeof that.doublingClickCount === 'number' && that.doublingClickCount >= 1 ? that.doublingClickCount : 2;
+        let _zoom = Math.exp(Math.log(2.0) / doublingClickCount);
+        let _zoomInv = 1.0 / _zoom;
+        let _shiftFactor = typeof that.shiftFactor === 'number' && that.shiftFactor > 0.0 && that.shiftFactor < 1.0 ? that.shiftFactor : 0.2;
         function update() {
             if (_from < _min) {
                 _from = _min;
@@ -798,26 +796,25 @@
             if (typeof that.handleRangeUpdate === 'function') {
                 try {
                     that.handleRangeUpdate(_from, _to, _syncInterval !== undefined);
-                }
-                catch (exc) {
-                    console.error('EXCEPTION! Cannot update range: ' + exc + ' ' + that.handleRangeUpdate.toString());
+                } catch (error) {
+                    console.error(`Failed calling handleRangeUpdate(): ${that.handleRangeUpdate.toString()}`, error);
                 }
             }
         };
-        this.hmi_setAbsoluteRange = function (i_min, i_max) {
-            if (typeof i_min === 'number') {
-                _min = that.onlyInteger === true ? Math.floor(i_min) : i_min;
+        that.hmi_setAbsoluteRange = (min, max) => {
+            if (typeof min === 'number') {
+                _min = that.onlyInteger === true ? Math.floor(min) : min;
             }
-            if (typeof i_max === 'number') {
-                _max = that.onlyInteger === true ? Math.ceil(i_max) : i_max;
+            if (typeof max === 'number') {
+                _max = that.onlyInteger === true ? Math.ceil(max) : max;
             }
         };
-        this.hmi_setCurrentRange = function (i_from, i_to) {
-            if (typeof i_from === 'number') {
-                _from = that.onlyInteger === true ? Math.floor(i_from) : i_from;
+        that.hmi_setCurrentRange = (from, to) => {
+            if (typeof from === 'number') {
+                _from = that.onlyInteger === true ? Math.floor(from) : from;
             }
-            if (typeof i_to === 'number') {
-                _to = that.onlyInteger === true ? Math.ceil(i_to) : i_to;
+            if (typeof to === 'number') {
+                _to = that.onlyInteger === true ? Math.ceil(to) : to;
             }
             if (_from < _min) {
                 _from = _min;
@@ -826,94 +823,75 @@
                 _to = _max;
             }
         };
-        this.hmi_maximizeRange = function () {
+        that.hmi_maximizeRange = () => {
             _from = _min;
             _to = _max;
             update();
         };
-        this.hmi_zoomOut = function () {
-            var val = ((_to - _from) * (_zoom - 1.0)) * 0.5;
+        that.hmi_zoomOut = () => {
+            const val = ((_to - _from) * (_zoom - 1.0)) * 0.5;
             _from -= val;
             _to += val;
             update();
         };
-        this.hmi_zoomIn = function () {
-            var val = ((_to - _from) * (1.0 - _zoomInv)) * 0.5;
+        that.hmi_zoomIn = () => {
+            const val = ((_to - _from) * (1.0 - _zoomInv)) * 0.5;
             _from += val;
             _to -= val;
             update();
         };
-        function shift(i_up) {
-            var diff = i_up === true ? Math.min(_shiftFactor * (_to - _from), _max - _to) : -Math.min(_shiftFactor * (_to - _from), _from - _min);
+        function shift(up) {
+            const diff = up === true ? Math.min(_shiftFactor * (_to - _from), _max - _to) : -Math.min(_shiftFactor * (_to - _from), _from - _min);
             _from += diff;
             _to += diff;
             update();
         };
-        this.hmi_shiftDown = function (i_pressed) {
-            if (i_pressed === true) {
+        that.hmi_shiftDown = pressed => {
+            if (pressed === true) {
                 if (_shiftDownInterval === undefined) {
-                    _shiftDownInterval = setInterval(function () {
-                        shift(false);
-                    }, typeof that.shiftMillis === 'number' && that.shiftMillis > 0 ? that.shiftMillis : 1000);
+                    _shiftDownInterval = setInterval(() => shift(false), typeof that.shiftMillis === 'number' && that.shiftMillis > 0 ? that.shiftMillis : 1000);
                 }
                 shift(false);
-            }
-            else {
+            } else {
                 if (_shiftDownInterval !== undefined) {
                     clearInterval(_shiftDownInterval);
                     _shiftDownInterval = undefined;
                 }
             }
         };
-        this.hmi_shiftUp = function (i_pressed) {
-            if (i_pressed === true) {
+        that.hmi_shiftUp = pressed => {
+            if (pressed === true) {
                 if (_shiftUpInterval === undefined) {
-                    _shiftUpInterval = setInterval(function () {
-                        shift(true);
-                    }, typeof that.shiftMillis === 'number' && that.shiftMillis > 0 ? that.shiftMillis : 1000);
+                    _shiftUpInterval = setInterval(() => shift(true), typeof that.shiftMillis === 'number' && that.shiftMillis > 0 ? that.shiftMillis : 1000);
                 }
                 shift(true);
-            }
-            else {
+            } else {
                 if (_shiftUpInterval !== undefined) {
                     clearInterval(_shiftUpInterval);
                     _shiftUpInterval = undefined;
                 }
             }
         };
-        this.hmi_synchronize = function (i_enable) {
-            if (i_enable === true) {
+        that.hmi_synchronize = enable => {
+            if (enable === true) {
                 if (_syncInterval === undefined) {
                     _syncInterval = setInterval(update, typeof that.syncMillis === 'number' && that.syncMillis > 0 ? that.syncMillis : 1000);
                     update();
                 }
-            }
-            else {
+            } else {
                 if (_syncInterval !== undefined) {
                     clearInterval(_syncInterval);
                     _syncInterval = undefined;
                 }
             }
         };
-        this.hmi_isSynchronized = function () {
-            return _syncInterval !== undefined;
-        };
-        this.hmi_isShiftingUp = function () {
-            return _shiftUpInterval !== undefined;
-        };
-        this.hmi_isShiftingDown = function () {
-            return _shiftDownInterval !== undefined;
-        };
-        this.hmi_getFrom = function () {
-            return _from;
-        };
-        this.hmi_getTo = function () {
-            return _to;
-        };
-        this.hmi_getRange = function () {
-            return _to - _from;
-        };
-        this._hmi_destroys.push(function () {
+        that.hmi_isSynchronized = () => _syncInterval !== undefined;
+        that.hmi_isShiftingUp = () => _shiftUpInterval !== undefined;
+        that.hmi_isShiftingDown = () => _shiftDownInterval !== undefined;
+        that.hmi_getFrom = () => _from;
+        that.hmi_getTo = () => _to;
+        that.hmi_getRange = () => _to - _from;
+        that._hmi_destroys.push(() => {
             if (_syncInterval !== undefined) {
                 clearInterval(_syncInterval);
                 _syncInterval = undefined;
@@ -935,10 +913,8 @@
             that = undefined;
         });
     };
+    applyTimeRangeSelector.isRequired = object => typeof object.handleRangeUpdate === 'function';
 
-    TimeRangeSelectorImpl.isRequired = function (i_object) {
-        return typeof i_object.handleRangeUpdate === 'function';
-    };
     function isVisible(visible) {
         if (visible === false) {
             return false;
@@ -955,7 +931,7 @@
             try {
                 return visible() !== false;
             } catch (error) {
-                console.error(`EXCEPTION! Calling visible: '${error}' '${visible.toString()}'`);
+                console.error(`Failed calling visible: ${visible.toString()}`, error);
                 return true;
             }
         } else {
@@ -998,84 +974,78 @@
     }
     ObjectLifecycleManager.getDimensionParameter = getDimensionParameter;
 
-    function compute_central_rectangle(i_sourceWidth, i_sourceHeight, i_targetWidth, i_targetHeight, i_targetMargin, i_targetBorder, i_relativeX, i_relativeY) {
+    function computeCentralRectangle(sourceWidth, sourceHeight, targetWidth, targetHeight, targetMargin, targetBorder, relativeX, relativeY) {
         // first we compute the maximum dimension we have for our image
-        var marginLeft = getDimensionParameter(i_targetMargin, 'left', i_targetBorder);
-        var marginRight = getDimensionParameter(i_targetMargin, 'right', i_targetBorder);
-        var marginTop = getDimensionParameter(i_targetMargin, 'top', i_targetBorder);
-        var marginBottom = getDimensionParameter(i_targetMargin, 'bottom', i_targetBorder);
-        var border = typeof i_targetBorder === 'number' && i_targetBorder > 0 ? i_targetBorder : 0;
-        var targetWidth = i_targetWidth - marginLeft - marginRight - border * 2;
-        var targetHeight = i_targetHeight - marginTop - marginBottom - border * 2;
+        const marginLeft = getDimensionParameter(targetMargin, 'left', targetBorder);
+        const marginRight = getDimensionParameter(targetMargin, 'right', targetBorder);
+        const marginTop = getDimensionParameter(targetMargin, 'top', targetBorder);
+        const marginBottom = getDimensionParameter(targetMargin, 'bottom', targetBorder);
+        const border = typeof targetBorder === 'number' && targetBorder > 0 ? targetBorder : 0;
+        const tgtWidth = targetWidth - marginLeft - marginRight - border * 2;
+        const tgtHeight = targetHeight - marginTop - marginBottom - border * 2;
         // now we compute the scales to fit within the maximum dimension
-        var scaleX = targetWidth / i_sourceWidth;
-        var scaleY = targetHeight / i_sourceHeight;
+        const scaleX = tgtWidth / sourceWidth;
+        const scaleY = tgtHeight / sourceHeight;
         // get the relevant scale
-        var scale = scaleX >= scaleY ? scaleY : scaleX;
+        const scale = scaleX >= scaleY ? scaleY : scaleX;
         // compute the resulting dimension
-        var width = scale * i_sourceWidth;
-        var height = scale * i_sourceHeight;
+        const width = scale * sourceWidth;
+        const height = scale * sourceHeight;
         // compute the offsets
-        var relx = typeof i_relativeX === 'number' ? i_relativeX : 0.5;
-        var rely = typeof i_relativeY === 'number' ? i_relativeY : 0.5;
-        var offsetX = (targetWidth - width) * relx;
-        var offsetY = (targetHeight - height) * rely;
+        const relx = typeof relativeX === 'number' ? relativeX : 0.5;
+        const rely = typeof relativeY === 'number' ? relativeY : 0.5;
+        const offsetX = (tgtWidth - width) * relx;
+        const offsetY = (tgtHeight - height) * rely;
         // return the resulting values
         return {
             x: marginLeft + border + offsetX,
             y: marginTop + border + offsetY,
-            width: width,
-            height: height,
-            scale: scale
+            width,
+            height,
+            scale
         };
     };
 
-    var _dummyText = undefined;
-    function get_text_size(i_text, i_font) {
+    let _dummyText = undefined;
+    function getTextSize(text, font) {
         if (_dummyText === undefined) {
             _dummyText = $('<span></span>').hide().appendTo(document.body);
         }
-        _dummyText.text(i_text !== undefined && i_text !== null ? (typeof i_text === 'string' ? i_text : i_text.toString()) : '');
-        if (typeof i_font === 'string') {
-            _dummyText.css('font', i_font);
+        _dummyText.text(text !== undefined && text !== null ? (typeof text === 'string' ? text : text.toString()) : '');
+        if (typeof font === 'string') {
+            _dummyText.css('font', font);
         }
-        var dimension = {
-            width: _dummyText.width(),
-            height: _dummyText.height(),
-        };
+        const dimension = { width: _dummyText.width(), height: _dummyText.height() };
         _dummyText.text('');
         return dimension;
     }
-    ObjectLifecycleManager.getTextSize = get_text_size;
+    ObjectLifecycleManager.getTextSize = getTextSize;
 
-    function DefaultHtmlObjectImpl() {
-        var that = this;
-        var _cont = that._hmi_context.container;
+    function applyDefaultHtmlObject(that) {
+        let _cont = that._hmi_context.container;
         _cont.data('hmi_object', that);
-        this._hmi_resizes = [];
+        that._hmi_resizes = [];
         // RESIZE
-        this._hmi_resize = function () {
+        that._hmi_resize = () => {
             if (_cont !== undefined) {
-                var width = _cont.width();
-                var height = _cont.height();
+                const width = _cont.width();
+                const height = _cont.height();
                 if (width > 0 && height > 0) {
-                    for (var i = 0; i < that._hmi_resizes.length; i++) {
-                        var func = that._hmi_resizes[i];
+                    for (let i = 0; i < that._hmi_resizes.length; i++) {
+                        const func = that._hmi_resizes[i];
                         if (typeof func === 'function') {
                             try {
                                 func(width, height);
-                            }
-                            catch (exc) {
-                                console.error('EXCEPTION! Cannot resize: ' + exc + ' ' + func.toString());
+                            } catch (error) {
+                                console.error(`Failed calling resize: ${func.toString()}`, error);
                             }
                         }
                     }
                     if (typeof that.resized === 'function') {
                         try {
                             that.resized(width, height);
-                        }
-                        catch (exc) {
-                            console.error('EXCEPTION! Calling resized: ' + exc + ' ' + that.resized.toString());
+                        } catch (error) {
+                            console.error(`Failed calling resized: ${that.resized.toString()}`, error);
                         }
                     }
                 }
@@ -1084,82 +1054,72 @@
                 }
             }
         };
-        this.hmi_fireResized = function () {
-            this._hmi_resize();
-        };
-        this.hmi_updateBorder = function (i_engraved) {
-            var width = _cont.width();
-            var height = _cont.height();
+        that.hmi_fireResized = () => that._hmi_resize();
+        that.hmi_updateBorder = engraved => {
+            const width = _cont.width();
+            const height = _cont.height();
             if (that.border === true) {
-                _cont[i_engraved === true ? 'removeClass' : 'addClass']('hmi-border-embossed');
-                _cont[i_engraved === true ? 'addClass' : 'removeClass']('hmi-border-engraved');
-            }
-            else if (that.border === false) {
-                _cont[i_engraved === true ? 'removeClass' : 'addClass']('hmi-border-engraved');
-                _cont[i_engraved === true ? 'addClass' : 'removeClass']('hmi-border-embossed');
+                _cont[engraved === true ? 'removeClass' : 'addClass']('hmi-border-embossed');
+                _cont[engraved === true ? 'addClass' : 'removeClass']('hmi-border-engraved');
+            } else if (that.border === false) {
+                _cont[engraved === true ? 'removeClass' : 'addClass']('hmi-border-engraved');
+                _cont[engraved === true ? 'addClass' : 'removeClass']('hmi-border-embossed');
             }
             if (width !== _cont.width() || height !== _cont.height()) {
                 that._hmi_resize();
             }
         };
-        this.hmi_setVisible = function (i_visible) {
-            var visible = i_visible === true;
-            if (that._hmi_visible !== visible) {
-                that._hmi_visible = visible;
+        that.hmi_setVisible = visible => {
+            const vis = visible === true;
+            if (that._hmi_visible !== vis) {
+                that._hmi_visible = vis;
                 _cont[that._hmi_visible ? 'show' : 'hide']();
                 if (that._hmi_visible) {
                     that._hmi_resize();
                 }
             }
         };
-        this.hmi_isVisible = function () {
-            return that._hmi_visible;
-        };
+        that.hmi_isVisible = () => that._hmi_visible;
         // JQUERY ELEMENT
-        this.hmi_element = function () {
-            return _cont;
-        };
-        this.hmi_addClass = function (i_class) {
-            _cont.addClass(i_class);
+        that.hmi_element = () => _cont;
+        that.hmi_addClass = cls => {
+            _cont.addClass(cls);
             if (that._hmi_updateAlignment) {
                 that._hmi_updateAlignment();
             }
         };
-        this.hmi_removeClass = function (i_class) {
-            _cont.removeClass(i_class);
+        that.hmi_removeClass = cls => {
+            _cont.removeClass(cls);
             if (that._hmi_updateAlignment) {
                 that._hmi_updateAlignment();
             }
         };
-        this.hmi_css = function (i_key, i_value) {
-            if (i_value === null || i_value === '') {
-                _cont.css(i_key, '');
-            }
-            else if (typeof i_value === 'string') {
-                _cont.css(i_key, i_value);
+        that.hmi_css = (key, value) => {
+            if (value === null || value === '') {
+                _cont.css(key, '');
+            } else if (typeof value === 'string') {
+                _cont.css(key, value);
                 if (that._hmi_updateAlignment) {
                     that._hmi_updateAlignment();
                 }
-            }
-            else {
-                return _cont.css(i_key);
+            } else {
+                return _cont.css(key);
             }
         };
-        this.hmi_attr = function (i_key, i_value) {
-            if (typeof i_value === 'string') {
-                _cont.attr(i_key, i_value);
+        that.hmi_attr = (key, value) => {
+            if (typeof value === 'string') {
+                _cont.attr(key, value);
                 if (that._hmi_updateAlignment) {
                     that._hmi_updateAlignment();
                 }
-            }
-            else {
-                return _cont.attr(i_key);
+            } else {
+                return _cont.attr(key);
             }
         };
-        this.hmi_setSelected = function (i_selected, i_cssClass) {
-            var width = _cont.width();
-            var height = _cont.height();
-            _cont[i_selected === true ? 'addClass' : 'removeClass'](typeof i_cssClass === 'string' ? i_cssClass : 'hmi-selected');
+        that.hmi_setSelected = (selected, cssClass) => {
+            const width = _cont.width();
+            const height = _cont.height();
+            _cont[selected === true ? 'addClass' : 'removeClass'](typeof cssClass === 'string' ? cssClass : 'hmi-selected');
             if (width !== _cont.width() || height !== _cont.height()) {
                 that._hmi_resize();
             }
@@ -1167,10 +1127,10 @@
         // BORDER
         that.hmi_updateBorder(false);
         // CLASSES
-        var classes = typeof that.classes === 'string' ? that.classes.split(' ') : that.classes;
+        let classes = typeof that.classes === 'string' ? that.classes.split(' ') : that.classes;
         if (Array.isArray(classes)) {
-            for (var i = 0; i < classes.length; i++) {
-                var cls = classes[i];
+            for (let i = 0; i < classes.length; i++) {
+                const cls = classes[i];
                 if (typeof cls === 'string' && cls.length > 0) {
                     _cont.addClass(cls);
                 }
@@ -1193,7 +1153,7 @@
         if (that._hmi_nodeParent === null || typeof that._hmi_nodeParent !== 'object') {
             $(window).bind('resize', that._hmi_resize);
         }
-        this._hmi_destroys.push(function () {
+        that._hmi_destroys.push(() => {
             if (that._hmi_nodeParent === null || typeof that._hmi_nodeParent !== 'object') {
                 $(window).unbind('resize', that._hmi_resize);
             }
@@ -1221,47 +1181,43 @@
             _cont = undefined;
             that = undefined;
         });
-    };
+    }
 
-    function get_watch(i_watch) {
-        if (Array.isArray(i_watch)) {
-            var found = false;
-            for (var i = 0; i < i_watch.length; i++) {
-                if (typeof i_watch[i] === 'string') {
+    function getWatch(watch) {
+        if (Array.isArray(watch)) {
+            let found = false;
+            for (let i = 0; i < watch.length; i++) {
+                if (typeof watch[i] === 'string') {
                     found = true;
                     break;
                 }
             }
             if (found) {
-                var watch = [];
-                for (var i = 0; i < i_watch.length; i++) {
-                    var w = i_watch[i];
+                const ws = [];
+                for (let i = 0; i < watch.length; i++) {
+                    const w = watch[i];
                     if (typeof w === 'string') {
-                        watch.push(w);
+                        ws.push(w);
                     }
                 }
-                return watch;
-            }
-            else {
+                return ws;
+            } else {
                 return undefined;
             }
-        }
-        else if (typeof i_watch === 'string') {
-            return [i_watch];
-        }
-        else {
+        } else if (typeof watch === 'string') {
+            return [watch];
+        } else {
             return undefined;
         }
-    };
+    }
 
-    function SimpleHtmlObjectImpl() {
-        var that = this;
-        var _cont = that._hmi_context.container;
-        var _image = undefined;
-        var _text = undefined;
-        var _html = undefined;
+    function applySimpleHtmlObject(that) {
+        let _cont = that._hmi_context.container;
+        let _image = undefined;
+        let _text = undefined;
+        let _html = undefined;
         // ADD STANDARD METHODS
-        that.hmi_setImageSource = function (i_source) {
+        that.hmi_setImageSource = source => {
             if (_text !== undefined) {
                 _text.remove();
                 _text = undefined;
@@ -1271,24 +1227,20 @@
                 _cont.empty();
             }
             if (_image === undefined) {
-                var img = '<img draggable="false"';
+                let img = '<img draggable="false"';
                 if (that.imageWidth !== undefined) {
-                    img += ' width="';
-                    img += that.imageWidth;
-                    img += '"';
+                    img += ` width="${that.imageWidth}"`;
                 }
                 if (that.imageHeight !== undefined) {
-                    img += ' height="';
-                    img += that.imageHeight;
-                    img += '"';
+                    img += ` height="${that.imageHeight}"`;
                 }
                 img += '></img>';
                 _image = $(img);
                 _image.appendTo(_cont);
-                var classes = typeof that.imageClasses === 'string' ? that.imageClasses.split(' ') : that.imageClasses;
+                const classes = typeof that.imageClasses === 'string' ? that.imageClasses.split(' ') : that.imageClasses;
                 if (Array.isArray(classes)) {
-                    for (var i = 0; i < classes.length; i++) {
-                        var cls = classes[i];
+                    for (let i = 0; i < classes.length; i++) {
+                        const cls = classes[i];
                         if (typeof cls === 'string' && cls.length > 0) {
                             _image.addClass(cls);
                         }
@@ -1296,29 +1248,27 @@
                 }
                 _image.on('load', that._hmi_updateAlignment);
             }
-            var src = typeof i_source === 'string' ? i_source : '';
+            const src = typeof source === 'string' ? source : '';
             _image.attr('src', src);
             _image[src.length > 0 ? 'show' : 'hide']();
         };
-        this.hmi_getImageWidth = function () {
+        that.hmi_getImageWidth = () => {
             if (_image !== undefined) {
-                var img = _image[0];
+                const img = _image[0];
                 return img !== undefined ? img.naturalWidth : undefined;
-            }
-            else {
+            } else {
                 return undefined;
             }
         };
-        this.hmi_getImageHeight = function () {
+        that.hmi_getImageHeight = () => {
             if (_image !== undefined) {
-                var img = _image[0];
+                const img = _image[0];
                 return img !== undefined ? img.naturalHeight : undefined;
-            }
-            else {
+            } else {
                 return undefined;
             }
         };
-        that.hmi_text = function (i_text) {
+        that.hmi_text = text => {
             if (_image !== undefined) {
                 _image.off('load', that._hmi_updateAlignment);
                 _image.remove();
@@ -1329,13 +1279,13 @@
                 _cont.empty();
             }
             if (_text === undefined) {
-                var type = typeof that.domtype === 'string' && that.domtype.length > 0 ? that.domtype : 'span';
+                const type = typeof that.domtype === 'string' && that.domtype.length > 0 ? that.domtype : 'span';
                 _text = $('<' + type + ' style="display:inline-block;"></' + type + '>');
                 _text.appendTo(_cont);
-                var classes = typeof that.textClasses === 'string' ? that.textClasses.split(' ') : that.textClasses;
+                const classes = typeof that.textClasses === 'string' ? that.textClasses.split(' ') : that.textClasses;
                 if (Array.isArray(classes)) {
-                    for (var i = 0; i < classes.length; i++) {
-                        var cls = classes[i];
+                    for (let i = 0; i < classes.length; i++) {
+                        const cls = classes[i];
                         if (typeof cls === 'string' && cls.length > 0) {
                             _text.addClass(cls);
                         }
@@ -1345,16 +1295,15 @@
                     _text.css('font-size', that.fontsize.toString() + 'px');
                 }
             }
-            if (i_text !== undefined && i_text !== null) {
+            if (text !== undefined && text !== null) {
                 _text.empty();
-                _text.text(typeof i_text === 'string' ? i_text : i_text.toString());
+                _text.text(typeof text === 'string' ? text : text.toString());
                 that._hmi_updateAlignment();
-            }
-            else {
+            } else {
                 return _text.text();
             }
         };
-        that.hmi_html = function (i_html) {
+        that.hmi_html = html => {
             if (_text !== undefined) {
                 _text.remove();
                 _text = undefined;
@@ -1364,16 +1313,15 @@
                 _image.remove();
                 _image = undefined;
             }
-            if (i_html !== undefined) {
+            if (html !== undefined) {
                 _html = true;
                 _cont.empty();
-                _cont.html(typeof i_html === 'string' ? i_html : i_html.toString());
-            }
-            else {
+                _cont.html(typeof html === 'string' ? html : html.toString());
+            } else {
                 return _cont.html();
             }
         };
-        this._hmi_updateAlignment = function () {
+        that._hmi_updateAlignment = () => {
             if (_text !== undefined) {
                 if (_text._hmi_marginLeft !== undefined) {
                     _text._hmi_marginLeft = undefined;
@@ -1383,88 +1331,78 @@
                     _text._hmi_marginTop = undefined;
                     _text.css('margin-top', '');
                 }
-                var align = getAlignment(that.align, undefined, false, true);
-                var containerWidth = Math.floor(_cont.innerWidth());
-                var containerHeight = Math.floor(_cont.innerHeight());
-                var contentWidth = Math.ceil(_text.width());
-                var contentHeight = Math.ceil(_text.height());
-                var left = Math.floor((containerWidth - contentWidth) * align.x) - 1;
+                const align = getAlignment(that.align, undefined, false, true);
+                const containerWidth = Math.floor(_cont.innerWidth());
+                const containerHeight = Math.floor(_cont.innerHeight());
+                const contentWidth = Math.ceil(_text.width());
+                const contentHeight = Math.ceil(_text.height());
+                const left = Math.floor((containerWidth - contentWidth) * align.x) - 1;
                 if (left > 0) {
                     if (_text._hmi_marginLeft !== left) {
                         _text._hmi_marginLeft = left;
                         _text.css('margin-left', left.toString() + 'px');
                     }
-                }
-                else {
+                } else {
                     if (_text._hmi_marginLeft !== undefined) {
                         _text._hmi_marginLeft = undefined;
                         _text.css('margin-left', '');
                     }
                 }
-                var top = Math.floor((containerHeight - contentHeight) * align.y) - 1;
+                const top = Math.floor((containerHeight - contentHeight) * align.y) - 1;
                 if (top > 0) {
                     if (_text._hmi_marginTop !== top) {
                         _text._hmi_marginTop = top;
                         _text.css('margin-top', top.toString() + 'px');
                     }
-                }
-                else {
+                } else {
                     if (_text._hmi_marginTop !== undefined) {
                         _text._hmi_marginTop = undefined;
                         _text.css('margin-top', '');
                     }
                 }
-            }
-            else if (_image !== undefined) {
-                var align = getAlignment(that.align, undefined, false, true);
-                var containerWidth = Math.floor(_cont.innerWidth());
-                var containerHeight = Math.floor(_cont.innerHeight());
-                var contentWidth = Math.ceil(_image[0].naturalWidth);
-                var contentHeight = Math.ceil(_image[0].naturalHeight);
-                var rect = compute_central_rectangle(contentWidth, contentHeight, containerWidth, containerHeight, that.margin, that.separator, align.x, align.y);
-                var width = Math.floor(rect.width);
+            } else if (_image !== undefined) {
+                const align = getAlignment(that.align, undefined, false, true);
+                const containerWidth = Math.floor(_cont.innerWidth());
+                const containerHeight = Math.floor(_cont.innerHeight());
+                const contentWidth = Math.ceil(_image[0].naturalWidth);
+                const contentHeight = Math.ceil(_image[0].naturalHeight);
+                const rect = computeCentralRectangle(contentWidth, contentHeight, containerWidth, containerHeight, that.margin, that.separator, align.x, align.y);
+                const width = Math.floor(rect.width);
                 if (_image._hmi_width !== width) {
                     _image._hmi_width = width;
                     _image.attr('width', width);
                 }
-                var height = Math.floor(rect.height);
+                const height = Math.floor(rect.height);
                 if (_image._hmi_height !== height) {
                     _image._hmi_height = height;
                     _image.attr('height', height);
                 }
-                var left = Math.floor(rect.x);
+                const left = Math.floor(rect.x);
                 if (_image._hmi_x !== left) {
                     _image._hmi_x = left;
                     _image.css('margin-left', left.toString() + 'px');
                 }
-                var top = Math.floor(rect.y);
+                const top = Math.floor(rect.y);
                 if (_image._hmi_y !== top) {
                     _image._hmi_y = top;
                     _image.css('margin-top', top.toString() + 'px');
                 }
             }
         };
-        // HTML CONTENT
-        if (typeof that.html === 'string') {
+        if (typeof that.html === 'string') { // HTML CONTENT
             _html = true;
             _cont.addClass(that.scrollable === true ? 'default-scroll-container' : 'overflow-hidden');
             _cont.html(that.html);
-        }
-        // TEXT CONTENT
-        else if (typeof that.text === 'string' || typeof that.text === 'number' || typeof that.text === 'boolean') {
+        } else if (typeof that.text === 'string' || typeof that.text === 'number' || typeof that.text === 'boolean') { // TEXT CONTENT
             _cont.addClass(that.scrollable === true ? 'default-scroll-container' : 'overflow-hidden');
             that.hmi_text(that.text);
-        }
-        // IMAGE CONTENT
-        else if (typeof that.image === 'string') {
+        } else if (typeof that.image === 'string') { // IMAGE CONTENT
             _cont.addClass('overflow-hidden');
             that.hmi_setImageSource(that.image);
-        }
-        // NO CONTENT
-        else {
+        } else { // NO CONTENT
             _cont.addClass(that.scrollable === true ? 'default-scroll-container' : 'overflow-hidden');
         }
-        this._hmi_destroys.push(function () {
+        that._hmi_destroys.push(() => {
             if (_image !== undefined) {
                 _image.off('load', that._hmi_updateAlignment);
                 _image.remove();
@@ -1482,49 +1420,42 @@
         });
     };
 
-    function TaskObjectImpl(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
-        var that = this;
-        var tasks = [];
-        var _cont = that._hmi_context.container;
-        that.hmi_text = function (i_text) {
-            if (i_text !== undefined && i_text !== null) {
-                that.text = typeof i_text === 'string' ? i_text : i_text.toString();
-            }
-            else {
+    function applyTaskObject(that, context, disableVisuEvents, enableEditorEvents, onSuccess, onError) {
+        let tasks = [];
+        let _cont = that._hmi_context.container;
+        that.hmi_text = text => {
+            if (text !== undefined && text !== null) {
+                that.text = typeof text === 'string' ? text : text.toString();
+            } else {
                 return that.text;
             }
         };
-        var _children = undefined;
-        if (Array.isArray(this.children)) {
-            _children = this.children;
-            for (var i = 0, l = _children.length; i < l; i++) {
+        let _children = undefined;
+        if (Array.isArray(that.children)) {
+            _children = that.children;
+            for (let i = 0, l = _children.length; i < l; i++) {
                 // closure
                 (function () {
-                    var child = _children[i];
-                    var hmiobj = child._hmi_object;
+                    const child = _children[i];
+                    const hmiobj = child._hmi_object;
                     if (hmiobj && isTaskType(hmiobj) && hmiobj._hmi_init_dom) {
-                        tasks.push(function (i_suc, i_err) {
-                            // #task: 1
-                            hmiobj._hmi_init_dom({
-                                container: _cont
-                            }, i_suc, i_err);
-                        });
+                        // #task: 1
+                        tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont }, onSuc, onErr));
                     }
                 }());
             }
         }
-        this._hmi_destroys.push(function (i_suc, i_err) {
-            var tasks = [];
+        that._hmi_destroys.push((onSuc, onErr) => {
+            const tasks = [];
             if (_children) {
-                for (var i = _children.length - 1; i >= 0; i--) {
-                    var child = _children[i];
-                    var hmiobj = child._hmi_object;
+                for (let i = _children.length - 1; i >= 0; i--) {
+                    const child = _children[i];
+                    const hmiobj = child._hmi_object;
                     if (hmiobj && isTaskType(hmiobj) && hmiobj._hmi_destroy_dom) {
                         (function () {
-                            tasks.push(function (i_s, i_e) {
-                                // #task: 1
-                                hmiobj._hmi_destroy_dom(i_s, i_e);
-                            })
+                            const ho = hmiobj;
+                            // #task: 1
+                            tasks.push((os, oe) => ho._hmi_destroy_dom(os, oe))
                         }());
                     }
                 }
@@ -1533,24 +1464,24 @@
             delete that.hmi_text;
             _cont = undefined;
             that = undefined;
-            Executor.run(tasks, i_suc, i_err);
+            Executor.run(tasks, onSuc, onErr);
         });
-        Executor.run(tasks, i_success, i_error);
-    };
-    function get_canvas_attribute(i_hmiObject, i_attr) {
-        var object = i_hmiObject;
+        Executor.run(tasks, onSuccess, onError);
+    }
+
+    function getCanvasAttribute(hmiObject, attribute) {
+        let object = hmiObject;
         while (object !== null && typeof object === 'object') {
-            var val = object[i_attr];
+            let val = object[attribute];
             if (val !== undefined) {
                 return val;
-            }
-            else if (object._hmi_canvas !== undefined) {
+            } else if (object._hmi_canvas !== undefined) {
                 // this is our canvas root object so we must not search on higher level
                 return undefined;
             }
-            var child = object.hmi_locator;
+            const child = object.hmi_locator;
             if (child !== undefined) {
-                val = child[i_attr];
+                val = child[attribute];
                 if (val !== undefined) {
                     return val;
                 }
@@ -1558,28 +1489,28 @@
             object = object.hmi_parentObject;
         }
         return undefined;
-    };
-    function get_canvas_pixel(i_object, i_attribute, i_scale, i_default) {
-        var val = get_canvas_attribute(i_object, i_attribute);
-        var pix = getPixelValue(val);
-        return typeof pix === 'number' ? pix : (typeof val === 'number' ? val * i_scale : i_default);
-    };
-    function get_pixel_size(i_value, i_scale, i_default) {
-        var pix = getPixelValue(i_value);
-        return typeof pix === 'number' ? pix : (typeof i_value === 'number' ? i_value * i_scale : i_default);
-    };
+    }
 
-    function ZoomImpl(i_disableVisuEvents, i_enableEditorEvents) {
-        var that = this;
-        var _p = {};
-        var _cont = this._hmi_context.container;
-        var _ctx = this._hmi_context.context2d;
-        var _tf = this._hmi_context.transform;
-        var _bounds = this.bounds;
-        var _mouse = false, _id1, _x1, _y1, _ix1, _iy1, _id2, _x2, _y2, _ix2, _iy2, _di = undefined;
-        this._hmi_handleZoomEvent = function (i_event, i_type) {
-            var offs = _cont.offset();
-            var tt = i_event.originalEvent ? i_event.originalEvent.targetTouches : undefined;
+    function getCanvasPixel(object, attribute, scale, defaultValue) {
+        const val = getCanvasAttribute(object, attribute);
+        const pix = getPixelValue(val);
+        return typeof pix === 'number' ? pix : (typeof val === 'number' ? val * scale : defaultValue);
+    }
+
+    function getPixelSize(value, scale, defaultValue) {
+        const pix = getPixelValue(value);
+        return typeof pix === 'number' ? pix : (typeof value === 'number' ? value * scale : defaultValue);
+    }
+
+    function applyZoom(that, i_disableVisuEvents, i_enableEditorEvents) {
+        let _p = {};
+        let _cont = that._hmi_context.container;
+        let _tf = that._hmi_context.transform;
+        let _bounds = that.bounds;
+        let _mouse = false, _id1, _x1, _y1, _ix1, _iy1, _id2, _x2, _y2, _ix2, _iy2, _di = undefined;
+        that._hmi_handleZoomEvent = function (i_event, i_type) {
+            const offs = _cont.offset();
+            const tt = i_event.originalEvent ? i_event.originalEvent.targetTouches : undefined;
             switch (i_type) {
                 case MOUSEEVENT_MOUSEDOWN:
                     that._hmi_event = i_event;
@@ -1651,7 +1582,7 @@
                 case MOUSEEVENT_MOUSEWHEEL:
                     if (_bounds) {
                         if (i_event.originalEvent && typeof i_event.originalEvent.wheelDelta === 'number' && i_event.originalEvent.wheelDelta !== 0) {
-                            var wd = i_event.originalEvent.wheelDelta / 120;
+                            const wd = i_event.originalEvent.wheelDelta / 120;
                             // scrolling without shift down (scrolling up: wd > 0)
                             delete _bounds.x;
                             delete _bounds.y;
@@ -1659,17 +1590,17 @@
                             delete _bounds.height;
                             // first get the current metric scroll location
                             _tf.transformInverse(i_event.clientX - offs.left, i_event.clientY - offs.top, _p);
-                            var x = _p.x;
-                            var y = _p.y;
+                            const x = _p.x;
+                            const y = _p.y;
                             // next get the current metric bound locations
                             _tf.transformInverse(0, 0, _p);
-                            var x1 = _p.x;
-                            var y1 = _p.y;
+                            const x1 = _p.x;
+                            const y1 = _p.y;
                             _tf.transformInverse(_cont.width(), _cont.height(), _p);
-                            var x2 = _p.x;
-                            var y2 = _p.y;
+                            const x2 = _p.x;
+                            const y2 = _p.y;
                             // finally adjust the bounds
-                            var zoom = wd > 0 ? wd / ZOOM_FACTOR : -wd * ZOOM_FACTOR;
+                            const zoom = wd > 0 ? wd / ZOOM_FACTOR : -wd * ZOOM_FACTOR;
                             _bounds.x1 = x + (x1 - x) * zoom;
                             _bounds.y1 = y + (y1 - y) * zoom;
                             _bounds.x2 = x + (x2 - x) * zoom;
@@ -1683,7 +1614,7 @@
                         switch (tt.length) {
                             case 1:
                                 that._hmi_event = i_event;
-                                var t = tt[0];
+                                const t = tt[0];
                                 _id1 = t.identifier;
                                 _ix1 = t.clientX - offs.left;
                                 _iy1 = t.clientY - offs.top;
@@ -1694,7 +1625,7 @@
                             case 2:
                                 if (that.multitouch === true) {
                                     that._hmi_event = i_event;
-                                    var t = tt[1];
+                                    const t = tt[1];
                                     if (t.identifier === _id1) {
                                         t = tt[0];
                                     }
@@ -1705,8 +1636,8 @@
                                     _x2 = _p.x;
                                     _y2 = _p.y;
 
-                                    var dix = (_ix2 - _ix1);
-                                    var diy = (_iy2 - _iy1);
+                                    const dix = (_ix2 - _ix1);
+                                    const diy = (_iy2 - _iy1);
                                     _di = Math.sqrt(dix * dix + diy * diy);
                                 }
                                 break;
@@ -1737,7 +1668,7 @@
                                 delete _bounds.width;
                                 delete _bounds.height;
                                 that._hmi_event = i_event;
-                                var t = tt[0];
+                                const t = tt[0];
                                 _tf.initForPoint(_x1, _y1, t.clientX - offs.left, t.clientY - offs.top);
                                 _tf.transformInverse(0, 0, _p);
                                 _bounds.x1 = _p.x;
@@ -1749,37 +1680,36 @@
                             case 2:
                                 if (that.multitouch === true) {
                                     that._hmi_event = i_event;
-                                    var t1 = tt[0];
-                                    var t2 = tt[1];
+                                    const t1 = tt[0];
+                                    const t2 = tt[1];
                                     if (t2.identifier === _id1) {
-                                        var t = t1;
+                                        const t = t1;
                                         t1 = t2;
                                         t2 = t;
                                     }
-                                    var ix1 = t1.clientX - offs.left;
-                                    var iy1 = t1.clientY - offs.top;
-                                    var ix2 = t2.clientX - offs.left;
-                                    var iy2 = t2.clientY - offs.top;
+                                    const ix1 = t1.clientX - offs.left;
+                                    const iy1 = t1.clientY - offs.top;
+                                    const ix2 = t2.clientX - offs.left;
+                                    const iy2 = t2.clientY - offs.top;
                                     if (that.zoom_rotation === true) {
                                         _tf.initForPoints(_x1, _y1, _x2, _y2, ix1, iy1, ix2, iy2);
                                         // we got to set this flag because the standard
                                         // initForBounds()
                                         // method does not handle rotation
                                         that._hmi_rotated = true;
-                                    }
-                                    else {
+                                    } else {
                                         delete _bounds.x;
                                         delete _bounds.y;
                                         delete _bounds.width;
                                         delete _bounds.height;
-                                        var dix = (ix2 - ix1);
-                                        var diy = (iy2 - iy1);
-                                        var di = Math.sqrt(dix * dix + diy * diy);
-                                        var s = di / _di;
-                                        var ix = (ix1 + ix2) / 2;
-                                        var iy = (iy1 + iy2) / 2;
-                                        var dx2 = (_ix2 - _ix1) / 2 * s;
-                                        var dy2 = (_iy2 - _iy1) / 2 * s;
+                                        const dix = (ix2 - ix1);
+                                        const diy = (iy2 - iy1);
+                                        const di = Math.sqrt(dix * dix + diy * diy);
+                                        const s = di / _di;
+                                        const ix = (ix1 + ix2) / 2;
+                                        const iy = (iy1 + iy2) / 2;
+                                        const dx2 = (_ix2 - _ix1) / 2 * s;
+                                        const dy2 = (_iy2 - _iy1) / 2 * s;
                                         _tf.initForPoints(_x1, _y1, _x2, _y2, ix - dx2, iy - dy2, ix + dx2, iy + dy2);
                                         _tf.transformInverse(0, 0, _p);
                                         _bounds.x1 = _p.x;
@@ -1812,7 +1742,7 @@
                         switch (tt.length) {
                             case 1:
                                 that._hmi_event = i_event;
-                                var t = tt[0];
+                                const t = tt[0];
                                 _id1 = t.identifier;
                                 _ix1 = t.clientX - offs.left;
                                 _iy1 = t.clientY - offs.top;
@@ -1857,7 +1787,7 @@
                     break;
             }
         };
-        this._hmi_destroys.push(function () {
+        that._hmi_destroys.push(() => {
             delete that._hmi_handleZoomEvent;
             delete that._hmi_event;
             delete that._hmi_rotated;
@@ -1880,17 +1810,44 @@
             _mouse = undefined;
             that = undefined;
         });
-    };
+    }
 
-    var REQUIRED_CONTEXT2D_METHODS = ['save', 'restore', 'setTransform', 'clearRect', 'fillRect', 'strokeRect', 'beginPath', 'closePath', 'moveTo', 'lineTo', 'arcTo', 'stroke', 'fill', 'translate', 'rotate', 'scale', 'arc', 'rect', 'fillText', 'strokeText', 'drawImage'];
-    function is_valid_context2d(i_context) {
-        for (var i = 0; i < REQUIRED_CONTEXT2D_METHODS.length; i++) {
-            if (typeof i_context[REQUIRED_CONTEXT2D_METHODS[i]] !== 'function') {
+
+    const REQUIRED_CONTEXT2D_METHODS = ['save', 'restore', 'setTransform', 'clearRect', 'fillRect', 'strokeRect', 'beginPath', 'closePath', 'moveTo', 'lineTo', 'arcTo', 'stroke', 'fill', 'translate', 'rotate', 'scale', 'arc', 'rect', 'fillText', 'strokeText', 'drawImage'];
+    function isValidContext2d(context) {
+        for (let i = 0; i < REQUIRED_CONTEXT2D_METHODS.length; i++) {
+            if (typeof context[REQUIRED_CONTEXT2D_METHODS[i]] !== 'function') {
                 return REQUIRED_CONTEXT2D_METHODS[i];
             }
         }
         return true;
-    };
+    }
+
+    function validateAsContext2d(instance) { // TODO: Use or remove
+        return Core.validateAs('Context2d', instance, [
+            'save|function',
+            'restore|function',
+            'setTransform|function',
+            'clearRect|function',
+            'fillRect|function',
+            'strokeRect|function',
+            'beginPath|function',
+            'closePath|function',
+            'moveTo|function',
+            'lineTo|function',
+            'arcTo|function',
+            'stroke|function',
+            'fill|function',
+            'translate|function',
+            'rotate|function',
+            'scale|function',
+            'arc|function',
+            'rect|function',
+            'fillText|function',
+            'strokeText|function',
+            'drawImage|function'
+        ], false);
+    }
 
     /**
      * <code> compare(1,2)
@@ -1901,81 +1858,75 @@
      *     b | 1 #3| 1 #6| 0 #9
      * </code>
      */
-    function compare_graphic_object_layer(i_object1, i_object2, i_mirror) {
-        var z1 = i_object1._hmi_z;
-        var z2 = i_object2._hmi_z;
+    function compareGraphicObjectLayer(object1, object2, mirror) {
+        const z1 = object1._hmi_z;
+        const z2 = object2._hmi_z;
         if (z1 === 'foreground') {
             // #1 or #2/#3
             return z2 === 'foreground' ? Sorting.EQUAL : Sorting.BIGGER;
-        }
-        else if (z1 === 'background') {
+        } else if (z1 === 'background') {
             // #9 or #7/#8
             return z2 === 'background' ? Sorting.EQUAL : Sorting.SMALLER;
-        }
-        else {
+        } else {
             if (z2 === 'foreground') {
                 // #4
                 return Sorting.SMALLER;
-            }
-            else if (z2 === 'background') {
+            } else if (z2 === 'background') {
                 // #6
                 return Sorting.BIGGER;
-            }
-            else {
+            } else {
                 // #5
                 if (typeof z1 === 'number') {
                     var res = Sorting.compareNumber(z1, typeof z2 === 'number' ? z2 : 0);
-                    return i_mirror ? -res : res;
-                }
-                else if (typeof z2 === 'number') {
+                    return mirror ? -res : res;
+                } else if (typeof z2 === 'number') {
                     res = Sorting.compareNumber(0, z2);
-                    return i_mirror ? -res : res;
-                }
-                else {
+                    return mirror ? -res : res;
+                } else {
                     return Sorting.EQUAL;
                 }
             }
         }
-    };
+    }
 
     // graph types
-    var ARC = 1;
-    var RECT = 2;
-    var IMAGE = 3;
-    var TEXT = 4;
-    var PATH = 5;
-    var CURVE = 6;
+    const ARC = 1;
+    const RECT = 2;
+    const IMAGE = 3;
+    const TEXT = 4;
+    const PATH = 5;
+    const CURVE = 6;
 
-    var EVENT_CROSS_SIZE = 20;
-    function stroke_cross(i_context, i_x, i_y) {
-        i_context.beginPath();
-        i_context.moveTo(i_x - EVENT_CROSS_SIZE, i_y - EVENT_CROSS_SIZE);
-        i_context.lineTo(i_x + EVENT_CROSS_SIZE, i_y + EVENT_CROSS_SIZE);
-        i_context.moveTo(i_x - EVENT_CROSS_SIZE, i_y + EVENT_CROSS_SIZE);
-        i_context.lineTo(i_x + EVENT_CROSS_SIZE, i_y - EVENT_CROSS_SIZE);
-        i_context.stroke();
-    };
+    const EVENT_CROSS_SIZE = 20;
+    function strokeCross(context, x, y) {
+        context.beginPath();
+        context.moveTo(x - EVENT_CROSS_SIZE, y - EVENT_CROSS_SIZE);
+        context.lineTo(x + EVENT_CROSS_SIZE, y + EVENT_CROSS_SIZE);
+        context.moveTo(x - EVENT_CROSS_SIZE, y + EVENT_CROSS_SIZE);
+        context.lineTo(x + EVENT_CROSS_SIZE, y - EVENT_CROSS_SIZE);
+        context.stroke();
+    }
 
-    function update_bounds(i_bounds, i_x, i_y) {
+    function updateBounds(bounds, x, y) {
         // get the current bound values
-        var x1 = i_bounds.x1, y1 = i_bounds.y1, x2 = i_bounds.x2, y2 = i_bounds.y2;
-        if (x1 === undefined || i_x < x1) {
-            i_bounds.x1 = i_x;
+        const x1 = bounds.x1, y1 = bounds.y1, x2 = bounds.x2, y2 = bounds.y2;
+        if (x1 === undefined || x < x1) {
+            bounds.x1 = x;
         }
-        if (y1 === undefined || i_y < y1) {
-            i_bounds.y1 = i_y;
+        if (y1 === undefined || y < y1) {
+            bounds.y1 = y;
         }
-        if (x2 === undefined || i_x > x2) {
-            i_bounds.x2 = i_x;
+        if (x2 === undefined || x > x2) {
+            bounds.x2 = x;
         }
-        if (y2 === undefined || i_y > y2) {
-            i_bounds.y2 = i_y;
+        if (y2 === undefined || y > y2) {
+            bounds.y2 = y;
         }
-    };
+    }
 
-    var s_bounds_transform = new Transform();
+    const s_bounds_transform = new Transform();
 
-    var s_layouts_regex = {
+    const s_layouts_regex = {
         finalNullRequired: false,
         first: /\b(?:top|bottom|left|right)\b/g,
         next: {
@@ -1984,13 +1935,12 @@
             'left': /\b(?:top|bottom)\b/g,
             'right': /\b(?:top|bottom)\b/g,
         },
-        convertMatchToId: function (i_id) {
-            return i_id;
-        }
+        convertMatchToId: id => id
     };
-    var s_layout_parts = [];
+    const s_layout_parts = [];
 
-    function layout_children(i_children, i_layout, i_separator) {
+    // TODO: Go on here
+    function layoutChildren(i_children, i_layout, i_separator) {
         // check for layout rules
         var layout = i_layout && typeof i_layout === 'string' && i_layout.length > 0 ? i_layout : '';
         s_layout_parts.splice(0, s_layout_parts.length);
@@ -2144,23 +2094,22 @@
         }
     };
 
-    function GraphicObjectImpl(i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
-        var that = this;
-        this._hmi_graphics = true;
-        this._hmi_isButton = typeof this.pressed === 'function';
+    function applyGraphicObject(that, i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
+        that._hmi_graphics = true;
+        that._hmi_isButton = typeof that.pressed === 'function';
         // here we store some internal data for performance reasons
         var _children = undefined;
         var _curves = undefined;
         var onEvent = undefined;
         var clicked = undefined;
         var _p = {};
-        var _cont = this._hmi_context.container;
-        var _ctx = this._hmi_context.context2d;
-        var _tf = this._hmi_context.transform;
+        var _cont = that._hmi_context.container;
+        var _ctx = that._hmi_context.context2d;
+        var _tf = that._hmi_context.transform;
         if (_ctx === undefined) {
-            DefaultHtmlObjectImpl.call(that);
+            applyDefaultHtmlObject(that);
             // no context so far so we are the root object
-            this._hmi_graphicsRoot = true;
+            that._hmi_graphicsRoot = true;
             /*
              * We need only one single canvas to draw our whole graphical objects
              * tree. Within the next lines we create the canvas, store the context and
@@ -2169,21 +2118,21 @@
             _cont.addClass('overflow-hidden');
             var width = Math.floor(_cont.width());
             var height = Math.floor(_cont.height());
-            this._hmi_canvas = $('<canvas width="' + width + '" height="' + height + '" />');
-            this._hmi_canvas.appendTo(_cont);
-            _ctx = this._hmi_canvas[0].getContext('2d');
-            this._hmi_context.context2d = _ctx;
-            this._hmi_validContext2d = is_valid_context2d(_ctx);
+            that._hmi_canvas = $('<canvas width="' + width + '" height="' + height + '" />');
+            that._hmi_canvas.appendTo(_cont);
+            _ctx = that._hmi_canvas[0].getContext('2d');
+            that._hmi_context.context2d = _ctx;
+            that._hmi_validContext2d = isValidContext2d(_ctx);
             // if valid
-            if (this._hmi_validContext2d === true) {
+            if (that._hmi_validContext2d === true) {
                 _ctx.save();
                 _tf = new Transform();
-                this._hmi_context.transform = _tf;
+                that._hmi_context.transform = _tf;
                 _tf.initForBounds(that.bounds, width, height, that.mirrorX === true, that.mirrorY !== false);
                 // here we store our visible and paintable objects during repaint
-                this._hmi_canvasElements = [];
+                that._hmi_canvasElements = [];
                 // handle resize
-                this._hmi_resizes.push(function () {
+                that._hmi_resizes.push(function () {
                     // just resize the canvas (the repaint will be performed anyway at
                     // refresh calls)
                     var width = _cont.width();
@@ -2196,7 +2145,7 @@
                 });
                 var _white = true;
                 // handle refresh
-                this._hmi_refreshs.push(function (i_date) {
+                that._hmi_refreshs.push(function (i_date) {
                     /*
                      * This is the repaint function for the whole canvas object tree.
                      * 
@@ -2304,9 +2253,9 @@
                                     visible = obj._hmi_visible;
                                 }
                                 if (visible) {
-                                    i_hmiObject._hmi_z = get_canvas_attribute(i_hmiObject, 'z');
+                                    i_hmiObject._hmi_z = getCanvasAttribute(i_hmiObject, 'z');
                                     var idx = Sorting.getInsertionIndex(i_hmiObject, elems, false, function (i_object1, i_object2) {
-                                        return compare_graphic_object_layer(i_object1, i_object2, that.mirrorZ === true);
+                                        return compareGraphicObjectLayer(i_object1, i_object2, that.mirrorZ === true);
                                     });
                                     elems.splice(idx, 0, i_hmiObject);
                                 }
@@ -2345,13 +2294,13 @@
                             if (tt) {
                                 for (var i = 0; i < tt.length; i++) {
                                     var t = tt[i];
-                                    stroke_cross(_ctx, t.clientX - offs.left, t.clientY - offs.top);
+                                    strokeCross(_ctx, t.clientX - offs.left, t.clientY - offs.top);
                                 }
                             }
                             else {
                                 var x = evt.clientX - offs.left;
                                 var y = evt.clientY - offs.top;
-                                stroke_cross(_ctx, evt.clientX - offs.left, evt.clientY - offs.top);
+                                strokeCross(_ctx, evt.clientX - offs.left, evt.clientY - offs.top);
                             }
                         }
                         else {
@@ -2360,8 +2309,8 @@
                         _ctx.restore();
                     }
                 });
-                if (this.zoom === true && this.bounds !== null && typeof this.bounds === 'object') {
-                    ZoomImpl.call(this, i_disableVisuEvents, i_enableEditorEvents);
+                if (that.zoom === true && that.bounds !== null && typeof that.bounds === 'object') {
+                    applyZoom(that, i_disableVisuEvents, i_enableEditorEvents);
                 }
                 // TODO make this running
                 if (false && i_disableVisuEvents === true) {
@@ -2374,7 +2323,7 @@
                         that._hmi_mouseMoveY = i_event.clientY - rect.top;
                     };
                     container.on('mousemove', on_mouse_move);
-                    this._hmi_destroys.push(function () {
+                    that._hmi_destroys.push(function () {
                         container.off('mousemove', on_mouse_move);
                         on_mouse_move = undefined;
                     });
@@ -2451,26 +2400,26 @@
                 };
                 applyEventListener(that, i_context, onEvent);
             } else {
-                this._hmi_canvas.remove();
+                that._hmi_canvas.remove();
                 var div = '<div style="box-sizing: border-box;position: relative;width: 100%;height: 100%;"><h1>';
                 div += '!!! INVALID CANVAS CONTEXT 2D !!!';
                 div += '</h1><br><b>';
                 div += 'Your browser does not support the required canvas rendering context methods!';
                 div += '</b><br><br>Developer information:<br>first missing: canvas.context2d.';
-                div += this._hmi_validContext2d;
+                div += that._hmi_validContext2d;
                 div += '()</div>';
                 $(div).appendTo(_cont);
             }
         }
         else {
-            this.hmi_setVisible = function (i_visible) {
+            that.hmi_setVisible = function (i_visible) {
                 that._hmi_visible = i_visible === true;
             };
-            this.hmi_isVisible = function () {
+            that.hmi_isVisible = function () {
                 return that._hmi_visible;
             };
         }
-        this.hmi_setImageSource = function (i_source, i_callback) {
+        that.hmi_setImageSource = function (i_source, i_callback) {
             that.image = i_source;
             if (that._hmi_image === undefined) {
                 that._hmi_image = new Image();
@@ -2478,11 +2427,11 @@
             that._hmi_image.onload = i_callback;
             that._hmi_image.src = i_source;
         };
-        this.hmi_getImageWidth = function () {
+        that.hmi_getImageWidth = function () {
             var img = that._hmi_image;
             return img !== undefined ? img.naturalWidth : undefined;
         };
-        this.hmi_getImageHeight = function () {
+        that.hmi_getImageHeight = function () {
             var img = that._hmi_image;
             return img !== undefined ? img.naturalHeight : undefined;
         };
@@ -2492,7 +2441,7 @@
                 that.hmi_setImageSource(that.image, i_suc, i_err);
             });
         }
-        this.hmi_text = function (i_text) {
+        that.hmi_text = function (i_text) {
             if (i_text !== undefined && i_text !== null) {
                 that.text = typeof i_text === 'string' ? i_text : i_text.toString();
             }
@@ -2500,18 +2449,18 @@
                 return that.text;
             }
         };
-        this.hmi_getGraphTextSize = function (i_config, i_text, i_result) {
+        that.hmi_getGraphTextSize = function (i_config, i_text, i_result) {
             var result = i_result || {};
             _ctx.save();
             var scale = _tf.scale;
-            var fontSize = get_canvas_pixel(i_config, 'fontSize', scale);
+            var fontSize = getCanvasPixel(i_config, 'fontSize', scale);
             if (typeof fontSize !== 'number') {
                 fontSize = 10;
             }
             var font = i_config.bold === true ? 'bold ' : '';
             font += Math.ceil(fontSize);
             font += 'px';
-            var fontFamily = get_canvas_attribute(i_config, 'fontFamily');
+            var fontFamily = getCanvasAttribute(i_config, 'fontFamily');
             font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
             _ctx.font = font;
             if (Array.isArray(i_text)) {
@@ -2538,7 +2487,7 @@
             return result;
         };
 
-        this._hmi_repaint = function (i_date) {
+        that._hmi_repaint = function (i_date) {
             // The following function paints the current object on our
             // canvas using our coordinate system transform.
             // To perform fast we try to find out if anything must be
@@ -2572,15 +2521,15 @@
             // are (arc, text, rect, image or path) and if we are visible
             // ///////////////////////////////////////////////////////////////////////////////////////////////
             if (r !== undefined) {
-                r = get_pixel_size(r, scale);
+                r = getPixelSize(r, scale);
                 if (typeof r !== 'number' || r <= 0.5) {
                     return false;
                 }
                 type = ARC;
             }
             else if (w !== undefined && h !== undefined) {
-                w = get_pixel_size(w, scale);
-                h = get_pixel_size(h, scale);
+                w = getPixelSize(w, scale);
+                h = getPixelSize(h, scale);
                 if (typeof w !== 'number' || w <= 0.5 || typeof h !== 'number' || h <= 0.5) {
                     return false;
                 }
@@ -2595,7 +2544,7 @@
                 }
             }
             else if (w !== undefined && img !== undefined) {
-                w = get_pixel_size(w, scale);
+                w = getPixelSize(w, scale);
                 if (typeof w !== 'number' || w < 0.5) {
                     return false;
                 }
@@ -2604,7 +2553,7 @@
                 type = IMAGE;
             }
             else if (h !== undefined && img !== undefined) {
-                h = get_pixel_size(h, scale);
+                h = getPixelSize(h, scale);
                 if (typeof h !== 'number' || h < 0.5) {
                     return false;
                 }
@@ -2613,7 +2562,7 @@
                 type = IMAGE;
             }
             else if (text !== undefined) {
-                fontSize = get_canvas_pixel(that, 'fontSize', scale);
+                fontSize = getCanvasPixel(that, 'fontSize', scale);
                 if (typeof fontSize !== 'number') {
                     fontSize = 10;
                 }
@@ -2740,7 +2689,7 @@
                     getAlignment(that.align, _p, mx, my);
                     var x = ox - _p.x * w;
                     var y = oy - _p.y * h;
-                    var rb = get_canvas_pixel(that, 'roundBorder', scale);
+                    var rb = getCanvasPixel(that, 'roundBorder', scale);
                     if (typeof rb === 'number' && rb > 1.0) {
                         // start 1. round edge
                         var xw = x + w;
@@ -2837,11 +2786,11 @@
                 case PATH:
                 case CURVE:
                     if (stroke) {
-                        var lineCap = get_canvas_attribute(that, 'lineCap');
+                        var lineCap = getCanvasAttribute(that, 'lineCap');
                         if (typeof lineCap === 'string') {
                             _ctx.lineCap = lineCap;
                         }
-                        var lineJoin = get_canvas_attribute(that, 'lineJoin');
+                        var lineJoin = getCanvasAttribute(that, 'lineJoin');
                         if (typeof lineJoin === 'string') {
                             _ctx.lineJoin = lineJoin;
                         }
@@ -2853,17 +2802,17 @@
                 case RECT:
                 case TEXT:
                     if (fill) {
-                        var fillStyle = get_canvas_attribute(that, 'fillStyle');
+                        var fillStyle = getCanvasAttribute(that, 'fillStyle');
                         if (typeof fillStyle === 'string') {
                             _ctx.fillStyle = fillStyle;
                         }
                     }
                     if (stroke) {
-                        var lineWidth = get_canvas_pixel(that, 'lineWidth', scale);
+                        var lineWidth = getCanvasPixel(that, 'lineWidth', scale);
                         if (typeof lineWidth === 'number') {
                             _ctx.lineWidth = lineWidth;
                         }
-                        var strokeStyle = get_canvas_attribute(that, 'strokeStyle');
+                        var strokeStyle = getCanvasAttribute(that, 'strokeStyle');
                         if (typeof strokeStyle === 'string') {
                             _ctx.strokeStyle = strokeStyle;
                         }
@@ -2906,14 +2855,14 @@
                     break;
                 case TEXT:
                     if (fill || stroke) {
-                        var fontSize = get_canvas_pixel(that, 'fontSize', scale);
+                        var fontSize = getCanvasPixel(that, 'fontSize', scale);
                         if (typeof fontSize !== 'number') {
                             fontSize = 10;
                         }
                         var font = that.bold === true ? 'bold ' : '';
                         font += Math.floor(fontSize);
                         font += 'px';
-                        var fontFamily = get_canvas_attribute(that, 'fontFamily');
+                        var fontFamily = getCanvasAttribute(that, 'fontFamily');
                         font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                         _ctx.font = font;
                         getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
@@ -2967,7 +2916,7 @@
             return true;
         };
 
-        this._hmi_isPointOnObject = function (i_pixelX, i_pixelY) {
+        that._hmi_isPointOnObject = function (i_pixelX, i_pixelY) {
             var paint = that.paint;
             if (typeof paint === 'function') {
                 return false;
@@ -2988,15 +2937,15 @@
             // are and if we are visible
             // ///////////////////////////////////////////////////////////////////////////////////////////////
             if (r !== undefined) {
-                r = get_pixel_size(r, scale);
+                r = getPixelSize(r, scale);
                 if (typeof r !== 'number' || r <= 0.5) {
                     return false;
                 }
                 type = ARC;
             }
             else if (w !== undefined && h !== undefined) {
-                w = get_pixel_size(w, scale);
-                h = get_pixel_size(h, scale);
+                w = getPixelSize(w, scale);
+                h = getPixelSize(h, scale);
                 if (typeof w !== 'number' || w <= 0.5 || typeof h !== 'number' || h <= 0.5) {
                     return false;
                 }
@@ -3011,7 +2960,7 @@
                 }
             }
             else if (w !== undefined && img !== undefined) {
-                w = get_pixel_size(w, scale);
+                w = getPixelSize(w, scale);
                 if (typeof w !== 'number' || w < 0.5) {
                     return false;
                 }
@@ -3020,7 +2969,7 @@
                 type = IMAGE;
             }
             else if (h !== undefined && img !== undefined) {
-                h = get_pixel_size(h, scale);
+                h = getPixelSize(h, scale);
                 if (typeof h !== 'number' || h < 0.5) {
                     return false;
                 }
@@ -3029,7 +2978,7 @@
                 type = IMAGE;
             }
             else if (text !== undefined) {
-                fontSize = get_canvas_pixel(that, 'fontSize', scale);
+                fontSize = getCanvasPixel(that, 'fontSize', scale);
                 if (typeof fontSize !== 'number') {
                     fontSize = 10;
                 }
@@ -3156,7 +3105,7 @@
                     getAlignment(that.align, _p, mx, my);
                     var x = ox - _p.x * w;
                     var y = oy - _p.y * h;
-                    var rb = get_canvas_pixel(that, 'roundBorder', scale);
+                    var rb = getCanvasPixel(that, 'roundBorder', scale);
                     if (typeof rb === 'number' && rb > 1.0) {
                         // start 1. round edge
                         var xw = x + w;
@@ -3205,14 +3154,14 @@
                     }
                     break;
                 case TEXT:
-                    var fontSize = get_canvas_pixel(that, 'fontSize', scale);
+                    var fontSize = getCanvasPixel(that, 'fontSize', scale);
                     if (typeof fontSize !== 'number') {
                         fontSize = 10;
                     }
                     var font = that.bold === true ? 'bold ' : '';
                     font += Math.ceil(fontSize);
                     font += 'px';
-                    var fontFamily = get_canvas_attribute(that, 'fontFamily');
+                    var fontFamily = getCanvasAttribute(that, 'fontFamily');
                     font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                     _ctx.font = font;
                     _ctx.beginPath();
@@ -3306,7 +3255,7 @@
             return result;
         };
 
-        this.hmi_getBounds = function () { // Note: No not change to lambda function, because 'arguments' will not work anymore!
+        that.hmi_getBounds = function () { // Note: No not change to lambda function, because 'arguments' will not work anymore!
             var recursive, bounds, arg;
             // try to read from arguments
             for (var i = 0, l = arguments.length; i < l; i++) {
@@ -3328,16 +3277,16 @@
             return bounds;
         };
 
-        this.hmi_updateBounds = function () {
-            var bounds = this.bounds;
+        that.hmi_updateBounds = function () {
+            var bounds = that.bounds;
             if (bounds === null || typeof bounds !== 'object') {
                 bounds = {};
-                this.bounds = bounds;
+                that.bounds = bounds;
             }
-            this.hmi_getBounds(bounds, true);
+            that.hmi_getBounds(bounds, true);
         };
 
-        this._hmi_getBounds = function (i_transform, i_bounds, i_recursive) {
+        that._hmi_getBounds = function (i_transform, i_bounds, i_recursive) {
             // delete bounds
             delete i_bounds.x1;
             delete i_bounds.y1;
@@ -3354,8 +3303,8 @@
                             i_transform.setToCoordinateTransform(child);
                         }
                         hmiobj._hmi_getBounds(i_transform, _p, true);
-                        update_bounds(i_bounds, _p.x1, _p.y1);
-                        update_bounds(i_bounds, _p.x2, _p.y2);
+                        updateBounds(i_bounds, _p.x1, _p.y1);
+                        updateBounds(i_bounds, _p.x2, _p.y2);
                         if (child !== hmiobj) {
                             i_transform.restore();
                         }
@@ -3382,15 +3331,15 @@
             // are and if we are visible
             // ///////////////////////////////////////////////////////////////////////////////////////////////
             if (r !== undefined) {
-                r = get_pixel_size(r, 1.0);
+                r = getPixelSize(r, 1.0);
                 if (typeof r !== 'number' || r <= 0.0) {
                     return;
                 }
                 type = ARC;
             }
             else if (w !== undefined && h !== undefined) {
-                w = get_pixel_size(w, 1.0);
-                h = get_pixel_size(h, 1.0);
+                w = getPixelSize(w, 1.0);
+                h = getPixelSize(h, 1.0);
                 if (typeof w !== 'number' || w <= 0.0 || typeof h !== 'number' || h <= 0.0) {
                     return;
                 }
@@ -3405,7 +3354,7 @@
                 }
             }
             else if (w !== undefined && img !== undefined) {
-                w = get_pixel_size(w, 1.0);
+                w = getPixelSize(w, 1.0);
                 if (typeof w !== 'number' || w <= 0.0) {
                     return;
                 }
@@ -3413,7 +3362,7 @@
                 type = IMAGE;
             }
             else if (h !== undefined && img !== undefined) {
-                h = get_pixel_size(h, 1.0);
+                h = getPixelSize(h, 1.0);
                 if (typeof h !== 'number' || h <= 0.0) {
                     return;
                 }
@@ -3421,7 +3370,7 @@
                 type = IMAGE;
             }
             else if (text !== undefined) {
-                fontSize = get_canvas_pixel(that, 'fontSize', 1.0);
+                fontSize = getCanvasPixel(that, 'fontSize', 1.0);
                 if (typeof fontSize !== 'number') {
                     fontSize = 10;
                 }
@@ -3496,30 +3445,30 @@
             var closed = that.closed === true;
             switch (type) {
                 case ARC:
-                    update_bounds(i_bounds, ox - r, oy - r);
-                    update_bounds(i_bounds, ox - r, oy + r);
-                    update_bounds(i_bounds, ox + r, oy + r);
-                    update_bounds(i_bounds, ox + r, oy - r);
+                    updateBounds(i_bounds, ox - r, oy - r);
+                    updateBounds(i_bounds, ox - r, oy + r);
+                    updateBounds(i_bounds, ox + r, oy + r);
+                    updateBounds(i_bounds, ox + r, oy - r);
                     break;
                 case RECT:
                     getAlignment(that.align, _p, false, false);
                     var x = ox - _p.x * w;
                     var y = oy - _p.y * h;
                     i_transform.transform(x, y, _p);
-                    update_bounds(i_bounds, _p.x, _p.y);
+                    updateBounds(i_bounds, _p.x, _p.y);
                     i_transform.transform(x + w, y, _p);
-                    update_bounds(i_bounds, _p.x, _p.y);
+                    updateBounds(i_bounds, _p.x, _p.y);
                     i_transform.transform(x, y + h, _p);
-                    update_bounds(i_bounds, _p.x, _p.y);
+                    updateBounds(i_bounds, _p.x, _p.y);
                     i_transform.transform(x + w, y + h, _p);
-                    update_bounds(i_bounds, _p.x, _p.y);
+                    updateBounds(i_bounds, _p.x, _p.y);
                     break;
                 case PATH:
                     var len = points.length;
                     for (var i = 0; i < len; i++) {
                         var p = points[i];
                         i_transform.transform(p.x, p.y, _p);
-                        update_bounds(i_bounds, _p.x, _p.y);
+                        updateBounds(i_bounds, _p.x, _p.y);
                     }
                     break;
                 case CURVE:
@@ -3529,13 +3478,13 @@
                     break;
                 case TEXT:
                     _ctx.save();
-                    var fontSize = get_canvas_pixel(that, 'fontSize', 1.0);
+                    var fontSize = getCanvasPixel(that, 'fontSize', 1.0);
                     if (typeof fontSize !== 'number') {
                         fontSize = 10;
                     }
                     var font = that.bold === true ? 'bold ' : '';
                     font += '100px';
-                    var fontFamily = get_canvas_attribute(that, 'fontFamily');
+                    var fontFamily = getCanvasAttribute(that, 'fontFamily');
                     font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                     _ctx.font = font;
                     getAlignment(that.align, _p, false, false);
@@ -3560,13 +3509,13 @@
                         }
                         var h = fontSize * text.length;
                         i_transform.transform(x0, y0, _p);
-                        update_bounds(i_bounds, _p.x, _p.y);
+                        updateBounds(i_bounds, _p.x, _p.y);
                         i_transform.transform(x1, y0, _p);
-                        update_bounds(i_bounds, _p.x, _p.y);
+                        updateBounds(i_bounds, _p.x, _p.y);
                         i_transform.transform(x0, y0 + h, _p);
-                        update_bounds(i_bounds, _p.x, _p.y);
+                        updateBounds(i_bounds, _p.x, _p.y);
                         i_transform.transform(x1, y0 + h, _p);
-                        update_bounds(i_bounds, _p.x, _p.y);
+                        updateBounds(i_bounds, _p.x, _p.y);
                     }
                     else {
                         var txt = text;
@@ -3577,13 +3526,13 @@
                         var x = ox - _p.x * w;
                         var y = oy - _p.y * fontSize;
                         i_transform.transform(x, y, _p);
-                        update_bounds(i_bounds, _p.x, _p.y);
+                        updateBounds(i_bounds, _p.x, _p.y);
                         i_transform.transform(x + w, y, _p);
-                        update_bounds(i_bounds, _p.x, _p.y);
+                        updateBounds(i_bounds, _p.x, _p.y);
                         i_transform.transform(x, y + fontSize, _p);
-                        update_bounds(i_bounds, _p.x, _p.y);
+                        updateBounds(i_bounds, _p.x, _p.y);
                         i_transform.transform(x + w, y + fontSize, _p);
-                        update_bounds(i_bounds, _p.x, _p.y);
+                        updateBounds(i_bounds, _p.x, _p.y);
                     }
                     _ctx.restore();
                     break;
@@ -3592,13 +3541,13 @@
                     var x = ox - _p.x * w;
                     var y = oy - _p.y * h;
                     i_transform.transform(x, y, _p);
-                    update_bounds(i_bounds, _p.x, _p.y);
+                    updateBounds(i_bounds, _p.x, _p.y);
                     i_transform.transform(x + w, y, _p);
-                    update_bounds(i_bounds, _p.x, _p.y);
+                    updateBounds(i_bounds, _p.x, _p.y);
                     i_transform.transform(x, y + h, _p);
-                    update_bounds(i_bounds, _p.x, _p.y);
+                    updateBounds(i_bounds, _p.x, _p.y);
                     i_transform.transform(x + w, y + h, _p);
-                    update_bounds(i_bounds, _p.x, _p.y);
+                    updateBounds(i_bounds, _p.x, _p.y);
                     break;
                 default:
                     break;
@@ -3607,17 +3556,17 @@
         };
 
         // only if we got a paint method we add the paint functions
-        if (typeof this.paint === 'function') {
-            this.hmi_context2d = _ctx;
-            this.hmi_save = function () {
+        if (typeof that.paint === 'function') {
+            that.hmi_context2d = _ctx;
+            that.hmi_save = function () {
                 return _ctx.save();
             };
 
-            this.hmi_restore = function () {
+            that.hmi_restore = function () {
                 return _ctx.restore();
             };
 
-            this.hmi_transform = function (i_config) {
+            that.hmi_transform = function (i_config) {
                 var x = i_config.x;
                 if (typeof x !== 'number') {
                     x = 0.0;
@@ -3666,14 +3615,14 @@
                 }
             };
 
-            this.hmi_prepareRect = function (i_config) {
+            that.hmi_prepareRect = function (i_config) {
                 _ctx.beginPath();
                 var scale = _tf.scale;
                 var w = i_config.width;
                 var h = i_config.height;
                 if (w !== undefined && h !== undefined) {
-                    w = get_pixel_size(w, scale);
-                    h = get_pixel_size(h, scale);
+                    w = getPixelSize(w, scale);
+                    h = getPixelSize(h, scale);
                     if (typeof w !== 'number' || w <= 0.5 || typeof h !== 'number' || h <= 0.5) {
                         return;
                     }
@@ -3728,7 +3677,7 @@
                 getAlignment(i_config.align, _p, mx, my);
                 var x = ox - _p.x * w;
                 var y = oy - _p.y * h;
-                var rb = get_canvas_pixel(i_config, 'roundBorder', scale);
+                var rb = getCanvasPixel(i_config, 'roundBorder', scale);
                 if (typeof rb === 'number' && rb > 1.0) {
                     // start 1. round edge
                     var xw = x + w;
@@ -3749,12 +3698,12 @@
                 }
             };
 
-            this.hmi_prepareArc = function (i_config) {
+            that.hmi_prepareArc = function (i_config) {
                 _ctx.beginPath();
                 var scale = _tf.scale;
                 var r = i_config.r;
                 if (r !== undefined) {
-                    r = get_pixel_size(r, scale);
+                    r = getPixelSize(r, scale);
                     if (typeof r !== 'number' || r <= 0.5) {
                         return;
                     }
@@ -3802,7 +3751,7 @@
                 _ctx.arc(_p.x, _p.y, r, phi1 + tfrot, phi2 + tfrot, mx !== my);
             };
 
-            this.hmi_preparePath = function (i_config) {
+            that.hmi_preparePath = function (i_config) {
                 _ctx.beginPath();
                 var points = i_config.points;
                 if (Array.isArray(points) === false || points.length < 2) {
@@ -3835,8 +3784,8 @@
                 }
             };
 
-            this.hmi_setFont = function (i_config) {
-                var fontSize = get_pixel_size(i_config.fontSize, _tf.scale);
+            that.hmi_setFont = function (i_config) {
+                var fontSize = getPixelSize(i_config.fontSize, _tf.scale);
                 if (typeof fontSize !== 'number') {
                     fontSize = 10;
                 }
@@ -3848,19 +3797,19 @@
                 _ctx.font = font;
             };
             // TODO this is shit
-            this.hmi_getTextHeight = function (i_config) {
-                return get_pixel_size(i_config.fontSize, _tf.scale);
+            that.hmi_getTextHeight = function (i_config) {
+                return getPixelSize(i_config.fontSize, _tf.scale);
             };
 
-            this.hmi_getTextWidth = function (i_text) {
+            that.hmi_getTextWidth = function (i_text) {
                 return _ctx.measureText(i_text).width;
             };
 
-            this.hmi_paintText = function (i_config, i_text) {
+            that.hmi_paintText = function (i_config, i_text) {
                 // context.textAlign="center|end|left|right|start";
                 // context.textBaseline="alphabetic|top|hanging|middle|ideographic|bottom";
                 var scale = _tf.scale;
-                var fontSize = get_canvas_pixel(i_config, 'fontSize', scale);
+                var fontSize = getCanvasPixel(i_config, 'fontSize', scale);
                 if (typeof fontSize !== 'number') {
                     fontSize = 10;
                 }
@@ -3928,7 +3877,7 @@
                     }
                 }
                 if (stroke) {
-                    var lineWidth = get_pixel_size(i_config.lineWidth, scale);
+                    var lineWidth = getPixelSize(i_config.lineWidth, scale);
                     if (typeof lineWidth === 'number') {
                         _ctx.lineWidth = lineWidth;
                     }
@@ -3938,7 +3887,7 @@
                     }
                 }
                 if (fill || stroke) {
-                    var fontSize = get_pixel_size(i_config.fontSize, scale);
+                    var fontSize = getPixelSize(i_config.fontSize, scale);
                     if (typeof fontSize !== 'number') {
                         fontSize = 10;
                     }
@@ -3985,7 +3934,7 @@
                 }
             };
 
-            this.hmi_paintImage = function (i_config, i_image) {
+            that.hmi_paintImage = function (i_config, i_image) {
                 if (i_image === undefined || typeof i_image.naturalWidth !== 'number' || i_image.naturalWidth <= 1 || typeof i_image.naturalHeight !== 'number' || i_image.naturalHeight <= 1) {
                     return;
                 }
@@ -3993,14 +3942,14 @@
                 var w = i_config.width;
                 var h = i_config.height;
                 if (w !== undefined && h !== undefined) {
-                    w = get_pixel_size(w, scale);
-                    h = get_pixel_size(h, scale);
+                    w = getPixelSize(w, scale);
+                    h = getPixelSize(h, scale);
                     if (typeof w !== 'number' || w <= 0.5 || typeof h !== 'number' || h <= 0.5) {
                         return;
                     }
                 }
                 else if (w !== undefined) {
-                    w = get_pixel_size(w, scale);
+                    w = getPixelSize(w, scale);
                     if (typeof w !== 'number' || w < 0.5) {
                         return;
                     }
@@ -4008,7 +3957,7 @@
                     w = Math.floor(w);
                 }
                 else if (h !== undefined) {
-                    h = get_pixel_size(h, scale);
+                    h = getPixelSize(h, scale);
                     if (typeof h !== 'number' || h < 0.5) {
                         return;
                     }
@@ -4070,21 +4019,21 @@
                 var y = oy - _p.y * h;
                 _ctx.drawImage(i_image, x, y, w, h);
             };
-            this.hmi_beginPath = function () {
+            that.hmi_beginPath = function () {
                 _ctx.beginPath();
             };
 
-            this.hmi_moveTo = function (i_x, i_y) {
+            that.hmi_moveTo = function (i_x, i_y) {
                 _tf.transform(i_x, i_y, _p);
                 _ctx.moveTo(_p.x, _p.y);
             };
 
-            this.hmi_lineTo = function (i_x, i_y) {
+            that.hmi_lineTo = function (i_x, i_y) {
                 _tf.transform(i_x, i_y, _p);
                 _ctx.lineTo(_p.x, _p.y);
             };
 
-            this.hmi_arcTo = function (i_x1, i_y1, i_x2, i_y2, i_radius) {
+            that.hmi_arcTo = function (i_x1, i_y1, i_x2, i_y2, i_radius) {
                 _tf.transform(i_x1, i_y1, _p);
                 var x1 = _p.x;
                 var y1 = _p.y;
@@ -4092,7 +4041,7 @@
                 _ctx.arcTo(x1, y1, _p.x, _p.y, i_radius * _tf.scale);
             };
 
-            this.hmi_quadraticCurveTo = function (i_x1, i_y1, i_x2, i_y2) {
+            that.hmi_quadraticCurveTo = function (i_x1, i_y1, i_x2, i_y2) {
                 _tf.transform(i_x1, i_y1, _p);
                 var x1 = _p.x;
                 var y1 = _p.y;
@@ -4100,7 +4049,7 @@
                 _ctx.quadraticCurveTo(x1, y1, _p.x, _p.y);
             };
 
-            this.hmi_bezierCurveTo = function (i_x1, i_y1, i_x2, i_y2, i_x2, i_y2) {
+            that.hmi_bezierCurveTo = function (i_x1, i_y1, i_x2, i_y2, i_x2, i_y2) {
                 _tf.transform(i_x1, i_y1, _p);
                 var x1 = _p.x;
                 var y1 = _p.y;
@@ -4111,11 +4060,11 @@
                 _ctx.bezierCurveTo(x1, y1, x2, y2, _p.x, _p.y);
             };
 
-            this.hmi_closePath = function () {
+            that.hmi_closePath = function () {
                 _ctx.closePath();
             };
 
-            this.hmi_fill = function (i_config) {
+            that.hmi_fill = function (i_config) {
                 if (i_config) {
                     var fillStyle = i_config.fillStyle;
                     if (typeof fillStyle === 'string') {
@@ -4125,7 +4074,7 @@
                 _ctx.fill();
             };
 
-            this.hmi_stroke = function (i_config) {
+            that.hmi_stroke = function (i_config) {
                 if (i_config) {
                     var lineCap = i_config.lineCap;
                     if (typeof lineCap === 'string') {
@@ -4135,7 +4084,7 @@
                     if (typeof lineJoin === 'string') {
                         _ctx.lineJoin = lineJoin;
                     }
-                    var lineWidth = get_pixel_size(i_config.lineWidth, _tf.scale);
+                    var lineWidth = getPixelSize(i_config.lineWidth, _tf.scale);
                     if (typeof lineWidth === 'number') {
                         _ctx.lineWidth = lineWidth;
                     }
@@ -4148,7 +4097,7 @@
             };
         }
         // handle children
-        _children = this.children;
+        _children = that.children;
         if (Array.isArray(_children)) {
             /*
              * Our graphical object may be a group or paintable. Groups may contain
@@ -4262,7 +4211,7 @@
             /*
              * Update children transforms.
              */
-            this._hmi_updateChildrenTransforms = function () {
+            that._hmi_updateChildrenTransforms = function () {
                 for (var i = 0; i < _children.length; i++) {
                     var child = _children[i];
                     var hmiobj = child._hmi_object;
@@ -4286,8 +4235,8 @@
                             }
                         }
                         else if (!isTaskType(hmiobj)) {
-                            var width = get_pixel_size(child.width, _tf.scale);
-                            var height = get_pixel_size(child.height, _tf.scale);
+                            var width = getPixelSize(child.width, _tf.scale);
+                            var height = getPixelSize(child.height, _tf.scale);
                             if (typeof width === 'number' && typeof height === 'number') {
                                 updateHtmlChildPosition(hmiobj, child, width, height, true);
                             }
@@ -4296,7 +4245,7 @@
                 }
             };
 
-            _curves = this.curves;
+            _curves = that.curves;
             if (Array.isArray(_curves)) {
                 // within the next loop we create the curves
                 for (var i = 0; i < _curves.length; i++) {
@@ -4338,8 +4287,8 @@
                                     }
                                 }
                                 hmiobj.hmi_getPointOnCurveSection = function (i_position, i_offset, i_point, i_adjusted) {
-                                    var cursec = this._hmi_vehicleCurveSection;
-                                    var posadj = this._hmi_vehiclePositionAdjuster;
+                                    var cursec = that._hmi_vehicleCurveSection;
+                                    var posadj = that._hmi_vehiclePositionAdjuster;
                                     var pos = i_adjusted === true && posadj ? posadj.adjust(i_position) : i_position;
                                     return cursec ? cursec.transform(pos, i_offset, i_point) : false;
                                 };
@@ -4363,8 +4312,8 @@
                                     hmiobj._hmi_curve = cu;
                                     hmiobj._hmi_positionAdjuster = pa;
                                     hmiobj.hmi_getPointOnCurveSection = function (i_position, i_offset, i_point, i_adjusted) {
-                                        var pos = i_adjusted === true ? this._hmi_positionAdjuster.adjust(i_position) : i_position;
-                                        return this._hmi_curveSection.transform(pos, i_offset, i_point);
+                                        var pos = i_adjusted === true ? that._hmi_positionAdjuster.adjust(i_position) : i_position;
+                                        return that._hmi_curveSection.transform(pos, i_offset, i_point);
                                     };
                                     for (var z = 0; z < cs.getZoneCount(); z++) {
                                         var zonevisobj = cs.getZoneObject(z)._hmi_object;
@@ -4412,8 +4361,8 @@
                             else {
                                 child._hmi_graphHtmlElement = $(DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                                 child._hmi_graphHtmlElement.appendTo(_cont);
-                                var width = get_pixel_size(child.width, _tf.scale);
-                                var height = get_pixel_size(child.height, _tf.scale);
+                                var width = getPixelSize(child.width, _tf.scale);
+                                var height = getPixelSize(child.height, _tf.scale);
                                 if (typeof width === 'number' && typeof height === 'number') {
                                     updateHtmlChildPosition(hmiobj, child, width, height, false);
                                 }
@@ -4429,12 +4378,12 @@
                 }());
             }
             // layout
-            this.hmi_layout = function (i_layout, i_separator) {
-                layout_children(_children, i_layout, i_separator);
+            that.hmi_layout = function (i_layout, i_separator) {
+                layoutChildren(_children, i_layout, i_separator);
             };
         }
         // finally we remove all we created
-        this._hmi_destroys.push(function () {
+        that._hmi_destroys.push(function () {
             if (that._hmi_graphicsRoot === true) {
                 clicked = undefined;
                 onEvent = undefined;
@@ -4572,10 +4521,9 @@
      * This is our actual hmi object implementation
      */
     var s_objectId = 0;
-    function ObjectImpl(i_disableVisuEvents, i_enableEditorEvents) {
-        let that = this;
+    function applyObject(that, i_disableVisuEvents, i_enableEditorEvents) {
         var _cont = undefined;
-        this._hmi_objectId = s_objectId++;
+        that._hmi_objectId = s_objectId++;
 
         // TODO what for graph or handler objects???
         var _fClickedDraggable = undefined;
@@ -4583,22 +4531,22 @@
         // LISTENERS
         var _watch = undefined;
         var _onEventCallbacks = undefined;
-        this._hmi_listenerAdds = [];
-        this._hmi_listenerRemoves = [];
+        that._hmi_listenerAdds = [];
+        that._hmi_listenerRemoves = [];
 
         // REFRESH AND DESTROY
-        this._hmi_refreshs = [];
-        this._hmi_destroys = [];
+        that._hmi_refreshs = [];
+        that._hmi_destroys = [];
 
         // CONTEXT
-        this.hmi_context = function () {
+        that.hmi_context = function () {
             return that._hmi_context;
         };
-        this.hmi_getHtmlTextSize = function (i_text) {
-            return _cont ? get_text_size(i_text, _cont.css('font')) : undefined;
+        that.hmi_getHtmlTextSize = function (i_text) {
+            return _cont ? getTextSize(i_text, _cont.css('font')) : undefined;
         };
         // objects are visible as default
-        this._hmi_visible = true;
+        that._hmi_visible = true;
 
         // //////////////////////////////////////////////////////////////////////////////
         // INTERNAL METHODS
@@ -4606,23 +4554,19 @@
 
         // INITIALIZE THE DOCUMENT
         // TODO use: i_success, i_error
-        this._hmi_init_dom = function (i_context, onSuccess, onError) {
+        that._hmi_init_dom = function (i_context, onSuccess, onError) {
             const tasks = [];
             that._hmi_context = i_context;
             _cont = i_context.container;
             if (isTaskType(that)) {
-                tasks.push(function (onSuc, onErr) {
-                    TaskObjectImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr);
-                });
+                tasks.push((onSuc, onErr) => applyTaskObject(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr));
             } else {
                 if (that.type === 'graph') {
                     // if a graphics object apply graphic functionality
-                    tasks.push(function (onSuc, onErr) {
-                        GraphicObjectImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr);
-                    });
+                    tasks.push((onSuc, onErr) => applyGraphicObject(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr));
                 } else {
-                    tasks.push(function (onSuc, onErr) {
-                        DefaultHtmlObjectImpl.call(that);
+                    tasks.push((onSuc, onErr) => {
+                        applyDefaultHtmlObject(that);
                         onSuc();
                     });
                     // get type if available
@@ -4647,13 +4591,13 @@
                                     onSuc();
                                     break;
                                 default:
-                                    applyType.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr);
+                                    applyType.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr); // TODO: Still required???
                                     break;
                             }
                         });
                     } else { // no type
                         tasks.push((onSuc, onErr) => {
-                            SimpleHtmlObjectImpl.call(that);
+                            applySimpleHtmlObject(that);
                             onSuc();
                         });
                     }
@@ -4664,12 +4608,13 @@
                             onSuc();
                         });
                     }
-                    if (TimeRangeSelectorImpl.isRequired(that)) {
-                        tasks.push(function (onSuc, onErr) {
-                            TimeRangeSelectorImpl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr);
+                    if (applyTimeRangeSelector.isRequired(that)) {
+                        tasks.push((onSuc, onErr) => {
+                            applyTimeRangeSelector(that);
+                            onSuc();
                         });
                     }
-                    tasks.push(function (onSuc, onErr) {
+                    tasks.push((onSuc, onErr) => {
                         // used for editor only! move somewhere?
                         if (typeof that.draggable === 'string' && i_enableEditorEvents !== true) {
                             if (_cont) {
@@ -4703,7 +4648,7 @@
                                 });
                                 if (that.clickable !== false) {
                                     _fClickedDraggable = function (i_event) {
-                                        if ($(this).is('.ui-draggable-dragging')) {
+                                        if ($(that).is('.ui-draggable-dragging')) {
                                             return;
                                         }
                                         preventDefaultAndStopPropagation(i_event);
@@ -4721,7 +4666,7 @@
                         onSuc();
                     });
                 }
-                tasks.push(function (onSuc, onErr) {
+                tasks.push((onSuc, onErr) => {
                     try {
                         // VISIBILITY (default is true)
                         if (isVisible(that.visible) === false) {
@@ -4747,12 +4692,10 @@
                 });
             }
             // add extensions is available
-            for (var i = 0; i < s_extensions.length; i++) {
+            for (var i = 0; i < s_extensions.length; i++) { // TODO: Clean up this
                 var impl = s_extensions[i];
                 if (impl.isExtension(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents)) {
-                    tasks.push(function (onSuc, onErr) {
-                        impl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr);
-                    });
+                    tasks.push((onSuc, onErr) => impl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr));
                 }
             }
             tasks.parallel = false;
@@ -4764,9 +4707,9 @@
         };
 
         // ADD LISTENERS
-        this._hmi_addListeners = (i_hmiObject, i_success, i_error) => {
+        that._hmi_addListeners = (i_hmiObject, i_success, i_error) => {
             // WATCH / TEXT
-            _watch = get_watch(that.watch);
+            _watch = getWatch(that.watch);
             if (Array.isArray(_watch)) {
                 _onEventCallbacks = [];
                 for (var i = 0; i < _watch.length; i++) {
@@ -4842,7 +4785,7 @@
         };
 
         // REMOVE LISTENERS
-        this._hmi_removeListeners = function (i_hmiObject, i_success, i_error) {
+        that._hmi_removeListeners = function (i_hmiObject, i_success, i_error) {
             // remove listeners
             for (var i = that._hmi_listenerRemoves.length - 1; i >= 0; i--) {
                 var func = that._hmi_listenerRemoves[i];
@@ -4881,7 +4824,7 @@
         };
 
         // CLEAN UP
-        this._hmi_destroy_dom = function () {
+        that._hmi_destroy_dom = function () {
             that._hmi_refreshs.splice(0, that._hmi_refreshs.length);
             // perform all destroys and remove all
             for (var i = that._hmi_destroys.length - 1; i >= 0; i--) {
@@ -4912,7 +4855,7 @@
         };
 
         // DESTROY VISU OBJECT
-        this._hmi_destroy = function () {
+        that._hmi_destroy = function () {
             // remove listener adds and removes
             that._hmi_listenerAdds.splice(0, that._hmi_listenerAdds.length);
             delete that._hmi_listenerAdds;
@@ -5542,7 +5485,7 @@
                     attachHmiObject(object);
                     hmiobj = object._hmi_object;
                     createIdNodeSubTree(hmiobj, parentObject, nodeId, parentNode);
-                    processObjectSubTree(hmiobj, true, undefined, processObject => ObjectImpl.call(processObject, disableVisuEvents, hmiobj === processObject && enableEditorEvents));
+                    processObjectSubTree(hmiobj, true, undefined, processObject => applyObject(processObject, disableVisuEvents, hmiobj === processObject && enableEditorEvents));
                     object._hmi_lifecycleLevel = LifecycleLevel.BaseFeaturesAdded;
                     onSuc();
                 }
