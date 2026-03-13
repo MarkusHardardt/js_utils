@@ -20,6 +20,7 @@
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Logger.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/FloatLayout.js');
+        server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/GraphControl.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/GridLayout.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/SplitLayout.js');
         server.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/TableControl.js');
@@ -58,6 +59,7 @@
         Logger: require('./src/Logger.js'),
         WebSocketConnection: require('./src/WebSocketConnection.js'),
         FloatLayout: require('./src/FloatLayout.js'),
+        GraphControl: require('./src/GraphControl.js'),
         GridLayout: require('./src/GridLayout.js'),
         SplitLayout: require('./src/SplitLayout.js'),
         TableControl: require('./src/TableControl.js'),

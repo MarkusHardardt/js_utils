@@ -5,6 +5,29 @@
     const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
     const ObjectLifecycleManager = isNodeJS ? require('./ObjectLifecycleManager.js') : root.ObjectLifecycleManager;
 
+    function getFloatingBounds(child, containerWidth, containerHeight) {
+        // get the alignment
+        const alignment = getAlignment(child.align, undefined, false, true);
+        // get pixel values as number if available (returns undefined if not
+        // something like "42px")
+        const parX = getPixelValue(child.x);
+        const parY = getPixelValue(child.y);
+        const parW = getPixelValue(child.width);
+        const parH = getPixelValue(child.height);
+        // compute the pixel values
+        const pixX = typeof parX === 'number' ? parX : (typeof child.x === 'number' ? child.x * containerWidth : 0.0);
+        const pixY = typeof parY === 'number' ? parY : (typeof child.y === 'number' ? child.y * containerHeight : 0.0);
+        const pixW = typeof parW === 'number' ? parW : (typeof child.width === 'number' ? child.width * containerWidth : 0.1);
+        const pixH = typeof parH === 'number' ? parH : (typeof child.height === 'number' ? child.height * containerHeight : 0.1);
+        // return the bounds
+        return {
+            x: Math.floor(pixX - pixW * alignment.x),
+            y: Math.floor(pixY - pixH * alignment.y),
+            width: Math.floor(pixW),
+            height: Math.floor(pixH)
+        };
+    }
+
     function applyFloat(that, context, disableVisuEvents, enableEditorEvents, onSuccess, onError) {
         let tasks = [];
         let _cont = that._hmi_context.container;
@@ -29,18 +52,18 @@
                             const width = _mainDiv.width();
                             const height = _mainDiv.height();
                             // get the alignment
-                            const align = getAlignment(child.align, undefined, false, true);
+                            const align = ObjectLifecycleManager.getAlignment(child.align, undefined, false, true);
                             // get pixel values as number if available (returns undefined if
                             // not something like "42px")
-                            const parX = getPixelValue(child.x);
-                            const parY = getPixelValue(child.y);
-                            const parW = getPixelValue(child.width);
-                            const parH = getPixelValue(child.height);
+                            const parX = ObjectLifecycleManager.getPixelValue(child.x);
+                            const parY = ObjectLifecycleManager.getPixelValue(child.y);
+                            const parW = ObjectLifecycleManager.getPixelValue(child.width);
+                            const parH = ObjectLifecycleManager.getPixelValue(child.height);
                             // get the current views location and dimension
-                            const pixW = getPixelValue(child._hmi_floatElement.css('width'));
-                            const pixH = getPixelValue(child._hmi_floatElement.css('height'));
-                            const pixX = getPixelValue(child._hmi_floatElement.css('left')) + pixW * align.x;
-                            const pixY = getPixelValue(child._hmi_floatElement.css('top')) + pixH * align.y;
+                            const pixW = ObjectLifecycleManager.getPixelValue(child._hmi_floatElement.css('width'));
+                            const pixH = ObjectLifecycleManager.getPixelValue(child._hmi_floatElement.css('height'));
+                            const pixX = ObjectLifecycleManager.getPixelValue(child._hmi_floatElement.css('left')) + pixW * align.x;
+                            const pixY = ObjectLifecycleManager.getPixelValue(child._hmi_floatElement.css('top')) + pixH * align.y;
                             // update the rectangle attributes
                             child.x = typeof parX === 'number' ? pixX + 'px' : pixX / width;
                             child.y = typeof parY === 'number' ? pixY + 'px' : pixY / height;

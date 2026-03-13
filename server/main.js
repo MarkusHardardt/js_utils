@@ -129,6 +129,7 @@
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Access.js');
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Logger.js');
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
+        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/GraphControl.js');
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/GridLayout.js');
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/FloatLayout.js');
         webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/SplitLayout.js');
