@@ -138,10 +138,10 @@
                     // TODO???: _scroller.restore(_dataTable.parent(), _dataTable);
                     // if we have a click handler for table rows
                     if (typeof that.handleTableRowClicked === 'function') {
-                        $(`#${_tableId} tbody`).on('click', 'tr', event => {
+                        $(`#${_tableId} tbody`).on('click', 'tr', function (event) { // Note: Do not convert to lambda because 'this' must refer to the table row
                             if (that.highlightSelectedRow === true) {
                                 _dataTable.$('tr.row_selected').removeClass('row_selected');
-                                $(that).addClass('row_selected');
+                                $(this).addClass('row_selected');
                             }
                             // const data = _dataTable.row( that ).data();
                             const rowIndex = event.currentTarget ? event.currentTarget._DT_RowIndex : undefined;
