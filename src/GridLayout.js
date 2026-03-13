@@ -719,7 +719,7 @@
                     for (let i = 0; i < _children.length; i++) {
                         const child = _children[i];
                         if (child.objectReference === objectReference && child.object) {
-                            initObject(child.object, initData);
+                            ObjectLifecycleManager.initObject(child.object, initData);
                         }
                     }
                 };
