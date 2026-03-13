@@ -45,23 +45,11 @@
     const DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION = '<div style="box-sizing: border-box;position: absolute;" />';
     ObjectLifecycleManager.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION = DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION;
 
-    // store this for performance reasons
-    const Transform = Mathematics.Transform;
-    const ArcLine = Mathematics.ArcLine;
-    const RopeLine = Mathematics.RopeLine;
-    const CurveSection = Mathematics.CurveSection;
-    const ZonePositionAdjuster = ObjectPositionSystem.ZonePositionAdjuster;
-
-    const normalizeToPlusMinusPI = Mathematics.normalizeToPlusMinusPI;
     const normalizeToPlusMinus180deg = Mathematics.normalizeToPlusMinus180deg;
-    const getHarmonicRGB = Mathematics.getHarmonicRGB;
     const RAD2DEG = Mathematics.RAD2DEG;
     const DEG2RAD = Mathematics.DEG2RAD;
     const PI = Math.PI;
     const TWO_PI = PI + PI;
-    const HALF_PI = PI / 2;
-
-    const regex_analyse = Regex.analyse;
 
     // zoom factor: double by three clicks: Math.exp(Math.log(2)/3)
     const ZOOM_FACTOR = Math.exp(Math.log(2) / 3);
@@ -370,6 +358,7 @@
             }
         }
     }
+    ObjectLifecycleManager.initObject = initObject;
 
     function updateEventListenersState(enabled) {
         for (let i = 0, l = s_event_listeners.length; i < l; i++) {
@@ -723,9 +712,9 @@
                 createObjectSubTree(object, _div, () => {
                     _object = object;
                     onSuccess();
-                }, i_exception => {
+                }, error => {
                     _div.empty();
-                    onError(i_exception);
+                    onError(error);
                 }, that.hmi, initData, that, object.id, that.hmi_node(), disableVisuEvents, enableEditorEvents, dumpLifecycle);
             }
         };
@@ -939,21 +928,6 @@
         }
     };
 
-    /**
-     * Get the margin. If margin is a boolean we return the separator. In case of
-     * a number, its value will be returned. If it is an object, we use the
-     * selector to get the attribute. If the attribute is a boolean we return the
-     * separator. In case of a number we return its value. In all other cases we
-     * return zero.
-     * 
-     * @param {Object}
-     *          i_margin The margin configuration parameter
-     * @param {Object}
-     *          attributeName The selective attribute name (top, bottom, left or
-     *          right)
-     * @param {Object}
-     *          separator The separator value
-     */
     function getDimensionParameter(object, attributeName, separator) {
         if (object === true) {
             return separator;
@@ -1502,26 +1476,26 @@
         return typeof pix === 'number' ? pix : (typeof value === 'number' ? value * scale : defaultValue);
     }
 
-    function applyZoom(that, i_disableVisuEvents, i_enableEditorEvents) {
+    function applyZoom(that, disableVisuEvents, enableEditorEvents) {
         let _p = {};
         let _cont = that._hmi_context.container;
         let _tf = that._hmi_context.transform;
         let _bounds = that.bounds;
         let _mouse = false, _id1, _x1, _y1, _ix1, _iy1, _id2, _x2, _y2, _ix2, _iy2, _di = undefined;
-        that._hmi_handleZoomEvent = function (i_event, i_type) {
+        that._hmi_handleZoomEvent = (event, type) => {
             const offs = _cont.offset();
-            const tt = i_event.originalEvent ? i_event.originalEvent.targetTouches : undefined;
-            switch (i_type) {
+            const tt = event.originalEvent ? event.originalEvent.targetTouches : undefined;
+            switch (type) {
                 case MOUSEEVENT_MOUSEDOWN:
-                    that._hmi_event = i_event;
+                    that._hmi_event = event;
                     _mouse = true;
-                    _ix1 = i_event.clientX - offs.left;
-                    _iy1 = i_event.clientY - offs.top;
+                    _ix1 = event.clientX - offs.left;
+                    _iy1 = event.clientY - offs.top;
                     _tf.transformInverse(_ix1, _iy1, _p);
                     _x1 = _p.x;
                     _y1 = _p.y;
-                    if (i_enableEditorEvents === true && i_event.button === 2) {
-                        console.log('x: ' + _x1 + ', y: ' + _y1);
+                    if (enableEditorEvents === true && event.button === 2) {
+                        console.log(`x: ${_x1}, y: ${_y1}`);
                     }
                     break;
                 case MOUSEEVENT_MOUSEMOVE:
@@ -1530,8 +1504,8 @@
                         delete _bounds.y;
                         delete _bounds.width;
                         delete _bounds.height;
-                        _ix1 = i_event.clientX - offs.left;
-                        _iy1 = i_event.clientY - offs.top;
+                        _ix1 = event.clientX - offs.left;
+                        _iy1 = event.clientY - offs.top;
                         _tf.initForPoint(_x1, _y1, _ix1, _iy1);
                         _tf.transformInverse(0, 0, _p);
                         _bounds.x1 = _p.x;
@@ -1539,7 +1513,7 @@
                         _tf.transformInverse(_cont.width(), _cont.height(), _p);
                         _bounds.x2 = _p.x;
                         _bounds.y2 = _p.y;
-                        that._hmi_event = i_event;
+                        that._hmi_event = event;
                     }
                     break;
                 case MOUSEEVENT_MOUSEUP:
@@ -1548,7 +1522,7 @@
                         delete _bounds.y;
                         delete _bounds.width;
                         delete _bounds.height;
-                        _tf.initForPoint(_x1, _y1, i_event.clientX - offs.left, i_event.clientY - offs.top);
+                        _tf.initForPoint(_x1, _y1, event.clientX - offs.left, event.clientY - offs.top);
                         _tf.transformInverse(0, 0, _p);
                         _bounds.x1 = _p.x;
                         _bounds.y1 = _p.y;
@@ -1581,15 +1555,15 @@
                     break;
                 case MOUSEEVENT_MOUSEWHEEL:
                     if (_bounds) {
-                        if (i_event.originalEvent && typeof i_event.originalEvent.wheelDelta === 'number' && i_event.originalEvent.wheelDelta !== 0) {
-                            const wd = i_event.originalEvent.wheelDelta / 120;
+                        if (event.originalEvent && typeof event.originalEvent.wheelDelta === 'number' && event.originalEvent.wheelDelta !== 0) {
+                            const wd = event.originalEvent.wheelDelta / 120;
                             // scrolling without shift down (scrolling up: wd > 0)
                             delete _bounds.x;
                             delete _bounds.y;
                             delete _bounds.width;
                             delete _bounds.height;
                             // first get the current metric scroll location
-                            _tf.transformInverse(i_event.clientX - offs.left, i_event.clientY - offs.top, _p);
+                            _tf.transformInverse(event.clientX - offs.left, event.clientY - offs.top, _p);
                             const x = _p.x;
                             const y = _p.y;
                             // next get the current metric bound locations
@@ -1613,7 +1587,7 @@
                     if (tt) {
                         switch (tt.length) {
                             case 1:
-                                that._hmi_event = i_event;
+                                that._hmi_event = event;
                                 const t = tt[0];
                                 _id1 = t.identifier;
                                 _ix1 = t.clientX - offs.left;
@@ -1624,7 +1598,7 @@
                                 break;
                             case 2:
                                 if (that.multitouch === true) {
-                                    that._hmi_event = i_event;
+                                    that._hmi_event = event;
                                     const t = tt[1];
                                     if (t.identifier === _id1) {
                                         t = tt[0];
@@ -1635,7 +1609,6 @@
                                     _tf.transformInverse(_ix2, _iy2, _p);
                                     _x2 = _p.x;
                                     _y2 = _p.y;
-
                                     const dix = (_ix2 - _ix1);
                                     const diy = (_iy2 - _iy1);
                                     _di = Math.sqrt(dix * dix + diy * diy);
@@ -1667,7 +1640,7 @@
                                 delete _bounds.y;
                                 delete _bounds.width;
                                 delete _bounds.height;
-                                that._hmi_event = i_event;
+                                that._hmi_event = event;
                                 const t = tt[0];
                                 _tf.initForPoint(_x1, _y1, t.clientX - offs.left, t.clientY - offs.top);
                                 _tf.transformInverse(0, 0, _p);
@@ -1679,7 +1652,7 @@
                                 break;
                             case 2:
                                 if (that.multitouch === true) {
-                                    that._hmi_event = i_event;
+                                    that._hmi_event = event;
                                     const t1 = tt[0];
                                     const t2 = tt[1];
                                     if (t2.identifier === _id1) {
@@ -1691,7 +1664,7 @@
                                     const iy1 = t1.clientY - offs.top;
                                     const ix2 = t2.clientX - offs.left;
                                     const iy2 = t2.clientY - offs.top;
-                                    if (that.zoom_rotation === true) {
+                                    if (that.zoom_rotation === true) { // TODO: Why is this not running?
                                         _tf.initForPoints(_x1, _y1, _x2, _y2, ix1, iy1, ix2, iy2);
                                         // we got to set this flag because the standard
                                         // initForBounds()
@@ -1741,7 +1714,7 @@
                     if (tt) {
                         switch (tt.length) {
                             case 1:
-                                that._hmi_event = i_event;
+                                that._hmi_event = event;
                                 const t = tt[0];
                                 _id1 = t.identifier;
                                 _ix1 = t.clientX - offs.left;
@@ -1812,7 +1785,6 @@
         });
     }
 
-
     const REQUIRED_CONTEXT2D_METHODS = ['save', 'restore', 'setTransform', 'clearRect', 'fillRect', 'strokeRect', 'beginPath', 'closePath', 'moveTo', 'lineTo', 'arcTo', 'stroke', 'fill', 'translate', 'rotate', 'scale', 'arc', 'rect', 'fillText', 'strokeText', 'drawImage'];
     function isValidContext2d(context) {
         for (let i = 0; i < REQUIRED_CONTEXT2D_METHODS.length; i++) {
@@ -1877,10 +1849,10 @@
             } else {
                 // #5
                 if (typeof z1 === 'number') {
-                    var res = Sorting.compareNumber(z1, typeof z2 === 'number' ? z2 : 0);
+                    const res = Sorting.compareNumber(z1, typeof z2 === 'number' ? z2 : 0);
                     return mirror ? -res : res;
                 } else if (typeof z2 === 'number') {
-                    res = Sorting.compareNumber(0, z2);
+                    const res = Sorting.compareNumber(0, z2);
                     return mirror ? -res : res;
                 } else {
                     return Sorting.EQUAL;
@@ -1924,7 +1896,7 @@
         }
     }
 
-    const s_bounds_transform = new Transform();
+    const s_bounds_transform = new Mathematics.Transform();
 
     const s_layouts_regex = {
         finalNullRequired: false,
@@ -1937,36 +1909,34 @@
         },
         convertMatchToId: id => id
     };
-    const s_layout_parts = [];
 
-    // TODO: Go on here
-    function layoutChildren(i_children, i_layout, i_separator) {
+    function layoutChildren(children, layoutRules, separator) { // TODO: Check if this still works after refactoring
         // check for layout rules
-        var layout = i_layout && typeof i_layout === 'string' && i_layout.length > 0 ? i_layout : '';
-        s_layout_parts.splice(0, s_layout_parts.length);
-        regex_analyse(s_layouts_regex, layout, s_layout_parts);
-        var first = s_layout_parts[0], second = s_layout_parts[1];
+        const layout = layoutRules && typeof layoutRules === 'string' && layoutRules.length > 0 ? layoutRules : '';
+        const layoutParts = [];
+        Regex.analyse(s_layouts_regex, layout, layoutParts);
+        const first = layoutParts[0], second = layoutParts[1];
         // default for first rule is vertical
-        var vertical1 = !first || /^(?:top|bottom)$/.test(first);
+        const vertical1 = !first || /^(?:top|bottom)$/.test(first);
         // default for first rule in vertical mode is decreasing but in horizontal
         // mode it is increasing
-        var inc1 = first ? (vertical1 ? /^bottom$/.test(first) : /^left$/.test(first)) : (vertical1 ? false : true);
+        const inc1 = first ? (vertical1 ? /^bottom$/.test(first) : /^left$/.test(first)) : (vertical1 ? false : true);
         // default for second rule in vertical mode is increasing but in horizontal
         // mode it is decreasing
-        var inc2 = second ? (vertical1 ? /^left$/.test(second) : /^bottom$/.test(second)) : (vertical1 ? true : false);
+        const inc2 = second ? (vertical1 ? /^left$/.test(second) : /^bottom$/.test(second)) : (vertical1 ? true : false);
         // get the first and second child attribute names
-        var v1 = vertical1 ? 'y' : 'x', v2 = vertical1 ? 'x' : 'y';
+        const v1 = vertical1 ? 'y' : 'x', v2 = vertical1 ? 'x' : 'y';
         // get the first and second bounds attribute names
-        var v11 = v1 + '1', v12 = v1 + '2', v21 = v2 + '1', v22 = v2 + '2';
+        const v11 = v1 + '1', v12 = v1 + '2', v21 = v2 + '1', v22 = v2 + '2';
         // we got to update our childrens layouts and bounds
-        var len = i_children.length, i, child, object;
-        var sta = 0, end, bounds, cen1, val11, val12, val21, val22, d1, d2, dim1, dim2, d, size, off1 = 0, off2 = 0, size1, size2, val1, val2, min1, max1, dif1;
+        const len = children.length;
+        let sta = 0, end, cen1, dim2, off1 = 0, off2 = 0, val1, val2, min1, max1;
         // compute the separator
-        var sep = typeof i_separator === 'number' && i_separator >= 0.0 ? i_separator : 0.0;
+        const sep = typeof separator === 'number' && separator >= 0.0 ? separator : 0.0;
         while (sta < len) {
             // set end to next position and search next new line
             end = sta + 1;
-            while (end < len && i_children[end].next !== true) {
+            while (end < len && children[end].next !== true) {
                 end++;
             }
             // we got to handle the second dimension next
@@ -1975,22 +1945,22 @@
             min1 = undefined;
             max1 = undefined;
             // collect some dimension parameters
-            for (i = sta; i < end; i++) {
+            for (let i = sta; i < end; i++) {
                 // get the child and its hmi object bounds
-                child = i_children[i];
-                object = child.hmi_object;
+                const child = children[i];
+                const object = child.hmi_object;
                 if (child !== object) {
                     object.hmi_updateBounds();
-                    bounds = object.bounds;
-                    val11 = bounds[v11];
-                    val12 = bounds[v12];
-                    val21 = bounds[v21];
-                    val22 = bounds[v22];
+                    const bounds = object.bounds;
+                    const val11 = bounds[v11];
+                    const val12 = bounds[v12];
+                    const val21 = bounds[v21];
+                    const val22 = bounds[v22];
                     if (typeof val11 === 'number' && typeof val12 === 'number' && typeof val21 === 'number' && typeof val22 === 'number') {
                         bounds._hmi_valid = true;
                         // compute the dimension
-                        d1 = val12 - val11;
-                        d2 = val22 - val21;
+                        const d1 = val12 - val11;
+                        const d2 = val22 - val21;
                         // store temporary
                         bounds._hmi_d1 = d1;
                         bounds._hmi_d2 = d2;
@@ -1998,8 +1968,7 @@
                         if (child.align2 === true) {
                             val2 = val12;
                             val1 = val11;
-                        }
-                        else {
+                        } else {
                             val2 = d1 / 2;
                             val1 = -val2;
                         }
@@ -2024,14 +1993,14 @@
             if (max1 !== undefined && min1 !== undefined) {
                 // if we got a center element this defines coordinate offset
                 if (cen1 !== -1) {
-                    child = i_children[cen1];
-                    object = child.hmi_object;
-                    bounds = object.bounds;
+                    let child = children[cen1];
+                    let object = child.hmi_object;
+                    let bounds = object.bounds;
                     if (child !== object && bounds._hmi_valid === true) {
                         if (inc2) {
-                            off2 = bounds[v21];
-                            for (i = cen1 - 1; i >= sta; i--) {
-                                child = i_children[i];
+                            let off2 = bounds[v21];
+                            for (let i = cen1 - 1; i >= sta; i--) {
+                                child = children[i];
                                 object = child.hmi_object;
                                 bounds = object.bounds;
                                 if (child !== object && bounds._hmi_valid === true) {
@@ -2041,11 +2010,10 @@
                                     off2 -= bounds._hmi_d2;
                                 }
                             }
-                        }
-                        else {
+                        } else {
                             off2 = bounds[v22];
-                            for (i = cen1 + 1; i < end; i++) {
-                                child = i_children[i];
+                            for (let i = cen1 + 1; i < end; i++) {
+                                child = children[i];
                                 object = child.hmi_object;
                                 bounds = object.bounds;
                                 if (child !== object && bounds._hmi_valid === true) {
@@ -2057,23 +2025,20 @@
                             }
                         }
                     }
-                }
-                // no explicit center means we center the whole row
-                else {
+                } else { // no explicit center means we center the whole row
                     off2 = (inc2 ? -dim2 : dim2) / 2;
                 }
                 dif1 = max1 - min1;
                 off1 += inc1 ? -min1 : -max1;
                 // write locations
-                for (i = sta; i < end; i++) {
-                    child = i_children[i];
-                    object = child.hmi_object;
-                    bounds = object.bounds;
+                for (let i = sta; i < end; i++) {
+                    const child = children[i];
+                    const object = child.hmi_object;
+                    const bounds = object.bounds;
                     if (child !== object && bounds._hmi_valid === true) {
                         if (child.align2 === true) {
                             child[v1] = off1;
-                        }
-                        else {
+                        } else {
                             d1 = bounds._hmi_d1;
                             child[v1] = off1 + bounds._hmi_d1 / 2 - bounds[v12];
                         }
@@ -2092,20 +2057,20 @@
             }
             sta = end;
         }
-    };
+    }
 
-    function applyGraphicObject(that, i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
+    function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents, onSuccess, onError) {
         that._hmi_graphics = true;
         that._hmi_isButton = typeof that.pressed === 'function';
         // here we store some internal data for performance reasons
-        var _children = undefined;
-        var _curves = undefined;
-        var onEvent = undefined;
-        var clicked = undefined;
-        var _p = {};
-        var _cont = that._hmi_context.container;
-        var _ctx = that._hmi_context.context2d;
-        var _tf = that._hmi_context.transform;
+        let _children = undefined;
+        let _curves = undefined;
+        let onEvent = undefined;
+        let clicked = undefined;
+        let _p = {};
+        let _cont = that._hmi_context.container;
+        let _ctx = that._hmi_context.context2d;
+        let _tf = that._hmi_context.transform;
         if (_ctx === undefined) {
             applyDefaultHtmlObject(that);
             // no context so far so we are the root object
@@ -2116,9 +2081,9 @@
              * create and store the base transform.
              */
             _cont.addClass('overflow-hidden');
-            var width = Math.floor(_cont.width());
-            var height = Math.floor(_cont.height());
-            that._hmi_canvas = $('<canvas width="' + width + '" height="' + height + '" />');
+            const width = Math.floor(_cont.width());
+            const height = Math.floor(_cont.height());
+            that._hmi_canvas = $(`<canvas width="${width}" height="${height}" />`);
             that._hmi_canvas.appendTo(_cont);
             _ctx = that._hmi_canvas[0].getContext('2d');
             that._hmi_context.context2d = _ctx;
@@ -2126,26 +2091,26 @@
             // if valid
             if (that._hmi_validContext2d === true) {
                 _ctx.save();
-                _tf = new Transform();
+                _tf = new Mathematics.Transform();
                 that._hmi_context.transform = _tf;
                 _tf.initForBounds(that.bounds, width, height, that.mirrorX === true, that.mirrorY !== false);
                 // here we store our visible and paintable objects during repaint
                 that._hmi_canvasElements = [];
                 // handle resize
-                that._hmi_resizes.push(function () {
+                that._hmi_resizes.push(() => {
                     // just resize the canvas (the repaint will be performed anyway at
                     // refresh calls)
-                    var width = _cont.width();
-                    var height = _cont.height();
+                    const width = _cont.width();
+                    const height = _cont.height();
                     if (width > 0 && height > 0) {
-                        var canvas = that._hmi_canvas[0];
+                        const canvas = that._hmi_canvas[0];
                         canvas.width = Math.floor(width);
                         canvas.height = Math.floor(height);
                     }
                 });
-                var _white = true;
+                let _white = true;
                 // handle refresh
-                that._hmi_refreshs.push(function (i_date) {
+                that._hmi_refreshs.push(date => {
                     /*
                      * This is the repaint function for the whole canvas object tree.
                      * 
@@ -2165,8 +2130,8 @@
                      * reset the canvas context and paint all collected graphic objects on
                      * our canvas.
                      */
-                    var width = _cont.width();
-                    var height = _cont.height();
+                    const width = _cont.width();
+                    const height = _cont.height();
                     // if repaint is required and we are visible
                     if (width > 0 && height > 0) {
                         // initialize base transform [1]
@@ -2175,89 +2140,81 @@
                         }
                         // handle curves if available
                         if (_curves) {
-                            for (var i = 0; i < _curves.length; i++) {
-                                var curve = _curves[i];
-                                var cu = curve._hmi_curveImpl;
+                            for (let i = 0; i < _curves.length; i++) {
+                                const curve = _curves[i];
+                                const cu = curve._hmi_curveImpl;
                                 if (cu && cu.adjust) {
                                     cu.adjust();
                                 }
                             }
                         }
                         // moving vehicles [2]
-                        processObjectSubTree(that, true, function (i_hmiObject) {
-                            // this is our valid? call
-                            return _ctx === i_hmiObject._hmi_context.context2d;
-                        }, function (i_hmiObject) {
-                            var vps = i_hmiObject._hmi_vps;
-                            var segments = i_hmiObject._hmi_segments;
-                            var id = i_hmiObject.id;
-                            delete i_hmiObject.hmi_vehicleSegment;
-                            delete i_hmiObject.hmi_vehiclePosition;
-                            delete i_hmiObject.hmi_vehiclePositionAdjusted;
+                        processObjectSubTree(that, true, hmiObject => _ctx === hmiObject._hmi_context.context2d, hmiObject => {
+                            const vps = hmiObject._hmi_vps;
+                            const segments = hmiObject._hmi_segments;
+                            const id = hmiObject.id;
+                            delete hmiObject.hmi_vehicleSegment;
+                            delete hmiObject.hmi_vehiclePosition;
+                            delete hmiObject.hmi_vehiclePositionAdjusted;
                             if (vps && segments && id !== undefined) {
-                                var visible = false;
+                                let visible = false;
                                 if (vps.hmi_getLocation(id, _p)) {
-                                    var seg_idx = _p.segment;
-                                    var seg = seg_idx >= 0 && seg_idx < segments.length ? segments[seg_idx] : undefined;
+                                    const seg_idx = _p.segment;
+                                    const seg = seg_idx >= 0 && seg_idx < segments.length ? segments[seg_idx] : undefined;
                                     if (seg) {
-                                        var cursec = seg._hmi_curveSection;
-                                        var posadj = seg._hmi_positionAdjuster;
+                                        const cursec = seg._hmi_curveSection;
+                                        const posadj = seg._hmi_positionAdjuster;
                                         if (cursec && posadj) {
                                             // get the raw position
-                                            var rawpos = _p.position;
+                                            let rawpos = _p.position;
                                             // if we got an offset we add it to our raw position
-                                            var vps_offset = i_hmiObject.vps_offset;
+                                            const vps_offset = hmiObject.vps_offset;
                                             if (typeof vps_offset === 'number') {
                                                 rawpos += vps_offset;
                                             }
                                             // get the vehicle position
-                                            var vhpos = posadj.adjust(rawpos);
+                                            const vhpos = posadj.adjust(rawpos);
                                             // if stress is required and we got a stressable rope
                                             // curve we update out stress position
-                                            var curve = seg._hmi_curve;
-                                            if (i_hmiObject.stress === true && curve && curve.setVehiclePosition) {
+                                            const curve = seg._hmi_curve;
+                                            if (hmiObject.stress === true && curve && curve.setVehiclePosition) {
                                                 // update vehicle position
                                                 curve.setVehiclePosition(cursec.fromSectionToCurve(vhpos));
                                             }
                                             // if we found a segment we update out vehicle locator
-                                            // (i_hmiObject.hmi_locator) for the vehicle position on
+                                            // (hmiObject.hmi_locator) for the vehicle position on
                                             // the found segment
-                                            cursec.transform(vhpos, undefined, i_hmiObject.hmi_locator);
-                                            i_hmiObject.hmi_vehicleSegment = seg_idx;
-                                            i_hmiObject.hmi_vehiclePosition = rawpos;
-                                            i_hmiObject.hmi_vehiclePositionAdjusted = vhpos;
-                                            i_hmiObject._hmi_vehicleCurveSection = cursec;
-                                            i_hmiObject._hmi_vehiclePositionAdjuster = posadj;
+                                            cursec.transform(vhpos, undefined, hmiObject.hmi_locator);
+                                            hmiObject.hmi_vehicleSegment = seg_idx;
+                                            hmiObject.hmi_vehiclePosition = rawpos;
+                                            hmiObject.hmi_vehiclePositionAdjusted = vhpos;
+                                            hmiObject._hmi_vehicleCurveSection = cursec;
+                                            hmiObject._hmi_vehiclePositionAdjuster = posadj;
                                             visible = true;
                                         }
                                     }
                                 }
-                                i_hmiObject.hmi_setVisible(visible);
+                                hmiObject.hmi_setVisible(visible);
                             }
                         });
                         // collect and update [3]
-                        var elems = that._hmi_canvasElements;
+                        const elems = that._hmi_canvasElements;
                         elems.splice(0, elems.length);
-                        processObjectSubTree(that, true, function (i_hmiObject) {
-                            // this is our valid? call
-                            return _ctx === i_hmiObject._hmi_context.context2d;
-                        }, function (i_hmiObject) {
-                            if (i_hmiObject._hmi_updateChildrenTransforms) {
-                                i_hmiObject._hmi_updateChildrenTransforms();
+                        processObjectSubTree(that, true, hmiObject => _ctx === hmiObject._hmi_context.context2d, hmiObject => {
+                            if (hmiObject._hmi_updateChildrenTransforms) {
+                                hmiObject._hmi_updateChildrenTransforms();
                             }
-                            if (i_hmiObject._hmi_repaint) {
-                                var obj = i_hmiObject;
-                                var visible = obj._hmi_visible;
+                            if (hmiObject._hmi_repaint) {
+                                let obj = hmiObject;
+                                let visible = obj._hmi_visible;
                                 while (visible && obj._hmi_graphicsRoot !== true) {
                                     obj = obj.hmi_parentObject;
                                     visible = obj._hmi_visible;
                                 }
                                 if (visible) {
-                                    i_hmiObject._hmi_z = getCanvasAttribute(i_hmiObject, 'z');
-                                    var idx = Sorting.getInsertionIndex(i_hmiObject, elems, false, function (i_object1, i_object2) {
-                                        return compareGraphicObjectLayer(i_object1, i_object2, that.mirrorZ === true);
-                                    });
-                                    elems.splice(idx, 0, i_hmiObject);
+                                    hmiObject._hmi_z = getCanvasAttribute(hmiObject, 'z');
+                                    const idx = Sorting.getInsertionIndex(hmiObject, elems, false, (o1, o2) => compareGraphicObjectLayer(o1, o2, that.mirrorZ === true));
+                                    elems.splice(idx, 0, hmiObject);
                                 }
                             }
                         });
@@ -2265,92 +2222,84 @@
                         _ctx.setTransform(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
                         _ctx.clearRect(0, 0, width, height);
                         _ctx.save();
-                        for (var i = 0; i < elems.length; i++) {
-                            elems[i]._hmi_repaint(i_date);
+                        for (let i = 0; i < elems.length; i++) {
+                            elems[i]._hmi_repaint(date);
                         }
                         // if editor
-                        if (i_disableVisuEvents === true && that._hmi_mouseMoveX !== undefined && that._hmi_mouseMoveY !== undefined) {
-                            var x = that._hmi_mouseMoveX;
-                            var y = that._hmi_mouseMoveY;
-                            for (var i = 0; i < elems.length; i++) {
-                                var e = elems[i];
+                        if (disableVisuEvents === true && that._hmi_mouseMoveX !== undefined && that._hmi_mouseMoveY !== undefined) {
+                            const x = that._hmi_mouseMoveX;
+                            const y = that._hmi_mouseMoveY;
+                            for (let i = 0; i < elems.length; i++) {
+                                const e = elems[i];
                                 if (e._hmi_isPointOnObject && e._hmi_repaint) {
-                                    var result = e._hmi_isPointOnObject(x, y);
+                                    const result = e._hmi_isPointOnObject(x, y);
                                     if (result) {
                                         // console.log('IN');
-                                        e._hmi_repaint(i_date);
+                                        e._hmi_repaint(date);
                                     }
                                 }
                             }
                         }
-                        var evt = that._hmi_event;
+                        const evt = that._hmi_event;
                         if (evt) {
                             // draw mouse or touch points
                             _ctx.lineWidth = 1;
                             _ctx.strokeStyle = _white ? 'white' : 'black';
                             _white = _white === false;
-                            var offs = _cont.offset();
-                            var tt = evt.originalEvent ? evt.originalEvent.targetTouches : undefined;
+                            const offs = _cont.offset();
+                            const tt = evt.originalEvent ? evt.originalEvent.targetTouches : undefined;
                             if (tt) {
-                                for (var i = 0; i < tt.length; i++) {
-                                    var t = tt[i];
+                                for (let i = 0; i < tt.length; i++) {
+                                    const t = tt[i];
                                     strokeCross(_ctx, t.clientX - offs.left, t.clientY - offs.top);
                                 }
-                            }
-                            else {
-                                var x = evt.clientX - offs.left;
-                                var y = evt.clientY - offs.top;
+                            } else {
                                 strokeCross(_ctx, evt.clientX - offs.left, evt.clientY - offs.top);
                             }
-                        }
-                        else {
+                        } else {
                             _white = true;
                         }
                         _ctx.restore();
                     }
                 });
                 if (that.zoom === true && that.bounds !== null && typeof that.bounds === 'object') {
-                    applyZoom(that, i_disableVisuEvents, i_enableEditorEvents);
+                    applyZoom(that, disableVisuEvents, enableEditorEvents);
                 }
                 // TODO make this running
-                if (false && i_disableVisuEvents === true) {
+                if (false && disableVisuEvents === true) {
                     // TODO why do we have to copy this reference???
-                    var container = _cont;
-                    function on_mouse_move(i_event) {
-                        // var rect = that._hmi_canvas.getBoundingClientRect();
-                        var rect = container.offset();
-                        that._hmi_mouseMoveX = i_event.clientX - rect.left;
-                        that._hmi_mouseMoveY = i_event.clientY - rect.top;
+                    const container = _cont;
+                    function on_mouse_move(event) {
+                        // const rect = that._hmi_canvas.getBoundingClientRect();
+                        const rect = container.offset();
+                        that._hmi_mouseMoveX = event.clientX - rect.left;
+                        that._hmi_mouseMoveY = event.clientY - rect.top;
                     };
                     container.on('mousemove', on_mouse_move);
-                    that._hmi_destroys.push(function () {
+                    that._hmi_destroys.push(() => {
                         container.off('mousemove', on_mouse_move);
                         on_mouse_move = undefined;
                     });
                 }
-                clicked = function (i_event, i_x, i_y) {
-                    var search = true;
+                clicked = (event, x, y) => {
+                    let search = true;
                     _ctx.setTransform(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
                     _ctx.save();
-                    processObjectSubTree(that, true, function (i_hmiObject) {
-                        // this is our valid? call
-                        return search && _ctx === i_hmiObject._hmi_context.context2d;
-                    }, function (i_hmiObject) {
-                        if (search && i_hmiObject._hmi_isButton && _ctx === i_hmiObject._hmi_context.context2d && i_hmiObject._hmi_isPointOnObject) {
-                            var obj = i_hmiObject;
-                            var visible = obj._hmi_visible;
+                    processObjectSubTree(that, true, hmiObject => search && _ctx === hmiObject._hmi_context.context2d, hmiObject => {
+                        if (search && hmiObject._hmi_isButton && _ctx === hmiObject._hmi_context.context2d && hmiObject._hmi_isPointOnObject) {
+                            let obj = hmiObject;
+                            let visible = obj._hmi_visible;
                             while (visible && obj._hmi_graphicsRoot !== true) {
                                 obj = obj.hmi_parentObject;
                                 visible = obj._hmi_visible;
                             }
                             if (visible) {
-                                if (i_hmiObject._hmi_isPointOnObject(i_x, i_y)) {
+                                if (hmiObject._hmi_isPointOnObject(x, y)) {
                                     search = false;
                                     try {
-                                        i_hmiObject.pressed(i_event);
-                                    }
-                                    catch (exc) {
-                                        console.error('EXCEPTION! Calling pressed(): ' + exc + ' ' + i_hmiObject.pressed.toString());
+                                        hmiObject.pressed(event);
+                                    } catch (error) {
+                                        console.error(`Failed calling pressed(): ${hmiObject.pressed.toString()}`, error);
                                     }
                                 }
                             }
@@ -2398,10 +2347,10 @@
                         that._hmi_handleZoomEvent(event, type);
                     }
                 };
-                applyEventListener(that, i_context, onEvent);
+                applyEventListener(that, context, onEvent);
             } else {
                 that._hmi_canvas.remove();
-                var div = '<div style="box-sizing: border-box;position: relative;width: 100%;height: 100%;"><h1>';
+                let div = '<div style="box-sizing: border-box;position: relative;width: 100%;height: 100%;"><h1>';
                 div += '!!! INVALID CANVAS CONTEXT 2D !!!';
                 div += '</h1><br><b>';
                 div += 'Your browser does not support the required canvas rendering context methods!';
@@ -2410,112 +2359,99 @@
                 div += '()</div>';
                 $(div).appendTo(_cont);
             }
+        } else {
+            that.hmi_setVisible = visible => that._hmi_visible = visible === true;
+            that.hmi_isVisible = () => that._hmi_visible;
         }
-        else {
-            that.hmi_setVisible = function (i_visible) {
-                that._hmi_visible = i_visible === true;
-            };
-            that.hmi_isVisible = function () {
-                return that._hmi_visible;
-            };
-        }
-        that.hmi_setImageSource = function (i_source, i_callback) {
-            that.image = i_source;
+        that.hmi_setImageSource = (source, onLoad) => {
+            that.image = source;
             if (that._hmi_image === undefined) {
                 that._hmi_image = new Image();
             }
-            that._hmi_image.onload = i_callback;
-            that._hmi_image.src = i_source;
+            that._hmi_image.onload = onLoad;
+            that._hmi_image.src = source;
         };
-        that.hmi_getImageWidth = function () {
-            var img = that._hmi_image;
+        that.hmi_getImageWidth = () => {
+            const img = that._hmi_image;
             return img !== undefined ? img.naturalWidth : undefined;
         };
-        that.hmi_getImageHeight = function () {
-            var img = that._hmi_image;
+        that.hmi_getImageHeight = () => {
+            const img = that._hmi_image;
             return img !== undefined ? img.naturalHeight : undefined;
         };
-        var tasks = [];
+        let tasks = [];
         if (typeof that.image === 'string') {
-            tasks.push(function (i_suc, i_err) {
-                that.hmi_setImageSource(that.image, i_suc, i_err);
-            });
+            tasks.push((onSuc, onErr) => that.hmi_setImageSource(that.image, onSuc, onErr));
         }
-        that.hmi_text = function (i_text) {
-            if (i_text !== undefined && i_text !== null) {
-                that.text = typeof i_text === 'string' ? i_text : i_text.toString();
-            }
-            else {
+        that.hmi_text = text => {
+            if (text !== undefined && text !== null) {
+                that.text = typeof text === 'string' ? text : text.toString();
+            } else {
                 return that.text;
             }
         };
-        that.hmi_getGraphTextSize = function (i_config, i_text, i_result) {
-            var result = i_result || {};
+        that.hmi_getGraphTextSize = (config, text, result) => {
+            const res = result || {};
             _ctx.save();
-            var scale = _tf.scale;
-            var fontSize = getCanvasPixel(i_config, 'fontSize', scale);
+            const scale = _tf.scale;
+            let fontSize = getCanvasPixel(config, 'fontSize', scale);
             if (typeof fontSize !== 'number') {
                 fontSize = 10;
             }
-            var font = i_config.bold === true ? 'bold ' : '';
+            let font = config.bold === true ? 'bold ' : '';
             font += Math.ceil(fontSize);
             font += 'px';
-            var fontFamily = getCanvasAttribute(i_config, 'fontFamily');
+            const fontFamily = getCanvasAttribute(config, 'fontFamily');
             font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
             _ctx.font = font;
-            if (Array.isArray(i_text)) {
-                var width = 0.0;
-                for (var i = 0; i < i_text.length; i++) {
-                    var txt = i_text[i];
+            if (Array.isArray(text)) {
+                let width = 0.0;
+                for (let i = 0; i < text.length; i++) {
+                    let txt = text[i];
                     if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                         txt = txt.toString();
                     }
                     width = Math.max(width, _ctx.measureText(txt).width);
                 }
-                result.width = width / scale;
-                result.height = i_text.length * fontSize / scale;
-            }
-            else {
-                var txt = i_text;
+                res.width = width / scale;
+                res.height = text.length * fontSize / scale;
+            } else {
+                let txt = text;
                 if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                     txt = txt.toString();
                 }
-                result.width = _ctx.measureText(txt).width / scale;
-                result.height = fontSize / scale;
+                res.width = _ctx.measureText(txt).width / scale;
+                res.height = fontSize / scale;
             }
             _ctx.restore();
-            return result;
+            return res;
         };
-
-        that._hmi_repaint = function (i_date) {
-            // The following function paints the current object on our
-            // canvas using our coordinate system transform.
-            // To perform fast we try to find out if anything must be
-            // painted (or not) as soon as possible.
-            var paint = that.paint;
+        that._hmi_repaint = date => {
+            // The following function paints the current object on our canvas using our coordinate system transform.
+            // To perform fast we try to find out if anything must be painted (or not) as soon as possible.
+            const paint = that.paint;
             if (typeof paint === 'function') {
                 try {
-                    paint.call(that, i_date);
+                    paint.call(that, date);
                     return true;
-                }
-                catch (exc) {
-                    console.error('EXCEPTION! Calling paint(): ' + exc + ' ' + paint.toString());
+                } catch (error) {
+                    console.error(`Failed calling paint(): ${paint.toString()}`, error);
                     return false;
                 }
             }
             // get some parameters
-            var scale = _tf.scale;
-            var r = that.r;
-            var w = that.width;
-            var h = that.height;
-            var text = that.text;
-            var fontSize = undefined;
-            var points = that.points;
-            var type = undefined;
-            var img = that._hmi_image;
-            var curve = that._hmi_curve;
-            var from = that.hmi_from;
-            var to = that.hmi_to;
+            const scale = _tf.scale;
+            let r = that.r;
+            let w = that.width;
+            let h = that.height;
+            const text = that.text;
+            let fontSize = undefined;
+            const points = that.points;
+            let type = undefined;
+            const img = that._hmi_image;
+            const curve = that._hmi_curve;
+            const from = that.hmi_from;
+            const to = that.hmi_to;
             // ///////////////////////////////////////////////////////////////////////////////////////////////
             // In the next blocks we update some values and try to find out what we
             // are (arc, text, rect, image or path) and if we are visible
@@ -2526,8 +2462,7 @@
                     return false;
                 }
                 type = ARC;
-            }
-            else if (w !== undefined && h !== undefined) {
+            } else if (w !== undefined && h !== undefined) {
                 w = getPixelSize(w, scale);
                 h = getPixelSize(h, scale);
                 if (typeof w !== 'number' || w <= 0.5 || typeof h !== 'number' || h <= 0.5) {
@@ -2538,12 +2473,10 @@
                         return false;
                     }
                     type = IMAGE;
-                }
-                else {
+                } else {
                     type = RECT;
                 }
-            }
-            else if (w !== undefined && img !== undefined) {
+            } else if (w !== undefined && img !== undefined) {
                 w = getPixelSize(w, scale);
                 if (typeof w !== 'number' || w < 0.5) {
                     return false;
@@ -2551,8 +2484,7 @@
                 h = Math.floor(w * img.naturalHeight / img.naturalWidth);
                 w = Math.floor(w);
                 type = IMAGE;
-            }
-            else if (h !== undefined && img !== undefined) {
+            } else if (h !== undefined && img !== undefined) {
                 h = getPixelSize(h, scale);
                 if (typeof h !== 'number' || h < 0.5) {
                     return false;
@@ -2560,24 +2492,19 @@
                 w = Math.floor(h * img.naturalWidth / img.naturalHeight);
                 h = Math.floor(h);
                 type = IMAGE;
-            }
-            else if (text !== undefined) {
+            } else if (text !== undefined) {
                 fontSize = getCanvasPixel(that, 'fontSize', scale);
                 if (typeof fontSize !== 'number') {
                     fontSize = 10;
-                }
-                else if (fontSize < 2) {
+                } else if (fontSize < 2) {
                     return false;
                 }
                 type = TEXT;
-            }
-            else if (Array.isArray(points) && points.length >= 2) {
+            } else if (Array.isArray(points) && points.length >= 2) {
                 type = PATH;
-            }
-            else if (curve && curve.stroke && typeof from === 'number' && typeof to === 'number') {
+            } else if (curve && curve.stroke && typeof from === 'number' && typeof to === 'number') {
                 type = CURVE;
-            }
-            else if (img) {
+            } else if (img) {
                 w = img.naturalWidth;
                 h = img.naturalHeight;
                 type = IMAGE;
@@ -2588,52 +2515,50 @@
             // ///////////////////////////////////////////////////////////////////////////////////////////////
             // rotate origin for rectangle (round or not), image or text
             // ///////////////////////////////////////////////////////////////////////////////////////////////
-            var x = that.x;
+            let x = that.x;
             if (typeof x !== 'number') {
                 x = 0.0;
             }
-            var y = that.y;
+            let y = that.y;
             if (typeof y !== 'number') {
                 y = 0.0;
             }
             _tf.transform(x, y, _p);
-            var ox = _p.x;
-            var oy = _p.y;
-            var mx = _tf.mirrorX;
-            var my = _tf.mirrorY;
-            var tfrot = _tf.rotation;
+            const ox = _p.x;
+            const oy = _p.y;
+            const mx = _tf.mirrorX;
+            const my = _tf.mirrorY;
+            const tfrot = _tf.rotation;
             _ctx.save();
             switch (type) {
                 case IMAGE:
                 case RECT:
                 case TEXT:
-                    var sc = that.scale;
+                    let sc = that.scale;
                     if (typeof sc !== 'number') {
                         sc = 1.0;
                     }
-                    var phi = that.phi;
-                    var angle = that.angle;
+                    const phi = that.phi;
+                    const angle = that.angle;
                     if (typeof phi === 'number') {
                         _ctx.translate(ox, oy);
-                        var theta = mx === my ? phi : -phi;
+                        let theta = mx === my ? phi : -phi;
                         if (that.upright !== true) {
                             theta += tfrot;
                         }
                         _ctx.rotate(theta);
                         _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
                         _ctx.translate(-ox, -oy);
-                    }
-                    else if (typeof angle === 'number') {
+                    } else if (typeof angle === 'number') {
                         _ctx.translate(ox, oy);
-                        var theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
+                        let theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
                         if (that.upright !== true) {
                             theta += tfrot;
                         }
                         _ctx.rotate(theta);
                         _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
                         _ctx.translate(-ox, -oy);
-                    }
-                    else if (that.upright !== true) {
+                    } else if (that.upright !== true) {
                         _ctx.translate(ox, oy);
                         _ctx.rotate(tfrot);
                         _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
@@ -2649,17 +2574,16 @@
             // ///////////////////////////////////////////////////////////////////////////////////////////////
             // create path and check dimension
             // ///////////////////////////////////////////////////////////////////////////////////////////////
-            var closed = that.closed === true;
+            const closed = that.closed === true;
             switch (type) {
                 case ARC:
                     // try to get the angles
-                    var phi1 = 0;
-                    var phi2 = TWO_PI;
+                    let phi1 = 0;
+                    let phi2 = TWO_PI;
                     if (typeof that.phi1 === 'number' && typeof that.phi2 === 'number') {
                         phi1 = that.phi1;
                         phi2 = that.phi2;
-                    }
-                    else if (typeof that.angle1 === 'number' && typeof that.angle2 === 'number') {
+                    } else if (typeof that.angle1 === 'number' && typeof that.angle2 === 'number') {
                         phi1 = that.angle1 * DEG2RAD;
                         phi2 = that.angle2 * DEG2RAD;
                     }
@@ -2687,15 +2611,15 @@
                 case RECT:
                     _ctx.beginPath();
                     getAlignment(that.align, _p, mx, my);
-                    var x = ox - _p.x * w;
-                    var y = oy - _p.y * h;
-                    var rb = getCanvasPixel(that, 'roundBorder', scale);
+                    const x = ox - _p.x * w;
+                    const y = oy - _p.y * h;
+                    const rb = getCanvasPixel(that, 'roundBorder', scale);
                     if (typeof rb === 'number' && rb > 1.0) {
                         // start 1. round edge
-                        var xw = x + w;
-                        var xr = xw - rb;
+                        const xw = x + w;
+                        const xr = xw - rb;
                         _ctx.moveTo(xr, y);
-                        var yh = y + h;
+                        const yh = y + h;
                         _ctx.arcTo(xw, y, xw, yh, rb);
                         // 2. round edge
                         _ctx.arcTo(xw, yh, x, yh, rb);
@@ -2704,31 +2628,28 @@
                         // 4. round edge
                         _ctx.arcTo(x, y, xr, y, rb);
                         _ctx.closePath();
-                    }
-                    else {
+                    } else {
                         _ctx.rect(x, y, w, h);
                     }
                     break;
                 case PATH:
                     _ctx.beginPath();
-                    var len = points.length;
-                    for (var i = 0; i < len; i++) {
-                        var p = points[i];
-                        var rad = p.r;
+                    const len = points.length;
+                    for (let i = 0; i < len; i++) {
+                        const p = points[i];
+                        const rad = p.r;
                         _tf.transform(p.x, p.y, _p);
-                        var x1 = _p.x;
-                        var y1 = _p.y;
+                        const x1 = _p.x;
+                        const y1 = _p.y;
                         if (i === 0 || p.move === true) {
                             _ctx.moveTo(x1, y1);
-                        }
-                        else if (typeof rad === 'number' && rad > 0.0 && (closed ? i < len : i < len - 1)) {
-                            var p = points[(i + 1) % len];
+                        } else if (typeof rad === 'number' && rad > 0.0 && (closed ? i < len : i < len - 1)) {
+                            const p = points[(i + 1) % len];
                             _tf.transform(p.x, p.y, _p);
-                            var x2 = _p.x;
-                            var y2 = _p.y;
+                            const x2 = _p.x;
+                            const y2 = _p.y;
                             _ctx.arcTo(x1, y1, x2, y2, rad * scale);
-                        }
-                        else {
+                        } else {
                             _ctx.lineTo(x1, y1);
                         }
                     }
@@ -2742,7 +2663,7 @@
             // ///////////////////////////////////////////////////////////////////////////////////////////////
             // check if stroke is required
             // ///////////////////////////////////////////////////////////////////////////////////////////////
-            var stroke = false;
+            let stroke = false;
             switch (type) {
                 case PATH:
                 case CURVE:
@@ -2764,7 +2685,7 @@
             // ///////////////////////////////////////////////////////////////////////////////////////////////
             // check if fill is required
             // ///////////////////////////////////////////////////////////////////////////////////////////////
-            var fill = false;
+            let fill = false;
             switch (type) {
                 case PATH:
                 case CURVE:
@@ -2786,11 +2707,11 @@
                 case PATH:
                 case CURVE:
                     if (stroke) {
-                        var lineCap = getCanvasAttribute(that, 'lineCap');
+                        const lineCap = getCanvasAttribute(that, 'lineCap');
                         if (typeof lineCap === 'string') {
                             _ctx.lineCap = lineCap;
                         }
-                        var lineJoin = getCanvasAttribute(that, 'lineJoin');
+                        const lineJoin = getCanvasAttribute(that, 'lineJoin');
                         if (typeof lineJoin === 'string') {
                             _ctx.lineJoin = lineJoin;
                         }
@@ -2802,17 +2723,17 @@
                 case RECT:
                 case TEXT:
                     if (fill) {
-                        var fillStyle = getCanvasAttribute(that, 'fillStyle');
+                        const fillStyle = getCanvasAttribute(that, 'fillStyle');
                         if (typeof fillStyle === 'string') {
                             _ctx.fillStyle = fillStyle;
                         }
                     }
                     if (stroke) {
-                        var lineWidth = getCanvasPixel(that, 'lineWidth', scale);
+                        const lineWidth = getCanvasPixel(that, 'lineWidth', scale);
                         if (typeof lineWidth === 'number') {
                             _ctx.lineWidth = lineWidth;
                         }
-                        var strokeStyle = getCanvasAttribute(that, 'strokeStyle');
+                        const strokeStyle = getCanvasAttribute(that, 'strokeStyle');
                         if (typeof strokeStyle === 'string') {
                             _ctx.strokeStyle = strokeStyle;
                         }
@@ -2828,14 +2749,13 @@
             switch (type) {
                 case CURVE:
                     if (stroke) {
-                        var cs = that._hmi_curveSection;
-                        var left = 0.0;
-                        var l = that.left;
+                        const cs = that._hmi_curveSection;
+                        let left = 0.0;
+                        const l = that.left;
                         if (typeof l === 'number') {
                             left = l;
-                        }
-                        else {
-                            var r = that.right;
+                        } else {
+                            const r = that.right;
                             if (typeof r === 'number') {
                                 left = -r;
                             }
@@ -2855,28 +2775,28 @@
                     break;
                 case TEXT:
                     if (fill || stroke) {
-                        var fontSize = getCanvasPixel(that, 'fontSize', scale);
+                        let fontSize = getCanvasPixel(that, 'fontSize', scale);
                         if (typeof fontSize !== 'number') {
                             fontSize = 10;
                         }
-                        var font = that.bold === true ? 'bold ' : '';
+                        let font = that.bold === true ? 'bold ' : '';
                         font += Math.floor(fontSize);
                         font += 'px';
-                        var fontFamily = getCanvasAttribute(that, 'fontFamily');
+                        const fontFamily = getCanvasAttribute(that, 'fontFamily');
                         font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                         _ctx.font = font;
                         getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
                         _ctx.textAlign = 'center';
                         _ctx.textBaseline = 'middle';
                         if (Array.isArray(text)) {
-                            var y0 = oy - (_p.y * text.length - 0.5) * fontSize;
-                            for (var i = 0; i < text.length; i++) {
-                                var txt = text[i];
+                            const y0 = oy - (_p.y * text.length - 0.5) * fontSize;
+                            for (let i = 0; i < text.length; i++) {
+                                let txt = text[i];
                                 if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                                     txt = txt.toString();
                                 }
-                                var x = ox - (_p.x - 0.5) * _ctx.measureText(txt).width;
-                                var y = y0 + i * fontSize;
+                                const x = ox - (_p.x - 0.5) * _ctx.measureText(txt).width;
+                                const y = y0 + i * fontSize;
                                 if (fill) {
                                     _ctx.fillText(txt, x, y);
                                 }
@@ -2884,14 +2804,13 @@
                                     _ctx.strokeText(txt, x, y);
                                 }
                             }
-                        }
-                        else {
-                            var txt = text;
+                        } else {
+                            let txt = text;
                             if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                                 txt = txt.toString();
                             }
-                            var x = ox - (_p.x - 0.5) * _ctx.measureText(txt).width;
-                            var y = oy - (_p.y - 0.5) * fontSize;
+                            const x = ox - (_p.x - 0.5) * _ctx.measureText(txt).width;
+                            const y = oy - (_p.y - 0.5) * fontSize;
                             if (fill) {
                                 _ctx.fillText(txt, x, y);
                             }
@@ -2903,8 +2822,8 @@
                     break;
                 case IMAGE:
                     getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
-                    var x = ox - _p.x * w;
-                    var y = oy - _p.y * h;
+                    const x = ox - _p.x * w;
+                    const y = oy - _p.y * h;
                     _ctx.globalAlpha = typeof that.alpha === 'number' ? Math.max(Math.min(that.alpha, 1.0), 0.0) : 1.0; // 0 == transparent .. 1 == full
                     _ctx.drawImage(img, x, y, w, h);
                     break;
@@ -2915,22 +2834,22 @@
             _ctx.restore();
             return true;
         };
-
-        that._hmi_isPointOnObject = function (i_pixelX, i_pixelY) {
-            var paint = that.paint;
+        // TODO: Go on here
+        that._hmi_isPointOnObject = (pixelX, pixelY) => {
+            const paint = that.paint;
             if (typeof paint === 'function') {
                 return false;
             }
-            var scale = _tf.scale;
-            var r = that.r;
-            var w = that.width;
-            var h = that.height;
-            var text = that.text;
-            var fontSize = undefined;
-            var points = that.points;
-            var type = undefined;
-            var img = that._hmi_image;
-            var curve = that._hmi_curve;
+            const scale = _tf.scale;
+            let r = that.r;
+            let w = that.width;
+            let h = that.height;
+            const text = that.text;
+            let fontSize = undefined;
+            const points = that.points;
+            let type = undefined;
+            const img = that._hmi_image;
+            const curve = that._hmi_curve;
 
             // ///////////////////////////////////////////////////////////////////////////////////////////////
             // In the next blocks we update some values and try to find out what we
@@ -2942,8 +2861,7 @@
                     return false;
                 }
                 type = ARC;
-            }
-            else if (w !== undefined && h !== undefined) {
+            } else if (w !== undefined && h !== undefined) {
                 w = getPixelSize(w, scale);
                 h = getPixelSize(h, scale);
                 if (typeof w !== 'number' || w <= 0.5 || typeof h !== 'number' || h <= 0.5) {
@@ -2954,12 +2872,10 @@
                         return false;
                     }
                     type = IMAGE;
-                }
-                else {
+                } else {
                     type = RECT;
                 }
-            }
-            else if (w !== undefined && img !== undefined) {
+            } else if (w !== undefined && img !== undefined) {
                 w = getPixelSize(w, scale);
                 if (typeof w !== 'number' || w < 0.5) {
                     return false;
@@ -2967,8 +2883,7 @@
                 h = Math.floor(w * img.naturalHeight / img.naturalWidth);
                 w = Math.floor(w);
                 type = IMAGE;
-            }
-            else if (h !== undefined && img !== undefined) {
+            } else if (h !== undefined && img !== undefined) {
                 h = getPixelSize(h, scale);
                 if (typeof h !== 'number' || h < 0.5) {
                     return false;
@@ -2976,24 +2891,19 @@
                 w = Math.floor(h * img.naturalWidth / img.naturalHeight);
                 h = Math.floor(h);
                 type = IMAGE;
-            }
-            else if (text !== undefined) {
-                fontSize = getCanvasPixel(that, 'fontSize', scale);
+            } else if (text !== undefined) {
+                fontSize = getCanvasPixel(that, 'fontSize', scale); // TODO: Why we do this twice?
                 if (typeof fontSize !== 'number') {
                     fontSize = 10;
-                }
-                else if (fontSize < 5) {
+                } else if (fontSize < 5) {
                     return false;
                 }
                 type = TEXT;
-            }
-            else if (Array.isArray(points) && points.length >= 2) {
+            } else if (Array.isArray(points) && points.length >= 2) {
                 type = PATH;
-            }
-            else if (curve) {
+            } else if (curve) {
                 type = CURVE;
-            }
-            else if (img) {
+            } else if (img) {
                 w = img.naturalWidth;
                 h = img.naturalHeight;
                 type = IMAGE;
@@ -3004,52 +2914,42 @@
             // ///////////////////////////////////////////////////////////////////////////////////////////////
             // rotate origin for rectangle (round or not), image or text
             // ///////////////////////////////////////////////////////////////////////////////////////////////
-            var x = that.x;
-            if (typeof x !== 'number') {
-                x = 0.0;
-            }
-            var y = that.y;
-            if (typeof y !== 'number') {
-                y = 0.0;
-            }
-            _tf.transform(x, y, _p);
-            var ox = _p.x;
-            var oy = _p.y;
-            var mx = _tf.mirrorX;
-            var my = _tf.mirrorY;
-            var tfrot = _tf.rotation;
+            _tf.transform(typeof that.x === 'number' ? that.x : 0.0, typeof that.y === 'number' ? that.y : 0.0, _p);
+            const ox = _p.x;
+            const oy = _p.y;
+            const mx = _tf.mirrorX;
+            const my = _tf.mirrorY;
+            const tfrot = _tf.rotation;
             _ctx.save();
             switch (type) {
                 case TEXT:
                 case IMAGE:
                 case RECT:
-                    var sc = that.scale;
+                    let sc = that.scale;
                     if (typeof sc !== 'number') {
                         sc = 1.0;
                     }
-                    var phi = that.phi;
-                    var angle = that.angle;
+                    const phi = that.phi;
+                    const angle = that.angle;
                     if (typeof phi === 'number') {
                         _ctx.translate(ox, oy);
-                        var theta = mx === my ? phi : -phi;
+                        const theta = mx === my ? phi : -phi;
                         if (that.upright !== true) {
                             theta += tfrot;
                         }
                         _ctx.rotate(theta);
                         _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
                         _ctx.translate(-ox, -oy);
-                    }
-                    else if (typeof angle === 'number') {
+                    } else if (typeof angle === 'number') {
                         _ctx.translate(ox, oy);
-                        var theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
+                        const theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
                         if (that.upright !== true) {
                             theta += tfrot;
                         }
                         _ctx.rotate(theta);
                         _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
                         _ctx.translate(-ox, -oy);
-                    }
-                    else if (that.upright !== true) {
+                    } else if (that.upright !== true) {
                         _ctx.translate(ox, oy);
                         _ctx.rotate(tfrot);
                         _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
@@ -3065,17 +2965,16 @@
             // ///////////////////////////////////////////////////////////////////////////////////////////////
             // create path and check dimension
             // ///////////////////////////////////////////////////////////////////////////////////////////////
-            var closed = that.closed === true;
+            const closed = that.closed === true;
             switch (type) {
                 case ARC:
                     // try to get the angles
-                    var phi1 = 0;
-                    var phi2 = TWO_PI;
+                    let phi1 = 0;
+                    let phi2 = TWO_PI;
                     if (typeof that.phi1 === 'number' && typeof that.phi2 === 'number') {
                         phi1 = that.phi1;
                         phi2 = that.phi2;
-                    }
-                    else if (typeof that.angle1 === 'number' && typeof that.angle2 === 'number') {
+                    } else if (typeof that.angle1 === 'number' && typeof that.angle2 === 'number') {
                         phi1 = that.angle1 * DEG2RAD;
                         phi2 = that.angle2 * DEG2RAD;
                     }
@@ -3103,15 +3002,15 @@
                 case RECT:
                     _ctx.beginPath();
                     getAlignment(that.align, _p, mx, my);
-                    var x = ox - _p.x * w;
-                    var y = oy - _p.y * h;
-                    var rb = getCanvasPixel(that, 'roundBorder', scale);
+                    const x = ox - _p.x * w;
+                    const y = oy - _p.y * h;
+                    const rb = getCanvasPixel(that, 'roundBorder', scale);
                     if (typeof rb === 'number' && rb > 1.0) {
                         // start 1. round edge
-                        var xw = x + w;
-                        var xr = xw - rb;
+                        const xw = x + w;
+                        const xr = xw - rb;
                         _ctx.moveTo(xr, y);
-                        var yh = y + h;
+                        const yh = y + h;
                         _ctx.arcTo(xw, y, xw, yh, rb);
                         // 2. round edge
                         _ctx.arcTo(xw, yh, x, yh, rb);
@@ -3120,30 +3019,27 @@
                         // 4. round edge
                         _ctx.arcTo(x, y, xr, y, rb);
                         _ctx.closePath();
-                    }
-                    else {
+                    } else {
                         _ctx.rect(x, y, w, h);
                     }
                     break;
                 case PATH:
                     _ctx.beginPath();
-                    var len = points.length;
-                    for (var i = 0; i < len; i++) {
-                        var p = points[i];
+                    const len = points.length;
+                    for (let i = 0; i < len; i++) {
+                        const p = points[i];
                         _tf.transform(p.x, p.y, _p);
-                        var x1 = _p.x;
-                        var y1 = _p.y;
+                        const x1 = _p.x;
+                        const y1 = _p.y;
                         if (i === 0 || p.move === true) {
                             _ctx.moveTo(x1, y1);
-                        }
-                        else if (typeof rad === 'number' && rad > 0.0 && (closed ? i < len : i < len - 1)) {
-                            var p = points[i + 1];
+                        } else if (typeof rad === 'number' && rad > 0.0 && (closed ? i < len : i < len - 1)) {
+                            const p = points[i + 1];
                             _tf.transform(p.x, p.y, _p);
-                            var x2 = _p.x;
-                            var y2 = _p.y;
+                            const x2 = _p.x;
+                            const y2 = _p.y;
                             _ctx.arcTo(x1, y1, x2, y2, p.r * scale);
-                        }
-                        else {
+                        } else {
                             _ctx.lineTo(x1, y1);
                         }
                     }
@@ -3154,32 +3050,32 @@
                     }
                     break;
                 case TEXT:
-                    var fontSize = getCanvasPixel(that, 'fontSize', scale);
+                    fontSize = getCanvasPixel(that, 'fontSize', scale); // TODO: Why we do this twice?
                     if (typeof fontSize !== 'number') {
                         fontSize = 10;
                     }
-                    var font = that.bold === true ? 'bold ' : '';
+                    let font = that.bold === true ? 'bold ' : '';
                     font += Math.ceil(fontSize);
                     font += 'px';
-                    var fontFamily = getCanvasAttribute(that, 'fontFamily');
+                    const fontFamily = getCanvasAttribute(that, 'fontFamily');
                     font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                     _ctx.font = font;
                     _ctx.beginPath();
                     getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
                     // Bugfix #text_click (2016-09-09, Hm)
                     if (Array.isArray(text)) {
-                        // #text_click: var y0 = oy - (_p.y * text.length - 0.5) * fontSize;
-                        var y0 = oy - _p.y * text.length * fontSize;
-                        var x0 = undefined;
-                        var x1 = undefined;
-                        for (var i = 0; i < text.length; i++) {
-                            var txt = text[i];
+                        // #text_click: const y0 = oy - (_p.y * text.length - 0.5) * fontSize;
+                        const y0 = oy - _p.y * text.length * fontSize;
+                        let x0 = undefined;
+                        let x1 = undefined;
+                        for (let i = 0; i < text.length; i++) {
+                            let txt = text[i];
                             if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                                 txt = txt.toString();
                             }
-                            var tw = _ctx.measureText(txt).width;
-                            // #text_click: var x = ox - (_p.x - 0.5) * tw;
-                            var x = ox - _p.x * tw;
+                            const tw = _ctx.measureText(txt).width;
+                            // #text_click: const x = ox - (_p.x - 0.5) * tw;
+                            const x = ox - _p.x * tw;
                             if (x0 === undefined || x < x0) {
                                 x0 = x;
                             }
@@ -3189,34 +3085,35 @@
                             }
                         }
                         _ctx.rect(x0, y0, x1 - x0, fontSize * text.length);
-                    }
-                    else {
-                        var txt = text;
+                    } else {
+                        let txt = text;
                         if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                             txt = txt.toString();
                         }
-                        var w = _ctx.measureText(text).width;
-                        // #text_click: var x = ox - (_p.x - 0.5) * w;
-                        var x = ox - _p.x * w;
-                        // #text_click: var y = oy - (_p.y - 0.5) * fontSize;
-                        var y = oy - _p.y * fontSize;
-                        _ctx.rect(x, y, w, fontSize);
+                        const tw = _ctx.measureText(text).width;
+                        // #text_click: const x = ox - (_p.x - 0.5) * w;
+                        const x = ox - _p.x * tw;
+                        // #text_click: const y = oy - (_p.y - 0.5) * fontSize;
+                        const y = oy - _p.y * fontSize;
+                        _ctx.rect(x, y, tw, fontSize);
                     }
                     break;
                 case IMAGE:
-                    _ctx.beginPath();
-                    getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
-                    var x = ox - _p.x * w;
-                    var y = oy - _p.y * h;
-                    _ctx.rect(x, y, w, h);
-                    break;
+                    {
+                        _ctx.beginPath();
+                        getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
+                        const x = ox - _p.x * w;
+                        const y = oy - _p.y * h;
+                        _ctx.rect(x, y, w, h);
+                        break;
+                    }
                 default:
                     break;
             }
             // ///////////////////////////////////////////////////////////////////////////////////////////////
             // check if fill is required
             // ///////////////////////////////////////////////////////////////////////////////////////////////
-            var fill = false;
+            let fill = false;
             switch (type) {
                 case PATH:
                 case CURVE:
@@ -3250,20 +3147,18 @@
                     break;
             }
             // check
-            var result = _ctx.isPointInPath(i_pixelX, i_pixelY);
+            const result = _ctx.isPointInPath(pixelX, pixelY);
             _ctx.restore();
             return result;
         };
-
         that.hmi_getBounds = function () { // Note: No not change to lambda function, because 'arguments' will not work anymore!
-            var recursive, bounds, arg;
+            let recursive, bounds;
             // try to read from arguments
-            for (var i = 0, l = arguments.length; i < l; i++) {
-                arg = arguments[i];
+            for (let i = 0, l = arguments.length; i < l; i++) {
+                const arg = arguments[i];
                 if (recursive === undefined && typeof arg === 'boolean') {
                     recursive = arg;
-                }
-                else if (bounds === undefined && arg !== null && typeof arg === 'object') {
+                } else if (bounds === undefined && arg !== null && typeof arg === 'object') {
                     bounds = arg;
                 }
             }
@@ -3276,55 +3171,52 @@
             that._hmi_getBounds(s_bounds_transform, bounds, recursive === undefined || recursive === true);
             return bounds;
         };
-
-        that.hmi_updateBounds = function () {
-            var bounds = that.bounds;
+        that.hmi_updateBounds = () => {
+            let bounds = that.bounds;
             if (bounds === null || typeof bounds !== 'object') {
-                bounds = {};
-                that.bounds = bounds;
+                that.bounds = bounds = {};
             }
             that.hmi_getBounds(bounds, true);
         };
-
-        that._hmi_getBounds = function (i_transform, i_bounds, i_recursive) {
+        that._hmi_getBounds = (transform, bounds, recursive) => {
             // delete bounds
-            delete i_bounds.x1;
-            delete i_bounds.y1;
-            delete i_bounds.x2;
-            delete i_bounds.y2;
+            delete bounds.x1;
+            delete bounds.y1;
+            delete bounds.x2;
+            delete bounds.y2;
             // if children must be checked too
-            if (i_recursive && _children) {
-                for (var i = 0; i < _children.length; i++) {
-                    var child = _children[i];
-                    var hmiobj = child._hmi_object;
+            if (recursive && _children) {
+                for (let i = 0; i < _children.length; i++) {
+                    const child = _children[i];
+                    const hmiobj = child._hmi_object;
                     if (hmiobj && _ctx === hmiobj._hmi_context.context2d && hmiobj._hmi_getBounds) {
                         if (child !== hmiobj) {
-                            i_transform.save();
-                            i_transform.setToCoordinateTransform(child);
+                            transform.save();
+                            transform.setToCoordinateTransform(child);
                         }
-                        hmiobj._hmi_getBounds(i_transform, _p, true);
-                        updateBounds(i_bounds, _p.x1, _p.y1);
-                        updateBounds(i_bounds, _p.x2, _p.y2);
+                        hmiobj._hmi_getBounds(transform, _p, true);
+                        updateBounds(bounds, _p.x1, _p.y1);
+                        updateBounds(bounds, _p.x2, _p.y2);
                         if (child !== hmiobj) {
-                            i_transform.restore();
+                            transform.restore();
                         }
                     }
                 }
             }
             // now we check our own bounds
-            var paint = that.paint;
+            const paint = that.paint;
             if (typeof paint === 'function') {
                 return;
             }
-            var r = that.r;
-            var w = that.width;
-            var h = that.height;
-            var text = that.text;
-            var fontSize = undefined;
-            var points = that.points;
-            var type = undefined;
-            var img = that._hmi_image;
-            var curve = that._hmi_curve;
+            let r = that.r;
+            let w = that.width;
+            let h = that.height;
+            const text = that.text;
+            let fontSize = undefined;
+            const points = that.points;
+            let type = undefined;
+            const img = that._hmi_image;
+            const curve = that._hmi_curve;
 
             // ///////////////////////////////////////////////////////////////////////////////////////////////
             // In the next blocks we update some values and try to find out what we
@@ -3336,8 +3228,7 @@
                     return;
                 }
                 type = ARC;
-            }
-            else if (w !== undefined && h !== undefined) {
+            } else if (w !== undefined && h !== undefined) {
                 w = getPixelSize(w, 1.0);
                 h = getPixelSize(h, 1.0);
                 if (typeof w !== 'number' || w <= 0.0 || typeof h !== 'number' || h <= 0.0) {
@@ -3348,44 +3239,36 @@
                         return;
                     }
                     type = IMAGE;
-                }
-                else {
+                } else {
                     type = RECT;
                 }
-            }
-            else if (w !== undefined && img !== undefined) {
+            } else if (w !== undefined && img !== undefined) {
                 w = getPixelSize(w, 1.0);
                 if (typeof w !== 'number' || w <= 0.0) {
                     return;
                 }
                 h = w * img.naturalHeight / img.naturalWidth;
                 type = IMAGE;
-            }
-            else if (h !== undefined && img !== undefined) {
+            } else if (h !== undefined && img !== undefined) {
                 h = getPixelSize(h, 1.0);
                 if (typeof h !== 'number' || h <= 0.0) {
                     return;
                 }
                 w = h * img.naturalWidth / img.naturalHeight;
                 type = IMAGE;
-            }
-            else if (text !== undefined) {
-                fontSize = getCanvasPixel(that, 'fontSize', 1.0);
+            } else if (text !== undefined) {
+                fontSize = getCanvasPixel(that, 'fontSize', 1.0);  // TODO: Why we do this twice?
                 if (typeof fontSize !== 'number') {
                     fontSize = 10;
-                }
-                else if (fontSize <= 0) {
+                } else if (fontSize <= 0) {
                     return;
                 }
                 type = TEXT;
-            }
-            else if (Array.isArray(points) && points.length >= 2) {
+            } else if (Array.isArray(points) && points.length >= 2) {
                 type = PATH;
-            }
-            else if (curve) {
+            } else if (curve) {
                 type = CURVE;
-            }
-            else if (img) {
+            } else if (img) {
                 w = img.naturalWidth;
                 h = img.naturalHeight;
                 type = IMAGE;
@@ -3396,12 +3279,12 @@
             // ///////////////////////////////////////////////////////////////////////////////////////////////
             // rotate origin for rectangle (round or not), image or text
             // ///////////////////////////////////////////////////////////////////////////////////////////////
-            i_transform.save();
-            var ox = that.x;
+            transform.save();
+            let ox = that.x;
             if (typeof ox !== 'number') {
                 ox = 0.0;
             }
-            var oy = that.y;
+            let oy = that.y;
             if (typeof oy !== 'number') {
                 oy = 0.0;
             }
@@ -3409,28 +3292,26 @@
                 case TEXT:
                 case IMAGE:
                 case RECT:
-                    var sc = that.scale;
+                    let sc = that.scale;
                     if (typeof sc !== 'number') {
                         sc = 1.0;
                     }
-                    var phi = that.phi;
-                    var angle = that.angle;
+                    const phi = that.phi;
+                    const angle = that.angle;
                     if (typeof phi === 'number') {
-                        i_transform.translate(ox, oy);
-                        i_transform.rotate(phi);
-                        i_transform.setScale(sc);
-                        i_transform.translate(-ox, -oy);
-                    }
-                    else if (typeof angle === 'number') {
-                        i_transform.translate(ox, oy);
-                        i_transform.rotate(angle * DEG2RAD);
-                        i_transform.setScale(sc);
-                        i_transform.translate(-ox, -oy);
-                    }
-                    else if (that.upright !== true) {
-                        i_transform.translate(ox, oy);
-                        i_transform.setScale(sc);
-                        i_transform.translate(-ox, -oy);
+                        transform.translate(ox, oy);
+                        transform.rotate(phi);
+                        transform.setScale(sc);
+                        transform.translate(-ox, -oy);
+                    } else if (typeof angle === 'number') {
+                        transform.translate(ox, oy);
+                        transform.rotate(angle * DEG2RAD);
+                        transform.setScale(sc);
+                        transform.translate(-ox, -oy);
+                    } else if (that.upright !== true) {
+                        transform.translate(ox, oy);
+                        transform.setScale(sc);
+                        transform.translate(-ox, -oy);
                     }
                     break;
                 case PATH:
@@ -3442,33 +3323,35 @@
             // ///////////////////////////////////////////////////////////////////////////////////////////////
             // create path and check dimension
             // ///////////////////////////////////////////////////////////////////////////////////////////////
-            var closed = that.closed === true;
+            // TODO: Use or remove  const closed = that.closed === true;
             switch (type) {
                 case ARC:
-                    updateBounds(i_bounds, ox - r, oy - r);
-                    updateBounds(i_bounds, ox - r, oy + r);
-                    updateBounds(i_bounds, ox + r, oy + r);
-                    updateBounds(i_bounds, ox + r, oy - r);
+                    updateBounds(bounds, ox - r, oy - r);
+                    updateBounds(bounds, ox - r, oy + r);
+                    updateBounds(bounds, ox + r, oy + r);
+                    updateBounds(bounds, ox + r, oy - r);
                     break;
                 case RECT:
-                    getAlignment(that.align, _p, false, false);
-                    var x = ox - _p.x * w;
-                    var y = oy - _p.y * h;
-                    i_transform.transform(x, y, _p);
-                    updateBounds(i_bounds, _p.x, _p.y);
-                    i_transform.transform(x + w, y, _p);
-                    updateBounds(i_bounds, _p.x, _p.y);
-                    i_transform.transform(x, y + h, _p);
-                    updateBounds(i_bounds, _p.x, _p.y);
-                    i_transform.transform(x + w, y + h, _p);
-                    updateBounds(i_bounds, _p.x, _p.y);
-                    break;
+                    {
+                        getAlignment(that.align, _p, false, false);
+                        const x = ox - _p.x * w;
+                        const y = oy - _p.y * h;
+                        transform.transform(x, y, _p);
+                        updateBounds(bounds, _p.x, _p.y);
+                        transform.transform(x + w, y, _p);
+                        updateBounds(bounds, _p.x, _p.y);
+                        transform.transform(x, y + h, _p);
+                        updateBounds(bounds, _p.x, _p.y);
+                        transform.transform(x + w, y + h, _p);
+                        updateBounds(bounds, _p.x, _p.y);
+                        break;
+                    }
                 case PATH:
-                    var len = points.length;
-                    for (var i = 0; i < len; i++) {
-                        var p = points[i];
-                        i_transform.transform(p.x, p.y, _p);
-                        updateBounds(i_bounds, _p.x, _p.y);
+                    const len = points.length;
+                    for (let i = 0; i < len; i++) {
+                        const p = points[i];
+                        transform.transform(p.x, p.y, _p);
+                        updateBounds(bounds, _p.x, _p.y);
                     }
                     break;
                 case CURVE:
@@ -3478,27 +3361,27 @@
                     break;
                 case TEXT:
                     _ctx.save();
-                    var fontSize = getCanvasPixel(that, 'fontSize', 1.0);
+                    fontSize = getCanvasPixel(that, 'fontSize', 1.0); // TODO: Why we do this twice?
                     if (typeof fontSize !== 'number') {
                         fontSize = 10;
                     }
-                    var font = that.bold === true ? 'bold ' : '';
+                    let font = that.bold === true ? 'bold ' : '';
                     font += '100px';
-                    var fontFamily = getCanvasAttribute(that, 'fontFamily');
+                    const fontFamily = getCanvasAttribute(that, 'fontFamily');
                     font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                     _ctx.font = font;
                     getAlignment(that.align, _p, false, false);
                     if (Array.isArray(text)) {
-                        var y0 = oy - _p.y * text.length * fontSize;
-                        var x0 = undefined;
-                        var x1 = undefined;
-                        for (var i = 0; i < text.length; i++) {
-                            var txt = text[i];
+                        const y0 = oy - _p.y * text.length * fontSize;
+                        let x0 = undefined;
+                        let x1 = undefined;
+                        for (let i = 0; i < text.length; i++) {
+                            let txt = text[i];
                             if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                                 txt = txt.toString();
                             }
-                            var tw = _ctx.measureText(txt).width / 100 * fontSize;
-                            var x = ox - _p.x * tw;
+                            const tw = _ctx.measureText(txt).width / 100 * fontSize;
+                            let x = ox - _p.x * tw;
                             if (x0 === undefined || x < x0) {
                                 x0 = x;
                             }
@@ -3507,119 +3390,100 @@
                                 x1 = x;
                             }
                         }
-                        var h = fontSize * text.length;
-                        i_transform.transform(x0, y0, _p);
-                        updateBounds(i_bounds, _p.x, _p.y);
-                        i_transform.transform(x1, y0, _p);
-                        updateBounds(i_bounds, _p.x, _p.y);
-                        i_transform.transform(x0, y0 + h, _p);
-                        updateBounds(i_bounds, _p.x, _p.y);
-                        i_transform.transform(x1, y0 + h, _p);
-                        updateBounds(i_bounds, _p.x, _p.y);
-                    }
-                    else {
-                        var txt = text;
+                        const h = fontSize * text.length;
+                        transform.transform(x0, y0, _p);
+                        updateBounds(bounds, _p.x, _p.y);
+                        transform.transform(x1, y0, _p);
+                        updateBounds(bounds, _p.x, _p.y);
+                        transform.transform(x0, y0 + h, _p);
+                        updateBounds(bounds, _p.x, _p.y);
+                        transform.transform(x1, y0 + h, _p);
+                        updateBounds(bounds, _p.x, _p.y);
+                    } else {
+                        let txt = text;
                         if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                             txt = txt.toString();
                         }
-                        var w = _ctx.measureText(text).width / 100 * fontSize;
-                        var x = ox - _p.x * w;
-                        var y = oy - _p.y * fontSize;
-                        i_transform.transform(x, y, _p);
-                        updateBounds(i_bounds, _p.x, _p.y);
-                        i_transform.transform(x + w, y, _p);
-                        updateBounds(i_bounds, _p.x, _p.y);
-                        i_transform.transform(x, y + fontSize, _p);
-                        updateBounds(i_bounds, _p.x, _p.y);
-                        i_transform.transform(x + w, y + fontSize, _p);
-                        updateBounds(i_bounds, _p.x, _p.y);
+                        const w = _ctx.measureText(text).width / 100 * fontSize;
+                        const x = ox - _p.x * w;
+                        const y = oy - _p.y * fontSize;
+                        transform.transform(x, y, _p);
+                        updateBounds(bounds, _p.x, _p.y);
+                        transform.transform(x + w, y, _p);
+                        updateBounds(bounds, _p.x, _p.y);
+                        transform.transform(x, y + fontSize, _p);
+                        updateBounds(bounds, _p.x, _p.y);
+                        transform.transform(x + w, y + fontSize, _p);
+                        updateBounds(bounds, _p.x, _p.y);
                     }
                     _ctx.restore();
                     break;
                 case IMAGE:
                     getAlignment(that.align, _p, false, false);
-                    var x = ox - _p.x * w;
-                    var y = oy - _p.y * h;
-                    i_transform.transform(x, y, _p);
-                    updateBounds(i_bounds, _p.x, _p.y);
-                    i_transform.transform(x + w, y, _p);
-                    updateBounds(i_bounds, _p.x, _p.y);
-                    i_transform.transform(x, y + h, _p);
-                    updateBounds(i_bounds, _p.x, _p.y);
-                    i_transform.transform(x + w, y + h, _p);
-                    updateBounds(i_bounds, _p.x, _p.y);
+                    const x = ox - _p.x * w;
+                    const y = oy - _p.y * h;
+                    transform.transform(x, y, _p);
+                    updateBounds(bounds, _p.x, _p.y);
+                    transform.transform(x + w, y, _p);
+                    updateBounds(bounds, _p.x, _p.y);
+                    transform.transform(x, y + h, _p);
+                    updateBounds(bounds, _p.x, _p.y);
+                    transform.transform(x + w, y + h, _p);
+                    updateBounds(bounds, _p.x, _p.y);
                     break;
                 default:
                     break;
             }
-            i_transform.restore();
+            transform.restore();
         };
-
         // only if we got a paint method we add the paint functions
         if (typeof that.paint === 'function') {
             that.hmi_context2d = _ctx;
-            that.hmi_save = function () {
-                return _ctx.save();
-            };
-
-            that.hmi_restore = function () {
-                return _ctx.restore();
-            };
-
-            that.hmi_transform = function (i_config) {
-                var x = i_config.x;
-                if (typeof x !== 'number') {
-                    x = 0.0;
-                }
-                var y = i_config.y;
-                if (typeof y !== 'number') {
-                    y = 0.0;
-                }
-                _tf.transform(x, y, _p);
-                var ox = _p.x;
-                var oy = _p.y;
-                var mx = _tf.mirrorX;
-                var my = _tf.mirrorY;
-                var tfrot = _tf.rotation;
-                var sc = i_config.scale;
+            that.hmi_save = () => _ctx.save();
+            that.hmi_restore = () => _ctx.restore();
+            that.hmi_transform = config => {
+                _tf.transform(typeof config.x === 'number' ? config.x : 0.0, typeof config.y === 'number' ? config.y : 0.0, _p);
+                const ox = _p.x;
+                const oy = _p.y;
+                const mx = _tf.mirrorX;
+                const my = _tf.mirrorY;
+                const tfrot = _tf.rotation;
+                let sc = config.scale;
                 if (typeof sc !== 'number') {
                     sc = 1.0;
                 }
-                var phi = i_config.phi;
-                var angle = i_config.angle;
+                const phi = config.phi;
+                const angle = config.angle;
                 if (typeof phi === 'number') {
                     _ctx.translate(ox, oy);
-                    var theta = mx === my ? phi : -phi;
-                    if (i_config.upright !== true) {
+                    const theta = mx === my ? phi : -phi;
+                    if (config.upright !== true) {
                         theta += tfrot;
                     }
                     _ctx.rotate(theta);
-                    _ctx.scale(i_config.flipX === true ? -sc : sc, i_config.flipY === true ? -sc : sc);
+                    _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
-                }
-                else if (typeof angle === 'number') {
+                } else if (typeof angle === 'number') {
                     _ctx.translate(ox, oy);
-                    var theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
-                    if (i_config.upright !== true) {
+                    const theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
+                    if (config.upright !== true) {
                         theta += tfrot;
                     }
                     _ctx.rotate(theta);
-                    _ctx.scale(i_config.flipX === true ? -sc : sc, i_config.flipY === true ? -sc : sc);
+                    _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
-                }
-                else if (i_config.upright !== true) {
+                } else if (config.upright !== true) {
                     _ctx.translate(ox, oy);
                     _ctx.rotate(tfrot);
-                    _ctx.scale(i_config.flipX === true ? -sc : sc, i_config.flipY === true ? -sc : sc);
+                    _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
                 }
             };
-
-            that.hmi_prepareRect = function (i_config) {
+            that.hmi_prepareRect = config => {
                 _ctx.beginPath();
-                var scale = _tf.scale;
-                var w = i_config.width;
-                var h = i_config.height;
+                const scale = _tf.scale;
+                let w = config.width;
+                let h = config.height;
                 if (w !== undefined && h !== undefined) {
                     w = getPixelSize(w, scale);
                     h = getPixelSize(h, scale);
@@ -3627,63 +3491,53 @@
                         return;
                     }
                 }
-                var x = i_config.x;
-                if (typeof x !== 'number') {
-                    x = 0.0;
-                }
-                var y = i_config.y;
-                if (typeof y !== 'number') {
-                    y = 0.0;
-                }
-                _tf.transform(x, y, _p);
-                var ox = _p.x;
-                var oy = _p.y;
-                var mx = _tf.mirrorX;
-                var my = _tf.mirrorY;
-                var tfrot = _tf.rotation;
-                var sc = i_config.scale;
+                _tf.transform(typeof config.x === 'number' ? config.x : 0.0, typeof config.y === 'number' ? config.y : 0.0, _p);
+                const ox = _p.x;
+                const oy = _p.y;
+                const mx = _tf.mirrorX;
+                const my = _tf.mirrorY;
+                const tfrot = _tf.rotation;
+                let sc = config.scale;
                 if (typeof sc !== 'number') {
                     sc = 1.0;
                 }
-                var phi = i_config.phi;
-                var angle = i_config.angle;
+                const phi = config.phi;
+                const angle = config.angle;
                 if (typeof phi === 'number') {
                     _ctx.translate(ox, oy);
-                    var theta = mx === my ? phi : -phi;
-                    if (i_config.upright !== true) {
+                    const theta = mx === my ? phi : -phi;
+                    if (config.upright !== true) {
                         theta += tfrot;
                     }
                     _ctx.rotate(theta);
-                    _ctx.scale(i_config.flipX === true ? -sc : sc, i_config.flipY === true ? -sc : sc);
+                    _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
-                }
-                else if (typeof angle === 'number') {
+                } else if (typeof angle === 'number') {
                     _ctx.translate(ox, oy);
-                    var theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
-                    if (i_config.upright !== true) {
+                    const theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
+                    if (config.upright !== true) {
                         theta += tfrot;
                     }
                     _ctx.rotate(theta);
-                    _ctx.scale(i_config.flipX === true ? -sc : sc, i_config.flipY === true ? -sc : sc);
+                    _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
-                }
-                else if (i_config.upright !== true) {
+                } else if (config.upright !== true) {
                     _ctx.translate(ox, oy);
                     _ctx.rotate(tfrot);
-                    _ctx.scale(i_config.flipX === true ? -sc : sc, i_config.flipY === true ? -sc : sc);
+                    _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
                 }
                 _ctx.beginPath();
-                getAlignment(i_config.align, _p, mx, my);
-                var x = ox - _p.x * w;
-                var y = oy - _p.y * h;
-                var rb = getCanvasPixel(i_config, 'roundBorder', scale);
+                getAlignment(config.align, _p, mx, my);
+                const x = ox - _p.x * w;
+                const y = oy - _p.y * h;
+                const rb = getCanvasPixel(config, 'roundBorder', scale);
                 if (typeof rb === 'number' && rb > 1.0) {
                     // start 1. round edge
-                    var xw = x + w;
-                    var xr = xw - rb;
+                    const xw = x + w;
+                    const xr = xw - rb;
                     _ctx.moveTo(xr, y);
-                    var yh = y + h;
+                    const yh = y + h;
                     _ctx.arcTo(xw, y, xw, yh, rb);
                     // 2. round edge
                     _ctx.arcTo(xw, yh, x, yh, rb);
@@ -3692,47 +3546,44 @@
                     // 4. round edge
                     _ctx.arcTo(x, y, xr, y, rb);
                     _ctx.closePath();
-                }
-                else {
+                } else {
                     _ctx.rect(x, y, w, h);
                 }
             };
-
-            that.hmi_prepareArc = function (i_config) {
+            that.hmi_prepareArc = config => {
                 _ctx.beginPath();
-                var scale = _tf.scale;
-                var r = i_config.r;
+                const scale = _tf.scale;
+                let r = config.r;
                 if (r !== undefined) {
                     r = getPixelSize(r, scale);
                     if (typeof r !== 'number' || r <= 0.5) {
                         return;
                     }
                 }
-                var x = i_config.x;
+                let x = config.x;
                 if (typeof x !== 'number') {
                     x = 0.0;
                 }
-                var y = i_config.y;
+                let y = config.y;
                 if (typeof y !== 'number') {
                     y = 0.0;
                 }
                 // try to get the angles
-                var phi1 = 0;
-                var phi2 = TWO_PI;
-                if (typeof i_config.phi1 === 'number' && typeof i_config.phi2 === 'number') {
-                    phi1 = i_config.phi1;
-                    phi2 = i_config.phi2;
+                let phi1 = 0;
+                let phi2 = TWO_PI;
+                if (typeof config.phi1 === 'number' && typeof config.phi2 === 'number') {
+                    phi1 = config.phi1;
+                    phi2 = config.phi2;
+                } else if (typeof config.angle1 === 'number' && typeof config.angle2 === 'number') {
+                    phi1 = config.angle1 * DEG2RAD;
+                    phi2 = config.angle2 * DEG2RAD;
                 }
-                else if (typeof i_config.angle1 === 'number' && typeof i_config.angle2 === 'number') {
-                    phi1 = i_config.angle1 * DEG2RAD;
-                    phi2 = i_config.angle2 * DEG2RAD;
-                }
-                var mx = _tf.mirrorX;
+                const mx = _tf.mirrorX;
                 if (mx) {
                     phi1 = PI - phi1;
                     phi2 = PI - phi2;
                 }
-                var my = _tf.mirrorY;
+                const my = _tf.mirrorY;
                 if (my) {
                     phi1 = -phi1;
                     phi2 = -phi2;
@@ -3746,169 +3597,148 @@
                     phi1 += TWO_PI;
                     phi2 += TWO_PI;
                 }
-                var tfrot = _tf.rotation;
+                const tfrot = _tf.rotation;
                 _tf.transform(x, y, _p);
                 _ctx.arc(_p.x, _p.y, r, phi1 + tfrot, phi2 + tfrot, mx !== my);
             };
-
-            that.hmi_preparePath = function (i_config) {
+            that.hmi_preparePath = config => {
                 _ctx.beginPath();
-                var points = i_config.points;
+                const points = config.points;
                 if (Array.isArray(points) === false || points.length < 2) {
                     return;
                 }
                 // ///////////////////////////////////////////////////////////////////////////////////////////////
                 // create path and check dimension
                 // ///////////////////////////////////////////////////////////////////////////////////////////////
-                var scale = _tf.scale;
-                var len = points.length;
-                for (var i = 0; i < len; i++) {
-                    var p = points[i];
-                    var rad = p.r;
+                const scale = _tf.scale;
+                const len = points.length;
+                for (let i = 0; i < len; i++) {
+                    const p = points[i];
+                    const rad = p.r;
                     _tf.transform(p.x, p.y, _p);
-                    var x1 = _p.x;
-                    var y1 = _p.y;
+                    const x1 = _p.x;
+                    const y1 = _p.y;
                     if (i === 0 || p.move === true) {
                         _ctx.moveTo(x1, y1);
-                    }
-                    else if (typeof rad === 'number' && rad > 0.0 && i < len - 1) {
-                        var p = points[i + 1];
+                    } else if (typeof rad === 'number' && rad > 0.0 && i < len - 1) {
+                        const p = points[i + 1];
                         _tf.transform(p.x, p.y, _p);
-                        var x2 = _p.x;
-                        var y2 = _p.y;
+                        const x2 = _p.x;
+                        const y2 = _p.y;
                         _ctx.arcTo(x1, y1, x2, y2, rad * scale);
-                    }
-                    else {
+                    } else {
                         _ctx.lineTo(x1, y1);
                     }
                 }
             };
-
-            that.hmi_setFont = function (i_config) {
-                var fontSize = getPixelSize(i_config.fontSize, _tf.scale);
+            that.hmi_setFont = config => {
+                let fontSize = getPixelSize(config.fontSize, _tf.scale);
                 if (typeof fontSize !== 'number') {
                     fontSize = 10;
                 }
-                var font = i_config.bold === true ? 'bold ' : '';
+                let font = config.bold === true ? 'bold ' : '';
                 font += Math.floor(fontSize);
                 font += 'px';
-                var fontFamily = i_config.fontFamily;
+                const fontFamily = config.fontFamily;
                 font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                 _ctx.font = font;
             };
             // TODO this is shit
-            that.hmi_getTextHeight = function (i_config) {
-                return getPixelSize(i_config.fontSize, _tf.scale);
-            };
-
-            that.hmi_getTextWidth = function (i_text) {
-                return _ctx.measureText(i_text).width;
-            };
-
-            that.hmi_paintText = function (i_config, i_text) {
+            that.hmi_getTextHeight = config => getPixelSize(config.fontSize, _tf.scale);
+            that.hmi_getTextWidth = text => _ctx.measureText(text).width;
+            that.hmi_paintText = (config, text) => {
                 // context.textAlign="center|end|left|right|start";
                 // context.textBaseline="alphabetic|top|hanging|middle|ideographic|bottom";
-                var scale = _tf.scale;
-                var fontSize = getCanvasPixel(i_config, 'fontSize', scale);
+                const scale = _tf.scale;
+                let fontSize = getCanvasPixel(config, 'fontSize', scale); // TODO: Why we do this twice?
                 if (typeof fontSize !== 'number') {
                     fontSize = 10;
-                }
-                else if (fontSize < 5) {
+                } else if (fontSize < 5) {
                     return;
                 }
-                var x = i_config.x;
-                if (typeof x !== 'number') {
-                    x = 0.0;
-                }
-                var y = i_config.y;
-                if (typeof y !== 'number') {
-                    y = 0.0;
-                }
-                _tf.transform(x, y, _p);
-                var ox = _p.x;
-                var oy = _p.y;
-                var mx = _tf.mirrorX;
-                var my = _tf.mirrorY;
-                var tfrot = _tf.rotation;
-                var sc = i_config.scale;
+                _tf.transform(typeof config.x === 'number' ? config.x : 0.0, typeof config.y === 'number' ? config.y : 0.0, _p);
+                const ox = _p.x;
+                const oy = _p.y;
+                const mx = _tf.mirrorX;
+                const my = _tf.mirrorY;
+                const tfrot = _tf.rotation;
+                let sc = config.scale;
                 if (typeof sc !== 'number') {
                     sc = 1.0;
                 }
-                var phi = i_config.phi;
-                var angle = i_config.angle;
+                const phi = config.phi;
+                const angle = config.angle;
                 if (typeof phi === 'number') {
                     _ctx.translate(ox, oy);
-                    var theta = mx === my ? phi : -phi;
-                    if (i_config.upright !== true) {
+                    const theta = mx === my ? phi : -phi;
+                    if (config.upright !== true) {
                         theta += tfrot;
                     }
                     _ctx.rotate(theta);
-                    _ctx.scale(i_config.flipX === true ? -sc : sc, i_config.flipY === true ? -sc : sc);
+                    _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
-                }
-                else if (typeof angle === 'number') {
+                } else if (typeof angle === 'number') {
                     _ctx.translate(ox, oy);
-                    var theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
-                    if (i_config.upright !== true) {
+                    const theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
+                    if (config.upright !== true) {
                         theta += tfrot;
                     }
                     _ctx.rotate(theta);
-                    _ctx.scale(i_config.flipX === true ? -sc : sc, i_config.flipY === true ? -sc : sc);
+                    _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
-                }
-                else if (i_config.upright !== true) {
+                } else if (config.upright !== true) {
                     _ctx.translate(ox, oy);
                     _ctx.rotate(tfrot);
-                    _ctx.scale(i_config.flipX === true ? -sc : sc, i_config.flipY === true ? -sc : sc);
+                    _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
                 }
-                var stroke = false;
-                if (i_config.stroke === true || isNumberOrPixelValue(i_config.lineWidth) || typeof i_config.strokeStyle === 'string') {
+                let stroke = false;
+                if (config.stroke === true || isNumberOrPixelValue(config.lineWidth) || typeof config.strokeStyle === 'string') {
                     stroke = true;
                 }
-                var fill = false;
-                if (i_config.fill === true || typeof i_config.fillStyle === 'string') {
+                let fill = false;
+                if (config.fill === true || typeof config.fillStyle === 'string') {
                     fill = true;
                 }
                 if (fill) {
-                    var fillStyle = i_config.fillStyle;
+                    const fillStyle = config.fillStyle;
                     if (typeof fillStyle === 'string') {
                         _ctx.fillStyle = fillStyle;
                     }
                 }
                 if (stroke) {
-                    var lineWidth = getPixelSize(i_config.lineWidth, scale);
+                    const lineWidth = getPixelSize(config.lineWidth, scale);
                     if (typeof lineWidth === 'number') {
                         _ctx.lineWidth = lineWidth;
                     }
-                    var strokeStyle = i_config.strokeStyle;
+                    const strokeStyle = config.strokeStyle;
                     if (typeof strokeStyle === 'string') {
                         _ctx.strokeStyle = strokeStyle;
                     }
                 }
                 if (fill || stroke) {
-                    var fontSize = getPixelSize(i_config.fontSize, scale);
+                    fontSize = getPixelSize(config.fontSize, scale); // TODO: Why we do this twice?
                     if (typeof fontSize !== 'number') {
                         fontSize = 10;
                     }
-                    var font = i_config.bold === true ? 'bold ' : '';
+                    let font = config.bold === true ? 'bold ' : '';
                     font += Math.floor(fontSize);
                     font += 'px';
-                    var fontFamily = i_config.fontFamily;
+                    const fontFamily = config.fontFamily;
                     font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                     _ctx.font = font;
-                    getAlignment(i_config.align, _p, mx !== (i_config.flipX === true), my !== (i_config.flipY === true));
+                    getAlignment(config.align, _p, mx !== (config.flipX === true), my !== (config.flipY === true));
                     _ctx.textAlign = 'center';
                     _ctx.textBaseline = 'middle';
-                    if (Array.isArray(i_text)) {
-                        var y0 = oy - (_p.y * i_text.length - 0.5) * fontSize;
-                        for (var i = 0; i < i_text.length; i++) {
-                            var txt = i_text[i];
+                    if (Array.isArray(text)) {
+                        const y0 = oy - (_p.y * text.length - 0.5) * fontSize;
+                        for (let i = 0; i < text.length; i++) {
+                            let txt = text[i];
                             if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                                 txt = txt.toString();
                             }
-                            var x = ox - (_p.x - 0.5) * _ctx.measureText(txt).width;
-                            var y = y0 + i * fontSize;
+                            const x = ox - (_p.x - 0.5) * _ctx.measureText(txt).width;
+                            const y = y0 + i * fontSize;
                             if (fill) {
                                 _ctx.fillText(txt, x, y);
                             }
@@ -3916,14 +3746,13 @@
                                 _ctx.strokeText(txt, x, y);
                             }
                         }
-                    }
-                    else {
-                        var txt = i_text;
+                    } else {
+                        let txt = text;
                         if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                             txt = txt.toString();
                         }
-                        var x = ox - (_p.x - 0.5) * _ctx.measureText(txt).width;
-                        var y = oy - (_p.y - 0.5) * fontSize;
+                        const x = ox - (_p.x - 0.5) * _ctx.measureText(txt).width;
+                        const y = oy - (_p.y - 0.5) * fontSize;
                         if (fill) {
                             _ctx.fillText(txt, x, y);
                         }
@@ -3933,162 +3762,136 @@
                     }
                 }
             };
-
-            that.hmi_paintImage = function (i_config, i_image) {
-                if (i_image === undefined || typeof i_image.naturalWidth !== 'number' || i_image.naturalWidth <= 1 || typeof i_image.naturalHeight !== 'number' || i_image.naturalHeight <= 1) {
+            that.hmi_paintImage = (config, image) => {
+                if (image === undefined || typeof image.naturalWidth !== 'number' || image.naturalWidth <= 1 || typeof image.naturalHeight !== 'number' || image.naturalHeight <= 1) {
                     return;
                 }
-                var scale = _tf.scale;
-                var w = i_config.width;
-                var h = i_config.height;
+                const scale = _tf.scale;
+                let w = config.width;
+                let h = config.height;
                 if (w !== undefined && h !== undefined) {
                     w = getPixelSize(w, scale);
                     h = getPixelSize(h, scale);
                     if (typeof w !== 'number' || w <= 0.5 || typeof h !== 'number' || h <= 0.5) {
                         return;
                     }
-                }
-                else if (w !== undefined) {
+                } else if (w !== undefined) {
                     w = getPixelSize(w, scale);
                     if (typeof w !== 'number' || w < 0.5) {
                         return;
                     }
-                    h = Math.floor(w * i_image.naturalHeight / i_image.naturalWidth);
+                    h = Math.floor(w * image.naturalHeight / image.naturalWidth);
                     w = Math.floor(w);
-                }
-                else if (h !== undefined) {
+                } else if (h !== undefined) {
                     h = getPixelSize(h, scale);
                     if (typeof h !== 'number' || h < 0.5) {
                         return;
                     }
-                    w = Math.floor(h * i_image.naturalWidth / i_image.naturalHeight);
+                    w = Math.floor(h * image.naturalWidth / image.naturalHeight);
                     h = Math.floor(h);
+                } else {
+                    w = image.naturalWidth;
+                    h = image.naturalHeight;
                 }
-                else {
-                    w = i_image.naturalWidth;
-                    h = i_image.naturalHeight;
-                }
-                var x = i_config.x;
-                if (typeof x !== 'number') {
-                    x = 0.0;
-                }
-                var y = i_config.y;
-                if (typeof y !== 'number') {
-                    y = 0.0;
-                }
-                _tf.transform(x, y, _p);
-                var ox = _p.x;
-                var oy = _p.y;
-                var mx = _tf.mirrorX;
-                var my = _tf.mirrorY;
-                var tfrot = _tf.rotation;
-                var sc = i_config.scale;
+                _tf.transform(typeof config.x === 'number' ? config.x : 0.0, typeof config.y === 'number' ? config.y : 0.0, _p);
+                const ox = _p.x;
+                const oy = _p.y;
+                const mx = _tf.mirrorX;
+                const my = _tf.mirrorY;
+                const tfrot = _tf.rotation;
+                let sc = config.scale;
                 if (typeof sc !== 'number') {
                     sc = 1.0;
                 }
-                var phi = i_config.phi;
-                var angle = i_config.angle;
+                const phi = config.phi;
+                const angle = config.angle;
                 if (typeof phi === 'number') {
                     _ctx.translate(ox, oy);
-                    var theta = mx === my ? phi : -phi;
-                    if (i_config.upright !== true) {
+                    const theta = mx === my ? phi : -phi;
+                    if (config.upright !== true) {
                         theta += tfrot;
                     }
                     _ctx.rotate(theta);
-                    _ctx.scale(i_config.flipX === true ? -sc : sc, i_config.flipY === true ? -sc : sc);
+                    _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
-                }
-                else if (typeof angle === 'number') {
+                } else if (typeof angle === 'number') {
                     _ctx.translate(ox, oy);
-                    var theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
-                    if (i_config.upright !== true) {
+                    const theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
+                    if (config.upright !== true) {
                         theta += tfrot;
                     }
                     _ctx.rotate(theta);
-                    _ctx.scale(i_config.flipX === true ? -sc : sc, i_config.flipY === true ? -sc : sc);
+                    _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
-                }
-                else if (i_config.upright !== true) {
+                } else if (config.upright !== true) {
                     _ctx.translate(ox, oy);
                     _ctx.rotate(tfrot);
-                    _ctx.scale(i_config.flipX === true ? -sc : sc, i_config.flipY === true ? -sc : sc);
+                    _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
                 }
-                getAlignment(i_config.align, _p, mx !== (i_config.flipX === true), my !== (i_config.flipY === true));
-                var x = ox - _p.x * w;
-                var y = oy - _p.y * h;
-                _ctx.drawImage(i_image, x, y, w, h);
+                getAlignment(config.align, _p, mx !== (config.flipX === true), my !== (config.flipY === true));
+                const x = ox - _p.x * w;
+                const y = oy - _p.y * h;
+                _ctx.drawImage(image, x, y, w, h);
             };
-            that.hmi_beginPath = function () {
-                _ctx.beginPath();
-            };
-
-            that.hmi_moveTo = function (i_x, i_y) {
-                _tf.transform(i_x, i_y, _p);
+            that.hmi_beginPath = () => _ctx.beginPath();
+            that.hmi_moveTo = (x, y) => {
+                _tf.transform(x, y, _p);
                 _ctx.moveTo(_p.x, _p.y);
             };
-
-            that.hmi_lineTo = function (i_x, i_y) {
-                _tf.transform(i_x, i_y, _p);
+            that.hmi_lineTo = (x, y) => {
+                _tf.transform(x, y, _p);
                 _ctx.lineTo(_p.x, _p.y);
             };
-
-            that.hmi_arcTo = function (i_x1, i_y1, i_x2, i_y2, i_radius) {
-                _tf.transform(i_x1, i_y1, _p);
-                var x1 = _p.x;
-                var y1 = _p.y;
-                _tf.transform(i_x2, i_y2, _p);
-                _ctx.arcTo(x1, y1, _p.x, _p.y, i_radius * _tf.scale);
+            that.hmi_arcTo = (x1, y1, x2, y2, radius) => {
+                _tf.transform(x1, y1, _p);
+                const px1 = _p.x;
+                const py1 = _p.y;
+                _tf.transform(x2, y2, _p);
+                _ctx.arcTo(px1, py1, _p.x, _p.y, radius * _tf.scale);
             };
-
-            that.hmi_quadraticCurveTo = function (i_x1, i_y1, i_x2, i_y2) {
-                _tf.transform(i_x1, i_y1, _p);
-                var x1 = _p.x;
-                var y1 = _p.y;
-                _tf.transform(i_x2, i_y2, _p);
-                _ctx.quadraticCurveTo(x1, y1, _p.x, _p.y);
+            that.hmi_quadraticCurveTo = (x1, y1, x2, y2) => {
+                _tf.transform(x1, y1, _p);
+                const px1 = _p.x;
+                const py1 = _p.y;
+                _tf.transform(x2, y2, _p);
+                _ctx.quadraticCurveTo(px1, py1, _p.x, _p.y);
             };
-
-            that.hmi_bezierCurveTo = function (i_x1, i_y1, i_x2, i_y2, i_x2, i_y2) {
-                _tf.transform(i_x1, i_y1, _p);
-                var x1 = _p.x;
-                var y1 = _p.y;
-                _tf.transform(i_x2, i_x2, _p);
-                var x2 = _p.x;
-                var y2 = _p.y;
-                _tf.transform(i_x3, i_y3, _p);
-                _ctx.bezierCurveTo(x1, y1, x2, y2, _p.x, _p.y);
+            that.hmi_bezierCurveTo = (x1, y1, x2, y2, x3, y3) => {
+                _tf.transform(x1, y1, _p);
+                const px1 = _p.x;
+                const py1 = _p.y;
+                _tf.transform(x2, y2, _p);
+                const px2 = _p.x;
+                const py2 = _p.y;
+                _tf.transform(x3, y3, _p);
+                _ctx.bezierCurveTo(px1, py1, px2, py2, _p.x, _p.y);
             };
-
-            that.hmi_closePath = function () {
-                _ctx.closePath();
-            };
-
-            that.hmi_fill = function (i_config) {
-                if (i_config) {
-                    var fillStyle = i_config.fillStyle;
+            that.hmi_closePath = () => _ctx.closePath();
+            that.hmi_fill = config => {
+                if (config) {
+                    const fillStyle = config.fillStyle;
                     if (typeof fillStyle === 'string') {
                         _ctx.fillStyle = fillStyle;
                     }
                 }
                 _ctx.fill();
             };
-
-            that.hmi_stroke = function (i_config) {
-                if (i_config) {
-                    var lineCap = i_config.lineCap;
+            that.hmi_stroke = config => {
+                if (config) {
+                    const lineCap = config.lineCap;
                     if (typeof lineCap === 'string') {
                         _ctx.lineCap = lineCap;
                     }
-                    var lineJoin = i_config.lineJoin;
+                    const lineJoin = config.lineJoin;
                     if (typeof lineJoin === 'string') {
                         _ctx.lineJoin = lineJoin;
                     }
-                    var lineWidth = getPixelSize(i_config.lineWidth, _tf.scale);
+                    const lineWidth = getPixelSize(config.lineWidth, _tf.scale);
                     if (typeof lineWidth === 'number') {
                         _ctx.lineWidth = lineWidth;
                     }
-                    var strokeStyle = i_config.strokeStyle;
+                    const strokeStyle = config.strokeStyle;
                     if (typeof strokeStyle === 'string') {
                         _ctx.strokeStyle = strokeStyle;
                     }
@@ -4108,97 +3911,95 @@
              * In the next lines we iterate over all children and those which are
              * graphical objects will be handled recursively.
              */
-            function updateHtmlChildPosition(i_hmiObject, i_child, i_width, i_height, i_callResize) {
-                var elem = i_child._hmi_graphHtmlElement;
+            function updateHtmlChildPosition(hmiObject, child, width, height, doResize) {
+                const elem = child._hmi_graphHtmlElement;
                 // update size and resize object if required
-                var resized = false;
-                var cw = Math.floor(i_width);
-                if (i_child._hmi_w !== cw) {
-                    i_child._hmi_w = cw;
+                let resized = false;
+                const cw = Math.floor(width);
+                if (child._hmi_w !== cw) {
+                    child._hmi_w = cw;
                     elem.css('width', cw + 'px');
                     resized = true;
                 }
-                var ch = Math.floor(i_height);
-                if (i_child._hmi_h !== ch) {
-                    i_child._hmi_h = ch;
+                const ch = Math.floor(height);
+                if (child._hmi_h !== ch) {
+                    child._hmi_h = ch;
                     elem.css('height', ch + 'px');
                     resized = true;
                 }
-                if (resized && i_callResize && i_hmiObject._hmi_resize) {
-                    i_hmiObject._hmi_resize();
+                if (resized && doResize && hmiObject._hmi_resize) {
+                    hmiObject._hmi_resize();
                 }
                 // locate object depending on the align
-                var x = i_child.x;
+                const x = child.x;
                 if (typeof x !== 'number') {
                     x = 0.0;
                 }
-                var y = i_child.y;
+                const y = child.y;
                 if (typeof y !== 'number') {
                     y = 0.0;
                 }
                 _tf.transform(x, y, _p);
-                var ox = Math.floor(_p.x);
-                var oy = Math.floor(_p.y);
+                const ox = Math.floor(_p.x);
+                const oy = Math.floor(_p.y);
                 // TODO not sure about mirrors
-                var mx = _tf.mirrorX !== (i_child.mirrorX === true);
-                var my = _tf.mirrorY !== (i_child.mirrorY === true);
-                getAlignment(i_child.align, _p, mx, my);
-                var ax = _p.x;
-                var ay = _p.y;
-                // var x1 = ox - ( mx ? 1.0 - ax : ax) * i_width;
-                // var y1 = oy - ( my ? ay : 1.0 - ay) * i_height;
-                var x1 = ox - ax * i_width;
-                var y1 = oy - ay * i_height;
-                if (i_child._hmi_x !== x1) {
-                    i_child._hmi_x = x1;
+                const mx = _tf.mirrorX !== (child.mirrorX === true);
+                const my = _tf.mirrorY !== (child.mirrorY === true);
+                getAlignment(child.align, _p, mx, my);
+                const ax = _p.x;
+                const ay = _p.y;
+                // TODO: Use or remove const x1 = ox - ( mx ? 1.0 - ax : ax) * width;
+                // TODO: Use or remove const y1 = oy - ( my ? ay : 1.0 - ay) * height;
+                const x1 = ox - ax * width;
+                const y1 = oy - ay * height;
+                if (child._hmi_x !== x1) {
+                    child._hmi_x = x1;
                     elem.css('left', x1 + 'px');
                 }
-                if (i_child._hmi_y !== y1) {
-                    i_child._hmi_y = y1;
+                if (child._hmi_y !== y1) {
+                    child._hmi_y = y1;
                     elem.css('top', y1 + 'px');
                 }
-                var tfrot = _tf.rotation;
-                var phi = i_child.phi;
-                var angle = i_child.angle;
-                var rot = 0;
+                const tfrot = _tf.rotation;
+                const phi = child.phi;
+                const angle = child.angle;
+                let rot = 0;
                 if (typeof phi === 'number') {
-                    var theta = mx === my ? phi : -phi;
-                    if (i_child.upright !== true) {
+                    const theta = mx === my ? phi : -phi;
+                    if (child.upright !== true) {
                         theta += tfrot;
                     }
                     rot = Math.floor(normalizeToPlusMinus180deg(theta * RAD2DEG));
-                }
-                else if (typeof angle === 'number') {
-                    var theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
-                    if (i_child.upright !== true) {
+                } else if (typeof angle === 'number') {
+                    const theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
+                    if (child.upright !== true) {
                         theta += tfrot;
                     }
                     rot = Math.floor(normalizeToPlusMinus180deg(theta * RAD2DEG));
-                }
-                else if (i_child.upright !== true) {
+                } else if (child.upright !== true) {
                     rot = Math.floor(normalizeToPlusMinus180deg(tfrot * RAD2DEG));
                 }
-                var scale = i_child.scale;
+                let scale = child.scale;
                 if (typeof scale !== 'number') {
                     scale = 1.0;
                 }
-                if (resized || i_child._hmi_rot !== rot || i_child._hmi_scale !== scale) {
-                    i_child._hmi_rot = rot;
-                    i_child._hmi_scale = scale;
-                    var dx = Math.floor(i_width / 2);
-                    var dy = Math.floor(i_height / 2);
-                    var a_x = (mx ? 1.0 - 2.0 * ax : 2.0 * ax - 1.0) * dx;
-                    var a_y = (my ? 2.0 * ay - 1.0 : 1.0 - 2.0 * ay) * dy;
-                    var tf = 'translate(';
+                if (resized || child._hmi_rot !== rot || child._hmi_scale !== scale) {
+                    child._hmi_rot = rot;
+                    child._hmi_scale = scale;
+                    const dx = Math.floor(width / 2);
+                    const dy = Math.floor(height / 2);
+                    const a_x = (mx ? 1.0 - 2.0 * ax : 2.0 * ax - 1.0) * dx;
+                    const a_y = (my ? 2.0 * ay - 1.0 : 1.0 - 2.0 * ay) * dy;
+                    let tf = 'translate(';
                     tf += a_x;
                     tf += 'px, ';
                     tf += a_y;
                     tf += 'px) rotate(';
                     tf += rot;
                     tf += 'deg) scale(';
-                    tf += i_child.flipX === true ? -scale : scale;
+                    tf += child.flipX === true ? -scale : scale;
                     tf += ', ';
-                    tf += i_child.flipY === true ? -scale : scale;
+                    tf += child.flipY === true ? -scale : scale;
                     tf += ') translate(';
                     tf += -a_x;
                     tf += 'px, ';
@@ -4206,21 +4007,17 @@
                     tf += 'px)';
                     elem.css('transform', tf);
                 }
-            };
-
-            /*
-             * Update children transforms.
-             */
-            that._hmi_updateChildrenTransforms = function () {
-                for (var i = 0; i < _children.length; i++) {
-                    var child = _children[i];
-                    var hmiobj = child._hmi_object;
+            }
+            that._hmi_updateChildrenTransforms = () => {
+                for (let i = 0; i < _children.length; i++) {
+                    const child = _children[i];
+                    const hmiobj = child._hmi_object;
                     if (hmiobj) {
                         if (hmiobj._hmi_isSection === true) {
-                            var cs = hmiobj._hmi_curveSection;
-                            for (var j = 0; j < cs.getItemCount(); j++) {
-                                var item = cs.getItem(j);
-                                var ic = item.child;
+                            const cs = hmiobj._hmi_curveSection;
+                            for (let j = 0; j < cs.getItemCount(); j++) {
+                                const item = cs.getItem(j);
+                                const ic = item.child;
                                 cs.transform(item.position, ic, _p);
                                 ic.x = _p.x;
                                 ic.y = _p.y;
@@ -4233,10 +4030,9 @@
                             if (child !== hmiobj) {
                                 hmiobj._hmi_context.transform.setToCoordinateTransform(child, _tf);
                             }
-                        }
-                        else if (!isTaskType(hmiobj)) {
-                            var width = getPixelSize(child.width, _tf.scale);
-                            var height = getPixelSize(child.height, _tf.scale);
+                        } else if (!isTaskType(hmiobj)) {
+                            const width = getPixelSize(child.width, _tf.scale);
+                            const height = getPixelSize(child.height, _tf.scale);
                             if (typeof width === 'number' && typeof height === 'number') {
                                 updateHtmlChildPosition(hmiobj, child, width, height, true);
                             }
@@ -4244,33 +4040,29 @@
                     }
                 }
             };
-
             _curves = that.curves;
             if (Array.isArray(_curves)) {
                 // within the next loop we create the curves
-                for (var i = 0; i < _curves.length; i++) {
-                    var curve = _curves[i];
+                for (let i = 0; i < _curves.length; i++) {
+                    const curve = _curves[i];
                     if (curve.type === 'arcline') {
-                        var al = new ArcLine(curve);
+                        const al = new Mathematics.ArcLine(curve);
                         curve._hmi_curveImpl = al;
-                    }
-                    else if (curve.type === 'ropeline') {
-                        var rl = new RopeLine(curve);
+                    } else if (curve.type === 'ropeline') {
+                        const rl = new Mathematics.RopeLine(curve);
                         curve._hmi_curveImpl = rl;
                     }
                 }
-            }
-            else {
+            } else {
                 _curves = undefined;
             }
-            for (var i = 0; i < _children.length; i++) {
-                // closure
-                (function () {
-                    var child = _children[i];
-                    var hmiobj = child._hmi_object;
+            for (let i = 0; i < _children.length; i++) {
+                (function () { // closure
+                    const child = _children[i];
+                    const hmiobj = child._hmi_object;
                     if (hmiobj) {
-                        var vps = hmiobj.vps;
-                        var scene = hmiobj.scene;
+                        let vps = hmiobj.vps;
+                        let scene = hmiobj.scene;
                         if (typeof vps === 'string' && typeof scene === 'string') {
                             // get reference to vehicle position system (VPS) and store
                             // all segments for fast access during refresh
@@ -4279,31 +4071,31 @@
                             if (vps && scene && Array.isArray(scene.children)) {
                                 hmiobj._hmi_vps = vps;
                                 hmiobj._hmi_segments = [];
-                                var clds = scene.children;
-                                for (var k = 0; k < clds.length; k++) {
-                                    var c = clds[k];
+                                const clds = scene.children;
+                                for (let k = 0; k < clds.length; k++) {
+                                    const c = clds[k];
                                     if (typeof c.segment === 'number') {
                                         hmiobj._hmi_segments[c.segment] = c;
                                     }
                                 }
-                                hmiobj.hmi_getPointOnCurveSection = function (i_position, i_offset, i_point, i_adjusted) {
-                                    var cursec = that._hmi_vehicleCurveSection;
-                                    var posadj = that._hmi_vehiclePositionAdjuster;
-                                    var pos = i_adjusted === true && posadj ? posadj.adjust(i_position) : i_position;
-                                    return cursec ? cursec.transform(pos, i_offset, i_point) : false;
+                                hmiobj.hmi_getPointOnCurveSection = (position, offset, point, adjusted) => {
+                                    const cursec = that._hmi_vehicleCurveSection;
+                                    const posadj = that._hmi_vehiclePositionAdjuster;
+                                    const pos = adjusted === true && posadj ? posadj.adjust(position) : position;
+                                    return cursec ? cursec.transform(pos, offset, point) : false;
                                 };
                             }
                         }
                         if (_curves) {
-                            for (var j = 0; j < _curves.length; j++) {
-                                var curve = _curves[j];
+                            for (let j = 0; j < _curves.length; j++) {
+                                const curve = _curves[j];
                                 if (child.curve === curve.id) {
-                                    var cu = curve._hmi_curveImpl;
-                                    var curveLength = cu.getLength();
-                                    var from = typeof child.from === 'number' ? child.from : 0.0;
-                                    var to = typeof child.to === 'number' ? child.to : 1.0;
-                                    var cs = new CurveSection(cu, curve.id, from * curveLength, to * curveLength, hmiobj.children);
-                                    var pa = new ZonePositionAdjuster(cs, hmiobj.length, that.hmi.env.isSimulationEnabled() === true);
+                                    const cu = curve._hmi_curveImpl;
+                                    const curveLength = cu.getLength();
+                                    const from = typeof child.from === 'number' ? child.from : 0.0;
+                                    const to = typeof child.to === 'number' ? child.to : 1.0;
+                                    const cs = new Mathematics.CurveSection(cu, curve.id, from * curveLength, to * curveLength, hmiobj.children);
+                                    const pa = new ObjectPositionSystem.ZonePositionAdjuster(cs, hmiobj.length, that.hmi.env.isSimulationEnabled() === true);
                                     pa.addListeners();
                                     hmiobj.hmi_from = 0.0;
                                     hmiobj.hmi_to = cs.length;
@@ -4311,12 +4103,12 @@
                                     hmiobj._hmi_curveSection = cs;
                                     hmiobj._hmi_curve = cu;
                                     hmiobj._hmi_positionAdjuster = pa;
-                                    hmiobj.hmi_getPointOnCurveSection = function (i_position, i_offset, i_point, i_adjusted) {
-                                        var pos = i_adjusted === true ? that._hmi_positionAdjuster.adjust(i_position) : i_position;
-                                        return that._hmi_curveSection.transform(pos, i_offset, i_point);
+                                    hmiobj.hmi_getPointOnCurveSection = (position, offset, point, adjusted) => {
+                                        const pos = adjusted === true ? that._hmi_positionAdjuster.adjust(position) : position;
+                                        return that._hmi_curveSection.transform(pos, offset, point);
                                     };
-                                    for (var z = 0; z < cs.getZoneCount(); z++) {
-                                        var zonevisobj = cs.getZoneObject(z)._hmi_object;
+                                    for (let z = 0; z < cs.getZoneCount(); z++) {
+                                        const zonevisobj = cs.getZoneObject(z)._hmi_object;
                                         if (zonevisobj) {
                                             zonevisobj._hmi_curveSection = cs;
                                             zonevisobj._hmi_curve = cu;
@@ -4324,8 +4116,8 @@
                                             zonevisobj.hmi_to = cs.getZoneEnd(z);
                                         }
                                     }
-                                    for (var z = 0; z < cs.getItemCount(); z++) {
-                                        var itemvisobj = cs.getItem(z).child._hmi_object;
+                                    for (let z = 0; z < cs.getItemCount(); z++) {
+                                        const itemvisobj = cs.getItem(z).child._hmi_object;
                                         if (itemvisobj) {
                                             itemvisobj.hmi_position = cs.getItemPosition(z);
                                         }
@@ -4336,77 +4128,59 @@
                         }
                         if (hmiobj._hmi_init_dom) {
                             if (hmiobj.type === 'graph') {
-                                var ctf = _tf;
+                                let ctf = _tf;
                                 if (child !== hmiobj) {
-                                    ctf = new Transform();
+                                    ctf = new Mathematics.Transform();
                                     ctf.setToCoordinateTransform(child, _tf);
                                 }
-                                tasks.push(function (i_suc, i_err) {
-                                    // #graph: 1
-                                    hmiobj._hmi_init_dom({
-                                        container: _cont,
-                                        transform: ctf,
-                                        context2d: _ctx
-                                    }, i_suc, i_err);
-                                });
-                            }
-                            else if (isTaskType(hmiobj)) {
-                                tasks.push(function (i_suc, i_err) {
-                                    // #graph: 2
-                                    hmiobj._hmi_init_dom({
-                                        container: _cont
-                                    }, i_suc, i_err);
-                                });
-                            }
-                            else {
+                                // #graph: 1
+                                tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont, transform: ctf, context2d: _ctx }, onSuc, onErr));
+                            } else if (isTaskType(hmiobj)) {
+                                // #graph: 2
+                                tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont }, onSuc, onErr));
+                            } else {
                                 child._hmi_graphHtmlElement = $(DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                                 child._hmi_graphHtmlElement.appendTo(_cont);
-                                var width = getPixelSize(child.width, _tf.scale);
-                                var height = getPixelSize(child.height, _tf.scale);
+                                const width = getPixelSize(child.width, _tf.scale);
+                                const height = getPixelSize(child.height, _tf.scale);
                                 if (typeof width === 'number' && typeof height === 'number') {
                                     updateHtmlChildPosition(hmiobj, child, width, height, false);
                                 }
-                                tasks.push(function (i_suc, i_err) {
-                                    // #graph: 3
-                                    hmiobj._hmi_init_dom({
-                                        container: child._hmi_graphHtmlElement
-                                    }, i_suc, i_err);
-                                });
+                                // #graph: 3
+                                tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: child._hmi_graphHtmlElement }, onSuc, onErr));
                             }
                         }
                     }
                 }());
             }
             // layout
-            that.hmi_layout = function (i_layout, i_separator) {
-                layoutChildren(_children, i_layout, i_separator);
-            };
+            that.hmi_layout = (layout, separator) => layoutChildren(_children, layout, separator);
         }
         // finally we remove all we created
-        that._hmi_destroys.push(function () {
+        that._hmi_destroys.push(() => {
             if (that._hmi_graphicsRoot === true) {
                 clicked = undefined;
                 onEvent = undefined;
             }
             if (_children) {
-                for (var i = _children.length - 1; i >= 0; i--) {
-                    var child = _children[i];
-                    var hmiobj = child._hmi_object;
+                for (let i = _children.length - 1; i >= 0; i--) {
+                    const child = _children[i];
+                    const hmiobj = child._hmi_object;
                     if (hmiobj) {
                         if (hmiobj._hmi_destroy_dom) {
                             // #graph: 1
                             hmiobj._hmi_destroy_dom();
                         }
-                        var cs = hmiobj._hmi_curveSection;
+                        const cs = hmiobj._hmi_curveSection;
                         if (cs) {
-                            for (var z = cs.getItemCount() - 1; z >= 0; z--) {
-                                var itemvisobj = cs.getItem(z).child._hmi_object;
+                            for (let z = cs.getItemCount() - 1; z >= 0; z--) {
+                                const itemvisobj = cs.getItem(z).child._hmi_object;
                                 if (itemvisobj) {
                                     delete itemvisobj.hmi_position;
                                 }
                             }
-                            for (var z = cs.getZoneCount() - 1; z >= 0; z--) {
-                                var zonevisobj = cs.getZoneObject(z)._hmi_object;
+                            for (let z = cs.getZoneCount() - 1; z >= 0; z--) {
+                                const zonevisobj = cs.getZoneObject(z)._hmi_object;
                                 if (zonevisobj) {
                                     delete zonevisobj._hmi_curveSection;
                                     delete zonevisobj._hmi_curve;
@@ -4444,8 +4218,8 @@
                     }
                 }
                 if (_curves) {
-                    for (var i = _curves.length - 1; i >= 0; i--) {
-                        var curve = _curves[i];
+                    for (let i = _curves.length - 1; i >= 0; i--) {
+                        const curve = _curves[i];
                         delete curve._hmi_curveImpl;
                     }
                     _curves = undefined;
@@ -4467,8 +4241,7 @@
                 that._hmi_canvas.remove();
                 delete that._hmi_canvas;
                 delete that._hmi_graphicsRoot;
-            }
-            else {
+            } else {
                 delete that.hmi_setVisible;
                 delete that.hmi_isVisible;
             }
@@ -4514,56 +4287,45 @@
             _tf = undefined;
             that = undefined;
         });
-        Executor.run(tasks, i_success, i_error);
-    };
-
+        Executor.run(tasks, onSuccess, onError);
+    }
     /**
      * This is our actual hmi object implementation
      */
-    var s_objectId = 0;
-    function applyObject(that, i_disableVisuEvents, i_enableEditorEvents) {
-        var _cont = undefined;
+    let s_objectId = 0;
+    function applyObject(that, disableVisuEvents, enableEditorEvents) {
+        let _cont = undefined;
         that._hmi_objectId = s_objectId++;
-
         // TODO what for graph or handler objects???
-        var _fClickedDraggable = undefined;
-
+        let _fClickedDraggable = undefined;
         // LISTENERS
-        var _watch = undefined;
-        var _onEventCallbacks = undefined;
+        let _watch = undefined;
+        let _onEventCallbacks = undefined;
         that._hmi_listenerAdds = [];
         that._hmi_listenerRemoves = [];
-
         // REFRESH AND DESTROY
         that._hmi_refreshs = [];
         that._hmi_destroys = [];
-
         // CONTEXT
-        that.hmi_context = function () {
-            return that._hmi_context;
-        };
-        that.hmi_getHtmlTextSize = function (i_text) {
-            return _cont ? getTextSize(i_text, _cont.css('font')) : undefined;
-        };
+        that.hmi_context = () => that._hmi_context;
+        that.hmi_getHtmlTextSize = text => _cont ? getTextSize(text, _cont.css('font')) : undefined;
         // objects are visible as default
         that._hmi_visible = true;
-
         // //////////////////////////////////////////////////////////////////////////////
         // INTERNAL METHODS
         // //////////////////////////////////////////////////////////////////////////////
 
         // INITIALIZE THE DOCUMENT
-        // TODO use: i_success, i_error
-        that._hmi_init_dom = function (i_context, onSuccess, onError) {
+        that._hmi_init_dom = (context, onSuccess, onError) => {
             const tasks = [];
-            that._hmi_context = i_context;
-            _cont = i_context.container;
+            that._hmi_context = context;
+            _cont = context.container;
             if (isTaskType(that)) {
-                tasks.push((onSuc, onErr) => applyTaskObject(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr));
+                tasks.push((onSuc, onErr) => applyTaskObject(that, that._hmi_context, disableVisuEvents, enableEditorEvents, onSuc, onErr));
             } else {
                 if (that.type === 'graph') {
                     // if a graphics object apply graphic functionality
-                    tasks.push((onSuc, onErr) => applyGraphicObject(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr));
+                    tasks.push((onSuc, onErr) => applyGraphicObject(that, that._hmi_context, disableVisuEvents, enableEditorEvents, onSuc, onErr));
                 } else {
                     tasks.push((onSuc, onErr) => {
                         applyDefaultHtmlObject(that);
@@ -4577,7 +4339,7 @@
                             // apply type specific functionality
                             switch (that.type) {
                                 case 'container':
-                                    applyType(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents);
+                                    applyType(that, that._hmi_context, disableVisuEvents, enableEditorEvents);
                                     onSuc();
                                     break;
                                 case 'grid':
@@ -4587,11 +4349,11 @@
                                 case 'textfield':
                                 case 'textarea':
                                 case 'tree':
-                                    applyType(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr);
+                                    applyType(that, that._hmi_context, disableVisuEvents, enableEditorEvents, onSuc, onErr);
                                     onSuc();
                                     break;
                                 default:
-                                    applyType.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr); // TODO: Still required???
+                                    applyType.call(that, that._hmi_context, disableVisuEvents, enableEditorEvents, onSuc, onErr); // TODO: Still required???
                                     break;
                             }
                         });
@@ -4602,7 +4364,7 @@
                         });
                     }
                     // EXTENSIONS
-                    if (applyButtonHandling.isRequired(that, i_disableVisuEvents)) {
+                    if (applyButtonHandling.isRequired(that, disableVisuEvents)) {
                         tasks.push((onSuc, onErr) => {
                             applyButtonHandling(that, that._hmi_context);
                             onSuc();
@@ -4616,14 +4378,14 @@
                     }
                     tasks.push((onSuc, onErr) => {
                         // used for editor only! move somewhere?
-                        if (typeof that.draggable === 'string' && i_enableEditorEvents !== true) {
+                        if (typeof that.draggable === 'string' && enableEditorEvents !== true) {
                             if (_cont) {
                                 _cont.draggable({
                                     // set the drag and drop scope
                                     scope: that.draggable,
                                     // helper : 'clone' means we just clone the original
                                     /*
-                                     * helper : function() { var clone = _cont.clone();
+                                     * helper : function() { const clone = _cont.clone();
                                      * clone.appendTo(document.body); return clone; },
                                      */
                                     helper: 'clone',
@@ -4639,21 +4401,17 @@
                                     iframeFix: true,
                                     // do not scroll if we reach edge of browser frame
                                     scroll: false,
-                                    start: function (event, ui) {
-                                        updateEventListenersState(false);
-                                    },
-                                    stop: function (event, ui) {
-                                        updateEventListenersState(true);
-                                    }
+                                    start: (event, ui) => updateEventListenersState(false),
+                                    stop: (event, ui) => updateEventListenersState(true)
                                 });
                                 if (that.clickable !== false) {
-                                    _fClickedDraggable = function (i_event) {
+                                    _fClickedDraggable = event => {
                                         if ($(that).is('.ui-draggable-dragging')) {
                                             return;
                                         }
-                                        preventDefaultAndStopPropagation(i_event);
-                                        var target = that.hmi.droppables[that.draggable];
-                                        var data = that.data;
+                                        preventDefaultAndStopPropagation(event);
+                                        const target = that.hmi.droppables[that.draggable];
+                                        const data = that.data;
                                         if (target !== null && typeof target === 'object' && typeof target.add === 'function' && data !== null && typeof data === 'object' && typeof data.object === 'string') {
                                             target.add(data.object, data.width, data.height, data.init);
                                         }
@@ -4670,32 +4428,29 @@
                     try {
                         // VISIBILITY (default is true)
                         if (isVisible(that.visible) === false) {
-                            if (i_disableVisuEvents === true) {
+                            if (disableVisuEvents === true) {
                                 that.hmi_setVisible(true);
                                 if (_cont && (that._hmi_graphicsRoot === true || that._hmi_graphics !== true)) {
                                     // this is for our editor
                                     _cont.css('opacity', '0.3819660112501052');
                                 }
-                            }
-                            else {
+                            } else {
                                 that.hmi_setVisible(false);
                             }
-                        }
-                        else {
+                        } else {
                             that.hmi_setVisible(true);
                         }
                         onSuc();
-                    }
-                    catch (e) {
-                        onErr(e);
+                    } catch (error) {
+                        onErr(error);
                     }
                 });
             }
             // add extensions is available
-            for (var i = 0; i < s_extensions.length; i++) { // TODO: Clean up this
-                var impl = s_extensions[i];
-                if (impl.isExtension(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents)) {
-                    tasks.push((onSuc, onErr) => impl.call(that, that._hmi_context, i_disableVisuEvents, i_enableEditorEvents, onSuc, onErr));
+            for (let i = 0; i < s_extensions.length; i++) { // TODO: Clean up this
+                const impl = s_extensions[i];
+                if (impl.isExtension(that, that._hmi_context, disableVisuEvents, enableEditorEvents)) {
+                    tasks.push((onSuc, onErr) => impl.call(that, that._hmi_context, disableVisuEvents, enableEditorEvents, onSuc, onErr));
                 }
             }
             tasks.parallel = false;
@@ -4705,15 +4460,14 @@
                 onSuccess();
             }, onError);
         };
-
         // ADD LISTENERS
-        that._hmi_addListeners = (i_hmiObject, i_success, i_error) => {
+        that._hmi_addListeners = (hmiObject, onSuccess, onError) => {
             // WATCH / TEXT
             _watch = getWatch(that.watch);
             if (Array.isArray(_watch)) {
                 _onEventCallbacks = [];
-                for (var i = 0; i < _watch.length; i++) {
-                    (function () {
+                for (let i = 0; i < _watch.length; i++) {
+                    (function () { // Closure
                         const dataId = _watch[i];
                         let type;
                         try {
@@ -4769,32 +4523,31 @@
                 }
             }
             // add listeners
-            for (var i = 0; i < that._hmi_listenerAdds.length; i++) {
-                var func = that._hmi_listenerAdds[i];
+            for (let i = 0; i < that._hmi_listenerAdds.length; i++) {
+                const func = that._hmi_listenerAdds[i];
                 if (typeof func === 'function') {
                     try {
                         func();
-                    } catch (exc) {
-                        console.error('EXCEPTION! Cannot add listeners: ' + exc + ' ' + func.toString());
+                    } catch (error) {
+                        console.error(`Failed adding listeners: ${func.toString()}`, error);
                     }
                 }
             }
             // delete method to prevent other calls
             delete that._hmi_addListeners;
-            i_success();
+            onSuccess();
         };
-
         // REMOVE LISTENERS
-        that._hmi_removeListeners = function (i_hmiObject, i_success, i_error) {
+        that._hmi_removeListeners = (hmiObject, onSuccess, onError) => {
             // remove listeners
-            for (var i = that._hmi_listenerRemoves.length - 1; i >= 0; i--) {
-                var func = that._hmi_listenerRemoves[i];
+            for (let i = that._hmi_listenerRemoves.length - 1; i >= 0; i--) {
+                const func = that._hmi_listenerRemoves[i];
                 if (typeof func === 'function') {
                     try {
                         func();
                     }
-                    catch (exc) {
-                        console.error('EXCEPTION! Cannot remove listeners: ' + exc + ' ' + func.toString());
+                    catch (error) {
+                        console.error(`Failed removing listeners: ${func.toString()}`, error);
                     }
                 }
             }
@@ -4807,7 +4560,7 @@
                 delete that._hmi_onLanguageChanged;
             }
             if (Array.isArray(_watch)) {
-                for (var i = _watch.length - 1; i >= 0; i--) {
+                for (let i = _watch.length - 1; i >= 0; i--) {
                     try {
                         that.hmi.access.unregisterObserver(_watch[i], _onEventCallbacks[i]);
                     } catch (error) {
@@ -4820,21 +4573,19 @@
             }
             // delete method to prevent other calls
             delete that._hmi_removeListeners;
-            i_success();
+            onSuccess();
         };
-
         // CLEAN UP
-        that._hmi_destroy_dom = function () {
+        that._hmi_destroy_dom = () => {
             that._hmi_refreshs.splice(0, that._hmi_refreshs.length);
             // perform all destroys and remove all
-            for (var i = that._hmi_destroys.length - 1; i >= 0; i--) {
-                var func = that._hmi_destroys[i];
+            for (let i = that._hmi_destroys.length - 1; i >= 0; i--) {
+                const func = that._hmi_destroys[i];
                 if (typeof func === 'function') {
                     try {
                         func();
-                    }
-                    catch (exc) {
-                        console.error('EXCEPTION! Cannot destroy object with id "' + that._hmi_objectId + '": ' + exc + ' ' + func.toString());
+                    } catch (error) {
+                        console.error(`Failed destroying object with id '${that._hmi_objectId}': ${func.toString()}`, error);
                     }
                 }
             }
@@ -4844,7 +4595,7 @@
                     _cont.off('click', _fClickedDraggable);
                     _fClickedDraggable = undefined;
                 }
-                if (typeof that.draggable === 'string' && i_enableEditorEvents !== true) {
+                if (typeof that.draggable === 'string' && enableEditorEvents !== true) {
                     _cont.draggable('destroy');
                 }
                 _cont.empty();
@@ -4853,9 +4604,8 @@
             // prevent other calls
             delete that._hmi_destroy_dom;
         };
-
         // DESTROY VISU OBJECT
-        that._hmi_destroy = function () {
+        that._hmi_destroy = () => {
             // remove listener adds and removes
             that._hmi_listenerAdds.splice(0, that._hmi_listenerAdds.length);
             delete that._hmi_listenerAdds;
@@ -4884,7 +4634,7 @@
             // reset references
             that = undefined;
         };
-    };
+    }
 
     function showDialog(hmi, config, onSuccess, onError) {
         // dialog opacity: search for "ui-widget-overlay" in CSS and modify:
@@ -4954,8 +4704,7 @@
                 if (Array.isArray(_buttons) && _buttons.length > 0) {
                     const buttons = [];
                     for (let i = 0; i < _buttons.length; i++) {
-                        // closure
-                        (function () {
+                        (function () { // closure
                             const button = _buttons[i];
                             if (typeof button.click === 'function') {
                                 createIdNodeSubTree(button, hmiobj, button.id, hmiobj);
@@ -4993,8 +4742,8 @@
             if (typeof onSuccess === 'function') {
                 try {
                     onSuccess();
-                } catch (exc) {
-                    console.error('EXCEPTION! Calling ready callback: ' + exc + ' ' + onSuccess.toString());
+                } catch (error) {
+                    console.error(`Failed calling ready callback: ${onSuccess.toString()}`, error);
                 }
             }
         }, onError, hmi, config.init);
@@ -5006,8 +4755,8 @@
         function perform(callback, close) {
             try {
                 callback();
-            } catch (exc) {
-                console.error(`EXCEPTION! Calling callback: '${exc}' '${callback.toString()}'`);
+            } catch (error) {
+                console.error(`Failed calling callback: ${callback.toString()}`, error);
             }
             close();
         };
@@ -5067,134 +4816,122 @@
      * analogically.
      * 
      * @param {Object}
-     *          i_source The source object or array
+     *          source The source object or array
      * @param {Object}
-     *          i_target The target object or array
+     *          target The target object or array
      * @param {Object}
-     *          i_attribute The attribute name.
+     *          attribute The attribute name.
      */
-    function transfer_attribute(i_source, i_target, i_attribute) {
-        var sourceAttribute = i_source[i_attribute];
-        var targetAttribute = i_target[i_attribute];
+    function transferAttribute(source, target, attribute) {
+        const sourceAttribute = source[attribute];
+        const targetAttribute = target[attribute];
         if (Array.isArray(sourceAttribute)) {
             if (Array.isArray(targetAttribute)) {
-                transfer_attributes(sourceAttribute, targetAttribute, undefined);
+                transferAttributes(sourceAttribute, targetAttribute, undefined);
+            } else {
+                target[attribute] = sourceAttribute;
             }
-            else {
-                i_target[i_attribute] = sourceAttribute;
-            }
-        }
-        else if (sourceAttribute !== null && typeof sourceAttribute === 'object') {
+        } else if (sourceAttribute !== null && typeof sourceAttribute === 'object') {
             if (Array.isArray(targetAttribute)) {
-                i_target[i_attribute] = sourceAttribute;
+                target[attribute] = sourceAttribute;
+            } else if (targetAttribute !== null && typeof targetAttribute === 'object') {
+                transferAttributes(sourceAttribute, targetAttribute, undefined);
+            } else {
+                target[attribute] = sourceAttribute;
             }
-            else if (targetAttribute !== null && typeof targetAttribute === 'object') {
-                transfer_attributes(sourceAttribute, targetAttribute, undefined);
-            }
-            else {
-                i_target[i_attribute] = sourceAttribute;
-            }
+        } else if (sourceAttribute !== undefined) {
+            target[attribute] = sourceAttribute;
         }
-        else if (sourceAttribute !== undefined) {
-            i_target[i_attribute] = sourceAttribute;
-        }
-    };
-
+    }
     /**
      * This method transfers all attributes from the source to the target. If
      * source and target are both arrays we iterate over all elements. If source
      * and target are both objects we iterate over all attributes.
      * 
      * @param {Object}
-     *          i_source The source object or array
+     *          source The source object or array
      * @param {Object}
-     *          i_target The target object or array
+     *          target The target object or array
      * @param {boolean}
-     *          i_ignoreAttribute If true attributes named 'id' will be ignored
+     *          ignoreAttribute If true attributes named 'id' will be ignored
      */
-    function transfer_attributes(i_source, i_target, i_ignoreAttribute) {
-        if (Array.isArray(i_source)) {
-            for (var i = 0; i < i_source.length; i++) {
-                transfer_attribute(i_source, i_target, i);
+    function transferAttributes(source, target, ignoreAttribute) {
+        if (Array.isArray(source)) {
+            for (let i = 0; i < source.length; i++) {
+                transferAttribute(source, target, i);
             }
-        }
-        else {
-            for (var attr in i_source) {
-                if (i_source.hasOwnProperty(attr) && (i_ignoreAttribute === undefined || i_ignoreAttribute !== attr)) {
-                    transfer_attribute(i_source, i_target, attr);
+        } else {
+            for (const attr in source) {
+                if (source.hasOwnProperty(attr) && (ignoreAttribute === undefined || ignoreAttribute !== attr)) {
+                    transferAttribute(source, target, attr);
                 }
             }
         }
-    };
-
+    }
     /**
      * This function performs a from node to node navigation via the given path.
-     * 
      * @param {Object}
-     *          i_node The start node
+     *          node The start node
      * @param {Object}
-     *          i_path The path (parts separated by slash)
+     *          path The path (parts separated by slash)
      */
-    var NODE_ID_PATH_DELIMITER = '/';
-    function get_id_node(i_node, i_path) {
-        if (typeof i_path !== 'string') {
+    const NODE_ID_PATH_DELIMITER = '/';
+    function getIdNode(node, path) {
+        if (typeof path !== 'string') {
             return undefined;
         }
-        var path = i_path.split(NODE_ID_PATH_DELIMITER);
-        var node = i_node;
-        for (var i = 0; i < path.length; i++) {
-            var id = path[i];
+        const pathParts = path.split(NODE_ID_PATH_DELIMITER);
+        let idNode = node;
+        for (let i = 0; i < pathParts.length; i++) {
+            const id = pathParts[i];
             if (id === '.') {
                 // same node ==> nothing to do
                 continue;
             }
             if (id === '..') {
                 // go to parent node
-                var parent = node._hmi_nodeParent;
+                const parent = idNode._hmi_nodeParent;
                 if (parent !== undefined && parent !== null) {
-                    node = parent;
+                    idNode = parent;
                     continue;
-                }
-                else {
+                } else {
                     return undefined;
                 }
             }
             if (id === '' && i === 0) {
                 // get root
-                var parent = node._hmi_nodeParent;
+                const parent = idNode._hmi_nodeParent;
                 while (parent !== undefined && parent !== null) {
-                    node = parent;
-                    parent = node._hmi_nodeParent;
+                    idNode = parent;
+                    parent = idNode._hmi_nodeParent;
                 }
                 continue;
             }
-            var children = node._hmi_nodeChildren;
+            const children = idNode._hmi_nodeChildren;
             if (Array.isArray(children)) {
-                var found = false;
-                for (var j = 0; j < children.length; j++) {
-                    var child = children[j];
+                let found = false;
+                for (let j = 0; j < children.length; j++) {
+                    const child = children[j];
                     if (child._hmi_nodeId === id) {
-                        node = child;
+                        idNode = child;
                         found = true;
                         break;
                     }
                 }
                 if (found === true) {
                     continue;
-                }
-                else {
+                } else {
                     return undefined;
                 }
             }
             return undefined;
         }
-        return node;
-    };
-
+        return idNode;
+    }
     function createIdNodeSubTree(object, parentObject, id, nodeParent) {
         object.hmi_node = path => {
             const node = typeof object._hmi_nodeId === 'string' || object._hmi_nodeParent === undefined || object._hmi_nodeParent === null ? object : object._hmi_nodeParent;
-            return typeof path === 'string' ? get_id_node(node, path) : node;
+            return typeof path === 'string' ? getIdNode(node, path) : node;
         };
         object.hmi_path = () => {
             const path = [];
@@ -5245,8 +4982,7 @@
                 }
             }
         }
-    };
-
+    }
     function destroyIdNodeSubTree(object) {
         const children = object.children;
         if (Array.isArray(children)) {
@@ -5280,8 +5016,7 @@
         delete object._hmi_nodeParent;
         delete object._hmi_nodeId;
         delete object.hmi_parentObject;
-    };
-
+    }
     /**
      * This methods handles the given data on the given object. If data is an
      * object the data attributes will be copied to the object. If data is an
@@ -5289,7 +5024,7 @@
      * a function the function will be called repeatedly as long it returns true.
      * 
      * @param {Object}
-     *          i_object The object
+     *          object The object
      * @param {Object}
      *          data The data
      * @param {Object}
@@ -5327,11 +5062,11 @@
                 // we got to find a specific visualization object
                 const hmiObject = typeof object.hmi_node === 'function' ? object.hmi_node(data.id) : undefined;
                 if (hmiObject !== null && typeof hmiObject === 'object') {
-                    transfer_attributes(data, hmiObject, 'id');
+                    transferAttributes(data, hmiObject, 'id');
                 }
             } else {
                 // just call on visualization object
-                transfer_attributes(data, object, 'id');
+                transferAttributes(data, object, 'id');
             }
             onSuccess();
         } else {
@@ -5347,7 +5082,7 @@
      * @param {Object}
      *          object The object
      * @param {Object}
-     *          i_attr The attribute name of the data object, array or function
+     *          attributeName The attribute name of the data object, array or function
      * @param {Object}
      *          fromRootToLeaf If true we call handle the object before we
      *          iterate over it's children.
@@ -5355,7 +5090,7 @@
      *          onSuccess This function will be called when done.
      */
     function performAttributeOnObjectSubTree(object, attributeName, fromRootToLeaf, onSuccess, onError, hmi) {
-        // if we where called with i_object = object.children (in case of i_object
+        // if we where called with object = object.children (in case of object
         // is grid, split, float, ...)
         if (Array.isArray(object)) {
             if (object.length > 0) {
@@ -5386,10 +5121,10 @@
                 // we contain an object named object so we are a holder
                 const data = object[attributeName];
                 if (data !== undefined && data !== null) {
-                    var hmiobj = object._hmi_object;
+                    let hmiobj = object._hmi_object;
                     if (hmiobj === undefined) {
-                        var obj = subObject;
-                        var cld = obj.object;
+                        let obj = subObject;
+                        let cld = obj.object;
                         while (cld !== null && typeof cld === 'object') {
                             obj = cld;
                             cld = obj.object;
@@ -5767,8 +5502,8 @@
                         if (typeof func === 'function') {
                             try {
                                 func(date);
-                            } catch (exc) {
-                                console.error(`Failed calling _hmi_refresh: '${exc}' '${func.toString()}'`);
+                            } catch (error) {
+                                console.error(`Failed calling _hmi_refresh: ${func.toString()}`, error);
                             }
                         }
                     }
@@ -5824,9 +5559,9 @@
         }
     }
     ObjectLifecycleManager.addApplyFunctionForType = addApplyFunctionForType;
-    function _add_extension(i_impl) {
-        if (typeof i_impl === 'function' && typeof i_impl.isExtension === 'function') {
-            s_extensions.push(i_impl);
+    function _add_extension(extension) {
+        if (typeof extension === 'function' && typeof extension.isExtension === 'function') {
+            s_extensions.push(extension);
         }
     }
     ObjectLifecycleManager._add_extension = _add_extension;
