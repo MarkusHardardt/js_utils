@@ -2774,7 +2774,7 @@
                             if (child !== hmiobj) {
                                 hmiobj._hmi_context.transform.setToCoordinateTransform(child, _tf);
                             }
-                        } else if (!isTaskType(hmiobj)) {
+                        } else if (!ObjectLifecycleManager.isTaskType(hmiobj)) {
                             const width = getPixelSize(child.width, _tf.scale);
                             const height = getPixelSize(child.height, _tf.scale);
                             if (typeof width === 'number' && typeof height === 'number') {
@@ -2879,11 +2879,11 @@
                                 }
                                 // #graph: 1
                                 tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont, transform: ctf, context2d: _ctx }, onSuc, onErr));
-                            } else if (isTaskType(hmiobj)) {
+                            } else if (ObjectLifecycleManager.isTaskType(hmiobj)) {
                                 // #graph: 2
                                 tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont }, onSuc, onErr));
                             } else {
-                                child._hmi_graphHtmlElement = $(DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
+                                child._hmi_graphHtmlElement = $(ObjectLifecycleManager.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                                 child._hmi_graphHtmlElement.appendTo(_cont);
                                 const width = getPixelSize(child.width, _tf.scale);
                                 const height = getPixelSize(child.height, _tf.scale);
