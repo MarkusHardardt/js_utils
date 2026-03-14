@@ -16,7 +16,7 @@
         $.fn.DataTable.ext.oSort['timestamp-desc'] = Sorting.getTextsAndNumbersCompareFunction(true, false, true);
     }
 
-    function applyTable(that, context, disableVisuEvents, enableEditorEvents, onSuccess, onError) {
+    function applyTable(that, onSuccess) {
         let _cont = that._hmi_context.container;
         _cont.addClass('overflow-hidden');
         let _tableId = Utilities.getUniqueId();

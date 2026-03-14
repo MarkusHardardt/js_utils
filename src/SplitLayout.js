@@ -11,7 +11,7 @@
     const SPLIT_BOTTOM = 0x02;
     const SPLIT_CENTER = 0x01;
 
-    function applySplit(that, context, disableVisuEvents, enableEditorEvents, onSuccess, onError) {
+    function applySplit(that, onSuccess, onError) {
         let tasks = [];
         let _cont = that._hmi_context.container;
         function initHmiObjectDom(split) {
@@ -322,7 +322,7 @@
             initHmiObjectDom = undefined;
             preparePanesAndInitHmiObjectDom = undefined;
             _mask = undefined;
-            createPanes = undefined;
+            // TODO: What is this? createPanes = undefined;
             _left = undefined;
             _right = undefined;
             _top = undefined;

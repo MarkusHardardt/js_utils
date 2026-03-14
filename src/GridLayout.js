@@ -482,7 +482,7 @@
         }
     }
 
-    function applyGrid(that, context, disableVisuEvents, enableEditorEvents, onSuccess, onError) {
+    function applyGrid(that, onSuccess, onError, enableEditorEvents) {
         let _cont = that._hmi_context.container;
         let _scope = enableEditorEvents === true ? Utilities.getUniqueId() : undefined;
         _cont.addClass('overflow-hidden');

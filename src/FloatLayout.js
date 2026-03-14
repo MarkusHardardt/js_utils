@@ -7,13 +7,13 @@
 
     function getFloatingBounds(child, containerWidth, containerHeight) {
         // get the alignment
-        const alignment = getAlignment(child.align, undefined, false, true);
+        const alignment = ObjectLifecycleManager.getAlignment(child.align, undefined, false, true);
         // get pixel values as number if available (returns undefined if not
         // something like "42px")
-        const parX = getPixelValue(child.x);
-        const parY = getPixelValue(child.y);
-        const parW = getPixelValue(child.width);
-        const parH = getPixelValue(child.height);
+        const parX = ObjectLifecycleManager.getPixelValue(child.x);
+        const parY = ObjectLifecycleManager.getPixelValue(child.y);
+        const parW = ObjectLifecycleManager.getPixelValue(child.width);
+        const parH = ObjectLifecycleManager.getPixelValue(child.height);
         // compute the pixel values
         const pixX = typeof parX === 'number' ? parX : (typeof child.x === 'number' ? child.x * containerWidth : 0.0);
         const pixY = typeof parY === 'number' ? parY : (typeof child.y === 'number' ? child.y * containerHeight : 0.0);
@@ -28,7 +28,7 @@
         };
     }
 
-    function applyFloat(that, context, disableVisuEvents, enableEditorEvents, onSuccess, onError) {
+    function applyFloat(that, onSuccess, onError, enableEditorEvents) {
         let tasks = [];
         let _cont = that._hmi_context.container;
         _cont.addClass('overflow-hidden');
@@ -161,7 +161,7 @@
             for (let i = 0; i < _children.length; i++) {
                 const child = _children[i];
                 if (child._hmi_floatElement) {
-                    setBounds(child._hmi_floatElement, getFloatingBounds(child, width, height));
+                    ObjectLifecycleManager.setBounds(child._hmi_floatElement, getFloatingBounds(child, width, height));
                     const hmiobj = child._hmi_object;
                     if (hmiobj && hmiobj._hmi_resize) {
                         hmiobj._hmi_resize();

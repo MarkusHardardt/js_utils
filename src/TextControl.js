@@ -5,7 +5,7 @@
     const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
     const ObjectLifecycleManager = isNodeJS ? require('./ObjectLifecycleManager.js') : root.ObjectLifecycleManager;
 
-    function applyTextField(that, context, disableVisuEvents, enableEditorEvents, onSuccess, onError) {
+    function applyTextField(that, onSuccess) {
         let _cont = that._hmi_context.container;
         _cont.addClass('overflow-hidden');
         let _textfield = undefined;
@@ -45,7 +45,7 @@
     }
     ObjectLifecycleManager.addApplyFunctionForType('textfield', applyTextField);
 
-    function applyTextArea(that, i_context, i_disableVisuEvents, i_enableEditorEvents, i_success, i_error) {
+    function applyTextArea(that, onSuccess) {
         let _cont = that._hmi_context.container;
         _cont.addClass('overflow-hidden');
         let _textarea = undefined;
@@ -218,7 +218,7 @@
         if (that.value !== undefined) {
             that.hmi_value(that.value);
         }
-        i_success();
+        onSuccess();
     }
     ObjectLifecycleManager.addApplyFunctionForType('textarea', applyTextArea);
 

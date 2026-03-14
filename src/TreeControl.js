@@ -180,7 +180,7 @@
     // All other fields are considered custom and will be added to the nodes data
     // object as 'node.data.PROPERTY' (e.g. 'node.data.myOwnAttr').
     // @formatter:on
-    function applyTree(that, context, disableVisuEvents, enableEditorEvents, onSuccess, onError) {
+    function applyTree(that, onSuccess) {
         let _cont = that._hmi_context.container;
         _cont.addClass('default-scroll-container');
         that.hmi_setRootPath = (path, onSuc, onErr) => {

@@ -497,7 +497,7 @@
         }
     }
 
-    function applyContainer(that, context, disableVisuEvents, enableEditorEvents) {
+    function applyContainer(that, onSuccess) {
         let _cont = that._hmi_context.container;
         _cont.addClass('overflow-hidden');
         let _div = $(DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
@@ -553,6 +553,7 @@
             _cont = undefined;
             that = undefined;
         });
+        onSuccess();
     }
     s_types['container'] = applyContainer;
 
@@ -982,7 +983,7 @@
         }
     }
 
-    function applySimpleHtmlObject(that) {
+    function applySimpleHtmlObject(that, onSuccess) {
         let _cont = that._hmi_context.container;
         let _image = undefined;
         let _text = undefined;
@@ -1189,6 +1190,7 @@
             _cont = undefined;
             that = undefined;
         });
+        onSuccess();
     };
 
     function applyTaskObject(that, context, disableVisuEvents, enableEditorEvents, onSuccess, onError) {
@@ -1288,35 +1290,10 @@
                     });
                     // get type if available
                     const applyType = typeof that.type === 'string' ? s_types[that.type] : false;
-                    // if type is available
-                    if (typeof applyType === 'function') {
-                        tasks.push((onSuc, onErr) => {
-                            // apply type specific functionality
-                            switch (that.type) {
-                                case 'container':
-                                    applyType(that, that._hmi_context, disableVisuEvents, enableEditorEvents);
-                                    onSuc();
-                                    break;
-                                case 'grid':
-                                case 'float':
-                                case 'split':
-                                case 'table':
-                                case 'textfield':
-                                case 'textarea':
-                                case 'tree':
-                                    applyType(that, that._hmi_context, disableVisuEvents, enableEditorEvents, onSuc, onErr);
-                                    onSuc();
-                                    break;
-                                default:
-                                    applyType.call(that, that._hmi_context, disableVisuEvents, enableEditorEvents, onSuc, onErr); // TODO: Still required???
-                                    break;
-                            }
-                        });
+                    if (typeof applyType === 'function') { // if type is available
+                        tasks.push((onSuc, onErr) => applyType(that, onSuc, onErr, enableEditorEvents));
                     } else { // no type
-                        tasks.push((onSuc, onErr) => {
-                            applySimpleHtmlObject(that);
-                            onSuc();
-                        });
+                        tasks.push((onSuc, onErr) => applySimpleHtmlObject(that, onSuc));
                     }
                     // EXTENSIONS
                     if (applyButtonHandling.isRequired(that, disableVisuEvents)) {
