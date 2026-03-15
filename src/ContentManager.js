@@ -604,17 +604,20 @@
         #include(adapter, object, ids, language, onResponse, onError) {
             const that = this;
             if (Array.isArray(object)) {
-                this.#buildProperties(adapter, object, ids, language, onResponse, onError);
+                this.#includeAllObjectPropertiesOrArrayElements(adapter, object, ids, language, onResponse, onError);
             } else if (typeof object === 'object' && object !== null) {
                 const includeKey = object.include;
                 const match = typeof includeKey === 'string' && !ids[includeKey] ? this._contentTablesKeyRegex.exec(includeKey) : false;
+                if (typeof includeKey === 'string' && ids[includeKey] === true) { // TODO: Remove when fixed
+                    console.error(`### ==> Circular include: '${includeKey}', ids: ${JSON.stringify(ids, undefined, 4)}`);
+                }
                 if (!match) {
-                    this.#buildProperties(adapter, object, ids, language, onResponse, onError);
+                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, ids, language, onResponse, onError);
                     return;
                 }
                 const table = this._contentTablesByExtension[match[2]];
                 if (!table) {
-                    this.#buildProperties(adapter, object, ids, language, onResponse, onError);
+                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, ids, language, onResponse, onError);
                     return;
                 }
                 this.#getRawString(adapter, table, match[1], language, rawString => {
@@ -624,24 +627,20 @@
                         that.#include(adapter, includedObject, ids, language, inclObj => {
                             delete ids[includeKey];
                             if (typeof inclObj === 'object' && inclObj !== null) {
-                                // if we included an object all attributes except
-                                // include must be copied
+                                // if we included an object all attributes except include must be copied
                                 delete object.include;
-                                that.#buildProperties(adapter, object, ids, language, () => {
+                                that.#includeAllObjectPropertiesOrArrayElements(adapter, object, ids, language, () => {
                                     // with a true "source"-flag we keep all replaced
                                     // attributes stored inside a source object
                                     if (object.source === true) {
                                         // here we store the replaced attributes
                                         const source = {};
-                                        // if there are already stored source attributes
-                                        // we
-                                        // keep them as well
+                                        // if there are already stored source attributes we keep them as well
                                         if (inclObj.source !== undefined) {
                                             source.source = inclObj.source;
                                             delete inclObj.source;
                                         }
-                                        // now we transfer and collect all replaced
-                                        // attributes
+                                        // now we transfer and collect all replaced attributes
                                         Utilities.transferProperties(object, inclObj, source);
                                         // finally we add our bases
                                         inclObj.source = source;
@@ -657,20 +656,17 @@
                             }
                         }, onError);
                     } else {
-                        // no string available so just step on with building the object
-                        // properties
-                        that.#buildProperties(adapter, object, ids, language, onResponse, onError);
+                        // no string available so just step on with building the object properties
+                        that.#includeAllObjectPropertiesOrArrayElements(adapter, object, ids, language, onResponse, onError);
                     }
                 }, onError);
             } else if ((typeof object === 'string')) {
-                // Strings may contain include:$path/file.ext entries. With the next
-                // Regex call we build an array containing strings and include
-                // matches.
+                // Strings may contain include:$path/file.ext entries.
+                // With the next regex call we build an array containing strings and include matches.
                 const array = [];
                 Regex.each(that._include_regex_build, object, (start, end, match) => array.push(match && !ids[`$${match[2]}.${match[3]}`] ? match : object.substring(start, end)));
-                // For all found include-match we try to load the referenced content
-                // from the database and replace the corresponding array element with
-                // the built content.
+                // For all found include-match we try to load the referenced content from the database 
+                // and replace the corresponding array element with the built content.
                 const tasks = [];
                 let i, l = array.length, match, tab;
                 for (i = 0; i < l; i++) {
@@ -678,7 +674,7 @@
                     if (Array.isArray(match)) {
                         tab = that._contentTablesByExtension[match[3]];
                         if (tab) {
-                            (function () {
+                            (function () { // Closure
                                 let idx = i, orig = match[0], includeKey = `$${match[2]}.${match[3]}`, table = tab, rawKey = match[2];
                                 tasks.push((onSuc, onErr) => {
                                     that.#getRawString(adapter, table, rawKey, language, rawString => {
@@ -691,8 +687,7 @@
                                                 onSuc();
                                             }, onErr);
                                         } else {
-                                            // no raw string available means we replace with the
-                                            // original content
+                                            // no raw string available means we replace with the original content
                                             array[idx] = orig;
                                             onSuc();
                                         }
@@ -711,23 +706,25 @@
                 onResponse(object);
             }
         }
-        #buildProperties(adapter, object, ids, language, onResponse, onError) {
-            const that = this;
-            const tasks = [];
-            for (const a in object) {
-                if (object.hasOwnProperty(a)) {
-                    (function () {
-                        const p = a;
-                        tasks.push((onSuc, onErr) => {
-                            that.#include(adapter, object[p], ids, language, objectProperty => {
-                                object[p] = objectProperty;
-                                onSuc();
-                            }, onErr);
-                        });
+        #includeAllObjectPropertiesOrArrayElements(adapter, object, ids, language, onResponse, onError) {
+            const that = this, tasks = [];
+            for (const attr in object) { // Note: This works for objects and arrays! 'attr' will be a string on objects and on arrays the index converted to a string.
+                if (object.hasOwnProperty(attr)) {
+                    (function () { // Closure for attribute name
+                        const name = attr;
+                        tasks.push((onSuc, onErr) => that.#include(adapter, object[name], ids, language, result => {
+                            object[name] = result;
+                            onSuc();
+                        }, onErr));
                     }());
                 }
             }
-            tasks.parallel = this.#parallel;
+            /*  TODO:
+                If this is not 'true' but instead '8' as configured, some include actions fail because the id is still contained in ids{}. 
+                ==> Why???   
+                Debug with: '$Demo/3_Graph/2_Complex/1_ConnectionWithDatastream/Graph.j'    */
+            // tasks.parallel = true; // TODO: Reuse or remove 
+            tasks.parallel = this.#parallel; // TODO: Reuse or remove 
             Executor.run(tasks, () => onResponse(object), onError);
         }
         #getModificationParams(adapter, id, language, value, onResponse, onError) {
