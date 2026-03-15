@@ -493,9 +493,7 @@
                             if (mode === ContentManager.RAW) {
                                 onResponse(JsonFX.stringify(JsonFX.reconstruct(object, that.#evalFunc), true));
                             } else {
-                                const ids = {};
-                                ids[id] = true;
-                                that.#include(adapter, object, ids, language, result => {
+                                that.#include(adapter, object, [id], language, result => {
                                     const json = JsonFX.stringify(JsonFX.reconstruct(result, that.#evalFunc), true);
                                     if (mode === ContentManager.PARSE) {
                                         onResponse(that.#evalFunc(json));
@@ -514,9 +512,7 @@
                     that.#getRawString(adapter, table, rawKey, undefined, rawString => {
                         if (rawString !== false) {
                             if (mode === ContentManager.INCLUDE) {
-                                const ids = {};
-                                ids[id] = true;
-                                that.#include(adapter, rawString, ids, language, onResponse, onError);
+                                that.#include(adapter, rawString, [id], language, onResponse, onError);
                             } else {
                                 onResponse(rawString);
                             }
@@ -532,9 +528,7 @@
                         that.#getRawString(adapter, table, rawKey, language, rawString => {
                             if (rawString !== false) {
                                 if (mode === ContentManager.INCLUDE) {
-                                    const ids = {};
-                                    ids[id] = true;
-                                    that.#include(adapter, rawString, ids, language, onResponse, onError);
+                                    that.#include(adapter, rawString, [id], language, onResponse, onError);
                                 } else {
                                     onResponse(rawString);
                                 }
@@ -558,10 +552,8 @@
                                         if (object.hasOwnProperty(attr)) {
                                             (function () {
                                                 const language = attr;
-                                                const ids = {};
-                                                ids[id] = true;
                                                 tasks.push((onSuc, onErr) => {
-                                                    that.#include(adapter, object[language], ids, language, response => {
+                                                    that.#include(adapter, object[language], [id], language, response => {
                                                         object[language] = response;
                                                         onSuc();
                                                     }, onErr);
@@ -601,35 +593,42 @@
                     onError(`Cannot get object for unsupported type: ${table.type}`);
             }
         }
-        #include(adapter, object, ids, language, onResponse, onError) {
+        #include(adapter, object, idStack, language, onResponse, onError) {
             const that = this;
             if (Array.isArray(object)) {
-                this.#includeAllObjectPropertiesOrArrayElements(adapter, object, ids, language, onResponse, onError);
+                this.#includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, onResponse, onError);
             } else if (typeof object === 'object' && object !== null) {
                 const includeKey = object.include;
-                const match = typeof includeKey === 'string' && !ids[includeKey] ? this._contentTablesKeyRegex.exec(includeKey) : false;
-                if (typeof includeKey === 'string' && ids[includeKey] === true) { // TODO: Remove when fixed
-                    console.error(`### ==> Circular include: '${includeKey}', ids: ${JSON.stringify(ids, undefined, 4)}`);
+                if (typeof includeKey !== 'string') { // Object does not include another item so we just handle the object properties recursively
+                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, onResponse, onError);
+                    return;
+                } else if (idStack.includes(includeKey)) { // Cyclical include dependency detected
+                    this.#logger.warn(`Cyclical include dependency detected: '${includeKey}', idStack: ${JSON.stringify(idStack)}`);
+                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, onResponse, onError);
+                    return;
                 }
-                if (!match) {
-                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, ids, language, onResponse, onError);
+                const match = this._contentTablesKeyRegex.exec(includeKey);
+                if (!match) { // Invalid key
+                    this.#logger.warn(`Invalid include id detected: '${includeKey}'`);
+                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, onResponse, onError);
                     return;
                 }
                 const table = this._contentTablesByExtension[match[2]];
                 if (!table) {
-                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, ids, language, onResponse, onError);
+                    this.#logger.warn(`Unsupported include id detected: '${includeKey}'`);
+                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, onResponse, onError);
                     return;
                 }
                 this.#getRawString(adapter, table, match[1], language, rawString => {
                     if (rawString !== false) {
-                        ids[includeKey] = true;
+                        idStack.push(includeKey);
                         const includedObject = table.type === DataType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
-                        that.#include(adapter, includedObject, ids, language, inclObj => {
-                            delete ids[includeKey];
+                        that.#include(adapter, includedObject, idStack, language, inclObj => {
+                            idStack.pop();
                             if (typeof inclObj === 'object' && inclObj !== null) {
                                 // if we included an object all attributes except include must be copied
                                 delete object.include;
-                                that.#includeAllObjectPropertiesOrArrayElements(adapter, object, ids, language, () => {
+                                that.#includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, () => {
                                     // with a true "source"-flag we keep all replaced
                                     // attributes stored inside a source object
                                     if (object.source === true) {
@@ -657,14 +656,14 @@
                         }, onError);
                     } else {
                         // no string available so just step on with building the object properties
-                        that.#includeAllObjectPropertiesOrArrayElements(adapter, object, ids, language, onResponse, onError);
+                        that.#includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, onResponse, onError);
                     }
                 }, onError);
             } else if ((typeof object === 'string')) {
                 // Strings may contain include:$path/file.ext entries.
                 // With the next regex call we build an array containing strings and include matches.
                 const array = [];
-                Regex.each(that._include_regex_build, object, (start, end, match) => array.push(match && !ids[`$${match[2]}.${match[3]}`] ? match : object.substring(start, end)));
+                Regex.each(that._include_regex_build, object, (start, end, match) => array.push(match && !idStack.includes(`$${match[2]}.${match[3]}`) ? match : object.substring(start, end)));
                 // For all found include-match we try to load the referenced content from the database 
                 // and replace the corresponding array element with the built content.
                 const tasks = [];
@@ -679,10 +678,10 @@
                                 tasks.push((onSuc, onErr) => {
                                     that.#getRawString(adapter, table, rawKey, language, rawString => {
                                         if (rawString !== false) {
-                                            ids[includeKey] = true;
+                                            idStack.push(includeKey);
                                             const object = table.type === DataType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
-                                            that.#include(adapter, object, ids, language, build => {
-                                                delete ids[includeKey];
+                                            that.#include(adapter, object, idStack, language, build => {
+                                                idStack.pop();
                                                 array[idx] = table.type === DataType.JsonFX && array.length > 1 ? JsonFX.stringify(build, false) : build;
                                                 onSuc();
                                             }, onErr);
@@ -706,25 +705,21 @@
                 onResponse(object);
             }
         }
-        #includeAllObjectPropertiesOrArrayElements(adapter, object, ids, language, onResponse, onError) {
+        #includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, onResponse, onError) {
             const that = this, tasks = [];
             for (const attr in object) { // Note: This works for objects and arrays! 'attr' will be a string on objects and on arrays the index converted to a string.
                 if (object.hasOwnProperty(attr)) {
-                    (function () { // Closure for attribute name
+                    (function () { // Closure
                         const name = attr;
-                        tasks.push((onSuc, onErr) => that.#include(adapter, object[name], ids, language, result => {
+                        const childIdStack = idStack.slice();
+                        tasks.push((onSuc, onErr) => that.#include(adapter, object[name], childIdStack, language, result => {
                             object[name] = result;
                             onSuc();
                         }, onErr));
                     }());
                 }
             }
-            /*  TODO:
-                If this is not 'true' but instead '8' as configured, some include actions fail because the id is still contained in ids{}. 
-                ==> Why???   
-                Debug with: '$Demo/3_Graph/2_Complex/1_ConnectionWithDatastream/Graph.j'    */
-            // tasks.parallel = true; // TODO: Reuse or remove 
-            tasks.parallel = this.#parallel; // TODO: Reuse or remove 
+            tasks.parallel = this.#parallel;
             Executor.run(tasks, () => onResponse(object), onError);
         }
         #getModificationParams(adapter, id, language, value, onResponse, onError) {
@@ -744,9 +739,7 @@
                 onResponse(params);
                 return;
             }
-
-            // try to get all current database values for given id and copy the new
-            // values
+            // try to get all current database values for given id and copy the new values
             switch (table.type) {
                 case DataType.JsonFX:
                 case DataType.Text:
@@ -821,9 +814,7 @@
                                 } else if (typeof value === 'object' && value !== null) {
                                     nextval = value[attr];
                                 }
-                                // within the next condition checks we detect if the value is
-                                // available
-                                // after the update and if the data will be changed
+                                // within the next condition checks we detect if the value is available after the update and if the data will be changed
                                 const params = getModificationParams(currval, nextval);
                                 if (!params.empty) {
                                     stillNotEmpty = true;
@@ -1993,9 +1984,9 @@
                 onError(`Invalid table for type: ${type}`);
                 return;
             }
-            this.#getSqlAdapter(adapter => this.#getAllIdsForType(adapter, table, extension, ids => {
+            this.#getSqlAdapter(adapter => this.#getAllIdsForType(adapter, table, extension, response => {
                 adapter.close();
-                onResponse(ids);
+                onResponse(response);
             }, error => {
                 adapter.close();
                 onError(error);
