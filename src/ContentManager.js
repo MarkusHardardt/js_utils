@@ -481,7 +481,7 @@
             }), onError);
         }
         #resolveObject(adapter, id, rawKey, table, language, mode, onResponse, onError) {
-            const that = this;
+            const that = this, isIncludable = incId => incId !== id;
             // if JsonFX or plain text is available we decode the string and
             // return with or without all includes included
             switch (table.type) {
@@ -493,7 +493,7 @@
                             if (mode === ContentManager.RAW) {
                                 onResponse(JsonFX.stringify(JsonFX.reconstruct(object, that.#evalFunc), true));
                             } else {
-                                that.#include(adapter, object, [id], language, result => {
+                                that.#handleInclude(adapter, object, isIncludable, language, result => {
                                     const json = JsonFX.stringify(JsonFX.reconstruct(result, that.#evalFunc), true);
                                     if (mode === ContentManager.PARSE) {
                                         onResponse(that.#evalFunc(json));
@@ -512,7 +512,7 @@
                     that.#getRawString(adapter, table, rawKey, undefined, rawString => {
                         if (rawString !== false) {
                             if (mode === ContentManager.INCLUDE) {
-                                that.#include(adapter, rawString, [id], language, onResponse, onError);
+                                that.#handleInclude(adapter, rawString, isIncludable, language, onResponse, onError);
                             } else {
                                 onResponse(rawString);
                             }
@@ -528,7 +528,7 @@
                         that.#getRawString(adapter, table, rawKey, language, rawString => {
                             if (rawString !== false) {
                                 if (mode === ContentManager.INCLUDE) {
-                                    that.#include(adapter, rawString, [id], language, onResponse, onError);
+                                    that.#handleInclude(adapter, rawString, isIncludable, language, onResponse, onError);
                                 } else {
                                     onResponse(rawString);
                                 }
@@ -553,7 +553,7 @@
                                             (function () {
                                                 const language = attr;
                                                 tasks.push((onSuc, onErr) => {
-                                                    that.#include(adapter, object[language], [id], language, response => {
+                                                    that.#handleInclude(adapter, object[language], isIncludable, language, response => {
                                                         object[language] = response;
                                                         onSuc();
                                                     }, onErr);
@@ -593,42 +593,40 @@
                     onError(`Cannot get object for unsupported type: ${table.type}`);
             }
         }
-        #include(adapter, object, idStack, language, onResponse, onError) {
+        #handleInclude(adapter, object, isIncludable, language, onResponse, onError) {
             const that = this;
             if (Array.isArray(object)) {
-                this.#includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, onResponse, onError);
+                this.#includeAllObjectPropertiesOrArrayElements(adapter, object, isIncludable, language, onResponse, onError);
             } else if (typeof object === 'object' && object !== null) {
-                const includeKey = object.include;
-                if (typeof includeKey !== 'string') { // Object does not include another item so we just handle the object properties recursively
-                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, onResponse, onError);
+                const includeId = object.include;
+                if (typeof includeId !== 'string') { // Object does not include another item so we just handle the object properties recursively
+                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, isIncludable, language, onResponse, onError);
                     return;
-                } else if (idStack.includes(includeKey)) { // Cyclical include dependency detected
-                    this.#logger.warn(`Cyclical include dependency detected: '${includeKey}', idStack: ${JSON.stringify(idStack)}`);
-                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, onResponse, onError);
+                } else if (!isIncludable(includeId)) { // Cyclical include dependency detected
+                    this.#logger.warn(`Cyclical include dependency detected: '${includeId}'`);
+                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, isIncludable, language, onResponse, onError);
                     return;
                 }
-                const match = this._contentTablesKeyRegex.exec(includeKey);
+                const match = this._contentTablesKeyRegex.exec(includeId);
                 if (!match) { // Invalid key
-                    this.#logger.warn(`Invalid include id detected: '${includeKey}'`);
-                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, onResponse, onError);
+                    this.#logger.warn(`Invalid include id detected: '${includeId}'`);
+                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, isIncludable, language, onResponse, onError);
                     return;
                 }
                 const table = this._contentTablesByExtension[match[2]];
                 if (!table) {
-                    this.#logger.warn(`Unsupported include id detected: '${includeKey}'`);
-                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, onResponse, onError);
+                    this.#logger.warn(`Unsupported include id detected: '${includeId}'`);
+                    this.#includeAllObjectPropertiesOrArrayElements(adapter, object, isIncludable, language, onResponse, onError);
                     return;
                 }
                 this.#getRawString(adapter, table, match[1], language, rawString => {
                     if (rawString !== false) {
-                        idStack.push(includeKey);
                         const includedObject = table.type === DataType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
-                        that.#include(adapter, includedObject, idStack, language, inclObj => {
-                            idStack.pop();
+                        that.#handleInclude(adapter, includedObject, incId => incId !== includeId && isIncludable(incId), language, inclObj => {
                             if (typeof inclObj === 'object' && inclObj !== null) {
                                 // if we included an object all attributes except include must be copied
                                 delete object.include;
-                                that.#includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, () => {
+                                that.#includeAllObjectPropertiesOrArrayElements(adapter, object, isIncludable, language, () => {
                                     // with a true "source"-flag we keep all replaced
                                     // attributes stored inside a source object
                                     if (object.source === true) {
@@ -656,14 +654,14 @@
                         }, onError);
                     } else {
                         // no string available so just step on with building the object properties
-                        that.#includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, onResponse, onError);
+                        that.#includeAllObjectPropertiesOrArrayElements(adapter, object, isIncludable, language, onResponse, onError);
                     }
                 }, onError);
             } else if ((typeof object === 'string')) {
                 // Strings may contain include:$path/file.ext entries.
                 // With the next regex call we build an array containing strings and include matches.
                 const array = [];
-                Regex.each(that._include_regex_build, object, (start, end, match) => array.push(match && !idStack.includes(`$${match[2]}.${match[3]}`) ? match : object.substring(start, end)));
+                Regex.each(that._include_regex_build, object, (start, end, match) => array.push(match && isIncludable(`$${match[2]}.${match[3]}`) ? match : object.substring(start, end)));
                 // For all found include-match we try to load the referenced content from the database 
                 // and replace the corresponding array element with the built content.
                 const tasks = [];
@@ -674,14 +672,12 @@
                         tab = that._contentTablesByExtension[match[3]];
                         if (tab) {
                             (function () { // Closure
-                                let idx = i, orig = match[0], includeKey = `$${match[2]}.${match[3]}`, table = tab, rawKey = match[2];
+                                const idx = i, orig = match[0], includeId = `$${match[2]}.${match[3]}`, table = tab, rawKey = match[2];
                                 tasks.push((onSuc, onErr) => {
                                     that.#getRawString(adapter, table, rawKey, language, rawString => {
                                         if (rawString !== false) {
-                                            idStack.push(includeKey);
                                             const object = table.type === DataType.JsonFX ? JsonFX.parse(rawString, false, false) : rawString;
-                                            that.#include(adapter, object, idStack, language, build => {
-                                                idStack.pop();
+                                            that.#handleInclude(adapter, object, incId => incId !== includeId && isIncludable(incId), language, build => {
                                                 array[idx] = table.type === DataType.JsonFX && array.length > 1 ? JsonFX.stringify(build, false) : build;
                                                 onSuc();
                                             }, onErr);
@@ -705,14 +701,13 @@
                 onResponse(object);
             }
         }
-        #includeAllObjectPropertiesOrArrayElements(adapter, object, idStack, language, onResponse, onError) {
+        #includeAllObjectPropertiesOrArrayElements(adapter, object, isIncludable, language, onResponse, onError) {
             const that = this, tasks = [];
             for (const attr in object) { // Note: This works for objects and arrays! 'attr' will be a string on objects and on arrays the index converted to a string.
                 if (object.hasOwnProperty(attr)) {
                     (function () { // Closure
                         const name = attr;
-                        const childIdStack = idStack.slice();
-                        tasks.push((onSuc, onErr) => that.#include(adapter, object[name], childIdStack, language, result => {
+                        tasks.push((onSuc, onErr) => that.#handleInclude(adapter, object[name], isIncludable, language, result => {
                             object[name] = result;
                             onSuc();
                         }, onErr));
