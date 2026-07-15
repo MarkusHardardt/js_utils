@@ -6,7 +6,7 @@
     const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
     const ObjectLifecycleManager = isNodeJS ? require('./ObjectLifecycleManager.js') : root.ObjectLifecycleManager;
 
-    function equalTreeVodes(node1, node2) {
+    function equalTreeNodes(node1, node2) {
         return node1.data && node2.data && node1.data.path === node2.data.path;
     };
 
@@ -20,16 +20,15 @@
             Client.fetchGet(url, { path: node.data.path, request }, response => {
                 const loaded = JsonFX.parse(response, false, true);
                 const current = node.getChildren();
-                // if we received an array of nodes from the database
-                if (Array.isArray(loaded)) {
+                if (Array.isArray(loaded)) { // if we received an array of nodes from the database
                     // if we got children in our tree
                     if (Array.isArray(current)) {
                         // collect all nodes not longer exists
                         const removed = [];
-                        Core.handleNotFound(current, loaded, equalTreeVodes, rem => removed.push(rem));
+                        Core.handleNotFound(current, loaded, equalTreeNodes, rem => removed.push(rem));
                         // collect all nodes newly added
                         const added = [];
-                        Core.handleNotFound(loaded, current, equalTreeVodes, add => added.push(add));
+                        Core.handleNotFound(loaded, current, equalTreeNodes, add => added.push(add));
                         // remove tree nodes no longer exists
                         for (let i = 0, l = removed.length; i < l; i++) {
                             node.removeChild(removed[i]);
@@ -46,10 +45,7 @@
                     if (typeof compare === 'function') {
                         node.sortChildren(compare, false);
                     }
-                }
-                // if no children available in the database we remove all from the
-                // tree node
-                else if (Array.isArray(current)) {
+                } else if (Array.isArray(current)) { // if no children available in the database we remove all from the tree node
                     node.removeChildren();
                 }
                 // notify
@@ -68,10 +64,10 @@
                     if (Array.isArray(current)) { // if we got children in our tree
                         // collect all nodes not longer exists
                         const removedNodes = [];
-                        Core.handleNotFound(current, loaded, equalTreeVodes, removed => removedNodes.push(removed));
+                        Core.handleNotFound(current, loaded, equalTreeNodes, removed => removedNodes.push(removed));
                         // collect all nodes newly added
                         const addedNodes = [];
-                        Core.handleNotFound(loaded, current, equalTreeVodes, added => addedNodes.push(added));
+                        Core.handleNotFound(loaded, current, equalTreeNodes, added => addedNodes.push(added));
                         // remove tree nodes no longer exists
                         for (let i = 0, l = removedNodes.length; i < l; i++) {
                             node.removeChild(removedNodes[i]);
@@ -189,10 +185,7 @@
             $.ui.fancytree.getTree(_cont).reload({
                 url: that.rootURL,
                 cache: false,
-                data: {
-                    path,
-                    request: that.rootRequest
-                }
+                data: { path, request: that.rootRequest }
             }).then(onSuc, onErr);
         };
         that.hmi_getRootNode = () => $.ui.fancytree.getTree(_cont).getRootNode();
@@ -207,9 +200,7 @@
             const root = that.hmi_getRootNode();
             updateLoadedTreeNodes(that.rootURL, that.rootRequest, root, that.compareNodes, onSuc || function () {
                 // nothing to do
-            }, onErr || function (error) {
-                console.error(error);
-            });
+            }, onErr || (error => console.error(error)));
         };
         that.hmi_setActivePath = (path, onSuc, onErr) => {
             const root = that.hmi_getRootNode();
@@ -220,9 +211,7 @@
                     onSuc(i_node);
                 }
                 // nothing to do
-            }, onErr || function (error) {
-                console.error(error);
-            });
+            }, onErr || (error => console.error(error)));
         };
         // build tree source
         let source = Array.isArray(that.data) ? that.data : {
@@ -237,12 +226,12 @@
             scrollParent: _cont,
             // this will be used for loading root nodes
             source: source,
-            lazyLoad: function (i_event, i_data) {
+            lazyLoad: (event, data) => {
                 // this will be called on node expansion and used for child loading
-                i_data.result = {
-                    url: i_data.node.data.url,
+                data.result = {
+                    url: data.node.data.url,
                     cache: false,
-                    data: { path: i_data.node.data.path, request: i_data.node.data.request }
+                    data: { path: data.node.data.path, request: data.node.data.request }
                 };
             },
             // This will be called in the following situations:
