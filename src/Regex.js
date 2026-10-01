@@ -3,211 +3,212 @@ const root = globalThis;
  * Regex.js Author: Markus Hardardt <markus.hardardt@gmx.ch> Version: 1.0 Build
  * date: 2018-11-25
  */
-const Regex = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
-    Regex.Linebreaks = /\r?\n|\r/m;
-    Regex.Comments = /(?:\(\*(?:[^*]|(?:\*+[^*\)]))*\*+\)\s*)|(?:\/\/.*\s*)/m; // for IEC61131-3 source code
-    Regex.Spaces = /\s+/m;
-    Regex.EmptyString = /^\s*$/m;
+const Regex = {};
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+Regex.Linebreaks = /\r?\n|\r/m;
+Regex.Comments = /(?:\(\*(?:[^*]|(?:\*+[^*\)]))*\*+\)\s*)|(?:\/\/.*\s*)/m; // for IEC61131-3 source code
+Regex.Spaces = /\s+/m;
+Regex.EmptyString = /^\s*$/m;
 
-    function each(rx, text, callback, matches) {
-        let match, off = 0, idx, len;
-        rx.lastIndex = 0;
-        while (match = rx.exec(text)) {
-            idx = match.index;
-            len = match[0].length;
-            // if not only matches requested and not an empty string
-            if (matches !== true && idx > off) {
-                // call for text before next match
-                callback(off, idx);
-            }
-            // if not only the parts between the matches are requested
-            if (matches !== false) {
-                // call for matched text
-                callback(idx, idx + len, match);
-            }
-            off = rx.lastIndex;
-            // if not global we do not loop
-            if (rx.global !== true || len === 0) {
-                break;
-            }
-        }
+function each(rx, text, callback, matches) {
+    let match, off = 0, idx, len;
+    rx.lastIndex = 0;
+    while (match = rx.exec(text)) {
+        idx = match.index;
+        len = match[0].length;
         // if not only matches requested and not an empty string
-        if (matches !== true && off < text.length) {
-            // call for text behind last match
-            callback(off, text.length);
+        if (matches !== true && idx > off) {
+            // call for text before next match
+            callback(off, idx);
+        }
+        // if not only the parts between the matches are requested
+        if (matches !== false) {
+            // call for matched text
+            callback(idx, idx + len, match);
+        }
+        off = rx.lastIndex;
+        // if not global we do not loop
+        if (rx.global !== true || len === 0) {
+            break;
         }
     }
-    Regex.each = each;
-
-    function replace(rx, text, replacement) {
-        let res, off = 0, txt = '', idx, len;
-        rx.lastIndex = 0;
-        while (res = rx.exec(text)) {
-            idx = res.index;
-            len = res[0].length;
-            // if not an empty string
-            if (idx > off) {
-                txt += text.substring(off, idx);
-            }
-            // prepare for next loop and set behind match
-            txt += typeof replacement === 'function' ? replacement(idx, idx + len, res) : replacement;
-            off = rx.lastIndex;
-            // if not global we do not loop
-            if (rx.global !== true || len === 0) {
-                break;
-            }
-        }
-        // if not only an empty string left
-        if (off < text.length) {
-            txt += text.substring(off, text.length);
-        }
-        // return the resulting text
-        return txt;
+    // if not only matches requested and not an empty string
+    if (matches !== true && off < text.length) {
+        // call for text behind last match
+        callback(off, text.length);
     }
-    Regex.replace = replace;
+}
+Regex.each = each;
 
-    function getNextMatch(text, elements, elementIndex, rx) {
-        if (rx.global !== true) {
-            throw new Error('EXCEPTION! Regex is not global: "' + rx.toString() + '"');
-        } else if (elementIndex.value >= elements.length) { // if already at the end we have no match
-            return null;
+function replace(rx, text, replacement) {
+    let res, off = 0, txt = '', idx, len;
+    rx.lastIndex = 0;
+    while (res = rx.exec(text)) {
+        idx = res.index;
+        len = res[0].length;
+        // if not an empty string
+        if (idx > off) {
+            txt += text.substring(off, idx);
         }
-        // get the current element and set our next search start offset to
-        // the elements start
-        let elem = elements[elementIndex.value], match;
-        rx.lastIndex = elem.start;
-        // while we have any matches
-        while (match = rx.exec(text)) {
-            while (elementIndex.value < elements.length) {
-                elem = elements[elementIndex.value];
-                if (match.index + match[0].length <= elem.end) {
-                    // we have a match on our current element
-                    if (elem.code) {
-                        // the match is on a code segment so we return it as valid match
-                        return match;
-                    } else {
-                        // the match is located inside o comment so we run the search
-                        // again starting at the start position of our next found code
-                        // segments
-                        while (elementIndex.value < elements.length - 1) {
-                            elementIndex.value++;
-                            if (elements[elementIndex.value].code) {
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                } else {
-                    // the match is behind our current element so we step forward
-                    elementIndex.value++;
-                }
-            }
-            if (elementIndex.value >= elements.length) {
-                break;
-            }
-            // prepare for the
-            rx.lastIndex = elements[elementIndex.value].start;
+        // prepare for next loop and set behind match
+        txt += typeof replacement === 'function' ? replacement(idx, idx + len, res) : replacement;
+        off = rx.lastIndex;
+        // if not global we do not loop
+        if (rx.global !== true || len === 0) {
+            break;
         }
-        // no more matches available
+    }
+    // if not only an empty string left
+    if (off < text.length) {
+        txt += text.substring(off, text.length);
+    }
+    // return the resulting text
+    return txt;
+}
+Regex.replace = replace;
+
+function getNextMatch(text, elements, elementIndex, rx) {
+    if (rx.global !== true) {
+        throw new Error('EXCEPTION! Regex is not global: "' + rx.toString() + '"');
+    } else if (elementIndex.value >= elements.length) { // if already at the end we have no match
         return null;
     }
-
-    function followMatches(config, text, elements) {
-        let elem_idx = {
-            value: 0
-        }, elem, match, end, id;
-        let regex = config.first;
-        while (match = getNextMatch(text, elements, elem_idx, regex)) {
-            id = typeof config.convertMatchToId === 'function' ? config.convertMatchToId(match[0]) : match[0];
-            elem = elements[elem_idx.value];
-            end = match.index + match[0].length;
-            if (match.index > elem.start) {
-                if (end < elem.end) {
-                    // #1: "codeMATCHcode"
-                    elements.splice(elem_idx.value, 0, {
-                        code: true,
-                        start: elem.start,
-                        end: match.index
-                    });
-                    elem_idx.value++;
-                    elements.splice(elem_idx.value, 0, id);
-                    elem_idx.value++;
-                    elements[elem_idx.value].start = end;
+    // get the current element and set our next search start offset to
+    // the elements start
+    let elem = elements[elementIndex.value], match;
+    rx.lastIndex = elem.start;
+    // while we have any matches
+    while (match = rx.exec(text)) {
+        while (elementIndex.value < elements.length) {
+            elem = elements[elementIndex.value];
+            if (match.index + match[0].length <= elem.end) {
+                // we have a match on our current element
+                if (elem.code) {
+                    // the match is on a code segment so we return it as valid match
+                    return match;
                 } else {
-                    // #2: "codeMATCH"
-                    elem.end = match.index;
-                    elem_idx.value++;
-                    elements.splice(elem_idx.value, 0, id);
-                    elem_idx.value++;
+                    // the match is located inside o comment so we run the search
+                    // again starting at the start position of our next found code
+                    // segments
+                    while (elementIndex.value < elements.length - 1) {
+                        elementIndex.value++;
+                        if (elements[elementIndex.value].code) {
+                            break;
+                        }
+                    }
+                    break;
                 }
             } else {
-                if (end < elem.end) {
-                    // #3: "MATCHcode"
-                    elements.splice(elem_idx.value, 0, id);
-                    elem_idx.value++;
-                    elem.start = end;
-                } else {
-                    // #4: "MATCH"
-                    elements.splice(elem_idx.value, 1, id);
-                }
-            }
-            regex = config.next[id];
-            if (regex === null) {
-                return id;
-            } else if (regex === undefined) {
-                throw new Error('EXCEPTION! Unexpected match: "' + match[0] + '" at index: ' + match.index);
-            } else if (regex.global !== true) {
-                throw new Error('EXCEPTION! Regex is not global: "' + regex.toString() + '"');
+                // the match is behind our current element so we step forward
+                elementIndex.value++;
             }
         }
-        if (config.finalNullRequired === true) {
-            // reaching this point means we did not end successfully
-            throw new Error('EXCEPTION! Unexpected end of file');
+        if (elementIndex.value >= elements.length) {
+            break;
+        }
+        // prepare for the
+        rx.lastIndex = elements[elementIndex.value].start;
+    }
+    // no more matches available
+    return null;
+}
+
+function followMatches(config, text, elements) {
+    let elem_idx = {
+        value: 0
+    }, elem, match, end, id;
+    let regex = config.first;
+    while (match = getNextMatch(text, elements, elem_idx, regex)) {
+        id = typeof config.convertMatchToId === 'function' ? config.convertMatchToId(match[0]) : match[0];
+        elem = elements[elem_idx.value];
+        end = match.index + match[0].length;
+        if (match.index > elem.start) {
+            if (end < elem.end) {
+                // #1: "codeMATCHcode"
+                elements.splice(elem_idx.value, 0, {
+                    code: true,
+                    start: elem.start,
+                    end: match.index
+                });
+                elem_idx.value++;
+                elements.splice(elem_idx.value, 0, id);
+                elem_idx.value++;
+                elements[elem_idx.value].start = end;
+            } else {
+                // #2: "codeMATCH"
+                elem.end = match.index;
+                elem_idx.value++;
+                elements.splice(elem_idx.value, 0, id);
+                elem_idx.value++;
+            }
         } else {
-            // return last match
+            if (end < elem.end) {
+                // #3: "MATCHcode"
+                elements.splice(elem_idx.value, 0, id);
+                elem_idx.value++;
+                elem.start = end;
+            } else {
+                // #4: "MATCH"
+                elements.splice(elem_idx.value, 1, id);
+            }
+        }
+        regex = config.next[id];
+        if (regex === null) {
             return id;
+        } else if (regex === undefined) {
+            throw new Error('EXCEPTION! Unexpected match: "' + match[0] + '" at index: ' + match.index);
+        } else if (regex.global !== true) {
+            throw new Error('EXCEPTION! Regex is not global: "' + regex.toString() + '"');
         }
     }
+    if (config.finalNullRequired === true) {
+        // reaching this point means we did not end successfully
+        throw new Error('EXCEPTION! Unexpected end of file');
+    } else {
+        // return last match
+        return id;
+    }
+}
 
-    const not_empty_regex = /[^\s]/gi;
-    function analyse(config, text, elements) {
-        if (config.comment !== undefined) {
-            // first we separate code and comments
-            // add all segments - if we got a comment match the segment represents code
-            each(config.comment, text, (start, end, match) => elements.push({ code: !match, start: start, end: end }));
-        } else {
-            // we start with a single segment containing all
-            elements.push({ code: true, start: 0, end: text.length });
-        }
-        // next we follow all found matches
-        const final = followMatches(config, text, elements);
-        // finally we remove empty segments
-        let idx = 0;
-        while (idx < elements.length) {
-            const elem = elements[idx];
-            if (typeof elem !== 'string' && elem.code) {
-                not_empty_regex.lastIndex = elem.start;
-                const match = not_empty_regex.exec(text);
-                if (match && match.index < elem.end) {
-                    elem.start = match.index;
-                    idx++;
-                } else {
-                    elements.splice(idx, 1);
-                }
-                continue;
+const not_empty_regex = /[^\s]/gi;
+function analyse(config, text, elements) {
+    if (config.comment !== undefined) {
+        // first we separate code and comments
+        // add all segments - if we got a comment match the segment represents code
+        each(config.comment, text, (start, end, match) => elements.push({ code: !match, start: start, end: end }));
+    } else {
+        // we start with a single segment containing all
+        elements.push({ code: true, start: 0, end: text.length });
+    }
+    // next we follow all found matches
+    const final = followMatches(config, text, elements);
+    // finally we remove empty segments
+    let idx = 0;
+    while (idx < elements.length) {
+        const elem = elements[idx];
+        if (typeof elem !== 'string' && elem.code) {
+            not_empty_regex.lastIndex = elem.start;
+            const match = not_empty_regex.exec(text);
+            if (match && match.index < elem.end) {
+                elem.start = match.index;
+                idx++;
+            } else {
+                elements.splice(idx, 1);
             }
-            idx++;
+            continue;
         }
-        // done
-        return final;
+        idx++;
     }
-    Regex.analyse = analyse;
+    // done
+    return final;
+}
+Regex.analyse = analyse;
 
-    function escape(text) {
-        return text.replace(/[-\/\\^$*+?.()|\[\]{}]/g, '\\$&');
-    }
-    Regex.escape = escape;
+function escape(text) {
+    return text.replace(/[-\/\\^$*+?.()|\[\]{}]/g, '\\$&');
+}
+Regex.escape = escape;
 
-    Object.freeze(Regex);
+Object.freeze(Regex);
 
 export default Regex;

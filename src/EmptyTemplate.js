@@ -1,15 +1,16 @@
 const root = globalThis;
 
-const Template = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
-    // TODO: Add content
-    Template.content = {};
+const Template = {};
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+// TODO: Add content
+Template.content = {};
 
-    /*  */
-    (function () {
-        Template.closureContent = {};
-    }());
+/*  */
+(function () {
+    Template.closureContent = {};
+}());
 
 
-    Object.freeze(Template);
+Object.freeze(Template);
 
 export default Template;
