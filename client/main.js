@@ -7,7 +7,6 @@ import Sorting from '../src/Sorting.js';
 import Utilities from '../src/Utilities.js';
 import Client from '../src/Client.js';
 import Core from '../src/Core.js';
-import WebServer from '../src/WebServer.js';
 import HashLists from '../src/HashLists.js';
 import Mathematics from '../src/Mathematics.js';
 import Common from '../src/Common.js';
