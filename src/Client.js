@@ -1,7 +1,8 @@
-(function (root) {
-    "use strict";
-    const Client = {};
-    const isNodeJS = typeof require === 'function';
+import JsonFX from './JsonFX.js';
+
+const root = globalThis;
+const Client = {};
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
     Client.GET_CLIENT_CONFIG = '/get_client_config';
     Client.HANDLE_REQUEST = '/handle_request';
 
@@ -134,9 +135,5 @@
     }
 
     Object.freeze(Client);
-    if (isNodeJS) {
-        module.exports = Client;
-    } else {
-        root.Client = Client;
-    }
-}(globalThis));
+
+export default Client;

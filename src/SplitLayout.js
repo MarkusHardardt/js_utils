@@ -1,9 +1,9 @@
-(function (root) {
-    "use strict";
-    const SplitLayout = {};
-    const isNodeJS = typeof require === 'function';
-    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
-    const ObjectLifecycleManager = isNodeJS ? require('./ObjectLifecycleManager.js') : root.ObjectLifecycleManager;
+import Executor from './Executor.js';
+import ObjectLifecycleManager from './ObjectLifecycleManager.js';
+
+const root = globalThis;
+
+const SplitLayout = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
     const SPLIT_LEFT = 0x10;
     const SPLIT_RIGHT = 0x08;
@@ -336,9 +336,5 @@
     ObjectLifecycleManager.addApplyFunctionForType('split', applySplit);
 
     Object.freeze(SplitLayout);
-    if (isNodeJS) {
-        module.exports = SplitLayout;
-    } else {
-        root.SplitLayout = SplitLayout;
-    }
-}(globalThis));
+
+export default SplitLayout;

@@ -1,25 +1,24 @@
-(function (root) {
-    "use strict";
-    const WebServer = {};
+import JsonFX from './JsonFX.js';
+import Server from './Server.js';
 
-    const isNodeJS = typeof require === 'function';
+const root = globalThis;
+
+const WebServer = {};
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
     if (!isNodeJS) {
         throw new Error('WebServer is not available on client');
     }
-
-    const JsonFX = isNodeJS ? require('./JsonFX.js') : root.JsonFX;
-    const Server = isNodeJS ? require('./Server.js') : root.Server;
     const js_rx = /\.js$/i;
     const css_rx = /\.css$/i;
-    const fs = require('fs');
-    const path = require('path');
-    const http = require('http');
-    const https = require('https');
-    const express = require('express');
-    const bodyParser = require('body-parser');
-
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const http = await import('node:http');
+    const https = await import('node:https');
+    const express = (await import('express')).default;
+    const bodyParser = (await import('body-parser')).default;
     class WebSrv {
         #scripts;
+        #moduleScripts;
         #styles;
         #paths;
         #title;
@@ -31,6 +30,7 @@
         #postRequestHandler;
         constructor(options = {}) {
             this.#scripts = [];
+            this.#moduleScripts = new Set();
             this.#styles = [];
             this.#paths = {};
             this.#title = '';
@@ -133,6 +133,13 @@
                 }
             }
         }
+        addStaticModule() {
+            const scriptCount = this.#scripts.length;
+            this.addStaticFile(...arguments);
+            if (this.#scripts.length > scriptCount) {
+                this.#moduleScripts.add(this.#scripts[this.#scripts.length - 1]);
+            }
+        }
         post(url, onResponse) {
             this.#app.post(url, onResponse);
         }
@@ -147,6 +154,7 @@
         }
         clear() {
             this.#scripts.splice(0, this.#scripts.length);
+            this.#moduleScripts.clear();
             this.#styles.splice(0, this.#styles.length);
             this.#paths = {};
         }
@@ -168,7 +176,7 @@
                 html += '" />';
             }
             for (i = 0, l = this.#scripts.length; i < l; i++) {
-                html += '<script type="text/javascript" src="';
+                html += this.#moduleScripts.has(this.#scripts[i]) ? '<script type="module" src="' : '<script type="text/javascript" src="';
                 html += this.#scripts[i];
                 html += '"></script>';
             }
@@ -211,10 +219,5 @@
     WebServer.Server = WebSrv;
 
     Object.freeze(WebServer);
-    if (isNodeJS) {
-        module.exports = WebServer;
-    }
-    else {
-        root.WebServer = WebServer;
-    }
-}(globalThis));
+
+export default WebServer;

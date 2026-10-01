@@ -1,9 +1,9 @@
-(function (root) {
-    "use strict";
-    const Access = {};
-    const isNodeJS = typeof require === 'function';
-    const Core = isNodeJS ? require('./Core.js') : root.Core;
-    const Common = isNodeJS ? require('./Common.js') : root.Common;
+import Core from './Core.js';
+import Common from './Common.js';
+
+const root = globalThis;
+
+const Access = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
     const NodeState = Object.freeze({
         Constructed: 0,
@@ -461,9 +461,5 @@
     Access.Router = Router;
 
     Object.freeze(Access);
-    if (isNodeJS) {
-        module.exports = Access;
-    } else {
-        root.Access = Access;
-    }
-}(globalThis));
+
+export default Access;

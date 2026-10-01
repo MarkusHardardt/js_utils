@@ -1,9 +1,11 @@
-(function (root) {
-    "use strict";
-    const FloatLayout = {};
-    const isNodeJS = typeof require === 'function';
-    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
-    const ObjectLifecycleManager = isNodeJS ? require('./ObjectLifecycleManager.js') : root.ObjectLifecycleManager;
+import Executor from './Executor.js';
+import ObjectLifecycleManager from './ObjectLifecycleManager.js';
+import Utilities from './Utilities.js';
+
+const root = globalThis;
+
+const FloatLayout = {};
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
     function getFloatingBounds(child, containerWidth, containerHeight) {
         // get the alignment
@@ -209,9 +211,5 @@
     ObjectLifecycleManager.addApplyFunctionForType('float', applyFloat);
 
     Object.freeze(FloatLayout);
-    if (isNodeJS) {
-        module.exports = FloatLayout;
-    } else {
-        root.FloatLayout = FloatLayout;
-    }
-}(globalThis));
+
+export default FloatLayout;

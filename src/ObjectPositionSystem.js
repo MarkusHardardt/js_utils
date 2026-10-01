@@ -1,7 +1,5 @@
-(function (root) {
-
-  const isNodeJS = typeof require === 'function';
-
+const root = globalThis;
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
   const MAX_UPDATE_STEP_DURATION_MILLIS = 2000;
 
   /**
@@ -490,11 +488,4 @@
     ObjectPositionSystem: ObjectPositionSystem,
     ZonePositionAdjuster: ZonePositionAdjuster
   };
-  // export for node.js or client
-  if (isNodeJS) {
-    module.exports = exp;
-  }
-  else {
-    window.ObjectPositionSystem = exp;
-  }
-}(globalThis));
+export default exp;

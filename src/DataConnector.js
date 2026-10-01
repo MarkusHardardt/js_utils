@@ -1,10 +1,10 @@
-(function (root) {
-    "use strict";
-    const DataConnector = {};
-    const isNodeJS = typeof require === 'function';
-    const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
-    const Core = isNodeJS ? require('./Core.js') : root.Core;
-    const Common = isNodeJS ? require('./Common.js') : root.Common;
+import Regex from './Regex.js';
+import Core from './Core.js';
+import Common from './Common.js';
+
+const root = globalThis;
+
+const DataConnector = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
     const RECEIVER = 'DataConnector';
 
@@ -572,9 +572,5 @@
     DataConnector.getInstance = logger => isNodeJS ? new ServerDataConnector(logger) : new ClientDataConnector(logger);
 
     Object.freeze(DataConnector);
-    if (isNodeJS) {
-        module.exports = DataConnector;
-    } else {
-        root.DataConnector = DataConnector;
-    }
-}(globalThis));
+
+export default DataConnector;

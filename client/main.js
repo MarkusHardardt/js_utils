@@ -1,5 +1,19 @@
-(function (root) {
-    "use strict";
+import Access from '../src/Access.js';
+import Client from '../src/Client.js';
+import Common from '../src/Common.js';
+import ContentEditor from '../src/ContentEditor.js';
+import ContentManager from '../src/ContentManager.js';
+import DataConnector from '../src/DataConnector.js';
+import Evaluate from '../src/Evaluate.js';
+import Executor from '../src/Executor.js';
+import LanguageSwitching from '../src/LanguageSwitching.js';
+import Logger from '../src/Logger.js';
+import ObjectLifecycleManager from '../src/ObjectLifecycleManager.js';
+import TaskManager from '../src/TaskManager.js';
+import WebSocketConnection from '../src/WebSocketConnection.js';
+
+const root = globalThis;
+const $ = root.$;
 
     // create 'hmi' environment object
     const hmi = {
@@ -159,4 +173,3 @@
             ));
         }, error => hmi.logger.error(`Failed building ${config.applicationName}`, error));
     });
-}(globalThis));

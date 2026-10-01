@@ -1,13 +1,16 @@
-(function (root) {
-    "use strict";
-    const TableControl = {};
-    const isNodeJS = typeof require === 'function';
-    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
-    const Utilities = isNodeJS ? require('./Utilities.js') : root.Utilities;
-    const ObjectLifecycleManager = isNodeJS ? require('./ObjectLifecycleManager.js') : root.ObjectLifecycleManager;
+import Executor from './Executor.js';
+import Sorting from './Sorting.js';
+import Utilities from './Utilities.js';
+import ObjectLifecycleManager from './ObjectLifecycleManager.js';
+
+const root = globalThis;
+
+const TableControl = {};
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+const $ = root.$;
 
     // This is the global sorting of data tables: DO NOT REMOVE !!!
-    if ($.fn && $.fn.DataTable) {
+    if ($?.fn && $.fn.DataTable) {
         $.fn.DataTable.ext.oSort['texts-and-numbers-asc'] = Sorting.getTextsAndNumbersCompareFunction(true, false, true);
         $.fn.DataTable.ext.oSort['texts-and-numbers-desc'] = Sorting.getTextsAndNumbersCompareFunction(true, false, false);
         $.fn.DataTable.ext.oSort['texts-and-numbers-signed-asc'] = Sorting.getTextsAndNumbersCompareFunction(true, true, true);
@@ -212,9 +215,5 @@
     ObjectLifecycleManager.addApplyFunctionForType('table', applyTable);
 
     Object.freeze(TableControl);
-    if (isNodeJS) {
-        module.exports = TableControl;
-    } else {
-        root.TableControl = TableControl;
-    }
-}(globalThis));
+
+export default TableControl;

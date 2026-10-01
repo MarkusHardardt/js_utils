@@ -1,8 +1,6 @@
-(function (root) {
-    "use strict";
-    const Template = {};
-    const isNodeJS = typeof require === 'function';
+const root = globalThis;
 
+const Template = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
     // TODO: Add content
     Template.content = {};
 
@@ -13,9 +11,5 @@
 
 
     Object.freeze(Template);
-    if (isNodeJS) {
-        module.exports = Template;
-    } else {
-        root.Template = Template;
-    }
-}(globalThis));
+
+export default Template;

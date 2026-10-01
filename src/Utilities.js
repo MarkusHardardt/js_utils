@@ -1,8 +1,8 @@
-(function (root) {
-    "use strict";
-    const Utilities = {};
-    const isNodeJS = typeof require === 'function';
+const root = globalThis;
 
+const Utilities = {};
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+const CryptoJS = isNodeJS ? undefined : (await import('../ext/md5.js')).default;
     function equals(value1, value2, compareFunctions) {
         if (typeof value1 !== typeof value2) {
             return false;
@@ -238,8 +238,7 @@
         }
     }
     Utilities.transferProperties = transferProperties;
-
-    const md5 = isNodeJS ? require('md5') : function (text, options) {
+    const md5 = isNodeJS ? (await import('md5')).default : function (text, options) {
         return CryptoJS.MD5(text, options).toString(CryptoJS.enc.Hex);
     };
     Utilities.md5 = md5; // TODO: Replace with Server.createSHA256()  !!! WILL ONLY RUN ON SERVER SIDE !!!
@@ -396,10 +395,5 @@
     }
 
     Object.freeze(Utilities);
-    if (isNodeJS) {
-        module.exports = Utilities;
-    }
-    else {
-        root.Utilities = Utilities;
-    }
-}(globalThis));
+
+export default Utilities;

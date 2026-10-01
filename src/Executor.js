@@ -1,8 +1,6 @@
-(function (root) {
-    "use strict";
-    const Executor = {};
-    const isNodeJS = typeof require === 'function';
+const root = globalThis;
 
+const Executor = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
     function exec(object, onSuccess, onError, onTimeout, timeoutMillis) {
         if (typeof object === 'function') {
             let done = false, timeoutTimer = null;
@@ -419,9 +417,5 @@
     Executor.unstress = unstress;
 
     Object.seal(Executor);
-    if (isNodeJS) {
-        module.exports = Executor;
-    } else {
-        root.Executor = Executor;
-    }
-}(globalThis));
+
+export default Executor;

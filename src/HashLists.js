@@ -1,11 +1,9 @@
-(function (root) {
-    "use strict";
-    const HashLists = {};
-    const isNodeJS = typeof require === 'function';
+import Utilities from './Utilities.js';
 
+const root = globalThis;
+
+const HashLists = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
     // store for performance reasons
-    const Utilities = isNodeJS ? require('./Utilities') : root.Utilities;
-
     // our mode constants:
     const Mode = Object.freeze({
         IdenticalValuesPerKey: 1,
@@ -327,9 +325,5 @@
     HashLists.NoEqualValuesPerKey = NoEqualValuesPerKey;
 
     Object.freeze(HashLists);
-    if (isNodeJS) {
-        module.exports = HashLists;
-    } else {
-        window.HashLists = HashLists;
-    }
-}(globalThis));
+
+export default HashLists;

@@ -1,12 +1,9 @@
+const root = globalThis;
 /**
  * Regex.js Author: Markus Hardardt <markus.hardardt@gmx.ch> Version: 1.0 Build
  * date: 2018-11-25
  */
-(function (root) {
-    "use strict";
-    const Regex = {};
-    const isNodeJS = typeof require === 'function';
-
+const Regex = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
     Regex.Linebreaks = /\r?\n|\r/m;
     Regex.Comments = /(?:\(\*(?:[^*]|(?:\*+[^*\)]))*\*+\)\s*)|(?:\/\/.*\s*)/m; // for IEC61131-3 source code
     Regex.Spaces = /\s+/m;
@@ -212,9 +209,5 @@
     Regex.escape = escape;
 
     Object.freeze(Regex);
-    if (isNodeJS) {
-        module.exports = Regex;
-    } else {
-        root.Regex = Regex;
-    }
-}(globalThis));
+
+export default Regex;

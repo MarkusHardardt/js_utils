@@ -1,9 +1,15 @@
-(function (root) {
-    "use strict";
-    const ContentEditor = {};
-    const isNodeJS = typeof require === 'function';
-    const JsonFX = isNodeJS ? require('./JsonFX.js') : root.JsonFX;
-    const ContentManager = isNodeJS ? require('./ContentManager.js') : root.ContentManager;
+import JsonFX from './JsonFX.js';
+import ContentManager from './ContentManager.js';
+import Executor from './Executor.js';
+import Mathematics from './Mathematics.js';
+import ObjectLifecycleManager from './ObjectLifecycleManager.js';
+import Sorting from './Sorting.js';
+import Utilities from './Utilities.js';
+
+const root = globalThis;
+
+const ContentEditor = {};
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
     const DEFAULT_ROW_HEIGHT = '24px';
     const DEFAULT_COLUMN_WIDTH = '64px';
@@ -3314,5 +3320,5 @@
     ContentEditor.create = create;
 
     Object.freeze(ContentEditor);
-    root.ContentEditor = ContentEditor;
-}(globalThis));
+
+export default ContentEditor;

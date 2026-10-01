@@ -1,9 +1,12 @@
-(function (root) {
-    "use strict";
-    const GridLayout = {};
-    const isNodeJS = typeof require === 'function';
-    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
-    const ObjectLifecycleManager = isNodeJS ? require('./ObjectLifecycleManager.js') : root.ObjectLifecycleManager;
+import Executor from './Executor.js';
+import ObjectLifecycleManager from './ObjectLifecycleManager.js';
+import ContentManager from './ContentManager.js';
+import Utilities from './Utilities.js';
+
+const root = globalThis;
+
+const GridLayout = {};
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
     function createGridCoordinates(parameter) {
         // here we store the resulting coordinates
@@ -957,9 +960,5 @@
     ObjectLifecycleManager.addApplyFunctionForType('grid', applyGrid);
 
     Object.freeze(GridLayout);
-    if (isNodeJS) {
-        module.exports = GridLayout;
-    } else {
-        root.GridLayout = GridLayout;
-    }
-}(globalThis));
+
+export default GridLayout;

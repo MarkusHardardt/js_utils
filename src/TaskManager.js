@@ -1,12 +1,12 @@
-(function (root) {
-    "use strict";
-    const TaskManager = {};
-    const isNodeJS = typeof require === 'function';
-    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
-    const Core = isNodeJS ? require('./Core.js') : root.Core;
-    const Common = isNodeJS ? require('./Common.js') : root.Common;
-    const ContentManager = isNodeJS ? require('./ContentManager.js') : root.ContentManager;
-    const ObjectLifecycleManager = isNodeJS ? require('./ObjectLifecycleManager.js') : root.ObjectLifecycleManager;
+import Executor from './Executor.js';
+import Core from './Core.js';
+import Common from './Common.js';
+import ContentManager from './ContentManager.js';
+import ObjectLifecycleManager from './ObjectLifecycleManager.js';
+
+const root = globalThis;
+
+const TaskManager = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
     const TASK_MANAGER_RECEIVER = 'TaskManager';
     const TransmissionType = Object.freeze({
@@ -436,9 +436,5 @@
     }
 
     Object.freeze(TaskManager);
-    if (isNodeJS) {
-        module.exports = TaskManager;
-    } else {
-        root.TaskManager = TaskManager;
-    }
-}(globalThis));
+
+export default TaskManager;

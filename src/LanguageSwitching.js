@@ -1,10 +1,10 @@
-(function (root) {
-    "use strict";
-    const LanguageSwitching = {};
-    const isNodeJS = typeof require === 'function';
-    const Core = isNodeJS ? require('./Core.js') : root.Core;
-    const Common = isNodeJS ? require('./Common.js') : root.Common;
-    const ContentManager = isNodeJS ? require('./ContentManager.js') : root.ContentManager;
+import Core from './Core.js';
+import Common from './Common.js';
+import ContentManager from './ContentManager.js';
+
+const root = globalThis;
+
+const LanguageSwitching = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
     const DEFAULT_VALUE_FOR_NOT_EXISTS = '???';
 
@@ -190,9 +190,5 @@
     LanguageSwitching.getInstance = (logger, cms) => new Handler(logger, cms);
 
     Object.freeze(LanguageSwitching);
-    if (isNodeJS) {
-        module.exports = LanguageSwitching;
-    } else {
-        root.LanguageSwitching = LanguageSwitching;
-    }
-}(globalThis));
+
+export default LanguageSwitching;

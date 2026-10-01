@@ -1,9 +1,7 @@
-(function (root) {
-    "use strict";
-    const JsonFX = {};
-    const isNodeJS = typeof require === 'function';
-    const beautify_js = isNodeJS ? require('js-beautify').js : root.js_beautify;
+const root = globalThis;
 
+const JsonFX = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+const beautify_js = isNodeJS ? (await import('js-beautify')).js : root.beautify_js;
     const standardFunctionRegex = /^\s*function\s*\(\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*\{(?:.|\n)*?\}\s*$/m;
     const lambdaFunctionRegex = /^\s*\(\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*=>\s*(?:(?:\{(?:.|\n)*?\})|(?:(?:.|\n)*?))\s*$/;
     const lambdaFunctionSingleArgumentRegex = /^\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*)\s*=>\s*(?:(?:\{(?:.|\n)*?\})|(?:(?:.|\n)*?))\s*$/;
@@ -237,10 +235,5 @@
     JsonFX.parse = parse;
 
     Object.freeze(JsonFX);
-    if (isNodeJS) {
-        module.exports = JsonFX;
-    }
-    else {
-        root.JsonFX = JsonFX;
-    }
-}(globalThis));
+
+export default JsonFX;

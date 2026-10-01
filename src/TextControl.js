@@ -1,9 +1,11 @@
-(function (root) {
-    "use strict";
-    const TextControl = {};
-    const isNodeJS = typeof require === 'function';
-    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
-    const ObjectLifecycleManager = isNodeJS ? require('./ObjectLifecycleManager.js') : root.ObjectLifecycleManager;
+import Executor from './Executor.js';
+import ObjectLifecycleManager from './ObjectLifecycleManager.js';
+import Utilities from './Utilities.js';
+
+const root = globalThis;
+
+const TextControl = {};
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
     function applyTextField(that, onSuccess) {
         let _cont = that._hmi_context.container;
@@ -223,9 +225,5 @@
     ObjectLifecycleManager.addApplyFunctionForType('textarea', applyTextArea);
 
     Object.freeze(TextControl);
-    if (isNodeJS) {
-        module.exports = TextControl;
-    } else {
-        root.TextControl = TextControl;
-    }
-}(globalThis));
+
+export default TextControl;

@@ -1,30 +1,17 @@
-(function () {
-    "use strict";
-    const Client = require('../src/Client.js');
-    const Executor = require('../src/Executor.js');
-    // const HashLists = require('../src/HashLists.js');
-    const JsonFX = require('../src/JsonFX.js');
-    // const Mathematics = require('../src/Mathematics.js');
-    // const Regex = require('../src/Regex.js');
-    // const Server = require('../src/Server.js');
-    // const Sorting = require('../src/Sorting.js');
-    const SqlHelper = require('../src/SqlHelper.js');
-    // const Utilities = require('../src/Utilities.js');
-    // const Core = require('../src/Core.js');
-    const WebServer = require('../src/WebServer.js');
-    const Common = require('../src/Common.js');
-    const ContentManager = require('../src/ContentManager.js');
-    const ObjectLifecycleManager = require('../src/ObjectLifecycleManager.js');
-    const DataConnector = require('../src/DataConnector.js');
-    // const OPCUA = require('../src/OPCUA.js');
-    const Access = require('../src/Access.js');
-    const Logger = require('../src/Logger.js');
-    const WebSocketConnection = require('../src/WebSocketConnection.js');
-    // const ContentEditor = require('../src/ContentEditor.js');
-    // const LanguageSwitching = require('../src/LanguageSwitching.js');
-    const TaskManager = require('../src/TaskManager.js');
-    const Evaluate = require('../src/Evaluate.js');
-    // const md5 = require('../ext/md5.js'); // external
+import Client from '../src/Client.js';
+import Executor from '../src/Executor.js';
+import JsonFX from '../src/JsonFX.js';
+import SqlHelper from '../src/SqlHelper.js';
+import WebServer from '../src/WebServer.js';
+import Common from '../src/Common.js';
+import ContentManager from '../src/ContentManager.js';
+import ObjectLifecycleManager from '../src/ObjectLifecycleManager.js';
+import DataConnector from '../src/DataConnector.js';
+import Access from '../src/Access.js';
+import Logger from '../src/Logger.js';
+import WebSocketConnection from '../src/WebSocketConnection.js';
+import TaskManager from '../src/TaskManager.js';
+import Evaluate from '../src/Evaluate.js';
 
     function main(config = {}) {
         Logger.setLevel(config.serverLogLevel);
@@ -112,37 +99,9 @@
         for (const file of config.staticWebServerFiles) {
             webServer.addStaticFile(file);
         }
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Client.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Executor.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/HashLists.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/JsonFX.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Mathematics.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectPositionSystem.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Regex.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Sorting.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Utilities.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Core.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Common.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentManager.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ObjectLifecycleManager.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/DataConnector.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Access.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Logger.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/WebSocketConnection.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/GraphControl.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/GridLayout.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/FloatLayout.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/SplitLayout.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/TableControl.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/TextControl.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/TreeControl.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/ContentEditor.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/LanguageSwitching.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/TaskManager.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/src/Evaluate.js');
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/ext/md5.js'); // external
-        // And last but not least add client side 'main' program using the previously added files:
-        webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/client/main.js');
+        const jsUtilsDirectory = './node_modules/@markus.hardardt/js_utils';
+        webServer.addStaticDirectory(jsUtilsDirectory);
+        webServer.addStaticModule(jsUtilsDirectory, 'client/main.js');
         // No content - will be generated at runtime inside browser
         webServer.setBody('');
         // deliver main config to client
@@ -323,5 +282,5 @@
             }, 5000);
         }
     }
-    module.exports = main;
-}());
+
+export default main;

@@ -1,9 +1,7 @@
-(function () {
-    const isNodeJS = typeof require === 'function';
-    const fs = isNodeJS ? require('fs') : undefined;
-    const Executor = isNodeJS ? require('./src/Executor.js') : undefined;
-    const Core = isNodeJS ? require('./src/Core.js') : undefined;
-    const Helper = isNodeJS ? require('./env/Helper.js') : undefined;
+import fs from 'node:fs';
+import Executor from './src/Executor.js';
+import Core from './src/Core.js';
+import Helper from './env/Helper.js';
 
     function generate(options) {
         const tasks = [];
@@ -62,4 +60,3 @@
         ext: ['ext/md5.js'],
         index_js_outputFile: './js_utils.js'
     });
-}());

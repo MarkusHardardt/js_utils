@@ -1,11 +1,11 @@
-(function (root) {
-    "use strict";
-    const SqlHelper = {};
-    const isNodeJS = typeof require === 'function';
-    const Executor = isNodeJS ? require('./Executor') : root.Executor;
-    const Common = isNodeJS ? require('./Common') : root.Common;
-    const mysql = isNodeJS ? require('mysql') : false;
+import Executor from './Executor.js';
+import Common from './Common.js';
 
+const root = globalThis;
+
+const SqlHelper = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+const fs = isNodeJS ? await import('node:fs') : undefined;
+const mysql = isNodeJS ? (await import('mysql')).default : false;
     function escape(value) {
         return mysql ? mysql.escape(value) : root.SqlString.escape(value);
     }
@@ -393,7 +393,7 @@
 
     function getAdapterFactory(logger, config, verbose) {
         Common.validateAsLogger(logger, true);
-        const db_access = require(typeof config === 'string' ? config : '../cfg/db_access.json');
+        const db_access = JSON.parse(fs.readFileSync(typeof config === 'string' ? config : new URL('../cfg/db_access.json', import.meta.url), 'utf8'));
         const helper = mysql.createPool(db_access);
         return (onSuccess, onError) => {
             helper.getConnection((onErr, connection) => {
@@ -408,7 +408,5 @@
     SqlHelper.getAdapterFactory = getAdapterFactory;
 
     Object.freeze(SqlHelper);
-    if (isNodeJS) {
-        module.exports = SqlHelper;
-    }
-}(globalThis));
+
+export default SqlHelper;

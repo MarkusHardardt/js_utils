@@ -1,10 +1,15 @@
-(function (root) {
-    "use strict";
-    const GraphControl = {};
-    const isNodeJS = typeof require === 'function';
-    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
-    const Mathematics = isNodeJS ? require('./Mathematics.js') : root.Mathematics;
-    const ObjectLifecycleManager = isNodeJS ? require('./ObjectLifecycleManager.js') : root.ObjectLifecycleManager;
+import Executor from './Executor.js';
+import Mathematics from './Mathematics.js';
+import ObjectLifecycleManager from './ObjectLifecycleManager.js';
+import Sorting from './Sorting.js';
+import Core from './Core.js';
+import ObjectPositionSystem from './ObjectPositionSystem.js';
+import Regex from './Regex.js';
+
+const root = globalThis;
+
+const GraphControl = {};
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
     const RAD2DEG = Mathematics.RAD2DEG;
     const DEG2RAD = Mathematics.DEG2RAD;
@@ -3037,9 +3042,5 @@
     ObjectLifecycleManager.setApplyGraphicObjectFunction(applyGraphicObject);
 
     Object.freeze(GraphControl);
-    if (isNodeJS) {
-        module.exports = GraphControl;
-    } else {
-        root.GraphControl = GraphControl;
-    }
-}(globalThis));
+
+export default GraphControl;

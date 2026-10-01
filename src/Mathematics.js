@@ -1,7 +1,9 @@
-(function (root) {
-    "use strict";
-    const isNodeJS = typeof require === 'function';
-    const JsonFX = isNodeJS ? require('./JsonFX.js') : root.JsonFX;
+import JsonFX from './JsonFX.js';
+import Utilities from './Utilities.js';
+
+const root = globalThis;
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+
     const PI = Math.PI;
     const TWO_PI = PI + PI;
     const HALF_PI = PI * 0.5;
@@ -4450,9 +4452,4 @@
             return (value & mask) === mask;
         },
     });
-    if (isNodeJS) {
-        module.exports = exp;
-    } else {
-        root.Mathematics = exp;
-    }
-}(globalThis));
+export default exp;

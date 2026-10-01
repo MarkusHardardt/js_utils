@@ -1,14 +1,14 @@
-(function (root) {
-    "use strict";
-    const OPCUA = {};
-    const isNodeJS = typeof require === 'function';
-    const fs = isNodeJS ? require('fs') : undefined;
-    // doc: https://node-opcua.github.io/api_doc/0.2.0/classes/OPCUAClient.html
-    const { OPCUAClient, DataType, AttributeIds, TimestampsToReturn, ClientSubscription, resolveNodeId } = require('node-opcua-client');
-    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
-    const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
-    const Core = isNodeJS ? require('./Core.js') : root.Core;
+import Executor from './Executor.js';
+import Regex from './Regex.js';
+import Core from './Core.js';
 
+const root = globalThis;
+
+const OPCUA = {};
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+const fs = isNodeJS ? await import('node:fs') : undefined;
+// doc: https://node-opcua.github.io/api_doc/0.2.0/classes/OPCUAClient.html
+const { OPCUAClient, DataType, AttributeIds, TimestampsToReturn, ClientSubscription, resolveNodeId } = isNodeJS ? await import('node-opcua-client') : {};
     function getAsCoreDataType(type) {
         switch (type) {
             case DataType.Null:
@@ -619,9 +619,5 @@
     OPCUA.Client = Client;
 
     Object.freeze(OPCUA);
-    if (isNodeJS) {
-        module.exports = OPCUA;
-    } else {
-        root.Template = OPCUA;
-    }
-}(globalThis));
+
+export default OPCUA;

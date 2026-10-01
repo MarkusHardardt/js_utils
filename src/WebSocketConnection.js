@@ -1,12 +1,12 @@
-(function (root) {
-    "use strict";
-    const WebSocketConnection = {};
-    const isNodeJS = typeof require === 'function';
-    const Server = isNodeJS ? require('./Server.js') : root.Server;
-    const Core = isNodeJS ? require('./Core.js') : root.Core;
-    const Common = isNodeJS ? require('./Common.js') : root.Common;
-    const WebSocket = isNodeJS ? require('ws') : root.WebSocket;
+import Server from './Server.js';
+import Core from './Core.js';
+import Common from './Common.js';
 
+const root = globalThis;
+
+const WebSocketConnection = {};
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+const WebSocket = isNodeJS ? (await import('ws')).default : root.WebSocket;
     const FORMATED_SESSION_ID_PART_LENGTH = 6;
     function formatSesionId(sessionId) {
         return `${sessionId.substring(0, FORMATED_SESSION_ID_PART_LENGTH)}..${sessionId.substring(sessionId.length - FORMATED_SESSION_ID_PART_LENGTH, sessionId.length)}`;
@@ -587,9 +587,5 @@
     }
 
     Object.freeze(WebSocketConnection);
-    if (isNodeJS) {
-        module.exports = WebSocketConnection;
-    } else {
-        root.WebSocketConnection = WebSocketConnection;
-    }
-}(globalThis));
+
+export default WebSocketConnection;

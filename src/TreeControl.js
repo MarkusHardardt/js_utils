@@ -1,10 +1,13 @@
-(function (root) {
-    "use strict";
-    const TreeControl = {};
-    const isNodeJS = typeof require === 'function';
-    const Client = isNodeJS ? require('./Client.js') : root.Client;
-    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
-    const ObjectLifecycleManager = isNodeJS ? require('./ObjectLifecycleManager.js') : root.ObjectLifecycleManager;
+import Client from './Client.js';
+import Executor from './Executor.js';
+import ObjectLifecycleManager from './ObjectLifecycleManager.js';
+import Core from './Core.js';
+import JsonFX from './JsonFX.js';
+
+const root = globalThis;
+
+const TreeControl = {};
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
     function equalTreeNodes(node1, node2) {
         return node1.data && node2.data && node1.data.path === node2.data.path;
@@ -282,9 +285,5 @@
     ObjectLifecycleManager.addApplyFunctionForType('tree', applyTree);
 
     Object.freeze(TreeControl);
-    if (isNodeJS) {
-        module.exports = TreeControl;
-    } else {
-        root.TreeControl = TreeControl;
-    }
-}(globalThis));
+
+export default TreeControl;

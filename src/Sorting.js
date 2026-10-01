@@ -1,9 +1,6 @@
-(function (root) {
-    "use strict";
-    const Sorting = {};
+const root = globalThis;
 
-    const isNodeJS = typeof require === 'function';
-
+const Sorting = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
     const CompareResult = Object.freeze({
         Bigger: 1,
         Equal: 0,
@@ -399,9 +396,5 @@
     Sorting.SortedSet = SortedSet;
 
     Object.freeze(Sorting);
-    if (isNodeJS) {
-        module.exports = Sorting;
-    } else {
-        root.Sorting = Sorting;
-    }
-}(globalThis));
+
+export default Sorting;

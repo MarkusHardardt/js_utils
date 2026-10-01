@@ -1,16 +1,17 @@
-(function (root) {
-    "use strict";
-    const ContentManager = {};
-    const isNodeJS = typeof require === 'function';
-    const Client = isNodeJS ? require('./Client.js') : root.Client;
-    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
-    const JsonFX = isNodeJS ? require('./JsonFX.js') : root.JsonFX;
-    const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
-    const Server = isNodeJS ? require('./Server.js') : root.Server;
-    const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
-    const SqlHelper = isNodeJS ? require('./SqlHelper.js') : root.SqlHelper;
-    const Utilities = isNodeJS ? require('./Utilities.js') : root.Utilities;
-    const Common = isNodeJS ? require('./Common.js') : root.Common;
+import Client from './Client.js';
+import Executor from './Executor.js';
+import JsonFX from './JsonFX.js';
+import Regex from './Regex.js';
+import Server from './Server.js';
+import Sorting from './Sorting.js';
+import SqlHelper from './SqlHelper.js';
+import Utilities from './Utilities.js';
+import Common from './Common.js';
+
+const root = globalThis;
+
+const ContentManager = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+const fs = isNodeJS ? await import('node:fs') : undefined;
 
     const DataType = Object.freeze({
         JsonFX: 'JsonFX',
@@ -243,7 +244,7 @@
             }
             this.#evalFunc = evalFunc;
             this._iconDirectory = `/${iconDirectory}/`;
-            const db_config = require(typeof config === 'string' ? config : '../cfg/db_config.json');
+            const db_config = JSON.parse(fs.readFileSync(typeof config === 'string' ? config : new URL('../cfg/db_config.json', import.meta.url), 'utf8'));
             this._config = db_config;
             this.#parallel = typeof db_config.maxParallelQueries === 'number' && db_config.maxParallelQueries > 0 ? db_config.maxParallelQueries : true;
             this._contentTablesByExtension = {};
@@ -2865,9 +2866,5 @@
         ContentManager.getInstance = (logger, evalFunc, onResponse, onError) => new ClientManager(logger, evalFunc, onResponse, onError);
     }
     Object.freeze(ContentManager);
-    if (isNodeJS) {
-        module.exports = ContentManager;
-    } else {
-        window.ContentManager = ContentManager;
-    }
-}(globalThis));
+
+export default ContentManager;

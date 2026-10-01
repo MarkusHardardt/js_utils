@@ -1,7 +1,7 @@
-(function (root) {
-    "use strict";
-    const isNodeJS = typeof require === 'function';
-    const Common = isNodeJS ? require('./Common.js') : root.Common;
+import Common from './Common.js';
+
+const root = globalThis;
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
     class Logger {
         // ─────────────────────────────
@@ -193,9 +193,4 @@
         }
     }
 
-    if (isNodeJS) {
-        module.exports = Logger;
-    } else {
-        root.Logger = Logger;
-    }
-}(globalThis));
+export default Logger;

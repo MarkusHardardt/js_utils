@@ -1,9 +1,7 @@
-(function (root) {
-    "use strict";
-    const Server = {};
+const root = globalThis;
 
-    const isNodeJS = typeof require === 'function';
-
+const Server = {};
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
     let refreshCycleTimer = null;
     function startRefreshCycle(cycleMillis, onRefresh) {
         const start = typeof cycleMillis === 'number' && cycleMillis > 0;
@@ -17,9 +15,7 @@
     }
     Server.startRefreshCycle = startRefreshCycle;
     Server.stopRefreshCycle = () => clearInterval(refreshCycleTimer);
-
-    const crypto = isNodeJS ? require('crypto') : undefined;
-
+    const crypto = isNodeJS ? await import('node:crypto') : undefined;
     if (isNodeJS) {
         /*   hash generation */
         const createHash = (text, mode) => crypto.createHash(mode).update(text, 'utf8').digest('hex');
@@ -29,6 +25,6 @@
         Server.createSHA512 = text => createHash(text, 'SHA-512');
 
         Object.freeze(Server);
-        module.exports = Server;
     }
-}(globalThis));
+
+export default Server;

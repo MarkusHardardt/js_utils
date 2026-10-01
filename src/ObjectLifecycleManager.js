@@ -1,16 +1,19 @@
-(function (root) {
+import Regex from './Regex.js';
+import Core from './Core.js';
+import Executor from './Executor.js';
+import Mathematics from './Mathematics.js';
+import ObjectPositionSystem from './ObjectPositionSystem.js';
+import Sorting from './Sorting.js';
+import Utilities from './Utilities.js';
+
+const root = globalThis;
+
     /*  TODO:
         - Move all browser specific stuff to separate file(s)
     */
     const ObjectLifecycleManager = {};
-    const isNodeJS = typeof require === 'function';
-    const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
-    const Core = isNodeJS ? require('./Core.js') : root.Core;
-    const Executor = isNodeJS ? require('./Executor.js') : root.Executor;
-    const Mathematics = isNodeJS ? require('./Mathematics.js') : root.Mathematics;
-    const ObjectPositionSystem = isNodeJS ? require('./ObjectPositionSystem.js') : root.ObjectPositionSystem;
-    const Sorting = isNodeJS ? require('./Sorting.js') : root.Sorting;
-    const $ = isNodeJS ? require('jquery') : root.$;
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+    const $ = isNodeJS ? (await import('jquery')).default : root.$;
     /*
      * Usage check of: "._hmi_init_dom(" [11] and "._hmi_destroy_dom(" [6] to
      * prevent memory leaks:
@@ -2509,10 +2512,5 @@
 
     Object.seal(ObjectLifecycleManager);
     // export
-    if (isNodeJS) {
-        module.exports = ObjectLifecycleManager;
-    }
-    else {
-        window.ObjectLifecycleManager = ObjectLifecycleManager;
-    }
-}(globalThis));
+
+export default ObjectLifecycleManager;

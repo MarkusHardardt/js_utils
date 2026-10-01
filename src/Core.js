@@ -1,9 +1,8 @@
-(function (root) {
-    "use strict";
-    const Core = {};
+import Regex from './Regex.js';
 
-    const isNodeJS = typeof require === 'function';
-    const Regex = isNodeJS ? require('./Regex.js') : root.Regex;
+const root = globalThis;
+
+const Core = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
     /*  Standard datatypes */
     const DataType = Object.freeze({
@@ -256,9 +255,5 @@
     }());
 
     Object.freeze(Core);
-    if (isNodeJS) {
-        module.exports = Core;
-    } else {
-        root.Core = Core;
-    }
-}(globalThis));
+
+export default Core;

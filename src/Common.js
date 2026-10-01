@@ -1,8 +1,8 @@
-(function (root) {
-    "use strict";
-    const Common = {};
-    const isNodeJS = typeof require === 'function';
-    const Core = isNodeJS ? require('./Core.js') : root.Core;
+import Core from './Core.js';
+
+const root = globalThis;
+
+const Common = {};const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
     /* Logger interface */
     function validateAsLogger(instance, validateMethodArguments) {
@@ -123,9 +123,5 @@
     Common.validateAsServerContentManager = validateAsServerContentManager;
 
     Object.freeze(Common);
-    if (isNodeJS) {
-        module.exports = Common;
-    } else {
-        root.Common = Common;
-    }
-}(globalThis));
+
+export default Common;
