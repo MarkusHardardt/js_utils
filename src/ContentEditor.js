@@ -6,10 +6,7 @@ import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import Sorting from './Sorting.js';
 import Utilities from './Utilities.js';
 
-const root = globalThis;
-
 const ContentEditor = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
 const DEFAULT_ROW_HEIGHT = '24px';
 const DEFAULT_COLUMN_WIDTH = '64px';

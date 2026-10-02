@@ -1,6 +1,5 @@
 import JsonFX from './JsonFX.js';
 
-const root = globalThis;
 const Client = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 Client.GET_CLIENT_CONFIG = '/get_client_config';
@@ -11,21 +10,21 @@ if (!isNodeJS) {
     (function () {
         let lastTime = 0;
         const vendors = ['webkit', 'moz'];
-        for (let x = 0; x < vendors.length && !root.requestAnimationFrame; ++x) {
-            root.requestAnimationFrame = root[vendors[x] + 'RequestAnimationFrame'];
-            root.cancelAnimationFrame = root[vendors[x] + 'CancelAnimationFrame'] || root[vendors[x] + 'CancelRequestAnimationFrame'];
+        for (let x = 0; x < vendors.length && !globalThis.requestAnimationFrame; ++x) {
+            globalThis.requestAnimationFrame = globalThis[vendors[x] + 'RequestAnimationFrame'];
+            globalThis.cancelAnimationFrame = globalThis[vendors[x] + 'CancelAnimationFrame'] || globalThis[vendors[x] + 'CancelRequestAnimationFrame'];
         }
-        if (!root.requestAnimationFrame) {
-            root.requestAnimationFrame = (callback, element) => {
+        if (!globalThis.requestAnimationFrame) {
+            globalThis.requestAnimationFrame = (callback, element) => {
                 const currTime = new Date().getTime();
                 const timeToCall = Math.max(0, 16 - (currTime - lastTime));
-                const id = root.setTimeout(() => callback(currTime + timeToCall), timeToCall);
+                const id = globalThis.setTimeout(() => callback(currTime + timeToCall), timeToCall);
                 lastTime = currTime + timeToCall;
                 return id;
             };
         }
-        if (!root.cancelAnimationFrame) {
-            root.cancelAnimationFrame = timeout => clearTimeout(timeout);
+        if (!globalThis.cancelAnimationFrame) {
+            globalThis.cancelAnimationFrame = timeout => clearTimeout(timeout);
         }
     }());
 
@@ -48,10 +47,10 @@ if (!isNodeJS) {
                     raf_idx = 0;
                     onRefresh();
                 }
-                root.requestAnimationFrame(loop, document.body);
+                globalThis.requestAnimationFrame(loop, document.body);
             };
             // start the loop
-            root.requestAnimationFrame(loop, document.body);
+            globalThis.requestAnimationFrame(loop, document.body);
         }
         return refreshCycleEnabled;
     }
