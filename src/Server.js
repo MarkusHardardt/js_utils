@@ -1,5 +1,3 @@
-const root = globalThis;
-
 const Server = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 let refreshCycleTimer = null;

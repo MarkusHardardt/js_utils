@@ -4,10 +4,7 @@ import Common from './Common.js';
 import ContentManager from './ContentManager.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 
-const root = globalThis;
-
 const TaskManager = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
 const TASK_MANAGER_RECEIVER = 'TaskManager';
 const TransmissionType = Object.freeze({
@@ -430,11 +427,9 @@ class ClientManager {
         }
     }
 }
-if (isNodeJS) {
-    TaskManager.getInstance = (logger, cms, hmi) => new ServerManager(logger, cms, hmi);
-} else {
-    TaskManager.getInstance = logger => new ClientManager(logger);
-}
+
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+TaskManager.getInstance = isNodeJS ? (logger, cms, hmi) => new ServerManager(logger, cms, hmi) : TaskManager.getInstance = logger => new ClientManager(logger);
 
 Object.freeze(TaskManager);
 

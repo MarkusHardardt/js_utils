@@ -1,10 +1,7 @@
 import Core from './Core.js';
 import Common from './Common.js';
 
-const root = globalThis;
-
 const Access = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
 const NodeState = Object.freeze({
     Constructed: 0,

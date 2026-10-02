@@ -1,7 +1,5 @@
-const root = globalThis;
-
 const Sorting = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+
 const CompareResult = Object.freeze({
     Bigger: 1,
     Equal: 0,

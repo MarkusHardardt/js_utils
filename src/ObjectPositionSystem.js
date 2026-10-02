@@ -1,5 +1,3 @@
-const root = globalThis;
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 const MAX_UPDATE_STEP_DURATION_MILLIS = 2000;
 
 /**

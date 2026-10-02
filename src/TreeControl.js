@@ -4,10 +4,7 @@ import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import Core from './Core.js';
 import JsonFX from './JsonFX.js';
 
-const root = globalThis;
-
 const TreeControl = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
 function equalTreeNodes(node1, node2) {
     return node1.data && node2.data && node1.data.path === node2.data.path;

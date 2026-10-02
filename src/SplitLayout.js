@@ -1,10 +1,7 @@
 import Executor from './Executor.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 
-const root = globalThis;
-
 const SplitLayout = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
 const SPLIT_LEFT = 0x10;
 const SPLIT_RIGHT = 0x08;

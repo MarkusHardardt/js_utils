@@ -1,10 +1,8 @@
-const root = globalThis;
-
 const JsonFX = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
-const beautifyModule = isNodeJS ? await import('js-beautify') : root.js_beautify;
-const beautify_js = isNodeJS ? beautifyModule.js ?? beautifyModule.default?.js : root.js_beautify;
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+const beautifyModule = isNodeJS ? await import('js-beautify') : globalThis.js_beautify;
+const beautify_js = isNodeJS ? beautifyModule.js ?? beautifyModule.default?.js : globalThis.js_beautify;
 
 const standardFunctionRegex = /^\s*function\s*\(\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*\{(?:.|\n)*?\}\s*$/m;
 const lambdaFunctionRegex = /^\s*\(\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*=>\s*(?:(?:\{(?:.|\n)*?\})|(?:(?:.|\n)*?))\s*$/;

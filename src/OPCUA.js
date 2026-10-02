@@ -2,8 +2,6 @@ import Executor from './Executor.js';
 import Regex from './Regex.js';
 import Core from './Core.js';
 
-const root = globalThis;
-
 const OPCUA = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 const fs = isNodeJS ? await import('node:fs') : undefined;

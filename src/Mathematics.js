@@ -1,9 +1,6 @@
 import JsonFX from './JsonFX.js';
 import Utilities from './Utilities.js';
 
-const root = globalThis;
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
-
 const PI = Math.PI;
 const TWO_PI = PI + PI;
 const HALF_PI = PI * 0.5;

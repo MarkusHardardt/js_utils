@@ -1,14 +1,12 @@
 import Executor from './Executor.js';
 import Common from './Common.js';
 
-const root = globalThis;
-
 const SqlHelper = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 const fs = isNodeJS ? await import('node:fs') : undefined;
 const mysql = isNodeJS ? (await import('mysql')).default : false;
 function escape(value) {
-    return mysql ? mysql.escape(value) : root.SqlString.escape(value);
+    return mysql ? mysql.escape(value) : globalThis.SqlString.escape(value);
 }
 SqlHelper.escape = escape;
 

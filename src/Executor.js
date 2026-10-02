@@ -1,7 +1,4 @@
-const root = globalThis;
-
 const Executor = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 function exec(object, onSuccess, onError, onTimeout, timeoutMillis) {
     if (typeof object === 'function') {
         let done = false, timeoutTimer = null;

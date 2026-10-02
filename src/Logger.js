@@ -1,6 +1,5 @@
 import Common from './Common.js';
 
-const root = globalThis;
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
 class Logger {

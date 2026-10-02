@@ -6,14 +6,12 @@ import ObjectPositionSystem from './ObjectPositionSystem.js';
 import Sorting from './Sorting.js';
 import Utilities from './Utilities.js';
 
-const root = globalThis;
-
 /*  TODO:
     - Move all browser specific stuff to separate file(s)
 */
 const ObjectLifecycleManager = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
-const $ = isNodeJS ? (await import('jquery')).default : root.$;
+const $ = isNodeJS ? (await import('jquery')).default : globalThis.$;
 /*
  * Usage check of: "._hmi_init_dom(" [11] and "._hmi_destroy_dom(" [6] to
  * prevent memory leaks:

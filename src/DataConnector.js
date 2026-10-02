@@ -2,10 +2,7 @@ import Regex from './Regex.js';
 import Core from './Core.js';
 import Common from './Common.js';
 
-const root = globalThis;
-
 const DataConnector = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
 const RECEIVER = 'DataConnector';
 
@@ -570,6 +567,7 @@ class ClientDataConnector extends BaseConnector {
     }
 }
 
+const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 DataConnector.getInstance = logger => isNodeJS ? new ServerDataConnector(logger) : new ClientDataConnector(logger);
 
 Object.freeze(DataConnector);

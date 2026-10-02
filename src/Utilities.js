@@ -1,5 +1,3 @@
-const root = globalThis;
-
 const Utilities = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 const CryptoJS = isNodeJS ? undefined : (await import('../ext/md5.js')).default;

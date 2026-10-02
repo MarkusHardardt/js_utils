@@ -1,3 +1,4 @@
+// Here, many modules required by the server and client are imported - not just the ones actually used here!
 import Client from './Client.js';
 import Executor from './Executor.js';
 import HashLists from './HashLists.js';
@@ -11,8 +12,6 @@ import Utilities from './Utilities.js';
 import Core from './Core.js';
 import Common from './Common.js';
 import OPCUA from './OPCUA.js';
-
-const root = globalThis;
 
 const Evaluate = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);

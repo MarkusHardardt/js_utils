@@ -1,13 +1,8 @@
 import JsonFX from './JsonFX.js';
 import Server from './Server.js';
 
-const root = globalThis;
-
 const WebServer = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
-if (!isNodeJS) {
-    throw new Error('WebServer is not available on client');
-}
+
 const js_rx = /\.js$/i;
 const css_rx = /\.css$/i;
 const fs = await import('node:fs');

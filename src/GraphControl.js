@@ -6,10 +6,7 @@ import Core from './Core.js';
 import ObjectPositionSystem from './ObjectPositionSystem.js';
 import Regex from './Regex.js';
 
-const root = globalThis;
-
 const GraphControl = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
 const RAD2DEG = Mathematics.RAD2DEG;
 const DEG2RAD = Mathematics.DEG2RAD;

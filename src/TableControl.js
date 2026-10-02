@@ -1,13 +1,9 @@
-import Executor from './Executor.js';
 import Sorting from './Sorting.js';
 import Utilities from './Utilities.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 
-const root = globalThis;
-
 const TableControl = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
-const $ = root.$;
+const $ = globalThis.$;
 
 // This is the global sorting of data tables: DO NOT REMOVE !!!
 if ($?.fn && $.fn.DataTable) {

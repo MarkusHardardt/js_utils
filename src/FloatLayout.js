@@ -2,10 +2,7 @@ import Executor from './Executor.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import Utilities from './Utilities.js';
 
-const root = globalThis;
-
 const FloatLayout = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
 function getFloatingBounds(child, containerWidth, containerHeight) {
     // get the alignment

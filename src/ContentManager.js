@@ -8,8 +8,6 @@ import SqlHelper from './SqlHelper.js';
 import Utilities from './Utilities.js';
 import Common from './Common.js';
 
-const root = globalThis;
-
 const ContentManager = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 const fs = isNodeJS ? await import('node:fs') : undefined;

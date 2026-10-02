@@ -1,9 +1,7 @@
 import Utilities from './Utilities.js';
 
-const root = globalThis;
-
 const HashLists = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+
 // store for performance reasons
 // our mode constants:
 const Mode = Object.freeze({

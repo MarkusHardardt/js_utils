@@ -2,12 +2,10 @@ import Server from './Server.js';
 import Core from './Core.js';
 import Common from './Common.js';
 
-const root = globalThis;
-
 const WebSocketConnection = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 const wsModule = isNodeJS ? await import('ws') : null;
-const WebSocket = isNodeJS ? wsModule.default : root.WebSocket;
+const WebSocket = isNodeJS ? wsModule.default : globalThis.WebSocket;
 const WebSocketServerImplementation = isNodeJS ? wsModule.WebSocketServer : undefined;
 const FORMATED_SESSION_ID_PART_LENGTH = 6;
 function formatSesionId(sessionId) {

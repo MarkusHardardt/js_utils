@@ -3,10 +3,7 @@ import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import ContentManager from './ContentManager.js';
 import Utilities from './Utilities.js';
 
-const root = globalThis;
-
 const GridLayout = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
 function createGridCoordinates(parameter) {
     // here we store the resulting coordinates

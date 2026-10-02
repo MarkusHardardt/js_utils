@@ -1,9 +1,6 @@
 import Regex from './Regex.js';
 
-const root = globalThis;
-
 const Core = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
 /*  Standard datatypes */
 const DataType = Object.freeze({

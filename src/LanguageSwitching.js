@@ -2,10 +2,7 @@ import Core from './Core.js';
 import Common from './Common.js';
 import ContentManager from './ContentManager.js';
 
-const root = globalThis;
-
 const LanguageSwitching = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
 const DEFAULT_VALUE_FOR_NOT_EXISTS = '???';
 

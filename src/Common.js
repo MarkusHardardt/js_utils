@@ -1,9 +1,6 @@
 import Core from './Core.js';
 
-const root = globalThis;
-
 const Common = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 
 /* Logger interface */
 function validateAsLogger(instance, validateMethodArguments) {

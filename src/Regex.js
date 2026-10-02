@@ -1,10 +1,9 @@
-const root = globalThis;
 /**
  * Regex.js Author: Markus Hardardt <markus.hardardt@gmx.ch> Version: 1.0 Build
  * date: 2018-11-25
  */
 const Regex = {};
-const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
+
 Regex.Linebreaks = /\r?\n|\r/m;
 Regex.Comments = /(?:\(\*(?:[^*]|(?:\*+[^*\)]))*\*+\)\s*)|(?:\/\/.*\s*)/m; // for IEC61131-3 source code
 Regex.Spaces = /\s+/m;
