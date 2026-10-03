@@ -19,6 +19,8 @@
     "homepage": "https://github.com/MarkusHardardt/js_utils#readme",
     "peerDependencies": {
         "codemirror": "^6.0.2",
+        "@codemirror/lang-html": "^6.4.12",
+        "@codemirror/lang-javascript": "^6.2.5",
         "express": "^5.2.1",
         "mysql": "^2.18.1",
         "path": "^0.12.7",

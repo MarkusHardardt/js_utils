@@ -2,6 +2,8 @@ import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import Utilities from './Utilities.js';
 import { basicSetup, EditorView } from 'codemirror';
 import { Compartment } from '@codemirror/state';
+import { html } from '@codemirror/lang-html';
+import { javascript } from '@codemirror/lang-javascript';
 
 const TextControl = {};
 
@@ -166,12 +168,14 @@ function applyTextArea(that, onSuccess) {
         const readOnly = that.readonly === true || that.editable === false;
         const editable = new Compartment();
         let editorReadOnly = readOnly;
+        const language = that.code === 'javascript' ? javascript() : html();
         const initialValue = _textarea.val();
         _textarea.remove();
         _code = new EditorView({
             doc: initialValue,
             extensions: [
                 basicSetup,
+                language,
                 EditorView.lineWrapping,
                 editable.of(EditorView.editable.of(!readOnly)),
                 EditorView.updateListener.of(update => {
