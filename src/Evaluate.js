@@ -12,6 +12,7 @@ import Utilities from './Utilities.js';
 import Core from './Core.js';
 import Common from './Common.js';
 import OPCUA from './OPCUA.js';
+import ADS from './ADS.js';
 
 const Evaluate = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);

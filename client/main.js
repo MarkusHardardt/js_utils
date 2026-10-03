@@ -12,6 +12,7 @@ import HashLists from '../src/HashLists.js';
 import Mathematics from '../src/Mathematics.js';
 import Common from '../src/Common.js';
 import OPCUA from '../src/OPCUA.js';
+import ADS from '../src/ADS.js';
 import ObjectLifecycleManager from '../src/ObjectLifecycleManager.js';
 import Access from '../src/Access.js';
 import DataConnector from '../src/DataConnector.js';
