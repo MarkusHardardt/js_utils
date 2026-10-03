@@ -16,6 +16,7 @@ class WebSrv {
     #moduleScripts;
     #styles;
     #paths;
+    #importMap;
     #title;
     #body;
     #secure;
@@ -28,6 +29,7 @@ class WebSrv {
         this.#moduleScripts = new Set();
         this.#styles = [];
         this.#paths = {};
+        this.#importMap = {};
         this.#title = '';
         this.#body = '';
         this.#postRequestHandler = {};
@@ -135,6 +137,9 @@ class WebSrv {
             this.#moduleScripts.add(this.#scripts[this.#scripts.length - 1]);
         }
     }
+    addImportMap(imports) {
+        Object.assign(this.#importMap, imports);
+    }
     post(url, onResponse) {
         this.#app.post(url, onResponse);
     }
@@ -152,6 +157,7 @@ class WebSrv {
         this.#moduleScripts.clear();
         this.#styles.splice(0, this.#styles.length);
         this.#paths = {};
+        this.#importMap = {};
     }
     #generate_html() {
         let i, l, html = '<!DOCTYPE HTML><html><head>';
@@ -169,6 +175,11 @@ class WebSrv {
             html += '<link rel="stylesheet" type="text/css" href="';
             html += this.#styles[i];
             html += '" />';
+        }
+        if (Object.keys(this.#importMap).length > 0) {
+            html += '<script type="importmap">';
+            html += JSON.stringify({ imports: this.#importMap });
+            html += '</script>';
         }
         for (i = 0, l = this.#scripts.length; i < l; i++) {
             html += this.#moduleScripts.has(this.#scripts[i]) ? '<script type="module" src="' : '<script type="text/javascript" src="';

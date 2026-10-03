@@ -72,24 +72,29 @@ function main(config = {}) {
     webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/ext/jquery/dataTables.pageResize.min.js');
     webServer.addStaticFile('./node_modules/@markus.hardardt/js_utils/ext/jquery/dataTables.scrollResize.min.js');
     */
-    // TODO: https://codemirror.net/docs/migration/   --> CodeMirror.fromTextArea
-    webServer.addStaticFile('./node_modules/codemirror/lib/codemirror.css');
-    webServer.addStaticFile('./node_modules/codemirror/lib/codemirror.js');
-    webServer.addStaticFile('./node_modules/codemirror/mode/javascript/javascript.js');
-    webServer.addStaticFile('./node_modules/codemirror/mode/xml/xml.js');
-    webServer.addStaticFile('./node_modules/codemirror/addon/edit/matchbrackets.js');
-    webServer.addStaticFile('./node_modules/codemirror/addon/edit/closebrackets.js');
-    webServer.addStaticFile('./node_modules/codemirror/addon/search/search.js');
-    webServer.addStaticFile('./node_modules/codemirror/addon/dialog/dialog.css');
-    webServer.addStaticFile('./node_modules/codemirror/addon/dialog/dialog.js');
-    webServer.addStaticFile('./node_modules/codemirror/addon/search/searchcursor.js');
-    webServer.addStaticFile('./node_modules/codemirror/addon/search/match-highlighter.js');
-    webServer.addStaticFile('./node_modules/codemirror/addon/hint/show-hint.css');
-    webServer.addStaticFile('./node_modules/codemirror/addon/hint/show-hint.js');
-    webServer.addStaticFile('./node_modules/codemirror/addon/hint/javascript-hint.js');
-    webServer.addStaticFile('./node_modules/codemirror/addon/scroll/annotatescrollbar.js');
-    webServer.addStaticFile('./node_modules/codemirror/addon/search/matchesonscrollbar.js');
-    webServer.addStaticFile('./node_modules/codemirror/addon/search/matchesonscrollbar.css');
+    const codeMirrorModules = {
+        codemirror: ['codemirror', 'dist/index.js'],
+        '@codemirror/autocomplete': ['@codemirror/autocomplete', 'dist/index.js'],
+        '@codemirror/commands': ['@codemirror/commands', 'dist/index.js'],
+        '@codemirror/language': ['@codemirror/language', 'dist/index.js'],
+        '@codemirror/lint': ['@codemirror/lint', 'dist/index.js'],
+        '@codemirror/search': ['@codemirror/search', 'dist/index.js'],
+        '@codemirror/state': ['@codemirror/state', 'dist/index.js'],
+        '@codemirror/view': ['@codemirror/view', 'dist/index.js'],
+        '@lezer/common': ['@lezer/common', 'dist/index.js'],
+        '@lezer/highlight': ['@lezer/highlight', 'dist/index.js'],
+        '@lezer/lr': ['@lezer/lr', 'dist/index.js'],
+        '@marijn/find-cluster-break': ['@marijn/find-cluster-break', 'src/index.js'],
+        crelt: ['crelt', 'index.js'],
+        'style-mod': ['style-mod', 'src/style-mod.js'],
+        'w3c-keyname': ['w3c-keyname', 'index.js']
+    };
+    const codeMirrorImports = {};
+    for (const [name, [directory, file]] of Object.entries(codeMirrorModules)) {
+        const id = webServer.addStaticDirectory(`./node_modules/${directory}`);
+        codeMirrorImports[name] = `/${id}/${file}`;
+    }
+    webServer.addImportMap(codeMirrorImports);
 
     webServer.addStaticFile('./node_modules/file-saver/dist/' + (minimized ? 'FileSaver.min.js' : 'FileSaver.js'));
     webServer.addStaticFile('./node_modules/js-beautify/js/lib/beautify.js');
