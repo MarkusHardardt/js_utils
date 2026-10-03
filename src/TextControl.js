@@ -1,5 +1,7 @@
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import Utilities from './Utilities.js';
+import { basicSetup, EditorView } from 'codemirror';
+import { Compartment } from '@codemirror/state';
 
 const TextControl = {};
 
@@ -48,6 +50,7 @@ function applyTextArea(that, onSuccess) {
     _cont.addClass('overflow-hidden');
     let _textarea = undefined;
     let _code = undefined;
+    const _changeListeners = new Set();
     that.hmi_editor = () => _code ? _code : _textarea;
     that.hmi_value = value => {
         if (typeof value === 'string') {
@@ -83,12 +86,12 @@ function applyTextArea(that, onSuccess) {
                         console.error('Beautifyer failed', error);
                     }
                 }
-                _code.doc.setValue(source);
+                _code.setValue(source);
             } else {
                 _textarea.val(value);
             }
         } else {
-            return _code ? _code.doc.getValue() : _textarea.val();
+            return _code ? _code.getValue() : _textarea.val();
         }
     };
     that._hmi_resizes.push(() => {
@@ -159,42 +162,157 @@ function applyTextArea(that, onSuccess) {
     txt += ` id="${id}" style="font-family:Courier New;width: 100%; height: 100%;box-sizing: border-box;overflow: auto;"></textarea>`;
     _textarea = $(txt);
     _textarea.appendTo(_cont);
-    if (typeof that.code === 'string' && that.code.length > 0) { // TODO: Migrate to CodeMirror v6 (https://codemirror.net/docs/migration/)
-        let mode = undefined;
-        if (that.code === 'javascript') {
-            mode = {
-                name: 'javascript',
-                globalVars: true
-            };
-        } else if (that.code === 'html') {
-            mode = {
-                name: 'xml',
-                htmlMode: true
-            };
-        }
-        _code = CodeMirror.fromTextArea(document.getElementById(id), {
-            mode: mode,
-            readOnly: that.readonly === true || that.editable === false,
-            lineNumbers: true,
-            lineWrapping: true,
-            extraKeys: { 'Ctrl-Space': 'autocomplete' },
-            matchBrackets: true,
-            autoCloseBrackets: true,
-            highlightSelectionMatches: { showToken: /\w/, annotateScrollbar: true }
+    if (typeof that.code === 'string' && that.code.length > 0) {
+        const readOnly = that.readonly === true || that.editable === false;
+        const editable = new Compartment();
+        let editorReadOnly = readOnly;
+        const initialValue = _textarea.val();
+        _textarea.remove();
+        _code = new EditorView({
+            doc: initialValue,
+            extensions: [
+                basicSetup,
+                EditorView.lineWrapping,
+                editable.of(EditorView.editable.of(!readOnly)),
+                EditorView.updateListener.of(update => {
+                    update.view.contentDOM.setAttribute('contenteditable', String(!editorReadOnly));
+                    if (update.docChanged) {
+                        for (const listener of _changeListeners) {
+                            listener(update.view, update);
+                        }
+                    }
+                })
+            ],
+            parent: _cont[0]
         });
-        _code.setSize(_cont.width(), _cont.height());
+        _code.readOnly = readOnly;
+        _code.contentDOM.setAttribute('aria-readonly', String(readOnly));
+        _code.getValue = () => _code.state.doc.toString();
+        _code.setValue = value => _code.dispatch({
+            changes: { from: 0, to: _code.state.doc.length, insert: value }
+        });
+        _code.setSize = (width, height) => {
+            _code.dom.style.width = `${width}px`;
+            _code.dom.style.height = `${height}px`;
+            _code.requestMeasure();
+        };
+        _code.setOption = (name, value) => {
+            if (name === 'readOnly') {
+                editorReadOnly = value === true;
+                _code.readOnly = editorReadOnly;
+                _code.dispatch({ effects: editable.reconfigure(EditorView.editable.of(!editorReadOnly)) });
+                _code.contentDOM.setAttribute('aria-readonly', String(_code.readOnly));
+            }
+        };
+        _code.getOption = name => name === 'readOnly' ? _code.readOnly : undefined;
+        _code.getScrollInfo = () => ({
+            width: _code.scrollDOM.scrollWidth,
+            height: _code.scrollDOM.scrollHeight,
+            clientWidth: _code.scrollDOM.clientWidth,
+            clientHeight: _code.scrollDOM.clientHeight,
+            left: _code.scrollDOM.scrollLeft,
+            top: _code.scrollDOM.scrollTop
+        });
+        _code.scrollTo = (left, top) => _code.scrollDOM.scrollTo(left, top);
+        _code.doc = {
+            getValue: _code.getValue,
+            setValue: _code.setValue,
+            on: (event, listener) => {
+                if (event === 'change') {
+                    _changeListeners.add(listener);
+                }
+            },
+            off: (event, listener) => {
+                if (event === 'change') {
+                    _changeListeners.delete(listener);
+                }
+            }
+        };
+        _code.on = _code.doc.on;
+        _code.off = _code.doc.off;
+        _code.getSearchCursor = (query, start, caseFold) => {
+            const getOffset = position => {
+                if (typeof position === 'number') {
+                    return position;
+                }
+                if (position && typeof position.line === 'number') {
+                    return _code.state.doc.line(position.line + 1).from + (position.ch || 0);
+                }
+                return 0;
+            };
+            const makePattern = () => {
+                const flags = query instanceof RegExp ? query.flags.replace(/g/g, '') : '';
+                const source = query instanceof RegExp ? query.source : String(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                return new RegExp(source, `${flags}${caseFold && !flags.includes('i') ? 'i' : ''}g`);
+            };
+            let current;
+            let nextOffset = getOffset(start);
+            const find = (from, before) => {
+                const text = _code.getValue();
+                const pattern = makePattern();
+                let match, result;
+                while ((match = pattern.exec(text)) !== null) {
+                    if (before) {
+                        if (match.index >= from) {
+                            break;
+                        }
+                        result = match;
+                    } else if (match.index >= from) {
+                        result = match;
+                        break;
+                    }
+                    if (match[0].length === 0) {
+                        pattern.lastIndex++;
+                    }
+                }
+                return result;
+            };
+            const positionAt = offset => {
+                const line = _code.state.doc.lineAt(offset);
+                return { line: line.number - 1, ch: offset - line.from };
+            };
+            const cursor = {
+                findNext: () => {
+                    current = find(nextOffset, false);
+                    if (current) {
+                        nextOffset = current.index + Math.max(current[0].length, 1);
+                        return true;
+                    }
+                    return false;
+                },
+                findPrevious: () => {
+                    const limit = current ? current.index : nextOffset;
+                    current = find(limit, true);
+                    if (current) {
+                        nextOffset = current.index + Math.max(current[0].length, 1);
+                    }
+                    return !!current;
+                },
+                from: () => current ? positionAt(current.index) : undefined,
+                to: () => current ? positionAt(current.index + current[0].length) : undefined,
+                current: () => current ? current[0] : undefined,
+                replace: value => {
+                    if (current) {
+                        _code.dispatch({ changes: { from: current.index, to: current.index + current[0].length, insert: value } });
+                        current = undefined;
+                    }
+                }
+            };
+            return cursor;
+        };
         that.hmi_getSearchCursor = (query, start, caseFold) => _code.getSearchCursor(query, start, caseFold);
+        _code.setSize(_cont.width(), _cont.height());
     }
     that.hmi_addChangeListener = listener => {
         if (_code) {
-            _code.doc.on('change', listener);
+            _changeListeners.add(listener);
         } else {
             _textarea.bind('input propertychange', listener);
         }
     };
     that.hmi_removeChangeListener = listener => {
         if (_code) {
-            _code.doc.on('change', listener);
+            _changeListeners.delete(listener);
         } else {
             _textarea.unbind('input propertychange', listener);
         }
@@ -204,9 +322,13 @@ function applyTextArea(that, onSuccess) {
         delete that.hmi_getSearchCursor;
         delete that.hmi_editor;
         delete that.hmi_value;
+        if (_code) {
+            _code.destroy();
+        }
         id = undefined;
         _textarea = undefined;
         _code = undefined;
+        _changeListeners.clear();
         delete that.hmi_addChangeListener;
         delete that.hmi_removeChangeListener;
         delete that.hmi_handleScrollParams;
