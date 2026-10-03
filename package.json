@@ -25,6 +25,7 @@
         "mysql": "^2.18.1",
         "path": "^0.12.7",
         "ws": "^8.18.3",
+        "ads-client": "^2.2.0",
         "body-parser": "^2.2.1",
         "datatables": "^1.10.18",
         "datatables.net": "^2.3.5",
