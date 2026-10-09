@@ -1191,7 +1191,14 @@ function getTextPreview(hmi, adapter) {
         height: 1,
         type: 'textarea',
         code: 'javascript',
-        editable: false
+        editable: false,
+        prepare: (that, onSuccess, onError) => {
+            const activeSearchValue = adapter.getActiveSearchValue();
+            if (typeof activeSearchValue === 'string') {
+                textarea.hmi_searchText(activeSearchValue);
+            }
+            onSuccess();
+        }
     };
     const info_lang = {
         x: 0,
@@ -1270,6 +1277,10 @@ function getTextEditor(hmi, adapter) {
         editable: true,
         prepare: (that, onSuccess, onError) => {
             that.hmi_addChangeListener(adapter.edited);
+            const activeSearchValue = adapter.getActiveSearchValue();
+            if (typeof activeSearchValue === 'string') {
+                textarea.hmi_searchText(activeSearchValue);
+            }
             onSuccess();
         },
         destroy: (that, onSuccess, onError) => {
