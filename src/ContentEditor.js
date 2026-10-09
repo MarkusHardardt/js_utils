@@ -1104,6 +1104,10 @@ function getHtmlEditor(hmi, adapter) {
         beautify: true,
         prepare: (that, onSuccess, onError) => {
             that.hmi_addChangeListener(adapter.edited);
+            const activeSearchValue = adapter.getActiveSearchValue();
+            if (typeof activeSearchValue === 'string') {
+                textarea.hmi_searchText(activeSearchValue);
+            }
             onSuccess();
         },
         destroy: (that, onSuccess, onError) => {
@@ -1363,7 +1367,14 @@ function getJsonFxPreview(hmi, adapter) {
         height: 1,
         type: 'textarea',
         code: 'javascript',
-        editable: false
+        editable: false,
+        prepare: (that, onSuccess, onError) => {
+            const activeSearchValue = adapter.getActiveSearchValue();
+            if (typeof activeSearchValue === 'string') {
+                textarea.hmi_searchText(activeSearchValue);
+            }
+            onSuccess();
+        }
     };
     const container = {
         x: 0,
@@ -1521,7 +1532,7 @@ function getJsonFxEditor(hmi, adapter) {
             that.hmi_addChangeListener(that._on_change);
             const activeSearchValue = adapter.getActiveSearchValue();
             if (typeof activeSearchValue === 'string') {
-                // TODO: Perform action to highlight activeSearchValue in the CodeMirror view.
+                textarea.hmi_searchText(activeSearchValue);
             }
             onSuccess();
         },
@@ -3221,7 +3232,8 @@ function create(hmi) {
     };
     const preview_adapter = {
         notifyError: log_handler.pushError,
-        notifyTimeout: data => log_handler.pushTimeout('timeout loading preview: "' + data.id + '"')
+        notifyTimeout: data => log_handler.pushTimeout(`timeout loading preview: "${data.id}"`),
+        getActiveSearchValue: () => search_container.getActiveSearchValue()
     };
     // CONTROLS
     const language_selector = getLanguageSelector(hmi, language_selector_adapter);

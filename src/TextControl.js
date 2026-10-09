@@ -146,15 +146,12 @@ function applyTextArea(that, onSuccess) {
             return false;
         }
     };
-    if (false) {
-        // TODO try to implement search and mark
-        that.hmi_search = function (i_query, i_start, i_caseFold) {
-            if (_code) {
-                const searchCursor = _code.getSearchCursor(i_query, i_start, i_caseFold);
-                console.log('');
-            }
-        };
-    }
+    
+    that.hmi_searchText = text => {
+        if (_code) {
+            // TODO Perform a programmatic text search for the text argument within the current content of the CodeMirror view.
+        }
+    };
     let id = Utilities.getUniqueId();
     // add text area
     let txt = '<textarea';
