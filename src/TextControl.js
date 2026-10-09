@@ -1,11 +1,71 @@
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import Utilities from './Utilities.js';
 import { basicSetup, EditorView } from 'codemirror';
-import { Compartment } from '@codemirror/state';
+import { Compartment, RangeSetBuilder, StateEffect, StateField } from '@codemirror/state';
+import { Decoration, ViewPlugin } from '@codemirror/view';
 import { html } from '@codemirror/lang-html';
 import { javascript } from '@codemirror/lang-javascript';
+import { SearchQuery, search } from '@codemirror/search';
 
 const TextControl = {};
+const setTextSearch = StateEffect.define();
+const textSearch = StateField.define({
+    create: () => '',
+    update: (value, transaction) => {
+        for (const effect of transaction.effects) {
+            if (effect.is(setTextSearch)) {
+                value = effect.value;
+            }
+        }
+        return value;
+    }
+});
+const textSearchMark = Decoration.mark({ class: 'cm-hmi-searchMatch' });
+const textSearchHighlight = ViewPlugin.fromClass(class {
+    constructor(view) {
+        this.decorations = this.highlight(view);
+    }
+    update(update) {
+        if (update.docChanged || update.viewportChanged ||
+            update.startState.field(textSearch) !== update.state.field(textSearch)) {
+            this.decorations = this.highlight(update.view);
+        }
+    }
+    highlight(view) {
+        const searchText = view.state.field(textSearch);
+        if (!searchText) {
+            return Decoration.none;
+        }
+        const query = new SearchQuery({
+            search: searchText,
+            caseSensitive: false,
+            literal: true,
+            regexp: false,
+            wholeWord: false
+        });
+        const decorations = new RangeSetBuilder();
+        const ranges = view.visibleRanges;
+        for (let i = 0; i < ranges.length; i++) {
+            let { from, to } = ranges[i];
+            while (i < ranges.length - 1 && to > ranges[i + 1].from - 2 * searchText.length) {
+                to = ranges[++i].to;
+            }
+            const cursor = query.getCursor(view.state, Math.max(0, from - searchText.length),
+                Math.min(view.state.doc.length, to + searchText.length));
+            let match;
+            while (!(match = cursor.next()).done) {
+                decorations.add(match.value.from, match.value.to, textSearchMark);
+            }
+        }
+        return decorations.finish();
+    }
+}, {
+    decorations: plugin => plugin.decorations
+});
+const textSearchTheme = EditorView.baseTheme({
+    '.cm-hmi-searchMatch': { backgroundColor: '#ffff0054' },
+    '&dark .cm-hmi-searchMatch': { backgroundColor: '#00ffff8a' }
+});
 
 function applyTextField(that, onSuccess) {
     let _cont = that._hmi_context.container;
@@ -149,7 +209,9 @@ function applyTextArea(that, onSuccess) {
     
     that.hmi_searchText = text => {
         if (_code) {
-            // TODO Perform a programmatic text search for the text argument within the current content of the CodeMirror view.
+            _code.dispatch({
+                effects: setTextSearch.of(typeof text === 'string' ? text : '')
+            });
         }
     };
     let id = Utilities.getUniqueId();
@@ -172,6 +234,10 @@ function applyTextArea(that, onSuccess) {
             doc: initialValue,
             extensions: [
                 basicSetup,
+                search(),
+                textSearch,
+                textSearchHighlight,
+                textSearchTheme,
                 language,
                 EditorView.lineWrapping,
                 editable.of(EditorView.editable.of(!readOnly)),
@@ -320,6 +386,7 @@ function applyTextArea(that, onSuccess) {
     };
     that._hmi_destroys.push(() => {
         _cont.empty();
+        delete that.hmi_searchText;
         delete that.hmi_getSearchCursor;
         delete that.hmi_editor;
         delete that.hmi_value;
