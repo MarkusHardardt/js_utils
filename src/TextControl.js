@@ -9,6 +9,15 @@ import { SearchQuery, search } from '@codemirror/search';
 
 const TextControl = {};
 const setTextSearch = StateEffect.define();
+function createTextSearchQuery(searchText) {
+    return new SearchQuery({
+        search: searchText,
+        caseSensitive: false,
+        literal: true,
+        regexp: false,
+        wholeWord: false
+    });
+}
 const textSearch = StateField.define({
     create: () => '',
     update: (value, transaction) => {
@@ -36,13 +45,7 @@ const textSearchHighlight = ViewPlugin.fromClass(class {
         if (!searchText) {
             return Decoration.none;
         }
-        const query = new SearchQuery({
-            search: searchText,
-            caseSensitive: false,
-            literal: true,
-            regexp: false,
-            wholeWord: false
-        });
+        const query = createTextSearchQuery(searchText);
         const decorations = new RangeSetBuilder();
         const ranges = view.visibleRanges;
         for (let i = 0; i < ranges.length; i++) {
@@ -112,7 +115,29 @@ function applyTextArea(that, onSuccess) {
     _cont.addClass('overflow-hidden');
     let _textarea = undefined;
     let _code = undefined;
+    let _searchScrollPending = false;
     const _changeListeners = new Set();
+    const scrollToFirstSearchMatch = () => {
+        if (!_code) {
+            return false;
+        }
+        const searchText = _code.state.field(textSearch);
+        if (!searchText) {
+            _searchScrollPending = false;
+            return false;
+        }
+        const cursor = _code.getSearchCursor(searchText, 0, true);
+        if (!cursor.findNext()) {
+            return false;
+        }
+        const position = cursor.from();
+        const offset = _code.state.doc.line(position.line + 1).from + position.ch;
+        _searchScrollPending = false;
+        _code.dispatch({
+            effects: EditorView.scrollIntoView(offset, { y: 'center' })
+        });
+        return true;
+    };
     that.hmi_editor = () => _code ? _code : _textarea;
     that.hmi_value = value => {
         if (typeof value === 'string') {
@@ -209,9 +234,12 @@ function applyTextArea(that, onSuccess) {
     
     that.hmi_searchText = text => {
         if (_code) {
+            const searchText = typeof text === 'string' ? text : '';
+            _searchScrollPending = searchText.length > 0;
             _code.dispatch({
-                effects: setTextSearch.of(typeof text === 'string' ? text : '')
+                effects: setTextSearch.of(searchText)
             });
+            scrollToFirstSearchMatch();
         }
     };
     let id = Utilities.getUniqueId();
@@ -246,6 +274,9 @@ function applyTextArea(that, onSuccess) {
                     if (update.docChanged) {
                         for (const listener of _changeListeners) {
                             listener(update.view, update);
+                        }
+                        if (_searchScrollPending) {
+                            queueMicrotask(() => scrollToFirstSearchMatch());
                         }
                     }
                 })
@@ -396,6 +427,7 @@ function applyTextArea(that, onSuccess) {
         id = undefined;
         _textarea = undefined;
         _code = undefined;
+        _searchScrollPending = false;
         _changeListeners.clear();
         delete that.hmi_addChangeListener;
         delete that.hmi_removeChangeListener;
