@@ -84,6 +84,7 @@ function main(config = {}) {
         '@codemirror/search': ['@codemirror/search', 'dist/index.js'],
         '@codemirror/state': ['@codemirror/state', 'dist/index.js'],
         '@codemirror/view': ['@codemirror/view', 'dist/index.js'],
+        '@codemirror/streamparser': ['@codemirror/streamparser', 'dist/index.js'],
         '@lezer/common': ['@lezer/common', 'dist/index.js'],
         '@lezer/css': ['@lezer/css', 'dist/index.js'],
         '@lezer/highlight': ['@lezer/highlight', 'dist/index.js'],
