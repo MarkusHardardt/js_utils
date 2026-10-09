@@ -276,9 +276,7 @@ function performRefactoring(hmi, source, target, action, onSuccess, onEerror) {
         } else if (params.action === ContentManager.DELETE) {
             let txt = '';
             if (params.externalUsers !== undefined && Array.isArray(params.externalUsers) && params.externalUsers.length > 0) {
-                txt += '<b>';
-                txt += `Object '${source}' is referenced!`;
-                txt += '</b><br><code>';
+                txt += `<b>Object '${source}' is referenced!</b><br><code>`;
                 for (let i = 0; i < params.externalUsers.length; i++) {
                     if (i > 10) {
                         txt += '<br>...';
@@ -289,11 +287,7 @@ function performRefactoring(hmi, source, target, action, onSuccess, onEerror) {
                 }
                 txt += '</code>';
             } else {
-                txt += '<b>';
-                txt += 'Delete:'; // TODO: What is this???
-                txt += ':</b><br><code>';
-                txt += source;
-                txt += '</code>';
+                txt += `<b>Delete::</b><br><code>${source}</code>`; // TODO: What is this???
             }
             txt += '<br><br><b>';
             txt += 'Sure to proceed?';
@@ -309,9 +303,7 @@ function performRefactoring(hmi, source, target, action, onSuccess, onEerror) {
             });
         } else if (params.action === ContentManager.MOVE || params.action === ContentManager.COPY) {
             if (params.existingTargets !== undefined && Array.isArray(params.existingTargets) && params.existingTargets.length > 0) {
-                let txt = '<b>';
-                txt += `Object '${source}' already exists!`;
-                txt += '</b><br><code>';
+                let txt = `<b>Object '${source}' already exists!</b><br><code>`;
                 for (let i = 0; i < params.existingTargets.length; i++) {
                     if (i > 10) {
                         txt += '<br>...';
@@ -320,10 +312,7 @@ function performRefactoring(hmi, source, target, action, onSuccess, onEerror) {
                     txt += '<br>';
                     txt += params.existingTargets[i];
                 }
-                txt += '</code>';
-                txt += '<br><br><b>';
-                txt += 'Sure to proceed?';
-                txt += '</b>';
+                txt += '</code><br><br><b>Sure to proceed?</b>';
                 hmi.showDefaultConfirmationDialog({
                     width: $(window).width() * 0.8,
                     height: $(window).height() * 0.8,
@@ -738,7 +727,7 @@ function getSearchContainer(hmi, adapter) {
         },
         handleTableRowClicked: row => adapter.keySelected(cms.analyzeId(search_results[row].id))
     };
-    return {
+    const container = {
         visible: false,
         type: 'grid',
         x: 0,
@@ -756,8 +745,10 @@ function getSearchContainer(hmi, adapter) {
             y: 0,
             text: 'value:',
             align: 'right'
-        }, search_value_textfield, button_search, search_table]
+        }, search_value_textfield, button_search, search_table],
+        getActiveSearchValue: () => container.hmi_isVisible() ? search_value_textfield.hmi_value().trim() : false
     };
+    return container;
 }
 
 // ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1528,6 +1519,10 @@ function getJsonFxEditor(hmi, adapter) {
                 }
             };
             that.hmi_addChangeListener(that._on_change);
+            const activeSearchValue = adapter.getActiveSearchValue();
+            if (typeof activeSearchValue === 'string') {
+                // TODO: Perform action to highlight activeSearchValue in the CodeMirror view.
+            }
             onSuccess();
         },
         destroy: (that, onSuccess, onError) => {
@@ -3221,7 +3216,8 @@ function create(hmi) {
             edit_ctrl.update(data, language_selector.getLanguage());
             preview.update(data, language_selector.getLanguage());
         },
-        selectInNavigator: data => selectInNavigator(data)
+        selectInNavigator: data => selectInNavigator(data),
+        getActiveSearchValue: () => search_container.getActiveSearchValue()
     };
     const preview_adapter = {
         notifyError: log_handler.pushError,
