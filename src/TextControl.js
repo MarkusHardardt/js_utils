@@ -217,7 +217,8 @@ function applyTextArea(that, onSuccess) {
                 } else {
                     top = Math.floor(viewport_top / (container_height - viewport_height) * (scroll_info.height - scroll_info.clientHeight));
                 }
-                _code.scrollTo(left, top);
+                _code.scrollDOM.scrollLeft = left;
+                _code.scrollDOM.scrollTop = top;
                 scroll_info = _code.getScrollInfo();
             }
             par.container_width = scroll_info.width;
