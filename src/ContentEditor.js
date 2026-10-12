@@ -72,8 +72,7 @@ function handleScrolls(scrolls, id, textarea, restore) {
     const scrs = textarea.hmi_handleScrollParams(scrolls[id], restore);
     if (scrs.viewport_left > 0 || scrs.viewport_top) {
         scrolls[id] = scrs;
-    }
-    else {
+    } else {
         delete scrolls[id];
     }
 }
