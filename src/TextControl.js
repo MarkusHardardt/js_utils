@@ -4,7 +4,7 @@ import { basicSetup, EditorView } from 'codemirror';
 import { Compartment, RangeSetBuilder, StateEffect, StateField } from '@codemirror/state';
 import { Decoration, ViewPlugin } from '@codemirror/view';
 import { html } from '@codemirror/lang-html';
-import { javascript } from '@codemirror/lang-javascript';
+import { javascript, javascriptLanguage, scopeCompletionSource } from '@codemirror/lang-javascript';
 import { SearchQuery, search } from '@codemirror/search';
 
 const TextControl = {};
@@ -255,7 +255,12 @@ function applyTextArea(that, onSuccess) {
         const readOnly = that.readonly === true || that.editable === false;
         const editable = new Compartment();
         let editorReadOnly = readOnly;
-        const language = that.code === 'javascript' ? javascript() : html();
+        const language = that.code === 'javascript'
+            ? [
+                javascript(),
+                javascriptLanguage.data.of({ autocomplete: scopeCompletionSource(globalThis) })
+            ]
+            : html();
         const initialValue = _textarea.val();
         _textarea.remove();
         _code = new EditorView({
