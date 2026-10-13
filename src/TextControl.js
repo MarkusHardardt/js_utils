@@ -195,6 +195,7 @@ function applyTextArea(that, onSuccess) {
         if (_code) {
             const par = params || {};
             let scroll_info = _code.getScrollInfo();
+            console.log(`restore: ${restore}, info: ${JSON.stringify(scroll_info)}`);
             if (restore === true) {
                 const container_width = typeof par.container_width === 'number' ? par.container_width : 1;
                 const container_height = typeof par.container_height === 'number' ? par.container_height : 1;
@@ -217,9 +218,15 @@ function applyTextArea(that, onSuccess) {
                 } else {
                     top = Math.floor(viewport_top / (container_height - viewport_height) * (scroll_info.height - scroll_info.clientHeight));
                 }
-                _code.scrollDOM.scrollLeft = left;
-                _code.scrollDOM.scrollTop = top;
+                if (true) { // TODO
+                    _code.scrollTo(left, top);
+                } else {
+                    // The line above has been changed by copilot to fix the issue - but why?
+                    _code.scrollDOM.scrollLeft = left;
+                    _code.scrollDOM.scrollTop = top;
+                }
                 scroll_info = _code.getScrollInfo();
+                console.log(`restored, info: ${JSON.stringify(scroll_info)}`);
             }
             par.container_width = scroll_info.width;
             par.container_height = scroll_info.height;
@@ -232,7 +239,7 @@ function applyTextArea(that, onSuccess) {
             return false;
         }
     };
-    
+
     that.hmi_searchText = text => {
         if (_code) {
             const searchText = typeof text === 'string' ? text : '';
