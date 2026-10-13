@@ -1,5 +1,16 @@
-import ObjectLifecycleManager from './ObjectLifecycleManager.js';
+import Executor from './Executor.js';
+import JsonFX from './JsonFX.js';
+import Regex from './Regex.js';
+import Sorting from './Sorting.js';
 import Utilities from './Utilities.js';
+import Client from './Client.js';
+import Core from './Core.js';
+import HashLists from './HashLists.js';
+import Mathematics from './Mathematics.js';
+import Common from './Common.js';
+import ObjectLifecycleManager from './ObjectLifecycleManager.js';
+import Access from './Access.js';
+import ContentManager from './ContentManager.js';
 import { basicSetup, EditorView } from 'codemirror';
 import { Compartment, RangeSetBuilder, StateEffect, StateField } from '@codemirror/state';
 import { Decoration, ViewPlugin } from '@codemirror/view';
@@ -8,6 +19,24 @@ import { javascript, javascriptLanguage, scopeCompletionSource } from '@codemirr
 import { SearchQuery, search } from '@codemirror/search';
 
 const TextControl = {};
+const autocompleteScope = {
+    Executor,
+    JsonFX,
+    Regex,
+    Sorting,
+    Utilities,
+    Client,
+    Core,
+    HashLists,
+    Mathematics,
+    Common,
+    ObjectLifecycleManager,
+    Access,
+    ContentManager
+};
+
+let _autocompleteScope = {}; // TODO: Remove
+
 const setTextSearch = StateEffect.define();
 function createTextSearchQuery(searchText) {
     return new SearchQuery({
@@ -266,7 +295,9 @@ function applyTextArea(that, onSuccess) {
         const language = that.code === 'javascript'
             ? [
                 javascript(),
-                javascriptLanguage.data.of({ autocomplete: scopeCompletionSource(globalThis) })
+                javascriptLanguage.data.of({
+                    autocomplete: scopeCompletionSource(Object.assign(Object.create(globalThis), autocompleteScope))
+                })
             ]
             : html();
         const initialValue = _textarea.val();
