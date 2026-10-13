@@ -32,41 +32,6 @@ import GridLayout from '../src/GridLayout.js';
 import LanguageSwitching from '../src/LanguageSwitching.js';
 import TaskManager from '../src/TaskManager.js';
 
-TextControl.setAutocompleteScope({
-    Executor,
-    JsonFX,
-    // ObjectPositionSystem,
-    Regex,
-    // Server,
-    Sorting,
-    Utilities,
-    Client,
-    Core,
-    HashLists,
-    Mathematics,
-    Common,
-    // OPCUA,
-    // ADS,
-    ObjectLifecycleManager,
-    // Access,
-    // DataConnector,
-    // Logger,
-    // SqlHelper,
-    // WebSocketConnection,
-    // FloatLayout,
-    // GraphControl,
-    // SplitLayout,
-    // TableControl,
-    // TextControl,
-    // TreeControl,
-    ContentManager,
-    // Evaluate,
-    // ContentEditor,
-    // GridLayout,
-    // LanguageSwitching,
-    // TaskManager
-});
-
 const $ = globalThis.$;
 
 // create 'hmi' environment object
