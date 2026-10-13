@@ -8,6 +8,7 @@ import { javascript, javascriptLanguage, scopeCompletionSource } from '@codemirr
 import { SearchQuery, search } from '@codemirror/search';
 
 const TextControl = {};
+let _autocompleteScope = {};
 const setTextSearch = StateEffect.define();
 function createTextSearchQuery(searchText) {
     return new SearchQuery({
@@ -258,7 +259,9 @@ function applyTextArea(that, onSuccess) {
         const language = that.code === 'javascript'
             ? [
                 javascript(),
-                javascriptLanguage.data.of({ autocomplete: scopeCompletionSource(globalThis) })
+                javascriptLanguage.data.of({
+                    autocomplete: scopeCompletionSource(Object.assign(Object.create(globalThis), _autocompleteScope))
+                })
             ]
             : html();
         const initialValue = _textarea.val();
@@ -446,6 +449,13 @@ function applyTextArea(that, onSuccess) {
     onSuccess();
 }
 ObjectLifecycleManager.addApplyFunctionForType('textarea', applyTextArea);
+
+TextControl.setAutocompleteScope = scope => {
+    if (scope === null || typeof scope !== 'object' || Array.isArray(scope)) {
+        throw new TypeError('Autocomplete scope must be an object');
+    }
+    _autocompleteScope = scope;
+};
 
 Object.freeze(TextControl);
 
