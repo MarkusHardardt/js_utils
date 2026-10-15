@@ -35,8 +35,6 @@ const autocompleteScope = {
     ContentManager
 };
 
-let _autocompleteScope = {}; // TODO: Remove
-
 const setTextSearch = StateEffect.define();
 function createTextSearchQuery(searchText) {
     return new SearchQuery({
@@ -223,8 +221,7 @@ function applyTextArea(that, onSuccess) {
     that.hmi_handleScrollParams = (params, restore) => {
         if (_code) {
             const par = params || {};
-            let scroll_info = _code.getScrollInfo();
-            console.log(`restore: ${restore}, info: ${JSON.stringify(scroll_info)}`);
+            console.log(`r: ${restore}, vh: ${_code.scrollDOM.clientHeight}, t: ${_code.scrollDOM.scrollTop}, h: ${_code.scrollDOM.scrollHeight}`);
             if (restore === true) {
                 const container_width = typeof par.container_width === 'number' ? par.container_width : 1;
                 const container_height = typeof par.container_height === 'number' ? par.container_height : 1;
@@ -236,33 +233,25 @@ function applyTextArea(that, onSuccess) {
                 if (viewport_left <= 0) {
                     left = 0;
                 } else if (viewport_left >= container_width - viewport_width) {
-                    left = scroll_info.width - scroll_info.clientWidth;
+                    left = _code.scrollDOM.scrollWidth - _code.scrollDOM.clientWidth;
                 } else {
-                    left = Math.floor(viewport_left / (container_width - viewport_width) * (scroll_info.width - scroll_info.clientWidth));
+                    left = Math.floor(viewport_left / (container_width - viewport_width) * (_code.scrollDOM.scrollWidth - _code.scrollDOM.clientWidth));
                 }
                 if (viewport_top <= 0) {
                     top = 0;
                 } else if (viewport_top >= container_height - viewport_height) {
-                    top = scroll_info.height - scroll_info.clientHeight;
+                    top = _code.scrollDOM.scrollHeight - _code.scrollDOM.clientHeight;
                 } else {
-                    top = Math.floor(viewport_top / (container_height - viewport_height) * (scroll_info.height - scroll_info.clientHeight));
+                    top = Math.floor(viewport_top / (container_height - viewport_height) * (_code.scrollDOM.scrollHeight - _code.scrollDOM.clientHeight));
                 }
-                if (true) { // TODO
-                    _code.scrollTo(left, top);
-                } else {
-                    // The line above has been changed by copilot to fix the issue - but why?
-                    _code.scrollDOM.scrollLeft = left;
-                    _code.scrollDOM.scrollTop = top;
-                }
-                scroll_info = _code.getScrollInfo();
-                console.log(`restored, info: ${JSON.stringify(scroll_info)}`);
+                _code.scrollDOM.scrollTo(left, top);
             }
-            par.container_width = scroll_info.width;
-            par.container_height = scroll_info.height;
-            par.viewport_width = scroll_info.clientWidth;
-            par.viewport_height = scroll_info.clientHeight;
-            par.viewport_left = scroll_info.left;
-            par.viewport_top = scroll_info.top;
+            par.container_width = _code.scrollDOM.scrollWidth;
+            par.container_height = _code.scrollDOM.scrollHeight;
+            par.viewport_width = _code.scrollDOM.clientWidth;
+            par.viewport_height = _code.scrollDOM.clientHeight;
+            par.viewport_left = _code.scrollDOM.scrollLeft;
+            par.viewport_top = _code.scrollDOM.scrollTop;
             return par;
         } else {
             return false;
@@ -347,15 +336,6 @@ function applyTextArea(that, onSuccess) {
             }
         };
         _code.getOption = name => name === 'readOnly' ? _code.readOnly : undefined;
-        _code.getScrollInfo = () => ({
-            width: _code.scrollDOM.scrollWidth,
-            height: _code.scrollDOM.scrollHeight,
-            clientWidth: _code.scrollDOM.clientWidth,
-            clientHeight: _code.scrollDOM.clientHeight,
-            left: _code.scrollDOM.scrollLeft,
-            top: _code.scrollDOM.scrollTop
-        });
-        _code.scrollTo = (left, top) => _code.scrollDOM.scrollTo(left, top);
         _code.doc = {
             getValue: _code.getValue,
             setValue: _code.setValue,
