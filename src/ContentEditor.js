@@ -81,34 +81,28 @@ function initScrolling(scrollings, id, textarea) {
     textarea.hmi_setScrolling(scrollings[id]);
 }
 
-function updateScrollings(scrollings, params) {
+function updateScrollings(scrollingsArray, params) {
     switch (params.action) {
         case ContentManager.COPY:
-            for (const src in params.objects) {
-                if (params.objects.hasOwnProperty(src)) {
-                    for (const scrs of scrollings.length) {
-                        const data = scrs[src];
-                        if (data) {
-                            const copy = {};
-                            for (const attr in data) {
-                                if (data.hasOwnProperty(attr)) {
-                                    copy[attr] = data[attr];
-                                }
-                            }
-                            scrs[params.objects[src]] = copy;
+            for (const id in params.objects) {
+                if (params.objects.hasOwnProperty(id)) {
+                    for (const scrollings of scrollingsArray) {
+                        const scrolling = scrollings[id];
+                        if (scrolling) {
+                            scrollings[params.objects[id]] = { left: scrolling.left, top: scrolling.top };
                         }
                     }
                 }
             }
             break;
         case ContentManager.MOVE:
-            for (const src in params.objects) {
-                if (params.objects.hasOwnProperty(src)) {
-                    for (const scrs of scrollings.length) {
-                        const data = scrs[src];
-                        if (data) {
-                            delete scrs[src];
-                            scrs[params.objects[src]] = data;
+            for (const id in params.objects) {
+                if (params.objects.hasOwnProperty(id)) {
+                    for (const scrollings of scrollingsArray) {
+                        const scrolling = scrollings[id];
+                        if (scrolling) {
+                            delete scrollings[id];
+                            scrollings[params.objects[id]] = scrolling;
                         }
                     }
                 }
@@ -116,16 +110,12 @@ function updateScrollings(scrollings, params) {
             break;
         case ContentManager.DELETE:
             if (params.objects) {
-                for (const src in params.objects) {
-                    if (params.objects.hasOwnProperty(src)) {
-                        for (const scrs of scrollings.length) {
-                            delete scrs[src];
+                for (const id in params.objects) {
+                    if (params.objects.hasOwnProperty(id)) {
+                        for (const scrollings of scrollingsArray) {
+                            delete scrollings[id];
                         }
                     }
-                }
-            } else {
-                for (const scrs of scrollings.length) {
-                    delete scrs[src];
                 }
             }
             break;
@@ -1126,7 +1116,7 @@ function getHtmlEditor(hmi, adapter) {
         children: [textarea, info_lang],
         onKeyChanged,
         getValue: () => textarea.hmi_value().trim(),
-        scrolls: scrollings
+        scrollings
     };
 };
 
@@ -1135,7 +1125,7 @@ function getHtmlEditor(hmi, adapter) {
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 
 function getTextPreview(hmi, adapter) {
-    const cms = hmi.cms, scrolls_raw = {}, scrolls_build = {};
+    const cms = hmi.cms, rawScrollings = {}, includeScrollings = {};
     let mode = ContentManager.RAW;
     function update_mode(md) {
         mode = md;
@@ -1149,10 +1139,10 @@ function getTextPreview(hmi, adapter) {
         if (textarea._mode) {
             switch (textarea._mode) {
                 case ContentManager.RAW:
-                    saveScrolling(scrolls_raw, textarea._file, textarea);
+                    saveScrolling(rawScrollings, textarea._file, textarea);
                     break;
                 case ContentManager.INCLUDE:
-                    saveScrolling(scrolls_build, textarea._file, textarea);
+                    saveScrolling(includeScrollings, textarea._file, textarea);
                     break;
             }
             delete textarea._file;
@@ -1166,10 +1156,10 @@ function getTextPreview(hmi, adapter) {
                     textarea._mode = mode;
                     switch (mode) {
                         case ContentManager.RAW:
-                            initScrolling(scrolls_raw, data.file, textarea);
+                            initScrolling(rawScrollings, data.file, textarea);
                             break;
                         case ContentManager.INCLUDE:
-                            initScrolling(scrolls_build, data.file, textarea);
+                            initScrolling(includeScrollings, data.file, textarea);
                             break;
                     }
                 }
@@ -1238,17 +1228,17 @@ function getTextPreview(hmi, adapter) {
                 onError(error);
             });
         },
-        scrolls_raw,
-        scrolls_build
+        rawScrollings,
+        includeScrollings
     };
 }
 
 function getTextEditor(hmi, adapter) {
-    const cms = hmi.cms, scrolls = {};
+    const cms = hmi.cms, scrollings = {};
     function onKeyChanged(data, language, onSuccess, onError) {
         info_lang.hmi_text(`language: '${language}'`);
         if (textarea.file) {
-            saveScrolling(scrolls, textarea.file, textarea);
+            saveScrolling(scrollings, textarea.file, textarea);
             delete textarea.file;
         }
         if (data && data.file) {
@@ -1256,7 +1246,7 @@ function getTextEditor(hmi, adapter) {
                 textarea.hmi_value(raw !== undefined ? raw : '');
                 if (raw !== undefined) {
                     textarea.file = data.file;
-                    initScrolling(scrolls, textarea.file, textarea);
+                    initScrolling(scrollings, textarea.file, textarea);
                 }
                 onSuccess();
             }, error => {
@@ -1299,7 +1289,7 @@ function getTextEditor(hmi, adapter) {
         children: [textarea, info_lang],
         onKeyChanged,
         getValue: () => textarea.hmi_value().trim(),
-        scrolls
+        scrollings
     };
 }
 
@@ -1308,7 +1298,7 @@ function getTextEditor(hmi, adapter) {
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 
 function getJsonFxPreview(hmi, adapter) {
-    const cms = hmi.cms, scrolls_raw = {}, scrolls_build = {};
+    const cms = hmi.cms, rawScrollings = {}, includeScrollings = {};
     let mode = ContentManager.RAW;
     function update_mode(md) {
         mode = md;
@@ -1324,10 +1314,10 @@ function getJsonFxPreview(hmi, adapter) {
         if (textarea._mode) {
             switch (textarea._mode) {
                 case ContentManager.RAW:
-                    saveScrolling(scrolls_raw, textarea._file, textarea);
+                    saveScrolling(rawScrollings, textarea._file, textarea);
                     break;
                 case ContentManager.INCLUDE:
-                    saveScrolling(scrolls_build, textarea._file, textarea);
+                    saveScrolling(includeScrollings, textarea._file, textarea);
                     break;
             }
             delete textarea._file;
@@ -1344,8 +1334,14 @@ function getJsonFxPreview(hmi, adapter) {
                                 if (response !== undefined) {
                                     textarea._mode = mode;
                                     textarea._file = data.file;
-                                    const scrolls = mode === ContentManager.RAW ? scrolls_raw : scrolls_build;
-                                    initScrolling(scrolls, data.file, textarea);
+                                    switch (mode) {
+                                        case ContentManager.RAW:
+                                            initScrolling(rawScrollings, data.file, textarea);
+                                            break;
+                                        case ContentManager.INCLUDE:
+                                            initScrolling(includeScrollings, data.file, textarea);
+                                            break;
+                                    }
                                 }
                                 onSuccess();
                             }, onError);
@@ -1442,13 +1438,13 @@ function getJsonFxPreview(hmi, adapter) {
                 onError(error);
             });
         },
-        scrolls_raw,
-        scrolls_build
+        rawScrollings,
+        includeScrollings
     };
 }
 
 function getJsonFxEditor(hmi, adapter) {
-    const cms = hmi.cms, scrolls = {};
+    const cms = hmi.cms, scrollings = {};
     let mode = ContentManager.RAW;
     function update_mode(md) {
         mode = md;
@@ -1461,7 +1457,7 @@ function getJsonFxEditor(hmi, adapter) {
     let edited = false, object, raw;
     function reload(data, language, onSuccess, onError) {
         if (textarea.file) {
-            saveScrolling(scrolls, textarea.file, textarea);
+            saveScrolling(scrollings, textarea.file, textarea);
             delete textarea.file;
         }
         raw = undefined;
@@ -1480,7 +1476,7 @@ function getJsonFxEditor(hmi, adapter) {
                             container.hmi_setContent(textarea, () => {
                                 if (response !== undefined) {
                                     textarea.file = data.file;
-                                    initScrolling(scrolls, textarea.file, textarea);
+                                    initScrolling(scrollings, textarea.file, textarea);
                                 }
                                 onSuccess();
                             }, onError);
@@ -1712,7 +1708,7 @@ function getJsonFxEditor(hmi, adapter) {
             }
             onSuccess();
         },
-        scrolls
+        scrollings
     };
 }
 
@@ -2041,10 +2037,10 @@ function getPreview(hmi, adapter) {
             language = lang;
             reload();
         },
-        scrolls_txt_raw: textPreview.scrolls_raw,
-        scrolls_txt_build: textPreview.scrolls_build,
-        scrolls_jso_raw: jsonFxPreview.scrolls_raw,
-        scrolls_jso_build: jsonFxPreview.scrolls_build
+        textRawScrollings: textPreview.rawScrollings,
+        textIncludeScrollings: textPreview.includeScrollings,
+        jsonFxRawScrollings: jsonFxPreview.rawScrollings,
+        jsonFxIncludeScrollings: jsonFxPreview.includeScrollings
     };
     return container;
 }
@@ -3090,16 +3086,16 @@ function getEditController(hmi, adapter) {
             updateEditorButtons();
         },
         editor: editContainer,
-        scrolls_htm: htmlEditor.scrolls,
-        scrolls_txt: textEditor.scrolls,
-        scrolls_jso: jsonFxEditor.scrolls
+        htmlScrollings: htmlEditor.scrollings,
+        textScrollings: textEditor.scrollings,
+        jsonFxScrollings: jsonFxEditor.scrollings
     };
 }
 
 function create(hmi) {
     // For every kind of text editors or previews we store the scroll positions
     // so it it easy to switch between objects and stay where you are.
-    const scroll_positions = [];
+    const scrollingsArray = [];
     // We show messages and show and collect error messages.
     const log_handler = getLogHandler(hmi);
     // All editor controls are encapsulated and do not have any knowledge about
@@ -3168,7 +3164,7 @@ function create(hmi) {
     const refactoring_adapter = {
         updateInfo: log_handler.updateInfo,
         notifyError: log_handler.pushError,
-        updateScrolling: params => updateScrollings(scroll_positions, params),
+        updateScrolling: params => updateScrollings(scrollingsArray, params),
         reload: d => {
             if (d) {
                 key_textfield.update(d);
@@ -3211,7 +3207,7 @@ function create(hmi) {
         notifyTimeout: data => log_handler.pushTimeout('timeout loading editor: "' + data.id + '"'),
         updateInfo: log_handler.updateInfo,
         getIdData: () => key_textfield.getIdData(),
-        updateScrolling: params => updateScrollings(scroll_positions, params),
+        updateScrolling: params => updateScrollings(scrollingsArray, params),
         stateChanged: (edited, data) => {
             refactoring.setEnabled(!edited);
             if (!edited) {
@@ -3256,13 +3252,13 @@ function create(hmi) {
     const edit_ctrl = getEditController(hmi, edit_ctrl_adapter);
     const preview = getPreview(hmi, preview_adapter);
     // SCROLL POSITIONS
-    scroll_positions.push(edit_ctrl.scrolls_htm);
-    scroll_positions.push(edit_ctrl.scrolls_txt);
-    scroll_positions.push(edit_ctrl.scrolls_jso);
-    scroll_positions.push(preview.scrolls_txt_raw);
-    scroll_positions.push(preview.scrolls_txt_build);
-    scroll_positions.push(preview.scrolls_jso_raw);
-    scroll_positions.push(preview.scrolls_jso_build);
+    scrollingsArray.push(edit_ctrl.htmlScrollings);
+    scrollingsArray.push(edit_ctrl.textScrollings);
+    scrollingsArray.push(edit_ctrl.jsonFxScrollings);
+    scrollingsArray.push(preview.textRawScrollings);
+    scrollingsArray.push(preview.textIncludeScrollings);
+    scrollingsArray.push(preview.jsonFxRawScrollings);
+    scrollingsArray.push(preview.jsonFxIncludeScrollings);
     // HEADER
     language_selector.x = 0;
     language_selector.y = 0;
