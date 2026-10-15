@@ -221,65 +221,38 @@ function applyTextArea(that, onSuccess) {
     that.hmi_handleScrollParams = (params, restore) => {
         if (_code) {
             const par = params || {};
-            /*  Tests:
-                oben
-                r: false, vh: 998, t: 0, h: 10607
-                r: true, vh: 998, t: 0, h: 38416
-                mitte
-                r: false, vh: 998, t: 4459, h: 9246
-                r: true, vh: 998, t: 0, h: 38416
-                unten
-                r: false, vh: 998, t: 7442, h: 8440
-                r: true, vh: 998, t: 0, h: 38416
-                mitte
-                r: false, vh: 998, t: 4284, h: 9330
-                r: true, vh: 998, t: 0, h: 38416
-                oben
-                r: false, vh: 998, t: 0, h: 10607
-                r: true, vh: 998, t: 0, h: 38416
-                _code.scrollDOM ist bei CodeMirror 6 das DOM-Element, das den Editorinhalt scrollt. Die drei Werte sind Eigenschaften dieses Elements:
-                clientHeight: Höhe des sichtbaren inneren Bereichs in CSS-Pixeln. Das ist ungefähr die Höhe des Editor-Viewports; 
-                Rahmen und horizontale Scrollleiste zählen nicht dazu.
-                scrollTop: Aktuelle vertikale Scrollposition in CSS-Pixeln, gemessen vom oberen Anfang des Inhalts. Oben ist der Wert 0.
-                scrollHeight: Gesamthöhe des Inhalts, einschließlich des nicht sichtbaren, nach unten scrollbareren Bereichs. 
-                Ist der Inhalt höher als der sichtbare Bereich, gilt typischerweise scrollHeight > clientHeight.
-                Der maximal mögliche scrollTop liegt normalerweise ungefähr bei scrollHeight - clientHeight. 
-                In deinem Code werden diese Werte in TextControl.js als Höhe des Viewports, aktuelle Position und Gesamthöhe protokolliert. 
-                Die aus den gespeicherten Parametern berechnete Wiederherstellungsposition wird derzeit allerdings nicht angewendet: 
-                Der Aufruf von scrollTo(left, top) ist auskommentiert.
-            */
             console.log(`r: ${restore}, vh: ${_code.scrollDOM.clientHeight}, t: ${_code.scrollDOM.scrollTop}, h: ${_code.scrollDOM.scrollHeight}`);
             if (restore === true) {
-                const container_width = typeof par.container_width === 'number' ? par.container_width : 1;
-                const container_height = typeof par.container_height === 'number' ? par.container_height : 1;
-                const viewport_width = typeof par.viewport_width === 'number' ? par.viewport_width : 1;
-                const viewport_height = typeof par.viewport_height === 'number' ? par.viewport_height : 1;
-                const viewport_left = typeof par.viewport_left === 'number' ? par.viewport_left : 0;
-                const viewport_top = typeof par.viewport_top === 'number' ? par.viewport_top : 0;
+                const scrollWidth = typeof par.scrollWidth === 'number' ? par.scrollWidth : 1;
+                const scrollHeight = typeof par.scrollHeight === 'number' ? par.scrollHeight : 1;
+                const clientWidth = typeof par.clientWidth === 'number' ? par.clientWidth : 1;
+                const clientHeight = typeof par.clientHeight === 'number' ? par.clientHeight : 1;
+                const scrollLeft = typeof par.scrollLeft === 'number' ? par.scrollLeft : 0;
+                const scrollTop = typeof par.scrollTop === 'number' ? par.scrollTop : 0;
                 let left, top;
-                if (viewport_left <= 0) {
+                if (scrollLeft <= 0) {
                     left = 0;
-                } else if (viewport_left >= container_width - viewport_width) {
+                } else if (scrollLeft >= scrollWidth - clientWidth) {
                     left = _code.scrollDOM.scrollWidth - _code.scrollDOM.clientWidth;
                 } else {
-                    left = Math.floor(viewport_left / (container_width - viewport_width) * (_code.scrollDOM.scrollWidth - _code.scrollDOM.clientWidth));
+                    left = Math.floor(scrollLeft / (scrollWidth - clientWidth) * (_code.scrollDOM.scrollWidth - _code.scrollDOM.clientWidth));
                 }
-                if (viewport_top <= 0) {
+                if (scrollTop <= 0) {
                     top = 0;
-                } else if (viewport_top >= container_height - viewport_height) {
+                } else if (scrollTop >= scrollHeight - clientHeight) {
                     top = _code.scrollDOM.scrollHeight - _code.scrollDOM.clientHeight;
                 } else {
-                    top = Math.floor(viewport_top / (container_height - viewport_height) * (_code.scrollDOM.scrollHeight - _code.scrollDOM.clientHeight));
+                    top = Math.floor(scrollTop / (scrollHeight - clientHeight) * (_code.scrollDOM.scrollHeight - _code.scrollDOM.clientHeight));
                 }
-                // TODO reuse: 
+                // TODO reuse:                 
                 _code.scrollDOM.scrollTo(left, top);
             }
-            par.container_width = _code.scrollDOM.scrollWidth;
-            par.container_height = _code.scrollDOM.scrollHeight;
-            par.viewport_width = _code.scrollDOM.clientWidth;
-            par.viewport_height = _code.scrollDOM.clientHeight;
-            par.viewport_left = _code.scrollDOM.scrollLeft;
-            par.viewport_top = _code.scrollDOM.scrollTop;
+            par.scrollWidth = _code.scrollDOM.scrollWidth;
+            par.scrollHeight = _code.scrollDOM.scrollHeight;
+            par.clientWidth = _code.scrollDOM.clientWidth;
+            par.clientHeight = _code.scrollDOM.clientHeight;
+            par.scrollLeft = _code.scrollDOM.scrollLeft;
+            par.scrollTop = _code.scrollDOM.scrollTop;
             return par;
         } else {
             return false;

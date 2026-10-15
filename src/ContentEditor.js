@@ -69,63 +69,59 @@ function getCheckbox() {
 }
 
 function handleScrolls(scrolls, id, textarea, restore) {
-    const scrs = textarea.hmi_handleScrollParams(scrolls[id], restore);
-    if (scrs.viewport_left > 0 || scrs.viewport_top) {
-        scrolls[id] = scrs;
+    const params = textarea.hmi_handleScrollParams(scrolls[id], restore);
+    if (params.scrollLeft > 0 || params.scrollTop > 0) {
+        scrolls[id] = params;
     } else {
         delete scrolls[id];
     }
 }
 
 function updateScrolls(scrolls, params) {
-    let objs = params.objects, i, l = scrolls.length, scrs, src = params.source, data, attr, copy;
     switch (params.action) {
         case ContentManager.COPY:
-            for (src in objs) {
-                if (objs.hasOwnProperty(src)) {
-                    for (i = 0; i < l; i++) {
-                        scrs = scrolls[i];
-                        data = scrs[src];
+            for (const src in params.objects) {
+                if (params.objects.hasOwnProperty(src)) {
+                    for (const scrs of scrolls.length) {
+                        const data = scrs[src];
                         if (data) {
-                            copy = {};
-                            for (attr in data) {
+                            const copy = {};
+                            for (const attr in data) {
                                 if (data.hasOwnProperty(attr)) {
                                     copy[attr] = data[attr];
                                 }
                             }
-                            scrs[objs[src]] = copy;
+                            scrs[params.objects[src]] = copy;
                         }
                     }
                 }
             }
             break;
         case ContentManager.MOVE:
-            for (src in objs) {
-                if (objs.hasOwnProperty(src)) {
-                    for (i = 0; i < l; i++) {
-                        scrs = scrolls[i];
-                        data = scrs[src];
+            for (const src in params.objects) {
+                if (params.objects.hasOwnProperty(src)) {
+                    for (const scrs of scrolls.length) {
+                        const data = scrs[src];
                         if (data) {
                             delete scrs[src];
-                            scrs[objs[src]] = data;
+                            scrs[params.objects[src]] = data;
                         }
                     }
                 }
             }
             break;
         case ContentManager.DELETE:
-            if (objs) {
-                for (src in objs) {
-                    if (objs.hasOwnProperty(src)) {
-                        for (i = 0; i < l; i++) {
-                            delete scrolls[i][src];
+            if (params.objects) {
+                for (const src in params.objects) {
+                    if (params.objects.hasOwnProperty(src)) {
+                        for (const scrs of scrolls.length) {
+                            delete scrs[src];
                         }
                     }
                 }
-            }
-            else {
-                for (i = 0; i < l; i++) {
-                    delete scrolls[i][src];
+            } else {
+                for (const scrs of scrolls.length) {
+                    delete scrs[src];
                 }
             }
             break;
