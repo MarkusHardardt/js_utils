@@ -385,7 +385,7 @@ function getLanguageSelector(hmi, adapter) {
 function compareErrors(error1, error2) {
     let time1 = error1.date.getTime();
     let time2 = error2.date.getTime();
-    return time2 !== time1 ? time2 - time1 : Sorting.compareTextsAndNumbers(error1.text, i_error12.text, false, false);
+    return time2 !== time1 ? time2 - time1 : Sorting.compareTextsAndNumbers(error1.text, error2.text, false, false);
 }
 
 function getLogHandler(hmi) {
