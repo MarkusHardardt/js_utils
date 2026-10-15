@@ -68,21 +68,25 @@ function getCheckbox() {
     };
 }
 
-function handleScrolls(scrolls, id, textarea, restore) {
-    const params = textarea.hmi_handleScrollParams(scrolls[id], restore);
-    if (params.scrollLeft > 0 || params.scrollTop > 0) {
-        scrolls[id] = params;
+function saveScrolling(scrollings, id, textarea) {
+    const scrolling = textarea.hmi_getScrolling(scrollings[id]);
+    if (scrolling) {
+        scrollings[id] = scrolling;
     } else {
-        delete scrolls[id];
+        delete scrollings[id];
     }
 }
 
-function updateScrolls(scrolls, params) {
+function initScrolling(scrollings, id, textarea) {
+    textarea.hmi_setScrolling(scrollings[id]);
+}
+
+function updateScrollings(scrollings, params) {
     switch (params.action) {
         case ContentManager.COPY:
             for (const src in params.objects) {
                 if (params.objects.hasOwnProperty(src)) {
-                    for (const scrs of scrolls.length) {
+                    for (const scrs of scrollings.length) {
                         const data = scrs[src];
                         if (data) {
                             const copy = {};
@@ -100,7 +104,7 @@ function updateScrolls(scrolls, params) {
         case ContentManager.MOVE:
             for (const src in params.objects) {
                 if (params.objects.hasOwnProperty(src)) {
-                    for (const scrs of scrolls.length) {
+                    for (const scrs of scrollings.length) {
                         const data = scrs[src];
                         if (data) {
                             delete scrs[src];
@@ -114,13 +118,13 @@ function updateScrolls(scrolls, params) {
             if (params.objects) {
                 for (const src in params.objects) {
                     if (params.objects.hasOwnProperty(src)) {
-                        for (const scrs of scrolls.length) {
+                        for (const scrs of scrollings.length) {
                             delete scrs[src];
                         }
                     }
                 }
             } else {
-                for (const scrs of scrolls.length) {
+                for (const scrs of scrollings.length) {
                     delete scrs[src];
                 }
             }
@@ -1066,11 +1070,11 @@ function getHtmlPreview(hmi, adapter) {
 }
 
 function getHtmlEditor(hmi, adapter) {
-    const cms = hmi.cms, scrolls = {};
+    const cms = hmi.cms, scrollings = {};
     function onKeyChanged(data, language, onSuccess, onError) {
         info_lang.hmi_text(`language: '${language}'`);
         if (textarea.file) {
-            handleScrolls(scrolls, textarea.file, textarea, false);
+            saveScrolling(scrollings, textarea.file, textarea);
             delete textarea.file;
         }
         if (data && data.file) {
@@ -1078,7 +1082,7 @@ function getHtmlEditor(hmi, adapter) {
                 textarea.hmi_value(raw !== undefined ? raw : '');
                 if (raw !== undefined) {
                     textarea.file = data.file;
-                    handleScrolls(scrolls, textarea.file, textarea, true);
+                    initScrolling(scrollings, textarea.file, textarea);
                 }
                 onSuccess();
             }, error => {
@@ -1122,7 +1126,7 @@ function getHtmlEditor(hmi, adapter) {
         children: [textarea, info_lang],
         onKeyChanged,
         getValue: () => textarea.hmi_value().trim(),
-        scrolls: scrolls
+        scrolls: scrollings
     };
 };
 
@@ -1145,10 +1149,10 @@ function getTextPreview(hmi, adapter) {
         if (textarea._mode) {
             switch (textarea._mode) {
                 case ContentManager.RAW:
-                    handleScrolls(scrolls_raw, textarea._file, textarea, false);
+                    saveScrolling(scrolls_raw, textarea._file, textarea);
                     break;
                 case ContentManager.INCLUDE:
-                    handleScrolls(scrolls_build, textarea._file, textarea, false);
+                    saveScrolling(scrolls_build, textarea._file, textarea);
                     break;
             }
             delete textarea._file;
@@ -1162,10 +1166,10 @@ function getTextPreview(hmi, adapter) {
                     textarea._mode = mode;
                     switch (mode) {
                         case ContentManager.RAW:
-                            handleScrolls(scrolls_raw, data.file, textarea, true);
+                            initScrolling(scrolls_raw, data.file, textarea);
                             break;
                         case ContentManager.INCLUDE:
-                            handleScrolls(scrolls_build, data.file, textarea, true);
+                            initScrolling(scrolls_build, data.file, textarea);
                             break;
                     }
                 }
@@ -1244,7 +1248,7 @@ function getTextEditor(hmi, adapter) {
     function onKeyChanged(data, language, onSuccess, onError) {
         info_lang.hmi_text(`language: '${language}'`);
         if (textarea.file) {
-            handleScrolls(scrolls, textarea.file, textarea, false);
+            saveScrolling(scrolls, textarea.file, textarea);
             delete textarea.file;
         }
         if (data && data.file) {
@@ -1252,7 +1256,7 @@ function getTextEditor(hmi, adapter) {
                 textarea.hmi_value(raw !== undefined ? raw : '');
                 if (raw !== undefined) {
                     textarea.file = data.file;
-                    handleScrolls(scrolls, textarea.file, textarea, true);
+                    initScrolling(scrolls, textarea.file, textarea);
                 }
                 onSuccess();
             }, error => {
@@ -1320,10 +1324,10 @@ function getJsonFxPreview(hmi, adapter) {
         if (textarea._mode) {
             switch (textarea._mode) {
                 case ContentManager.RAW:
-                    handleScrolls(scrolls_raw, textarea._file, textarea, false);
+                    saveScrolling(scrolls_raw, textarea._file, textarea);
                     break;
                 case ContentManager.INCLUDE:
-                    handleScrolls(scrolls_build, textarea._file, textarea, false);
+                    saveScrolling(scrolls_build, textarea._file, textarea);
                     break;
             }
             delete textarea._file;
@@ -1341,7 +1345,7 @@ function getJsonFxPreview(hmi, adapter) {
                                     textarea._mode = mode;
                                     textarea._file = data.file;
                                     const scrolls = mode === ContentManager.RAW ? scrolls_raw : scrolls_build;
-                                    handleScrolls(scrolls, data.file, textarea, true);
+                                    initScrolling(scrolls, data.file, textarea);
                                 }
                                 onSuccess();
                             }, onError);
@@ -1457,7 +1461,7 @@ function getJsonFxEditor(hmi, adapter) {
     let edited = false, object, raw;
     function reload(data, language, onSuccess, onError) {
         if (textarea.file) {
-            handleScrolls(scrolls, textarea.file, textarea, false);
+            saveScrolling(scrolls, textarea.file, textarea);
             delete textarea.file;
         }
         raw = undefined;
@@ -1476,7 +1480,7 @@ function getJsonFxEditor(hmi, adapter) {
                             container.hmi_setContent(textarea, () => {
                                 if (response !== undefined) {
                                     textarea.file = data.file;
-                                    handleScrolls(scrolls, textarea.file, textarea, true);
+                                    initScrolling(scrolls, textarea.file, textarea);
                                 }
                                 onSuccess();
                             }, onError);
@@ -2119,7 +2123,7 @@ function getRefactoring(hmi, adapter) {
                 source = false;
                 update();
                 adapter.updateInfo('performed ' + m);
-                adapter.updateScrollParams(params);
+                adapter.updateScrolling(params);
                 adapter.reload(sel_data);
             }, error => {
                 mode = false;
@@ -2141,7 +2145,7 @@ function getRefactoring(hmi, adapter) {
                 source = false;
                 update();
                 adapter.updateInfo('performed remove');
-                adapter.updateScrollParams(params);
+                adapter.updateScrolling(params);
                 adapter.reload();
             }, error => { // TODO: This has not been called for SQL errors
                 mode = false;
@@ -2936,7 +2940,7 @@ function getEditController(hmi, adapter) {
                 edit_lang = false;
                 updateEditorButtons();
                 adapter.updateInfo('performed commit');
-                adapter.updateScrollParams(params);
+                adapter.updateScrolling(params);
                 adapter.stateChanged(false, data);
             } else {
                 updateEditorButtons();
@@ -3164,7 +3168,7 @@ function create(hmi) {
     const refactoring_adapter = {
         updateInfo: log_handler.updateInfo,
         notifyError: log_handler.pushError,
-        updateScrollParams: params => updateScrolls(scroll_positions, params),
+        updateScrolling: params => updateScrollings(scroll_positions, params),
         reload: d => {
             if (d) {
                 key_textfield.update(d);
@@ -3207,7 +3211,7 @@ function create(hmi) {
         notifyTimeout: data => log_handler.pushTimeout('timeout loading editor: "' + data.id + '"'),
         updateInfo: log_handler.updateInfo,
         getIdData: () => key_textfield.getIdData(),
-        updateScrollParams: params => updateScrolls(scroll_positions, params),
+        updateScrolling: params => updateScrollings(scroll_positions, params),
         stateChanged: (edited, data) => {
             refactoring.setEnabled(!edited);
             if (!edited) {

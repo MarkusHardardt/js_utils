@@ -218,47 +218,26 @@ function applyTextArea(that, onSuccess) {
             _code.setOption('readOnly', readOnly === true);
         }
     };
-    that.hmi_handleScrollParams = (params, restore) => {
+    that.hmi_getScrolling = () => {
         if (_code) {
-            const par = params || {};
-            console.log(`r: ${restore}, vh: ${_code.scrollDOM.clientHeight}, t: ${_code.scrollDOM.scrollTop}, h: ${_code.scrollDOM.scrollHeight}`);
-            if (restore === true) {
-                const scrollWidth = typeof par.scrollWidth === 'number' ? par.scrollWidth : 1;
-                const scrollHeight = typeof par.scrollHeight === 'number' ? par.scrollHeight : 1;
-                const clientWidth = typeof par.clientWidth === 'number' ? par.clientWidth : 1;
-                const clientHeight = typeof par.clientHeight === 'number' ? par.clientHeight : 1;
-                const scrollLeft = typeof par.scrollLeft === 'number' ? par.scrollLeft : 0;
-                const scrollTop = typeof par.scrollTop === 'number' ? par.scrollTop : 0;
-                let left, top;
-                if (scrollLeft <= 0) {
-                    left = 0;
-                } else if (scrollLeft >= scrollWidth - clientWidth) {
-                    left = _code.scrollDOM.scrollWidth - _code.scrollDOM.clientWidth;
-                } else {
-                    left = Math.floor(scrollLeft / (scrollWidth - clientWidth) * (_code.scrollDOM.scrollWidth - _code.scrollDOM.clientWidth));
-                }
-                if (scrollTop <= 0) {
-                    top = 0;
-                } else if (scrollTop >= scrollHeight - clientHeight) {
-                    top = _code.scrollDOM.scrollHeight - _code.scrollDOM.clientHeight;
-                } else {
-                    top = Math.floor(scrollTop / (scrollHeight - clientHeight) * (_code.scrollDOM.scrollHeight - _code.scrollDOM.clientHeight));
-                }
-                // TODO reuse:                 
-                _code.scrollDOM.scrollTo(left, top);
-            }
-            par.scrollWidth = _code.scrollDOM.scrollWidth;
-            par.scrollHeight = _code.scrollDOM.scrollHeight;
-            par.clientWidth = _code.scrollDOM.clientWidth;
-            par.clientHeight = _code.scrollDOM.clientHeight;
-            par.scrollLeft = _code.scrollDOM.scrollLeft;
-            par.scrollTop = _code.scrollDOM.scrollTop;
-            return par;
+            const scrollLeftMax = _code.scrollDOM.scrollWidth - _code.scrollDOM.clientWidth;
+            const left = scrollLeftMax > 0 ? _code.scrollDOM.scrollLeft / scrollLeftMax : 0.0;
+            const scrollTopMax = _code.scrollDOM.scrollHeight - _code.scrollDOM.clientHeight;
+            const top = scrollTopMax > 0 ? _code.scrollDOM.scrollTop / scrollTopMax : 0.0;
+            return left > 0 || top > 0 ? { left, top } : null;
         } else {
-            return false;
+            return null;
         }
     };
-
+    that.hmi_setScrolling = scrolling => {
+        if (_code) {
+            const scrollLeftMax = _code.scrollDOM.scrollWidth - _code.scrollDOM.clientWidth;
+            const left = scrolling ? scrolling.left * scrollLeftMax : 0;
+            const scrollTopMax = _code.scrollDOM.scrollHeight - _code.scrollDOM.clientHeight;
+            const top = scrolling ? scrolling.top * scrollTopMax : 0;
+            _code.scrollDOM.scrollTo(Math.max(0, Math.min(scrollLeftMax, Math.floor(left))), Math.max(0, Math.min(scrollTopMax, Math.floor(top))));
+        }
+    };
     that.hmi_searchText = text => {
         if (_code) {
             const searchText = typeof text === 'string' ? text : '';
@@ -456,7 +435,8 @@ function applyTextArea(that, onSuccess) {
         _changeListeners.clear();
         delete that.hmi_addChangeListener;
         delete that.hmi_removeChangeListener;
-        delete that.hmi_handleScrollParams;
+        delete that.hmi_getScrolling;
+        delete that.hmi_setScrolling;
         _cont = undefined;
         that = undefined;
     });
