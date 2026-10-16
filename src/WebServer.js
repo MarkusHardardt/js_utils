@@ -34,6 +34,14 @@ class WebSrv {
         this.#body = '';
         this.#postRequestHandler = {};
         const app = this.#app = express();
+        // To create a certificated and key file for testing purpose use OpenSSL:
+        // Install OpenSSL (Howto: https://www.ssldragon.com/de/how-to/openssl/install-openssl-windows/)
+        // Open shell in hmi_js and run:
+        // openssl req -x509 -newkey rsa:2048 -keyout .\cert\cert.key -out .\cert\cert.cert -days 365 -nodes -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+        // To get rid of 'Conenction to webside is not secure' messages press 'Win + R' and run: certmgr.msc
+        // Go to Trusted Root Certification Authorities -> Certificates.
+        // Via "All Tasks" -> "Import", import the file js_hmi\cert\cert.cert.
+        // Close the browser completely and restart it.
         this.#secure = typeof options.secureKeyFile === 'string' && typeof options.secureCertFile === 'string';
         this.#server = this.#secure ? https.createServer({
             key: fs.readFileSync(options.secureKeyFile),
