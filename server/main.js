@@ -184,6 +184,8 @@ function main(config = {}) {
         try {
             webSocketServer = new WebSocketConnection.Server(hmi.logger, config.webSocketPort, {
                 secure: webServer.isSecure,
+                secureKeyFile: config.secureKeyFile,
+                secureCertFile: config.secureCertFile,
                 autoConnect: config.autoConnect,
                 closedConnectionDisposeTimeout: config.closedConnectionDisposeTimeout,
                 onOpen: connection => {

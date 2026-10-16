@@ -5,6 +5,8 @@ import Common from './Common.js';
 const WebSocketConnection = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 const wsModule = isNodeJS ? await import('ws') : null;
+const fs = isNodeJS ? await import('node:fs') : null;
+const https = isNodeJS ? await import('node:https') : null;
 const WebSocket = isNodeJS ? wsModule.default : globalThis.WebSocket;
 const WebSocketServerImplementation = isNodeJS ? wsModule.WebSocketServer : undefined;
 const FORMATED_SESSION_ID_PART_LENGTH = 6;
@@ -478,12 +480,25 @@ if (isNodeJS) {
         #options;
         #instances;
         #server;
+        #httpsServer;
         constructor(logger, port, options = {}) {
             this.#logger = Common.validateAsLogger(logger, true);
             this.#port = port;
             this.#options = options;
             this.#instances = {};
-            this.#server = new WebSocketServerImplementation({ port });
+            if (options.secure === true) {
+                if (typeof options.secureKeyFile !== 'string' || typeof options.secureCertFile !== 'string') {
+                    throw new Error('Secure WebSocket server requires secureKeyFile and secureCertFile paths');
+                }
+                this.#httpsServer = https.createServer({
+                    key: fs.readFileSync(options.secureKeyFile),
+                    cert: fs.readFileSync(options.secureCertFile)
+                });
+                this.#server = new WebSocketServerImplementation({ server: this.#httpsServer });
+            } else {
+                this.#httpsServer = null;
+                this.#server = new WebSocketServerImplementation({ port });
+            }
             this.#server.on('connection', (socket, request) => {
                 const sessionId = this.#getSessionIdFromURL(request.url);
                 let instance = this.#instances[sessionId];
@@ -562,6 +577,9 @@ if (isNodeJS) {
                 }
                 instance.connection.setAlreadyConnectedAndOpenSocket(socket);
             });
+            if (this.#httpsServer) {
+                this.#httpsServer.listen(port);
+            }
         }
         createSessionConfig() {
             const sessionId = this.#createUniqueSessionId();
