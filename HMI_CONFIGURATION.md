@@ -5,6 +5,68 @@ This reference describes the configuration fields and callback functions read by
 covers the built-in types registered in this repository; additional types may
 be registered by extensions.
 
+## Application and database content model
+
+`js_utils` is the shared software used to build a web-based SCADA/HMI for a
+machine whose automation system is reachable through OPC UA or Beckhoff ADS.
+The installation-specific HMI and server-side user tasks are stored in the
+installation's SQL database rather than being part of this shared repository.
+This separation allows the same software to be updated independently of each
+machine's HMI and task definitions, so public behavior must remain
+backward-compatible.
+
+`ContentManager` is the main database-object access layer. The browser-based
+`ContentEditor` navigates and edits objects by key. The configured content
+tables support these kinds of values:
+
+| Content kind | Stored value and use |
+| --- | --- |
+| JsonFX | JavaScript-compatible values such as booleans, numbers, objects, arrays, and functions. `JsonFX` serializes/reconstructs functions when objects are loaded. HMI definitions and reusable structured templates are commonly JsonFX objects. |
+| Text | Plain UTF-8 text. |
+| Label | Language-specific label text. |
+| HTML | Language-specific HTML content. |
+| HMI | A management record that maps a URL query parameter to a JsonFX HMI object and controls whether it is enabled. The browser selects the HMI using `?hmi=<query-parameter>`. |
+| Task | A server-side task record that references a task object and may configure its periodic refresh interval. Task objects can implement OPC UA/ADS clients or other server-side work. |
+
+An object key starts with `$`, contains slash-separated path segments, and ends
+with an extension configured for its content table in `cfg/db_config.json`.
+The configured examples are `.j` (JsonFX), `.t` (Text), `.l` (Label), `.h`
+(HTML), `.hmi` (HMI), and `.task` (Task); table configuration is authoritative.
+Use letters, digits, and underscores in path segments. The current key-matching
+regex also accepts `+`, `-`, and `*`, but prefer the narrower character set for
+new keys. In the editor, folders are virtual: they are inferred from common
+slash-separated key prefixes and are not stored as separate database rows.
+Selecting a folder allows its contained object group to be copied, moved, or
+deleted.
+
+For copy and move operations, `ContentManager` analyzes object keys in stored
+content and rewrites references that point into the affected object set; keys
+outside that set are retained. A move also updates references from other
+objects to the moved keys. Do not change object-key parsing or refactoring
+without preserving these database-wide reference semantics.
+
+### Includes and reusable templates
+
+When an object is requested in include/parse mode, `ContentManager` resolves
+`include` references recursively on the server before returning the result to
+the browser. For example:
+
+```js
+{
+    include: '$templates/overview.j',
+    title: 'Machine-specific title'
+}
+```
+
+The included object provides the base properties; properties on the including
+object override matching base properties. The `include` property is consumed
+during resolution. This allows common views to be stored once and specialized
+by including them with different values. For an object with `source: true`,
+overridden base properties are retained in a new `source` object on the
+resolved object. Include directives are also supported in text content. Avoid
+introducing include cycles; the manager detects a cycle and logs a warning
+rather than recursively expanding the same object.
+
 ## Object model and type selection
 
 An HMI definition is a JavaScript object. `type` selects a built-in renderer:
@@ -76,7 +138,7 @@ field only has an effect on renderers that use the corresponding behavior.
 | Function | Signature / effect |
 | --- | --- |
 | `init(data)` | Called by the manager when it initializes an object with initialization data. |
-| `refresh(object, date)` | Optional periodic object refresh callback. `date` is the UTC time in milliseconds. |
+| `refresh(object, date)` | Optional periodic object refresh callback. `date` is the UTC time in milliseconds. Refresh visits the object tree parent-first. In the browser it runs on the configured refresh cycle (typically about 18–20 times per second); server task cycles use `cycleIntervalMillis`, with non-positive values disabling periodic refresh. |
 | `resized(width, height)` | Called after the object's HTML container is resized; dimensions are in pixels. |
 | `handleDataUpdate(dataId, value, dataType)` | Handles a watched data update. If present, it takes precedence over the default display update. |
 | `formatValue(dataId, value, dataType)` | Formats watched non-HTML values for the object's text display when `handleDataUpdate` is absent. |
@@ -86,17 +148,45 @@ field only has an effect on renderers that use the corresponding behavior.
 | `clicked()` | Called on release if the long-click timeout did not expire. |
 | `longClicked()` | Called after `timeout` expires. |
 | `updateEnabled(enabled)` | Called when button-style enabled state is applied or changes. |
-| `build`, `apply`, `prepare`, `start` | Lifecycle phase handlers run during creation, in this order. |
-| `stop`, `destroy`, `remove`, `cleanup` | Lifecycle phase handlers run during teardown, in this order. |
+| `build`, `apply`, `prepare`, `start` | Optional creation lifecycle hooks, called in this order with manager work between phases; see the lifecycle sequence below. |
+| `stop`, `destroy`, `remove`, `cleanup` | Optional teardown lifecycle hooks, called in this order with manager work between phases; see the lifecycle sequence below. |
 
-Lifecycle handlers may be a function, an array of functions/data objects, or an
+### Lifecycle sequence and traversal
+
+Lifecycle hooks may be a function, an array of functions/data objects, or an
 object of data to transfer. A function is called with the current object as its
 first argument and `onSuccess` and `onError` callbacks as its next arguments;
-its `this` is the context object. Each lifecycle phase has an optional
-`<phase>Timeout` in milliseconds (`createTimeout`, `buildTimeout`,
-`applyTimeout`, `prepareTimeout`, `startTimeout`, `killTimeout`, `stopTimeout`,
-`destroyTimeout`, `removeTimeout`, `cleanupTimeout`). Positive values override
-the manager's 5000 ms default.
+its `this` is the context object. Asynchronous hooks must call `onSuccess` only
+after their work is complete; call `onError` when the work fails. The manager
+waits for the hook's success callback before continuing.
+
+Creation proceeds through the following phases:
+
+1. `build` runs parent-first, before the manager attaches and processes the
+   HMI object tree. Use it to construct or modify `children`; those children
+   are then included in the subsequent lifecycle and rendering work.
+2. The manager attaches HMI runtime features and processes the object tree.
+3. `apply` runs child-first. The manager has already processed the children at
+   this point, so do not add, remove, or replace entries in `children` here.
+4. The manager initializes the DOM for the tree.
+5. `prepare` runs parent-first.
+6. The manager adds listeners.
+7. `start` runs child-first, after which objects are marked running.
+
+Teardown proceeds through `stop` → `destroy` → `remove` → `cleanup`, with
+manager work between hooks. `stop` runs parent-first, `destroy` child-first,
+`remove` parent-first, and `cleanup` child-first. Child-first traversal visits
+sibling children in reverse order. Use teardown hooks to undo work from the
+corresponding creation phase: `start` with `stop`, `prepare` with `destroy`,
+`apply` with `remove`, and `build` with `cleanup`. This pairing matters when
+allocating and releasing external resources such as subscriptions or clients.
+
+Lifecycle phases accept optional timeout fields in milliseconds:
+`createTimeout`, `buildTimeout`, `applyTimeout`, `prepareTimeout`,
+`startTimeout`, `killTimeout`, `stopTimeout`, `destroyTimeout`,
+`removeTimeout`, and `cleanupTimeout`. A positive phase timeout limits that
+phase. The overall `createTimeout` and `killTimeout` default to 5000 ms when
+omitted or non-positive.
 
 If `watch` is set, updates use `handleDataUpdate` first. Otherwise HTML-valued
 data is sent to `hmi_html`; non-HTML data is formatted by `formatValue`, or
@@ -105,8 +195,11 @@ is numeric, then uses `postDecimalPositions` (default `0`).
 
 The base manager also supplies runtime methods such as `hmi_text`,
 `hmi_element`, `hmi_setVisible`, and control-specific `hmi_*` methods. These
-are attached during initialization and removed during destruction; they are
-not database configuration fields.
+and internal `_hmi_*` fields are attached by the lifecycle manager and control
+helpers during initialization and removed during teardown; they are not
+database configuration fields. Keep public `hmi_*` methods backward-compatible:
+installation-specific database objects may call them even when this repository
+does not call them internally.
 
 ### Optional time-range behavior
 
