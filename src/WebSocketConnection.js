@@ -486,10 +486,7 @@ if (isNodeJS) {
             this.#port = port;
             this.#options = options;
             this.#instances = {};
-            if (options.secure === true) {
-                if (typeof options.secureKeyFile !== 'string' || typeof options.secureCertFile !== 'string') {
-                    throw new Error('Secure WebSocket server requires secureKeyFile and secureCertFile paths');
-                }
+            if (typeof options.secureKeyFile === 'string' && typeof options.secureCertFile === 'string') {
                 this.#httpsServer = https.createServer({
                     key: fs.readFileSync(options.secureKeyFile),
                     cert: fs.readFileSync(options.secureCertFile)
@@ -587,7 +584,7 @@ if (isNodeJS) {
             return {
                 sessionId,
                 port: this.#port,
-                secure: this.#options.secure === true,
+                secure: this.#httpsServer !== null,
                 autoConnect: this.#options.autoConnect === true
             };
         }

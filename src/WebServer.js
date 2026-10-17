@@ -19,7 +19,6 @@ class WebSrv {
     #importMap;
     #title;
     #body;
-    #secure;
     #server;
     #app;
     #random_id;
@@ -42,8 +41,7 @@ class WebSrv {
         // Go to Trusted Root Certification Authorities -> Certificates.
         // Via "All Tasks" -> "Import", import the file js_hmi\cert\cert.cert.
         // Close the browser completely and restart it.
-        this.#secure = typeof options.secureKeyFile === 'string' && typeof options.secureCertFile === 'string';
-        this.#server = this.#secure ? https.createServer({
+        this.#server = typeof options.secureKeyFile === 'string' && typeof options.secureCertFile === 'string' ? https.createServer({
             key: fs.readFileSync(options.secureKeyFile),
             cert: fs.readFileSync(options.secureCertFile),
         }, app) : http.createServer(app);;
@@ -91,9 +89,6 @@ class WebSrv {
                 }
             });
         }
-    }
-    get isSecure() {
-        return this.#secure;
     }
     prepareFavicon(path) {
         // gimp: "./src/app/favicon.xcf"

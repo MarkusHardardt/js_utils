@@ -183,7 +183,6 @@ function main(config = {}) {
     tasks.push((onSuccess, onError) => {
         try {
             webSocketServer = new WebSocketConnection.Server(hmi.logger, config.webSocketPort, {
-                secure: webServer.isSecure,
                 secureKeyFile: config.secureKeyFile,
                 secureCertFile: config.secureCertFile,
                 autoConnect: config.autoConnect,
