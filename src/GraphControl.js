@@ -1,10 +1,10 @@
 import Executor from './Executor.js';
-import Mathematics from './Mathematics.js';
-import ObjectLifecycleManager from './ObjectLifecycleManager.js';
-import Sorting from './Sorting.js';
-import Core from './Core.js';
 import ObjectPositionSystem from './ObjectPositionSystem.js';
 import Regex from './Regex.js';
+import Sorting from './Sorting.js';
+import Core from './Core.js';
+import Mathematics from './Mathematics.js';
+import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 
 const GraphControl = {};
 

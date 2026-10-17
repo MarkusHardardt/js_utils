@@ -1,10 +1,10 @@
-import Regex from './Regex.js';
-import Core from './Core.js';
 import Executor from './Executor.js';
-import Mathematics from './Mathematics.js';
 import ObjectPositionSystem from './ObjectPositionSystem.js';
+import Regex from './Regex.js';
 import Sorting from './Sorting.js';
 import Utilities from './Utilities.js';
+import Core from './Core.js';
+import Mathematics from './Mathematics.js';
 
 /*  TODO:
     - Move all browser specific stuff to separate file(s)

@@ -1,6 +1,6 @@
 import Executor from './Executor.js';
-import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import Utilities from './Utilities.js';
+import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 
 const FloatLayout = {};
 

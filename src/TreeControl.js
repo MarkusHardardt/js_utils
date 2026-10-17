@@ -1,8 +1,8 @@
-import Client from './Client.js';
 import Executor from './Executor.js';
-import ObjectLifecycleManager from './ObjectLifecycleManager.js';
-import Core from './Core.js';
 import JsonFX from './JsonFX.js';
+import Client from './Client.js';
+import Core from './Core.js';
+import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 
 const TreeControl = {};
 

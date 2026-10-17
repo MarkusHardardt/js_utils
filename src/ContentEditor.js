@@ -1,10 +1,10 @@
-import JsonFX from './JsonFX.js';
-import ContentManager from './ContentManager.js';
 import Executor from './Executor.js';
-import Mathematics from './Mathematics.js';
-import ObjectLifecycleManager from './ObjectLifecycleManager.js';
+import JsonFX from './JsonFX.js';
 import Sorting from './Sorting.js';
 import Utilities from './Utilities.js';
+import Mathematics from './Mathematics.js';
+import ObjectLifecycleManager from './ObjectLifecycleManager.js';
+import ContentManager from './ContentManager.js';
 
 const ContentEditor = {};
 

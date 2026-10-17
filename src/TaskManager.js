@@ -1,8 +1,8 @@
 import Executor from './Executor.js';
 import Core from './Core.js';
 import Common from './Common.js';
-import ContentManager from './ContentManager.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
+import ContentManager from './ContentManager.js';
 
 const TaskManager = {};
 

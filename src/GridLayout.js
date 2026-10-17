@@ -1,7 +1,7 @@
 import Executor from './Executor.js';
+import Utilities from './Utilities.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import ContentManager from './ContentManager.js';
-import Utilities from './Utilities.js';
 
 const GridLayout = {};
 

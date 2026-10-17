@@ -83,11 +83,11 @@ function generateInternalImports(dependencies, components) {
     txt += '    // ### inside js_utils ###\n\n';
     for (const file in dependencies) {
         if (dependencies.hasOwnProperty(file)) {
-            txt += `    // file: '${file}.js':\n`;
+            txt += `// file: '${file}.js':\n`;
             const used = dependencies[file];
             for (let component of components) {
                 if (used.indexOf(component) >= 0) {
-                    txt += `    import ${component} from './${component}.js';\n`;
+                    txt += `import ${component} from './${component}.js';\n`;
                 }
             }
             txt += '\n';
@@ -99,19 +99,19 @@ Helper.generateInternalImports = generateInternalImports;
 
 function generateExternalImports(scope, components, ext) {
     let txt = '';
-    txt += '    // access js_utils components with ES modules:\n';
+    txt += '// access js_utils components with ES modules:\n';
     for (let component of components) {
-        txt += `    import ${component} from '${scope}js_utils/src/${component}.js';\n`;
+        txt += `import ${component} from '${scope}js_utils/src/${component}.js';\n`;
     }
     if (Array.isArray(ext)) {
         for (let e of ext) {
             const match = extRegex.exec(e);
             if (match) {
-                txt += `    // ${match[1]} is exposed by the compatibility export.\n`;
+                txt += `// ${match[1]} is exposed by the compatibility export.\n`;
             }
         }
     }
-    txt += `    import { ${addStaticWebServerFilesFunctionName} } from '${scope}js_utils/js_utils.js';\n`;
+    txt += `import { ${addStaticWebServerFilesFunctionName} } from '${scope}js_utils/js_utils.js';\n`;
     return txt;
 }
 Helper.generateExternalImports = generateExternalImports;

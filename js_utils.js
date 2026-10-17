@@ -11,9 +11,9 @@ import Core from './src/Core.js';
 import WebServer from './src/WebServer.js';
 import HashLists from './src/HashLists.js';
 import Mathematics from './src/Mathematics.js';
+import ADS from './src/ADS.js';
 import Common from './src/Common.js';
 import OPCUA from './src/OPCUA.js';
-import ADS from './src/ADS.js';
 import ObjectLifecycleManager from './src/ObjectLifecycleManager.js';
 import Access from './src/Access.js';
 import DataConnector from './src/DataConnector.js';
@@ -24,7 +24,6 @@ import FloatLayout from './src/FloatLayout.js';
 import GraphControl from './src/GraphControl.js';
 import SplitLayout from './src/SplitLayout.js';
 import TableControl from './src/TableControl.js';
-import TextControl from './src/TextControl.js';
 import TreeControl from './src/TreeControl.js';
 import ContentManager from './src/ContentManager.js';
 import Evaluate from './src/Evaluate.js';
@@ -32,6 +31,7 @@ import ContentEditor from './src/ContentEditor.js';
 import GridLayout from './src/GridLayout.js';
 import LanguageSwitching from './src/LanguageSwitching.js';
 import TaskManager from './src/TaskManager.js';
+import TextControl from './src/TextControl.js';
 
 function addStaticWebServerJsUtilsFiles(server, addMain) {
     server.addStaticDirectory('./node_modules/@markus.hardardt/js_utils');
@@ -53,9 +53,9 @@ const js_utils = {
     WebServer,
     HashLists,
     Mathematics,
+    ADS,
     Common,
     OPCUA,
-    ADS,
     ObjectLifecycleManager,
     Access,
     DataConnector,
@@ -66,7 +66,6 @@ const js_utils = {
     GraphControl,
     SplitLayout,
     TableControl,
-    TextControl,
     TreeControl,
     ContentManager,
     Evaluate,
@@ -74,9 +73,10 @@ const js_utils = {
     GridLayout,
     LanguageSwitching,
     TaskManager,
+    TextControl,
     md5, // external compatibility export
     addStaticWebServerJsUtilsFiles
 };
 Object.seal(js_utils);
-export { Executor, JsonFX, ObjectPositionSystem, Regex, Server, Sorting, Utilities, Client, Core, WebServer, HashLists, Mathematics, Common, OPCUA, ADS, ObjectLifecycleManager, Access, DataConnector, Logger, SqlHelper, WebSocketConnection, FloatLayout, GraphControl, SplitLayout, TableControl, TextControl, TreeControl, ContentManager, Evaluate, ContentEditor, GridLayout, LanguageSwitching, TaskManager, md5, js_utils, addStaticWebServerJsUtilsFiles };
+export { Executor, JsonFX, ObjectPositionSystem, Regex, Server, Sorting, Utilities, Client, Core, WebServer, HashLists, Mathematics, ADS, Common, OPCUA, ObjectLifecycleManager, Access, DataConnector, Logger, SqlHelper, WebSocketConnection, FloatLayout, GraphControl, SplitLayout, TableControl, TreeControl, ContentManager, Evaluate, ContentEditor, GridLayout, LanguageSwitching, TaskManager, TextControl, md5, js_utils, addStaticWebServerJsUtilsFiles };
 export default js_utils;
