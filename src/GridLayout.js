@@ -1,4 +1,5 @@
 import Executor from './Executor.js';
+import ObjectLifecycleHelper from './ObjectLifecycleHelper.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import ContentManager from './ContentManager.js';
 import Utilities from './Utilities.js';
@@ -23,7 +24,7 @@ function createGridCoordinates(parameter) {
         for (let i = 0; i < parameter.length; i++) {
             const param = parameter[i];
             const coor = {};
-            const pixel = ObjectLifecycleManager.getPixelValue(param);
+            const pixel = ObjectLifecycleHelper.getPixelValue(param);
             if (typeof pixel === 'number') {
                 coor.pixel = Math.floor(pixel);
                 validPixelCnt++;
@@ -445,10 +446,10 @@ class Grid {
         const height = typeof heightPixels === 'number' && heightPixels > 0 ? heightPixels : 100;
         const separator = typeof separatorPixels === 'number' && separatorPixels >= 0 ? separatorPixels : 0;
         const margin = this.#margin;
-        const leftMargin = ObjectLifecycleManager.getDimensionParameter(margin, 'left', separator);
-        const rightMargin = ObjectLifecycleManager.getDimensionParameter(margin, 'right', separator);
-        const topMargin = ObjectLifecycleManager.getDimensionParameter(margin, 'top', separator);
-        const bottomMargin = ObjectLifecycleManager.getDimensionParameter(margin, 'bottom', separator);
+        const leftMargin = ObjectLifecycleHelper.getDimensionParameter(margin, 'left', separator);
+        const rightMargin = ObjectLifecycleHelper.getDimensionParameter(margin, 'right', separator);
+        const topMargin = ObjectLifecycleHelper.getDimensionParameter(margin, 'top', separator);
+        const bottomMargin = ObjectLifecycleHelper.getDimensionParameter(margin, 'bottom', separator);
         computeGridAxisPixel(this.#columnCoordinates, width, separator, leftMargin, rightMargin);
         computeGridAxisPixel(this.#rowCoordinates, height, separator, topMargin, bottomMargin);
     }
@@ -486,7 +487,7 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
     let _cont = that._hmi_context.container;
     let _scope = enableEditorEvents === true ? Utilities.getUniqueId() : undefined;
     _cont.addClass('overflow-hidden');
-    let _mainDiv = $(ObjectLifecycleManager.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
+    let _mainDiv = $(ObjectLifecycleHelper.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
     _mainDiv.appendTo(_cont);
     let _children = Array.isArray(that.children) ? that.children : [];
     // get the columns and rows (at least one single cell)
@@ -495,7 +496,7 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
     for (let i = 0; i < _children.length; i++) {
         const child = _children[i];
         const hmiobj = child._hmi_object;
-        if (hmiobj && !ObjectLifecycleManager.isTaskType(hmiobj)) {
+        if (hmiobj && !ObjectLifecycleHelper.isTaskType(hmiobj)) {
             const x = typeof child.x === 'number' ? child.x : 0;
             const y = typeof child.y === 'number' ? child.y : 0;
             const width = typeof child.width === 'number' ? child.width : 1;
@@ -514,7 +515,7 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
     _grid.calculateGrid(_mainDiv.width(), _mainDiv.height(), typeof that.separator === 'number' ? that.separator : 0);
     let _placeholders = undefined;
     if (enableEditorEvents === true) {
-        ObjectLifecycleManager.applyListenerSupport(that);
+        ObjectLifecycleHelper.applyListenerSupport(that);
         _placeholders = [];
         for (let col = _grid.getColumns() - 1; col >= 0; col--) {
             for (let row = _grid.getRows() - 1; row >= 0; row--) {
@@ -529,10 +530,10 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
                     placeholder.hmi_object = hmiobj;
                     hmiobj._hmi_object = hmiobj;
                     hmiobj.hmi_object = hmiobj;
-                    placeholder._hmi_gridElement = $(ObjectLifecycleManager.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
+                    placeholder._hmi_gridElement = $(ObjectLifecycleHelper.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                     placeholder._hmi_gridElement.appendTo(_mainDiv);
                     placeholder._hmi_gridElement.data('hmi_object', hmiobj);
-                    ObjectLifecycleManager.setBounds(placeholder._hmi_gridElement, _grid.getBounds(placeholder));
+                    ObjectLifecycleHelper.setBounds(placeholder._hmi_gridElement, _grid.getBounds(placeholder));
                     _placeholders.push(placeholder);
                     placeholder._hmi_gridElement.droppable({
                         scope: _scope,
@@ -541,7 +542,7 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
                         // that method will be called when dragged element has been
                         // dropped
                         drop: (event, ui) => {
-                            ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+                            ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
                             // get the source object and data
                             const source = ui.draggable.data('hmi_object');
                             for (let i = 0; i < _children.length; i++) {
@@ -549,7 +550,7 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
                                 if (child._hmi_gridElement && child._hmi_object === source) {
                                     child.x = placeholder.x;
                                     child.y = placeholder.y;
-                                    ObjectLifecycleManager.setBounds(child._hmi_gridElement, _grid.getBounds(child));
+                                    ObjectLifecycleHelper.setBounds(child._hmi_gridElement, _grid.getBounds(child));
                                     const hmiobj = child._hmi_object;
                                     if (hmiobj && hmiobj._hmi_resize) {
                                         hmiobj._hmi_resize();
@@ -567,7 +568,7 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
                     for (let i = 0; intersects === false && i < _children.length; i++) {
                         const child = _children[i];
                         const hmiobj = child._hmi_object;
-                        if (hmiobj && !ObjectLifecycleManager.isTaskType(hmiobj)) {
+                        if (hmiobj && !ObjectLifecycleHelper.isTaskType(hmiobj)) {
                             const x = typeof child.x === 'number' ? child.x : 0;
                             const y = typeof child.y === 'number' ? child.y : 0;
                             const width = typeof child.width === 'number' ? child.width : 1;
@@ -584,7 +585,7 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
                             .on('mouseenter', event => placeholder._hmi_gridElement.addClass('default-background-hover'))
                             .on('mouseleave', event => placeholder._hmi_gridElement.removeClass('default-background-hover'));
                         placeholder._hmi_clickedForEdit = event => {
-                            ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+                            ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
                             that._hmi_forAllEditListeners(listener => {
                                 if (typeof listener.showChildObjectEditor === 'function') {
                                     listener.showChildObjectEditor(-1, placeholder);
@@ -620,7 +621,7 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
                     // that method will be called when dragged element has been
                     // dropped
                     drop: (event, ui) => {
-                        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+                        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
                         // get the source object and data
                         const source = ui.draggable.data('hmi_object');
                         const data = source && source.data !== null && typeof source.data === 'object' ? source.data : undefined;
@@ -650,7 +651,7 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
                         child.hmi_object = hmiobj;
                         hmiobj._hmi_object = hmiobj;
                         hmiobj.hmi_object = hmiobj;
-                        child._hmi_gridElement = $(ObjectLifecycleManager.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
+                        child._hmi_gridElement = $(ObjectLifecycleHelper.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                         child._hmi_gridElement.appendTo(_mainDiv);
                         if (Array.isArray(classes)) {
                             for (let i = 0; i < classes.length; i++) {
@@ -661,7 +662,7 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
                             }
                         }
                         child._hmi_gridElement.data('hmi_object', hmiobj);
-                        ObjectLifecycleManager.setBounds(child._hmi_gridElement, _grid.getBounds(child));
+                        ObjectLifecycleHelper.setBounds(child._hmi_gridElement, _grid.getBounds(child));
                         _children.push(child);
                         droppableCellAdded(child);
                     }
@@ -696,9 +697,9 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
                         child.y = y;
                         child.width = width;
                         child.height = height;
-                        child._hmi_gridElement = $(ObjectLifecycleManager.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
+                        child._hmi_gridElement = $(ObjectLifecycleHelper.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                         child._hmi_gridElement.appendTo(_mainDiv);
-                        ObjectLifecycleManager.setBounds(child._hmi_gridElement, _grid.getBounds(child));
+                        ObjectLifecycleHelper.setBounds(child._hmi_gridElement, _grid.getBounds(child));
                         _children.push(child);
                         droppableCellAdded(child);
                         ObjectLifecycleManager.createObject(object, child._hmi_gridElement, () => {
@@ -823,15 +824,15 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
                 const child = _children[idx];
                 const hmiobj = child._hmi_object;
                 if (hmiobj) {
-                    if (ObjectLifecycleManager.isTaskType(hmiobj)) {
+                    if (ObjectLifecycleHelper.isTaskType(hmiobj)) {
                         if (hmiobj._hmi_init_dom) {
                             // #grid: 1
                             tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont }, onSuc, onErr));
                         }
                     } else {
-                        child._hmi_gridElement = $(ObjectLifecycleManager.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
+                        child._hmi_gridElement = $(ObjectLifecycleHelper.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                         child._hmi_gridElement.appendTo(_mainDiv);
-                        ObjectLifecycleManager.setBounds(child._hmi_gridElement, _grid.getBounds(child));
+                        ObjectLifecycleHelper.setBounds(child._hmi_gridElement, _grid.getBounds(child));
                         if (hmiobj._hmi_init_dom) {
                             // #grid: 2
                             tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: child._hmi_gridElement }, onSuc, onErr));
@@ -851,7 +852,7 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
                         }
                         if (enableEditorEvents === true) {
                             child._hmi_clickedForEdit = event => {
-                                ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+                                ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
                                 that._hmi_forAllEditListeners(listener => {
                                     if (typeof listener.showChildObjectEditor === 'function') {
                                         listener.showChildObjectEditor(idx, child);
@@ -870,13 +871,13 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
         if (Array.isArray(_placeholders)) {
             for (let i = 0; i < _placeholders.length; i++) {
                 const child = _placeholders[i];
-                ObjectLifecycleManager.setBounds(child._hmi_gridElement, _grid.getBounds(child));
+                ObjectLifecycleHelper.setBounds(child._hmi_gridElement, _grid.getBounds(child));
             }
         }
         for (let i = 0; i < _children.length; i++) {
             const child = _children[i];
             if (child._hmi_gridElement) {
-                ObjectLifecycleManager.setBounds(child._hmi_gridElement, _grid.getBounds(child));
+                ObjectLifecycleHelper.setBounds(child._hmi_gridElement, _grid.getBounds(child));
                 const hmiobj = child._hmi_object;
                 if (hmiobj && hmiobj._hmi_resize) {
                     hmiobj._hmi_resize();
@@ -954,7 +955,7 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
     });
     Executor.run(tasks, onSuccess, onError);
 }
-ObjectLifecycleManager.addApplyFunctionForType('grid', applyGrid);
+ObjectLifecycleManager.addApplyFunctionForType('grid', applyGrid); // TODO move to main
 
 Object.freeze(GridLayout);
 

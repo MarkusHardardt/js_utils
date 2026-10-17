@@ -1,3 +1,4 @@
+import ObjectLifecycleHelper from './ObjectLifecycleHelper.js';
 import Regex from './Regex.js';
 import Core from './Core.js';
 import Executor from './Executor.js';
@@ -41,30 +42,12 @@ const $ = isNodeJS ? (await import('jquery')).default : globalThis.$;
  * ==> all initialized objects destroyed! (Hm, 2015-07-29)
  */
 
-const DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION = '<div style="box-sizing: border-box;position: relative;width: 100%;height: 100%;" />';
-ObjectLifecycleManager.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION = DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION;
-const DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION = '<div style="box-sizing: border-box;position: absolute;" />';
-ObjectLifecycleManager.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION = DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION;
-
 /**
  * Analyzes the passed object and returns true if it is an object with the attribute 'type' with the value 'task'.
  * On node js we only can handle 'task' objects so we just check if it is not another type.
  * @param {*} object 
  * @returns true for task objects
  */
-function isTaskType(object) {
-    if (object === undefined) {
-        return false;
-    } else if (object === null) {
-        return false;
-    } else if (typeof object !== 'object') {
-        return false;
-    } else {
-        return (isNodeJS && object.type === undefined) || object.type === 'task';
-    }
-}
-ObjectLifecycleManager.isTaskType = isTaskType;
-
 let s_applyGraphicObject = null;
 const s_types = {};
 
@@ -130,96 +113,15 @@ function detachHmiObject(object) {
     }
 }
 
-function processObjectSubTree(object, fromRootToLeaf, isValid, callback) {
-    if (isValid === undefined || isValid(object) === true) {
-        // perform callback if from root to leaf
-        if (fromRootToLeaf === true) {
-            callback(object);
-        }
-        // if children available iterate over all children
-        const children = object.children;
-        if (Array.isArray(children)) {
-            if (fromRootToLeaf === true) {
-                for (let i = 0, l = children.length; i < l; i++) {
-                    processObjectSubTree(children[i]._hmi_object, fromRootToLeaf, isValid, callback);
-                }
-            } else {
-                for (let i = children.length - 1; i >= 0; i--) {
-                    processObjectSubTree(children[i]._hmi_object, fromRootToLeaf, isValid, callback);
-                }
-            }
-        }
-        // perform callback if not from root to leaf
-        if (fromRootToLeaf !== true) {
-            callback(object);
-        }
-    }
-}
-ObjectLifecycleManager.processObjectSubTree = processObjectSubTree;
-
-function setBounds(element, bounds) {
-    element.css('left', bounds.x.toString() + 'px');
-    element.css('top', bounds.y.toString() + 'px');
-    element.css('width', bounds.width.toString() + 'px');
-    element.css('height', bounds.height.toString() + 'px');
-}
-ObjectLifecycleManager.setBounds = setBounds;
-
-function getPixelValue(value) {
-    if (typeof value !== 'string') {
-        return undefined;
-    }
-    const idx = value.indexOf('px');
-    if (idx <= 0) {
-        return undefined;
-    }
-    const px = value.substring(0, idx);
-    if (isNaN(px)) {
-        return undefined;
-    }
-    return parseFloat(px);
-}
-ObjectLifecycleManager.getPixelValue = getPixelValue;
-
-function getAlignment(align, result, mirrorX, mirrorY) {
-    const res = result || {};
-    if (typeof align === 'string') {
-        if (align.indexOf('left') !== -1) {
-            res.x = mirrorX === true ? 1.0 : 0.0;
-        } else if (align.indexOf('right') !== -1) {
-            res.x = mirrorX === true ? 0.0 : 1.0;
-        } else {
-            res.x = 0.5;
-        }
-        if (align.indexOf('bottom') !== -1) {
-            res.y = mirrorY === true ? 1.0 : 0.0;
-        } else if (align.indexOf('top') !== -1) {
-            res.y = mirrorY === true ? 0.0 : 1.0;
-        } else {
-            res.y = 0.5;
-        }
-    } else if (align !== null && typeof align === 'object') {
-        const x = align.x;
-        const y = align.y;
-        res.x = typeof x === 'number' ? (mirrorX === true ? 1.0 - x : x) : 0.5;
-        res.y = typeof y === 'number' ? (mirrorY === true ? 1.0 - y : y) : 0.5;
-    } else {
-        res.x = 0.5;
-        res.y = 0.5;
-    }
-    return res;
-}
-ObjectLifecycleManager.getAlignment = getAlignment;
-
 function updateCoordinates(element, x, y, width, height, containerWidth, containerHeight, align) { // TODO: Used?
     // get the alignment
-    const alignment = getAlignment(align, undefined, false, true);
+    const alignment = ObjectLifecycleHelper.getAlignment(align, undefined, false, true);
     // get pixel values as number if available (returns undefined if not
     // something like "42px")
-    const parX = getPixelValue(x);
-    const parY = getPixelValue(y);
-    const parW = getPixelValue(width);
-    const parH = getPixelValue(height);
+    const parX = ObjectLifecycleHelper.getPixelValue(x);
+    const parY = ObjectLifecycleHelper.getPixelValue(y);
+    const parW = ObjectLifecycleHelper.getPixelValue(width);
+    const parH = ObjectLifecycleHelper.getPixelValue(height);
     // compute the pixel values
     const pixX = typeof parX === 'number' ? parX : (typeof x === 'number' ? x : 0);
     const pixY = typeof parY === 'number' ? parY : (typeof y === 'number' ? y : 0);
@@ -233,56 +135,7 @@ function updateCoordinates(element, x, y, width, height, containerWidth, contain
 }
 ObjectLifecycleManager.updateCoordinates = updateCoordinates;
 
-function applyListenerSupport(that) {
-    let listeners = [];
-    that._hmi_addEditListener = listener => {
-        for (let i = 0, l = listeners.length; i < l; i++) {
-            if (listeners[i] === listener) {
-                return false;
-            }
-        }
-        listeners.push(listener);
-        return true;
-    };
-    that._hmi_removeEditListener = listener => {
-        for (let i = 0, l = listeners.length; i < l; i++) {
-            if (listeners[i] === listener) {
-                listeners.splice(i, 1);
-                return true;
-            }
-        }
-        return false;
-    };
-    that._hmi_forAllEditListeners = callback => {
-        for (let i = 0, l = listeners.length; i < l; i++) {
-            callback(listeners[i]);
-        }
-    };
-    that._hmi_destroys.push(() => {
-        delete that._hmi_forAllEditListeners;
-        delete that._hmi_addEditListener;
-        delete that._hmi_removeEditListener;
-        listeners.splice(0, listeners.length);
-        listeners = undefined;
-        that = undefined;
-    });
-}
-ObjectLifecycleManager.applyListenerSupport = applyListenerSupport;
-
 let _lastUserActionDate = undefined;
-
-function preventDefaultAndStopPropagation(event) {
-    // do not perform default browser actions
-    if (typeof event.preventDefault === 'function') {
-        event.preventDefault();
-    }
-    // do not delegate to parent elements
-    if (typeof event.stopPropagation === 'function') {
-        event.stopPropagation();
-    }
-    _lastUserActionDate = new Date().getTime();
-}
-ObjectLifecycleManager.preventDefaultAndStopPropagation = preventDefaultAndStopPropagation;
 
 function getLastUserActionDate() {
     return _lastUserActionDate;
@@ -424,12 +277,12 @@ function applyButtonHandling(that, context) {
         }
     }
     function pressed(event) {
-        preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         // handle the event
         updateState(true, false);
     }
     function released(event) {
-        preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         // handle the event
         updateState(false, false);
     }
@@ -501,7 +354,7 @@ function dumpLifecycle(state) { // TODO: Replace with monitoring of server tasks
 function applyContainer(that, onSuccess) {
     let _cont = that._hmi_context.container;
     _cont.addClass('overflow-hidden');
-    let _div = $(DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
+    let _div = $(ObjectLifecycleHelper.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
     _div.appendTo(_cont);
     let _object = undefined;
     that.hmi_getContent = () => _object;
@@ -727,32 +580,12 @@ function isVisible(visible) {
     }
 };
 
-function getDimensionParameter(object, attributeName, separator) {
-    if (object === true) {
-        return separator;
-    } else if (typeof object === 'number') {
-        return object;
-    } else if (object !== null && typeof object === 'object') {
-        const margin = object[attributeName];
-        if (margin === true) {
-            return separator;
-        } else if (typeof margin === 'number') {
-            return margin;
-        } else {
-            return 0;
-        }
-    } else {
-        return 0;
-    }
-}
-ObjectLifecycleManager.getDimensionParameter = getDimensionParameter;
-
 function computeCentralRectangle(sourceWidth, sourceHeight, targetWidth, targetHeight, targetMargin, targetBorder, relativeX, relativeY) {
     // first we compute the maximum dimension we have for our image
-    const marginLeft = getDimensionParameter(targetMargin, 'left', targetBorder);
-    const marginRight = getDimensionParameter(targetMargin, 'right', targetBorder);
-    const marginTop = getDimensionParameter(targetMargin, 'top', targetBorder);
-    const marginBottom = getDimensionParameter(targetMargin, 'bottom', targetBorder);
+    const marginLeft = ObjectLifecycleHelper.getDimensionParameter(targetMargin, 'left', targetBorder);
+    const marginRight = ObjectLifecycleHelper.getDimensionParameter(targetMargin, 'right', targetBorder);
+    const marginTop = ObjectLifecycleHelper.getDimensionParameter(targetMargin, 'top', targetBorder);
+    const marginBottom = ObjectLifecycleHelper.getDimensionParameter(targetMargin, 'bottom', targetBorder);
     const border = typeof targetBorder === 'number' && targetBorder > 0 ? targetBorder : 0;
     const tgtWidth = targetWidth - marginLeft - marginRight - border * 2;
     const tgtHeight = targetHeight - marginTop - marginBottom - border * 2;
@@ -1104,7 +937,7 @@ function applySimpleHtmlObject(that, onSuccess) {
                 _text._hmi_marginTop = undefined;
                 _text.css('margin-top', '');
             }
-            const align = getAlignment(that.align, undefined, false, true);
+            const align = ObjectLifecycleHelper.getAlignment(that.align, undefined, false, true);
             const containerWidth = Math.floor(_cont.innerWidth());
             const containerHeight = Math.floor(_cont.innerHeight());
             const contentWidth = Math.ceil(_text.width());
@@ -1134,7 +967,7 @@ function applySimpleHtmlObject(that, onSuccess) {
                 }
             }
         } else if (_image !== undefined) {
-            const align = getAlignment(that.align, undefined, false, true);
+            const align = ObjectLifecycleHelper.getAlignment(that.align, undefined, false, true);
             const containerWidth = Math.floor(_cont.innerWidth());
             const containerHeight = Math.floor(_cont.innerHeight());
             const contentWidth = Math.ceil(_image[0].naturalWidth);
@@ -1212,7 +1045,7 @@ function applyTaskObject(that, context, disableVisuEvents, enableEditorEvents, o
             (function () {
                 const child = _children[i];
                 const hmiobj = child._hmi_object;
-                if (hmiobj && isTaskType(hmiobj) && hmiobj._hmi_init_dom) {
+                if (hmiobj && ObjectLifecycleHelper.isTaskType(hmiobj) && hmiobj._hmi_init_dom) {
                     // #task: 1
                     tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont }, onSuc, onErr));
                 }
@@ -1225,7 +1058,7 @@ function applyTaskObject(that, context, disableVisuEvents, enableEditorEvents, o
             for (let i = _children.length - 1; i >= 0; i--) {
                 const child = _children[i];
                 const hmiobj = child._hmi_object;
-                if (hmiobj && isTaskType(hmiobj) && hmiobj._hmi_destroy_dom) {
+                if (hmiobj && ObjectLifecycleHelper.isTaskType(hmiobj) && hmiobj._hmi_destroy_dom) {
                     (function () {
                         const ho = hmiobj;
                         // #task: 1
@@ -1274,7 +1107,7 @@ function applyObject(that, disableVisuEvents, enableEditorEvents) {
         const tasks = [];
         that._hmi_context = context;
         _cont = context.container;
-        if (isTaskType(that)) {
+        if (ObjectLifecycleHelper.isTaskType(that)) {
             tasks.push((onSuc, onErr) => applyTaskObject(that, that._hmi_context, disableVisuEvents, enableEditorEvents, onSuc, onErr));
         } else {
             if (that.type === 'graph') {
@@ -1342,7 +1175,7 @@ function applyObject(that, disableVisuEvents, enableEditorEvents) {
                                     if ($(that).is('.ui-draggable-dragging')) {
                                         return;
                                     }
-                                    preventDefaultAndStopPropagation(event);
+                                    ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
                                     const target = that.hmi.droppables[that.draggable];
                                     const data = that.data;
                                     if (target !== null && typeof target === 'object' && typeof target.add === 'function' && data !== null && typeof data === 'object' && typeof data.object === 'string') {
@@ -2153,7 +1986,7 @@ function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, ini
                 attachHmiObject(object);
                 hmiobj = object._hmi_object;
                 createIdNodeSubTree(hmiobj, parentObject, nodeId, parentNode);
-                processObjectSubTree(hmiobj, true, undefined, processObject => applyObject(processObject, disableVisuEvents, hmiobj === processObject && enableEditorEvents));
+                ObjectLifecycleHelper.processObjectSubTree(hmiobj, true, undefined, processObject => applyObject(processObject, disableVisuEvents, hmiobj === processObject && enableEditorEvents));
                 object._hmi_lifecycleLevel = LifecycleLevel.BaseFeaturesAdded;
                 onSuc();
             }
@@ -2229,7 +2062,7 @@ function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, ini
                 onErr('Object has been killed before running');
             } else {
                 // set alive
-                processObjectSubTree(hmiobj, true, undefined, processObject => processObject._hmi_alive = true);
+                ObjectLifecycleHelper.processObjectSubTree(hmiobj, true, undefined, processObject => processObject._hmi_alive = true);
                 // handle root objects
                 let found = false;
                 for (let i = 0; i < s_root_objects.length; i++) {
@@ -2286,7 +2119,7 @@ function killObjectSubTree(object, onSuccess, onError, onLifecycleStateChanged) 
                     }
                 }
                 // reset alive
-                processObjectSubTree(hmiobj, false, undefined, processObject => delete processObject._hmi_alive);
+                ObjectLifecycleHelper.processObjectSubTree(hmiobj, false, undefined, processObject => delete processObject._hmi_alive);
                 onSuc();
             });
         }
@@ -2361,7 +2194,7 @@ function killObjectSubTree(object, onSuccess, onError, onLifecycleStateChanged) 
                 }
             });
             tasks.push((onSuc, onErr) => {
-                processObjectSubTree(hmiobj, false, undefined, processObject => {
+                ObjectLifecycleHelper.processObjectSubTree(hmiobj, false, undefined, processObject => {
                     if (processObject._hmi_destroy) {
                         processObject._hmi_destroy();
                     }
@@ -2414,7 +2247,7 @@ ObjectLifecycleManager.killObject = killObjectSubTree;
 
 function refreshObjectRecursive(object, date) {
     // first we call all found user refresh functions
-    processObjectSubTree(object, true, undefined, processObject => {
+    ObjectLifecycleHelper.processObjectSubTree(object, true, undefined, processObject => {
         if (processObject._hmi_alive === true) {
             if (typeof processObject.refresh === 'function') {
                 try {
@@ -2426,7 +2259,7 @@ function refreshObjectRecursive(object, date) {
         }
     });
     // next we call system _hmi_refreshs
-    processObjectSubTree(object, true, undefined, processObject => {
+    ObjectLifecycleHelper.processObjectSubTree(object, true, undefined, processObject => {
         if (processObject._hmi_alive === true) {
             const refreshs = processObject._hmi_refreshs;
             if (refreshs !== undefined && Array.isArray(refreshs)) {

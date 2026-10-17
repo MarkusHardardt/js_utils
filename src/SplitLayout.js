@@ -1,4 +1,5 @@
 import Executor from './Executor.js';
+import ObjectLifecycleHelper from './ObjectLifecycleHelper.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 
 const SplitLayout = {};
@@ -47,7 +48,7 @@ function applySplit(that, onSuccess, onError) {
         if (north) {
             north._hmi_splitContainer = $('<div class="ui-layout-north" />');
             north._hmi_splitContainer.appendTo(_cont);
-            north._hmi_splitElement = $(ObjectLifecycleManager.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
+            north._hmi_splitElement = $(ObjectLifecycleHelper.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
             north._hmi_splitElement.appendTo(north._hmi_splitContainer);
             layout.north__onresize_end = (paneName, paneElement, paneState, paneOptions, layoutName) => {
                 const hmiobj = north._hmi_object;
@@ -59,7 +60,7 @@ function applySplit(that, onSuccess, onError) {
         if (south) {
             south._hmi_splitContainer = $('<div class="ui-layout-south" />');
             south._hmi_splitContainer.appendTo(_cont);
-            south._hmi_splitElement = $(ObjectLifecycleManager.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
+            south._hmi_splitElement = $(ObjectLifecycleHelper.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
             south._hmi_splitElement.appendTo(south._hmi_splitContainer);
             layout.south__onresize_end = (paneName, paneElement, paneState, paneOptions, layoutName) => {
                 const hmiobj = south._hmi_object;
@@ -71,7 +72,7 @@ function applySplit(that, onSuccess, onError) {
         if (west) {
             west._hmi_splitContainer = $('<div class="ui-layout-west" />');
             west._hmi_splitContainer.appendTo(_cont);
-            west._hmi_splitElement = $(ObjectLifecycleManager.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
+            west._hmi_splitElement = $(ObjectLifecycleHelper.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
             west._hmi_splitElement.appendTo(west._hmi_splitContainer);
             layout.west__onresize_end = (paneName, paneElement, paneState, paneOptions, layoutName) => {
                 const hmiobj = west._hmi_object;
@@ -83,7 +84,7 @@ function applySplit(that, onSuccess, onError) {
         if (east) {
             east._hmi_splitContainer = $('<div class="ui-layout-east" />');
             east._hmi_splitContainer.appendTo(_cont);
-            east._hmi_splitElement = $(ObjectLifecycleManager.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
+            east._hmi_splitElement = $(ObjectLifecycleHelper.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
             east._hmi_splitElement.appendTo(east._hmi_splitContainer);
             layout.east__onresize_end = (paneName, paneElement, paneState, paneOptions, layoutName) => {
                 const hmiobj = east._hmi_object;
@@ -95,7 +96,7 @@ function applySplit(that, onSuccess, onError) {
         if (center) {
             center._hmi_splitContainer = $('<div class="ui-layout-center" />');
             center._hmi_splitContainer.appendTo(_cont);
-            center._hmi_splitElement = $(ObjectLifecycleManager.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
+            center._hmi_splitElement = $(ObjectLifecycleHelper.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
             center._hmi_splitElement.appendTo(center._hmi_splitContainer);
             layout.center__onresize_end = (paneName, paneElement, paneState, paneOptions, layoutName) => {
                 const hmiobj = center._hmi_object;
@@ -120,7 +121,7 @@ function applySplit(that, onSuccess, onError) {
             const child = that.children[i];
             const hmiobj = child._hmi_object;
             if (hmiobj) {
-                if (ObjectLifecycleManager.isTaskType(hmiobj)) {
+                if (ObjectLifecycleHelper.isTaskType(hmiobj)) {
                     if (hmiobj._hmi_init_dom) {
                         // #split: 2
                         tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont }, onSuc, onErr));
@@ -331,7 +332,7 @@ function applySplit(that, onSuccess, onError) {
     Executor.run(tasks, onSuccess, onError);
 }
 
-ObjectLifecycleManager.addApplyFunctionForType('split', applySplit);
+ObjectLifecycleManager.addApplyFunctionForType('split', applySplit); // TODO move to main
 
 Object.freeze(SplitLayout);
 

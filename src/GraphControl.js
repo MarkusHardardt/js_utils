@@ -1,5 +1,6 @@
 import Executor from './Executor.js';
 import Mathematics from './Mathematics.js';
+import ObjectLifecycleHelper from './ObjectLifecycleHelper.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import Sorting from './Sorting.js';
 import Core from './Core.js';
@@ -39,12 +40,12 @@ function getCanvasAttribute(hmiObject, attribute) {
 
 function getCanvasPixel(object, attribute, scale, defaultValue) {
     const val = getCanvasAttribute(object, attribute);
-    const pix = ObjectLifecycleManager.getPixelValue(val);
+    const pix = ObjectLifecycleHelper.getPixelValue(val);
     return typeof pix === 'number' ? pix : (typeof val === 'number' ? val * scale : defaultValue);
 }
 
 function getPixelSize(value, scale, defaultValue) {
-    const pix = ObjectLifecycleManager.getPixelValue(value);
+    const pix = ObjectLifecycleHelper.getPixelValue(value);
     return typeof pix === 'number' ? pix : (typeof value === 'number' ? value * scale : defaultValue);
 }
 
@@ -656,76 +657,76 @@ function applyEventListener(that, context, onEvent) {
     let _listening = false;
     // callbacks for mouse events
     function mouseevent_click(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, MOUSEEVENT_CLICK);
     }
     function mouseevent_dblclick(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, MOUSEEVENT_DBLCLICK);
     }
     function mouseevent_hover(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, MOUSEEVENT_HOVER);
     }
     function mouseevent_mousedown(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, MOUSEEVENT_MOUSEDOWN);
     }
     function mouseevent_mouseenter(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, MOUSEEVENT_MOUSEENTER);
     }
     function mouseevent_mouseleave(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, MOUSEEVENT_MOUSELEAVE);
     }
     function mouseevent_mousemove(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, MOUSEEVENT_MOUSEMOVE);
     }
     function mouseevent_mouseout(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, MOUSEEVENT_MOUSEOUT);
     }
     function mouseevent_mouseover(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, MOUSEEVENT_MOUSEOVER);
     }
     function mouseevent_mouseup(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, MOUSEEVENT_MOUSEUP);
     }
     function mouseevent_contextmenu(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, MOUSEEVENT_CONTEXTMENU);
     }
     function mouseevent_mousewheel(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, MOUSEEVENT_MOUSEWHEEL);
     }
     // callbacks for touch events
     function touchevent_touchstart(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, TOUCHEVENT_TOUCHSTART);
     }
     function touchevent_touchenter(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, TOUCHEVENT_TOUCHENTER);
     }
     function touchevent_touchmove(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, TOUCHEVENT_TOUCHMOVE);
     }
     function touchevent_touchend(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, TOUCHEVENT_TOUCHEND);
     }
     function touchevent_touchleave(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, TOUCHEVENT_TOUCHLEAVE);
     }
     function touchevent_touchcancel(event) {
-        ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+        ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
         onEvent(event, TOUCHEVENT_TOUCHCANCEL);
     }
     that._hmi_addEventListeners = () => {
@@ -908,7 +909,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                         }
                     }
                     // moving vehicles [2]
-                    ObjectLifecycleManager.processObjectSubTree(that, true, hmiObject => _ctx === hmiObject._hmi_context.context2d, hmiObject => {
+                    ObjectLifecycleHelper.processObjectSubTree(that, true, hmiObject => _ctx === hmiObject._hmi_context.context2d, hmiObject => {
                         const vps = hmiObject._hmi_vps;
                         const segments = hmiObject._hmi_segments;
                         const id = hmiObject.id;
@@ -959,7 +960,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     // collect and update [3]
                     const elems = that._hmi_canvasElements;
                     elems.splice(0, elems.length);
-                    ObjectLifecycleManager.processObjectSubTree(that, true, hmiObject => _ctx === hmiObject._hmi_context.context2d, hmiObject => {
+                    ObjectLifecycleHelper.processObjectSubTree(that, true, hmiObject => _ctx === hmiObject._hmi_context.context2d, hmiObject => {
                         if (hmiObject._hmi_updateChildrenTransforms) {
                             hmiObject._hmi_updateChildrenTransforms();
                         }
@@ -1044,7 +1045,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 let search = true;
                 _ctx.setTransform(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
                 _ctx.save();
-                ObjectLifecycleManager.processObjectSubTree(that, true, hmiObject => search && _ctx === hmiObject._hmi_context.context2d, hmiObject => {
+                ObjectLifecycleHelper.processObjectSubTree(that, true, hmiObject => search && _ctx === hmiObject._hmi_context.context2d, hmiObject => {
                     if (search && hmiObject._hmi_isButton && _ctx === hmiObject._hmi_context.context2d && hmiObject._hmi_isPointOnObject) {
                         let obj = hmiObject;
                         let visible = obj._hmi_visible;
@@ -1369,7 +1370,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 break;
             case RECT:
                 _ctx.beginPath();
-                ObjectLifecycleManager.getAlignment(that.align, _p, mx, my);
+                ObjectLifecycleHelper.getAlignment(that.align, _p, mx, my);
                 const x = ox - _p.x * w;
                 const y = oy - _p.y * h;
                 const rb = getCanvasPixel(that, 'roundBorder', scale);
@@ -1544,7 +1545,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     const fontFamily = getCanvasAttribute(that, 'fontFamily');
                     font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                     _ctx.font = font;
-                    ObjectLifecycleManager.getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
+                    ObjectLifecycleHelper.getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
                     _ctx.textAlign = 'center';
                     _ctx.textBaseline = 'middle';
                     if (Array.isArray(text)) {
@@ -1580,7 +1581,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 }
                 break;
             case IMAGE:
-                ObjectLifecycleManager.getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
+                ObjectLifecycleHelper.getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
                 const x = ox - _p.x * w;
                 const y = oy - _p.y * h;
                 _ctx.globalAlpha = typeof that.alpha === 'number' ? Math.max(Math.min(that.alpha, 1.0), 0.0) : 1.0; // 0 == transparent .. 1 == full
@@ -1760,7 +1761,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 break;
             case RECT:
                 _ctx.beginPath();
-                ObjectLifecycleManager.getAlignment(that.align, _p, mx, my);
+                ObjectLifecycleHelper.getAlignment(that.align, _p, mx, my);
                 const x = ox - _p.x * w;
                 const y = oy - _p.y * h;
                 const rb = getCanvasPixel(that, 'roundBorder', scale);
@@ -1820,7 +1821,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                 _ctx.font = font;
                 _ctx.beginPath();
-                ObjectLifecycleManager.getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
+                ObjectLifecycleHelper.getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
                 // Bugfix #text_click (2016-09-09, Hm)
                 if (Array.isArray(text)) {
                     // #text_click: const y0 = oy - (_p.y * text.length - 0.5) * fontSize;
@@ -1860,7 +1861,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
             case IMAGE:
                 {
                     _ctx.beginPath();
-                    ObjectLifecycleManager.getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
+                    ObjectLifecycleHelper.getAlignment(that.align, _p, mx !== (that.flipX === true), my !== (that.flipY === true));
                     const x = ox - _p.x * w;
                     const y = oy - _p.y * h;
                     _ctx.rect(x, y, w, h);
@@ -2092,7 +2093,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 break;
             case RECT:
                 {
-                    ObjectLifecycleManager.getAlignment(that.align, _p, false, false);
+                    ObjectLifecycleHelper.getAlignment(that.align, _p, false, false);
                     const x = ox - _p.x * w;
                     const y = oy - _p.y * h;
                     transform.transform(x, y, _p);
@@ -2129,7 +2130,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 const fontFamily = getCanvasAttribute(that, 'fontFamily');
                 font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                 _ctx.font = font;
-                ObjectLifecycleManager.getAlignment(that.align, _p, false, false);
+                ObjectLifecycleHelper.getAlignment(that.align, _p, false, false);
                 if (Array.isArray(text)) {
                     const y0 = oy - _p.y * text.length * fontSize;
                     let x0 = undefined;
@@ -2178,7 +2179,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 _ctx.restore();
                 break;
             case IMAGE:
-                ObjectLifecycleManager.getAlignment(that.align, _p, false, false);
+                ObjectLifecycleHelper.getAlignment(that.align, _p, false, false);
                 const x = ox - _p.x * w;
                 const y = oy - _p.y * h;
                 transform.transform(x, y, _p);
@@ -2287,7 +2288,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 _ctx.translate(-ox, -oy);
             }
             _ctx.beginPath();
-            ObjectLifecycleManager.getAlignment(config.align, _p, mx, my);
+            ObjectLifecycleHelper.getAlignment(config.align, _p, mx, my);
             const x = ox - _p.x * w;
             const y = oy - _p.y * h;
             const rb = getCanvasPixel(config, 'roundBorder', scale);
@@ -2486,7 +2487,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 const fontFamily = config.fontFamily;
                 font += typeof fontFamily === 'string' && fontFamily.length > 0 ? ' ' + fontFamily : ' Verdana';
                 _ctx.font = font;
-                ObjectLifecycleManager.getAlignment(config.align, _p, mx !== (config.flipX === true), my !== (config.flipY === true));
+                ObjectLifecycleHelper.getAlignment(config.align, _p, mx !== (config.flipX === true), my !== (config.flipY === true));
                 _ctx.textAlign = 'center';
                 _ctx.textBaseline = 'middle';
                 if (Array.isArray(text)) {
@@ -2588,7 +2589,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                 _ctx.translate(-ox, -oy);
             }
-            ObjectLifecycleManager.getAlignment(config.align, _p, mx !== (config.flipX === true), my !== (config.flipY === true));
+            ObjectLifecycleHelper.getAlignment(config.align, _p, mx !== (config.flipX === true), my !== (config.flipY === true));
             const x = ox - _p.x * w;
             const y = oy - _p.y * h;
             _ctx.drawImage(image, x, y, w, h);
@@ -2704,7 +2705,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
             // TODO not sure about mirrors
             const mx = _tf.mirrorX !== (child.mirrorX === true);
             const my = _tf.mirrorY !== (child.mirrorY === true);
-            ObjectLifecycleManager.getAlignment(child.align, _p, mx, my);
+            ObjectLifecycleHelper.getAlignment(child.align, _p, mx, my);
             const ax = _p.x;
             const ay = _p.y;
             // TODO: Use or remove const x1 = ox - ( mx ? 1.0 - ax : ax) * width;
@@ -2776,7 +2777,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                         if (child !== hmiobj) {
                             hmiobj._hmi_context.transform.setToCoordinateTransform(child, _tf);
                         }
-                    } else if (!ObjectLifecycleManager.isTaskType(hmiobj)) {
+                    } else if (!ObjectLifecycleHelper.isTaskType(hmiobj)) {
                         const width = getPixelSize(child.width, _tf.scale);
                         const height = getPixelSize(child.height, _tf.scale);
                         if (typeof width === 'number' && typeof height === 'number') {
@@ -2881,11 +2882,11 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                             }
                             // #graph: 1
                             tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont, transform: ctf, context2d: _ctx }, onSuc, onErr));
-                        } else if (ObjectLifecycleManager.isTaskType(hmiobj)) {
+                        } else if (ObjectLifecycleHelper.isTaskType(hmiobj)) {
                             // #graph: 2
                             tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont }, onSuc, onErr));
                         } else {
-                            child._hmi_graphHtmlElement = $(ObjectLifecycleManager.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
+                            child._hmi_graphHtmlElement = $(ObjectLifecycleHelper.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                             child._hmi_graphHtmlElement.appendTo(_cont);
                             const width = getPixelSize(child.width, _tf.scale);
                             const height = getPixelSize(child.height, _tf.scale);
@@ -3036,7 +3037,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
     Executor.run(tasks, onSuccess, onError);
 }
 
-ObjectLifecycleManager.setApplyGraphicObjectFunction(applyGraphicObject);
+ObjectLifecycleManager.setApplyGraphicObjectFunction(applyGraphicObject); // TODO move to main
 
 Object.freeze(GraphControl);
 

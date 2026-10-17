@@ -1,4 +1,5 @@
 import Executor from './Executor.js';
+import ObjectLifecycleHelper from './ObjectLifecycleHelper.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import Utilities from './Utilities.js';
 
@@ -6,13 +7,13 @@ const FloatLayout = {};
 
 function getFloatingBounds(child, containerWidth, containerHeight) {
     // get the alignment
-    const alignment = ObjectLifecycleManager.getAlignment(child.align, undefined, false, true);
+    const alignment = ObjectLifecycleHelper.getAlignment(child.align, undefined, false, true);
     // get pixel values as number if available (returns undefined if not
     // something like "42px")
-    const parX = ObjectLifecycleManager.getPixelValue(child.x);
-    const parY = ObjectLifecycleManager.getPixelValue(child.y);
-    const parW = ObjectLifecycleManager.getPixelValue(child.width);
-    const parH = ObjectLifecycleManager.getPixelValue(child.height);
+    const parX = ObjectLifecycleHelper.getPixelValue(child.x);
+    const parY = ObjectLifecycleHelper.getPixelValue(child.y);
+    const parW = ObjectLifecycleHelper.getPixelValue(child.width);
+    const parH = ObjectLifecycleHelper.getPixelValue(child.height);
     // compute the pixel values
     const pixX = typeof parX === 'number' ? parX : (typeof child.x === 'number' ? child.x * containerWidth : 0.0);
     const pixY = typeof parY === 'number' ? parY : (typeof child.y === 'number' ? child.y * containerHeight : 0.0);
@@ -31,19 +32,19 @@ function applyFloat(that, onSuccess, onError, enableEditorEvents) {
     let tasks = [];
     let _cont = that._hmi_context.container;
     _cont.addClass('overflow-hidden');
-    let _mainDiv = $(ObjectLifecycleManager.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
+    let _mainDiv = $(ObjectLifecycleHelper.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION);
     _mainDiv.appendTo(_cont);
     let _children = Array.isArray(that.children) ? that.children : [];
     let _scope = undefined;
     if (enableEditorEvents === true) {
-        ObjectLifecycleManager.applyListenerSupport(that);
+        ObjectLifecycleHelper.applyListenerSupport(that);
         _scope = Utilities.getUniqueId();
         _mainDiv.droppable({
             scope: _scope,
             tolerance: 'pointer',
             hoverClass: 'default-background-hover',
             drop: (event, ui) => {
-                ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+                ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
                 const source = ui.draggable.data('hmi_object');
                 for (let i = 0; i < _children.length; i++) {
                     const child = _children[i];
@@ -51,18 +52,18 @@ function applyFloat(that, onSuccess, onError, enableEditorEvents) {
                         const width = _mainDiv.width();
                         const height = _mainDiv.height();
                         // get the alignment
-                        const align = ObjectLifecycleManager.getAlignment(child.align, undefined, false, true);
+                        const align = ObjectLifecycleHelper.getAlignment(child.align, undefined, false, true);
                         // get pixel values as number if available (returns undefined if
                         // not something like "42px")
-                        const parX = ObjectLifecycleManager.getPixelValue(child.x);
-                        const parY = ObjectLifecycleManager.getPixelValue(child.y);
-                        const parW = ObjectLifecycleManager.getPixelValue(child.width);
-                        const parH = ObjectLifecycleManager.getPixelValue(child.height);
+                        const parX = ObjectLifecycleHelper.getPixelValue(child.x);
+                        const parY = ObjectLifecycleHelper.getPixelValue(child.y);
+                        const parW = ObjectLifecycleHelper.getPixelValue(child.width);
+                        const parH = ObjectLifecycleHelper.getPixelValue(child.height);
                         // get the current views location and dimension
-                        const pixW = ObjectLifecycleManager.getPixelValue(child._hmi_floatElement.css('width'));
-                        const pixH = ObjectLifecycleManager.getPixelValue(child._hmi_floatElement.css('height'));
-                        const pixX = ObjectLifecycleManager.getPixelValue(child._hmi_floatElement.css('left')) + pixW * align.x;
-                        const pixY = ObjectLifecycleManager.getPixelValue(child._hmi_floatElement.css('top')) + pixH * align.y;
+                        const pixW = ObjectLifecycleHelper.getPixelValue(child._hmi_floatElement.css('width'));
+                        const pixH = ObjectLifecycleHelper.getPixelValue(child._hmi_floatElement.css('height'));
+                        const pixX = ObjectLifecycleHelper.getPixelValue(child._hmi_floatElement.css('left')) + pixW * align.x;
+                        const pixY = ObjectLifecycleHelper.getPixelValue(child._hmi_floatElement.css('top')) + pixH * align.y;
                         // update the rectangle attributes
                         child.x = typeof parX === 'number' ? pixX + 'px' : pixX / width;
                         child.y = typeof parY === 'number' ? pixY + 'px' : pixY / height;
@@ -92,15 +93,15 @@ function applyFloat(that, onSuccess, onError, enableEditorEvents) {
             const child = _children[i];
             const hmiobj = child._hmi_object;
             if (hmiobj) {
-                if (ObjectLifecycleManager.isTaskType(hmiobj)) {
+                if (ObjectLifecycleHelper.isTaskType(hmiobj)) {
                     if (hmiobj._hmi_init_dom) {
                         // #float: 1
                         tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont }, onSuc, onErr));
                     }
                 } else {
-                    child._hmi_floatElement = $(ObjectLifecycleManager.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
+                    child._hmi_floatElement = $(ObjectLifecycleHelper.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                     child._hmi_floatElement.appendTo(_mainDiv);
-                    ObjectLifecycleManager.setBounds(child._hmi_floatElement, getFloatingBounds(child, width, height));
+                    ObjectLifecycleHelper.setBounds(child._hmi_floatElement, getFloatingBounds(child, width, height));
                     if (hmiobj._hmi_init_dom) {
                         // #float: 2
                         tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: child._hmi_floatElement }, onSuc, onErr));
@@ -120,7 +121,7 @@ function applyFloat(that, onSuccess, onError, enableEditorEvents) {
                     }
                     if (enableEditorEvents === true) {
                         child._hmi_clickedForEdit = event => {
-                            ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+                            ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
                             that._hmi_forAllEditListeners(listener => {
                                 if (typeof listener.showChildObjectEditor === 'function') {
                                     listener.showChildObjectEditor(idx, child);
@@ -135,7 +136,7 @@ function applyFloat(that, onSuccess, onError, enableEditorEvents) {
     }
     if (enableEditorEvents === true) {
         that._hmi_clickedForEdit = event => {
-            ObjectLifecycleManager.preventDefaultAndStopPropagation(event);
+            ObjectLifecycleHelper.preventDefaultAndStopPropagation(event);
             that._hmi_forAllEditListeners(listener => {
                 if (typeof listener.showChildObjectEditor === 'function') {
                     const w = _cont.width();
@@ -160,7 +161,7 @@ function applyFloat(that, onSuccess, onError, enableEditorEvents) {
         for (let i = 0; i < _children.length; i++) {
             const child = _children[i];
             if (child._hmi_floatElement) {
-                ObjectLifecycleManager.setBounds(child._hmi_floatElement, getFloatingBounds(child, width, height));
+                ObjectLifecycleHelper.setBounds(child._hmi_floatElement, getFloatingBounds(child, width, height));
                 const hmiobj = child._hmi_object;
                 if (hmiobj && hmiobj._hmi_resize) {
                     hmiobj._hmi_resize();
@@ -205,7 +206,7 @@ function applyFloat(that, onSuccess, onError, enableEditorEvents) {
     });
     Executor.run(tasks, onSuccess, onError);
 };
-ObjectLifecycleManager.addApplyFunctionForType('float', applyFloat);
+ObjectLifecycleManager.addApplyFunctionForType('float', applyFloat); // TODO move to main
 
 Object.freeze(FloatLayout);
 
