@@ -155,7 +155,72 @@ $(() => {
                 onSuccess();
             });
         } else {
-            rootObject = ContentEditor.create(hmi);
+            let userField;
+            let passwordField;
+            let statusField;
+            let loginButton;
+            let isAuthenticating = false;
+            const loginPanel = {
+                type: 'grid',
+                columns: ['110px', 1],
+                rows: ['32px', '32px', '36px', '32px'],
+                children: [
+                    { x: 0, y: 0, text: 'User', align: 'right', border: false },
+                    userField = { x: 1, y: 0, type: 'textfield' },
+                    { x: 0, y: 1, text: 'Password', align: 'right', border: false },
+                    passwordField = { x: 1, y: 1, type: 'textfield', password: true },
+                    loginButton = {
+                        x: 0,
+                        y: 2,
+                        width: 2,
+                        text: 'Login',
+                        border: true,
+                        clicked: () => {
+                            if (isAuthenticating) {
+                                return;
+                            }
+                            isAuthenticating = true;
+                            loginButton.hmi_setEnabled(false);
+                            statusField.hmi_value('');
+                            Client.fetchJsonFX(Client.VERIFY_CONTENT_MANAGER_ADMIN, {
+                                user: userField.hmi_value(),
+                                password: passwordField.hmi_value()
+                            }, isValid => {
+                                if (isValid === true) {
+                                    hmi.killObject(rootObject, () => {
+                                        rootObject = ContentEditor.create(hmi);
+                                        hmi.createObject(rootObject, $(document.body),
+                                            () => hmi.logger.info(`${config.applicationName} started`),
+                                            error => hmi.logger.error(`Failed starting ${config.applicationName}`, error)
+                                        );
+                                    }, error => {
+                                        isAuthenticating = false;
+                                        loginButton.hmi_setEnabled(true);
+                                        statusField.hmi_value('Failed to open content editor');
+                                        hmi.logger.error('Failed closing content manager login', error);
+                                    });
+                                } else {
+                                    isAuthenticating = false;
+                                    loginButton.hmi_setEnabled(true);
+                                    statusField.hmi_value('Invalid user name or password');
+                                }
+                            }, error => {
+                                isAuthenticating = false;
+                                loginButton.hmi_setEnabled(true);
+                                statusField.hmi_value('Failed to verify user name or password');
+                                hmi.logger.error('Failed verifying content manager administrator', error);
+                            });
+                        }
+                    },
+                    statusField = { x: 0, y: 3, width: 2, type: 'textfield', editable: false }
+                ]
+            };
+            rootObject = {
+                type: 'grid',
+                columns: [1, '360px', 1],
+                rows: [1, '160px', 1],
+                children: [{ x: 1, y: 1, object: loginPanel }]
+            };
             onSuccess();
         }
     });

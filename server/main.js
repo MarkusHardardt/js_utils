@@ -123,6 +123,15 @@ function main(config = {}) {
         requestAnimationFrameCycle: config.clientRequestAnimationFrameCycle,
         accessPointUnregisterObserverDelay: config.clientAccessPointUnregisterObserverDelay
     }, false)));
+    webServer.post(Client.VERIFY_CONTENT_MANAGER_ADMIN, (request, response) => {
+        const admin = config.contentManagerAdmin;
+        const credentials = request.body;
+        const isValid = admin !== null && typeof admin === 'object' &&
+            typeof admin.user === 'string' && typeof admin.password === 'string' &&
+            credentials !== null && typeof credentials === 'object' &&
+            credentials.user === admin.user && credentials.password === admin.password;
+        response.send(JsonFX.stringify({ result: isValid }, false));
+    });
     // handle requests
     if (config.postRequestHandler) {
         if (typeof config.postRequestHandler !== 'object') {

@@ -4,6 +4,7 @@ const Client = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 Client.GET_CLIENT_CONFIG = '/get_client_config';
 Client.HANDLE_REQUEST = '/handle_request';
+Client.VERIFY_CONTENT_MANAGER_ADMIN = '/verify_content_manager_admin';
 
 if (!isNodeJS) {
     // polyfill for requestAnimationFrame (by Opera engineer Erik Möller)
