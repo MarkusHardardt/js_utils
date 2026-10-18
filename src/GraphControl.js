@@ -236,11 +236,9 @@ function applyZoom(that, disableVisuEvents, enableEditorEvents) {
                                 const iy1 = t1.clientY - offs.top;
                                 const ix2 = t2.clientX - offs.left;
                                 const iy2 = t2.clientY - offs.top;
-                                if (that.zoom_rotation === true) { // TODO: Why is this not running?
+                                if (that.zoom_rotation === true) {
                                     _tf.initForPoints(_x1, _y1, _x2, _y2, ix1, iy1, ix2, iy2);
-                                    // we got to set this flag because the standard
-                                    // initForBounds()
-                                    // method does not handle rotation
+                                    // we got to set this flag because the standard initForBounds() method does not handle rotation
                                     that._hmi_rotated = true;
                                 } else {
                                     delete _bounds.x;
