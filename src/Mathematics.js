@@ -515,8 +515,8 @@ class Transform {
         const m2num = (mx ? -dxdv : dxdv) + (my ? dydu : -dydu);
         // compute image to metric transform
         const du2dv2 = du * du + dv * dv;
-        const m1 = m1num / du2dv2;
-        const m2 = m2num / du2dv2;
+        let m1 = m1num / du2dv2;
+        let m2 = m2num / du2dv2;
         // initialize transform
         this.i00 = mx ? -m1 : m1;
         this.i10 = my ? m2 : -m2;
