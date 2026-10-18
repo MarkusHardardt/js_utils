@@ -12,15 +12,100 @@
 
   // Detect touch support
   $.support.touch = 'ontouchend' in document;
+  $.support.pointer = typeof window.PointerEvent === 'function';
 
-  // Ignore browsers without touch support
-  if (!$.support.touch) {
+  // Ignore browsers without touch or pointer support
+  if (!$.support.touch && !$.support.pointer) {
     return;
   }
 
   var mouseProto = $.ui.mouse.prototype,
       _mouseInit = mouseProto._mouseInit,
+      _mouseDestroy = mouseProto._mouseDestroy,
       touchHandled;
+
+  function simulatePointerMouseEvent (event, simulatedType, target) {
+    var simulatedEvent = document.createEvent('MouseEvents');
+
+    simulatedEvent.initMouseEvent(
+      simulatedType,
+      true,
+      true,
+      window,
+      1,
+      event.screenX,
+      event.screenY,
+      event.clientX,
+      event.clientY,
+      false,
+      false,
+      false,
+      false,
+      0,
+      null
+    );
+
+    target.dispatchEvent(simulatedEvent);
+  }
+
+  if ($.support.pointer) {
+    mouseProto._pointerStart = function (event) {
+      var pointerEvent = event.originalEvent || event;
+
+      if (pointerEvent.pointerType === 'mouse' || touchHandled || !this._mouseCapture(pointerEvent)) {
+        return;
+      }
+
+      touchHandled = true;
+      this._pointerId = pointerEvent.pointerId;
+      this._pointerMoved = false;
+      pointerEvent.preventDefault();
+      simulatePointerMouseEvent(pointerEvent, 'mouseover', pointerEvent.target);
+      simulatePointerMouseEvent(pointerEvent, 'mousemove', pointerEvent.target);
+      simulatePointerMouseEvent(pointerEvent, 'mousedown', pointerEvent.target);
+      $(document)
+        .on('pointermove', this._pointerMoveHandler)
+        .on('pointerup', this._pointerEndHandler)
+        .on('pointercancel', this._pointerCancelHandler);
+      if (this.element[0].setPointerCapture) {
+        this.element[0].setPointerCapture(pointerEvent.pointerId);
+      }
+    };
+
+    mouseProto._pointerMove = function (event) {
+      var pointerEvent = event.originalEvent || event;
+
+      if (pointerEvent.pointerId !== this._pointerId) {
+        return;
+      }
+
+      this._pointerMoved = true;
+      pointerEvent.preventDefault();
+      simulatePointerMouseEvent(pointerEvent, 'mousemove', this.element[0]);
+    };
+
+    mouseProto._pointerEnd = function (event) {
+      var pointerEvent = event.originalEvent || event;
+
+      if (pointerEvent.pointerId !== this._pointerId) {
+        return;
+      }
+
+      pointerEvent.preventDefault();
+      simulatePointerMouseEvent(pointerEvent, 'mouseup', this.element[0]);
+      simulatePointerMouseEvent(pointerEvent, 'mouseout', this.element[0]);
+      $(document)
+        .off('pointermove', this._pointerMoveHandler)
+        .off('pointerup', this._pointerEndHandler)
+        .off('pointercancel', this._pointerCancelHandler);
+      if (this.element[0].hasPointerCapture && this.element[0].hasPointerCapture(pointerEvent.pointerId)) {
+        this.element[0].releasePointerCapture(pointerEvent.pointerId);
+      }
+      this._pointerId = undefined;
+      this._pointerMoved = false;
+      touchHandled = false;
+    };
+  }
 
   /**
    * Simulate a mouse event based on a corresponding touch event
@@ -137,6 +222,16 @@
     touchHandled = false;
   };
 
+  mouseProto._touchCancel = function (event) {
+    if (!touchHandled) {
+      return;
+    }
+
+    simulateMouseEvent(event, 'mouseup');
+    simulateMouseEvent(event, 'mouseout');
+    touchHandled = false;
+  };
+
   /**
    * A duck punch of the $.ui.mouse _mouseInit method to support touch events.
    * This method extends the widget with bound touch event handlers that
@@ -147,14 +242,49 @@
     
     var self = this;
 
-    // Delegate the touch handlers to the widget's element
-    self.element
-      .bind('touchstart', $.proxy(self, '_touchStart'))
-      .bind('touchmove', $.proxy(self, '_touchMove'))
-      .bind('touchend', $.proxy(self, '_touchEnd'));
+    if ($.support.pointer) {
+      self._touchAction = self.element[0].style.touchAction;
+      self.element[0].style.touchAction = 'none';
+      self._pointerStartHandler = $.proxy(self, '_pointerStart');
+      self._pointerMoveHandler = $.proxy(self, '_pointerMove');
+      self._pointerEndHandler = $.proxy(self, '_pointerEnd');
+      self._pointerCancelHandler = $.proxy(self, '_pointerEnd');
+      self.element.on('pointerdown', self._pointerStartHandler);
+    } else if ($.support.touch) {
+      // Delegate the touch handlers to the widget's element
+      self.element
+        .bind('touchstart', $.proxy(self, '_touchStart'))
+        .bind('touchmove', $.proxy(self, '_touchMove'))
+        .bind('touchend', $.proxy(self, '_touchEnd'))
+        .bind('touchcancel', $.proxy(self, '_touchCancel'));
+    }
 
     // Call the original $.ui.mouse init method
     _mouseInit.call(self);
+  };
+
+  mouseProto._mouseDestroy = function () {
+    if ($.support.pointer) {
+      this.element.off('pointerdown', this._pointerStartHandler);
+      $(document)
+        .off('pointermove', this._pointerMoveHandler)
+        .off('pointerup', this._pointerEndHandler)
+        .off('pointercancel', this._pointerCancelHandler);
+      if (this._pointerId !== undefined) {
+        if (this.element[0].hasPointerCapture && this.element[0].hasPointerCapture(this._pointerId)) {
+          this.element[0].releasePointerCapture(this._pointerId);
+        }
+        touchHandled = false;
+      }
+      this.element[0].style.touchAction = this._touchAction;
+      this._pointerId = undefined;
+      this._pointerStartHandler = undefined;
+      this._pointerMoveHandler = undefined;
+      this._pointerEndHandler = undefined;
+      this._pointerCancelHandler = undefined;
+    }
+
+    _mouseDestroy.call(this);
   };
 
 })(jQuery);
