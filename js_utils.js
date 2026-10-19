@@ -32,7 +32,6 @@ import GridLayout from './src/GridLayout.js';
 import LanguageSwitching from './src/LanguageSwitching.js';
 import TaskManager from './src/TaskManager.js';
 import TextControl from './src/TextControl.js';
-
 function addStaticWebServerJsUtilsFiles(server, addMain) {
     server.addStaticDirectory('./node_modules/@markus.hardardt/js_utils');
     if (addMain) {

@@ -1,5 +1,4 @@
 const MAX_UPDATE_STEP_DURATION_MILLIS = 2000;
-
 /**
  * This handler connects to the control variables for segment and position of
  * all configured vehicles. As these variables will be updated in best case
@@ -7,12 +6,12 @@ const MAX_UPDATE_STEP_DURATION_MILLIS = 2000;
  * frame per second rate, all this mechanism does is interpolating the vehicle
  * position in between the update cycles resulting in a smooth movement of the
  * vehicles on screen.
- * 
+ *
  * The only supported method is "hmi_getLocation(i_index, i_location)" where
  * "i_index" is our vehicle index corresponding to the vehicle configuration
  * array and "i_location" is an object provided by the caller for the results
  * {segment,position}.
- * 
+ *
  * @param {Object}
  *          i_minimumMeterPerMillisecond
  */
@@ -222,7 +221,6 @@ var ObjectPositionSystem = function (i_simulation) {
         delete i_object.seg;
         delete i_object.pos;
     };
-
     this._hmi_refreshs.push(function (i_time, i_repaint) {
         var segments = that.segments;
         if (Array.isArray(segments)) {
@@ -346,7 +344,6 @@ var ObjectPositionSystem = function (i_simulation) {
             }
         }
     });
-
     this.hmi_getLocation = function (i_id, i_location) {
         var object = m_vehicles[i_id.toString()];
         if (object && object.seg !== undefined && object.pos !== undefined) {
@@ -361,7 +358,6 @@ var ObjectPositionSystem = function (i_simulation) {
             return false;
         }
     };
-
     this._hmi_destroys.push(function () {
         delete that.handleGroupDataUpdate;
         delete that.hmi_getSituation;
@@ -371,11 +367,10 @@ var ObjectPositionSystem = function (i_simulation) {
         that = undefined;
     });
 };
-
 /**
  * This mechanism maps vehicle positions given by an absolute value onto a
  * track departed in zones of different length.
- * 
+ *
  * @param {Object}
  *          i_curveSection The curve section
  * @param {Object}
@@ -398,7 +393,6 @@ var ZonePositionAdjuster = function (i_curveSection, i_maxPosition, i_simulation
             m_relativeLengthAddedUp += zoneHolder.relativeLength;
         }
     };
-
     var m_valid = false;
     for (var i = 0; i < i_curveSection.getZoneCount(); i++) {
         var zone = i_curveSection.getZoneObject(i)._hmi_object;
@@ -480,7 +474,6 @@ var ZonePositionAdjuster = function (i_curveSection, i_maxPosition, i_simulation
         that = undefined;
     };
 };
-
 // add the features
 var exp = {
     ObjectPositionSystem: ObjectPositionSystem,

@@ -1,6 +1,5 @@
 import JsonFX from './JsonFX.js';
 import Utilities from './Utilities.js';
-
 const PI = Math.PI;
 const TWO_PI = PI + PI;
 const HALF_PI = PI * 0.5;
@@ -15,37 +14,30 @@ const MIN_LENGTH2 = 0.000001;
 const MIN_DENOMINATOR = 0.000000001;
 const EPSILON = 0.000000001;
 const MIN_STROKE_LENGTH = 0.001;
-
 // [kg/m^3]
 const SPECIFIC_GRAVITY_OF_STEEL = 7860.0;
 // [m/s^2]
 const EARTH_GRAVITATION = 9.80665;
-
 // this is the solution of the equation 1/x+1=x
 // [or more classic: a/(a+b) = b/a]
 const GOLDEN_CUT = (1.0 + Math.sqrt(5.0)) * 0.5;
 const GOLDEN_CUT_INVERTED = 1.0 / GOLDEN_CUT;
 const DEFAULT_STRESS_S1 = 0.3;
 const DEFAULT_STRESS_S2 = 0.9;
-
 const sinh = Math.sinh || function (value) {
     const exp = Math.exp(value);
     return (exp - 1.0 / exp) * 0.5;
 };
-
 const cosh = Math.cosh || function (value) {
     const exp = Math.exp(value);
     return (exp + 1.0 / exp) * 0.5;
 };
-
 const asinh = Math.asinh || function (value) {
     return Math.log(value + Math.sqrt(value * value + 1));
 };
-
 const acosh = Math.acosh || function (value) {
     return Math.log(value + Math.sqrt(value * value - 1));
 };
-
 /*
  * TODO Maybe we want to add the pendulum simulation. Here we got some complex
  * java code: /JptApp/src/stuff/jkw/AerialTramCabin.java
@@ -53,7 +45,7 @@ const acosh = Math.acosh || function (value) {
  * /JptApp/src/stuff/mathematics/DifferentialQuotientSecondOrder.java
  * /JptApp/src/stuff/mathematics/Pendulum.java
  * /JptApp/src/stuff/mathematics/AbstractRecursiveOrdinaryDifferentialEquation.java
- * 
+ *
  * This next method is the first start
  * /JptApp/src/org/har/jpt/util/Mathematics/MathExt.java
  */
@@ -65,7 +57,6 @@ function createBiomialCoefficients(maxN) {
     }
     // create a new matrix for the values
     const bicos = [];
-
     // for all rows
     for (let i = 0; i <= maxN; i++) {
         // create a new array
@@ -74,13 +65,11 @@ function createBiomialCoefficients(maxN) {
     }
     // set the first value
     bicos[0][0] = 1;
-
     // for all rows
     for (let i = 1; i <= maxN; i++) {
         // set first and last value
         bicos[i][0] = 1;
         bicos[i][i] = 1;
-
         // for all row elements
         for (let j = 1; j < maxN; j++) {
             // set to the sum
@@ -90,7 +79,6 @@ function createBiomialCoefficients(maxN) {
     // return the coefficients
     return bicos;
 }
-
 function getSmoothNormalizedTransfer(value, position1, position2) {
     // get the parameters first
     const s = typeof value === 'number' ? Math.abs(value) : 0.0;
@@ -105,74 +93,91 @@ function getSmoothNormalizedTransfer(value, position1, position2) {
             if (s < 1.0) {
                 const ds = (s - 1.0);
                 return ds * ds;
-            } else {
+            }
+            else {
                 return 0.0;
             }
-        } else if (s2 < 1.0) {
+        }
+        else if (s2 < 1.0) {
             // #3
             const d = 1.0 / ((-s2 - 1.0) * (s2 - 1.0));
             if (s <= s2) {
                 return 2.0 * d * (s2 - 1.0) * s + 1.0;
-            } else if (s < 1.0) {
+            }
+            else if (s < 1.0) {
                 const ds = (s - 1.0);
                 return d * ds * ds;
-            } else {
-                return 0.0;
             }
-        } else {
-            // #5
-            if (s < 1.0) {
-                return 1.0 - s;
-            } else {
+            else {
                 return 0.0;
             }
         }
-    } else if (s1 < 1.0) {
+        else {
+            // #5
+            if (s < 1.0) {
+                return 1.0 - s;
+            }
+            else {
+                return 0.0;
+            }
+        }
+    }
+    else if (s1 < 1.0) {
         if (s1 === s2) {
             // #4
             if (s <= s1) {
                 return 1.0 - s * s / s1;
-            } else if (s < 1.0) {
+            }
+            else if (s < 1.0) {
                 const ds = s - 1.0;
                 return ds * ds / (1.0 - s1);
-            } else {
+            }
+            else {
                 return 0.0;
             }
-        } else if (s2 < 1.0) {
+        }
+        else if (s2 < 1.0) {
             // #1
             const d = 1.0 / ((s1 - s2 - 1.0) * (s2 - 1.0));
             const a = d * (1.0 - s2) / s1;
             if (s < s1) {
                 return 1.0 - a * s * s;
-            } else if (s <= s2) {
+            }
+            else if (s <= s2) {
                 return 2.0 * d * (s2 - 1.0) * s + a * s1 * s1 + 1.0;
-            } else if (s < 1.0) {
+            }
+            else if (s < 1.0) {
                 const ds = (s - 1.0);
                 return d * ds * ds;
-            } else {
-                return 0.0;
             }
-        } else {
-            // #2
-            if (s <= s1) {
-                return 1.0 - s * s / (s1 * (2.0 - s1));
-            } else if (s < 1.0) {
-                const ds = s - 1.0;
-                return -2.0 * ds / (2.0 - s1);
-            } else {
+            else {
                 return 0.0;
             }
         }
-    } else {
+        else {
+            // #2
+            if (s <= s1) {
+                return 1.0 - s * s / (s1 * (2.0 - s1));
+            }
+            else if (s < 1.0) {
+                const ds = s - 1.0;
+                return -2.0 * ds / (2.0 - s1);
+            }
+            else {
+                return 0.0;
+            }
+        }
+    }
+    else {
         // #7
         if (s < 1.0) {
             return 1.0 - s * s;
-        } else {
+        }
+        else {
             return 0.0;
         }
     }
 }
-
 function normalizeToPlusMinusPI(phi) {
     let p = phi;
     while (p > PI) {
@@ -183,7 +188,6 @@ function normalizeToPlusMinusPI(phi) {
     }
     return p;
 }
-
 function normalizeToPlusMinus180deg(angle) {
     let a = angle;
     while (a > 180) {
@@ -194,7 +198,6 @@ function normalizeToPlusMinus180deg(angle) {
     }
     return a;
 }
-
 function copyTransform(target, source) {
     target.d00 = source.d00;
     target.d01 = source.d01;
@@ -213,7 +216,6 @@ function copyTransform(target, source) {
     target.mirrorX = source.mirrorX;
     target.mirrorY = source.mirrorY;
 }
-
 class Transform {
     constructor() {
         // the transformation params
@@ -325,7 +327,8 @@ class Transform {
             m01 = nmy ? -(-sin * d00 + cos * d01) : -sin * d00 + cos * d01;
             m10 = nmx ? -(cos * d10 + sin * d11) : cos * d10 + sin * d11;
             m11 = nmy ? -(-sin * d10 + cos * d11) : -sin * d10 + cos * d11;
-        } else {
+        }
+        else {
             m00 = nmx ? -d00 : d00;
             m01 = nmy ? -d01 : d01;
             m10 = nmx ? -d10 : d10;
@@ -359,17 +362,13 @@ class Transform {
         const t10 = transform.d10;
         const t11 = transform.d11;
         const t12 = transform.y;
-
         this.d00 = d00 * t00 + d01 * t10;
         this.d01 = d00 * t01 + d01 * t11;
         this.x += d00 * t02 + d01 * t12;
-
         this.d10 = d10 * t00 + d11 * t10;
         this.d11 = d10 * t01 + d11 * t11;
         this.y += d10 * t02 + d11 * t12;
-
         this.scale *= transform.scale;
-
         const nmx = transform.mirrorX;
         const nmy = transform.mirrorY;
         const mx = this.mirrorX;
@@ -379,7 +378,6 @@ class Transform {
         // ... and update the mirroring flags afterwards (!!!)
         this.mirrorX = mx !== nmx;
         this.mirrorY = my !== nmy;
-
         // compute the inverted parameters
         const i00 = this.i00;
         const i01 = this.i01;
@@ -393,15 +391,12 @@ class Transform {
         const j10 = transform.i10;
         const j11 = transform.i11;
         const j12 = transform.i12;
-
         this.i00 = i00 * j00 + i10 * j01;
         this.i01 = i01 * j00 + i11 * j01;
         this.i02 = i02 * j00 + i12 * j01 + j02;
-
         this.i10 = i00 * j10 + i10 * j11;
         this.i11 = i01 * j10 + i11 * j11;
         this.i12 = i02 * j10 + i12 * j11 + j12;
-
         return this;
     }
     preConcatenate(transform) {
@@ -418,15 +413,12 @@ class Transform {
         const t10 = transform.d10;
         const t11 = transform.d11;
         const t12 = transform.y;
-
         this.d00 = d00 * t00 + d10 * t01;
         this.d01 = d01 * t00 + d11 * t01;
         this.x = x * t00 + y * t01 + t02;
-
         this.d10 = d00 * t10 + d10 * t11;
         this.d11 = d01 * t10 + d11 * t11;
         this.y = x * t10 + y * t11 + t12;
-
         this.scale *= transform.scale;
         const nmx = transform.mirrorX;
         const nmy = transform.mirrorY;
@@ -435,7 +427,6 @@ class Transform {
         // ... and update the mirroring flags afterwards (!!!)
         this.mirrorX = this.mirrorX !== nmx;
         this.mirrorY = this.mirrorY !== nmy;
-
         // compute the inverted parameters
         const i00 = this.i00;
         const i01 = this.i01;
@@ -447,15 +438,12 @@ class Transform {
         const j10 = transform.i10;
         const j11 = transform.i11;
         const j12 = transform.i12;
-
         this.i00 = i00 * j00 + i01 * j10;
         this.i01 = i00 * j01 + i01 * j11;
         this.i02 += i00 * j02 + i01 * j12;
-
         this.i10 = i10 * j00 + i11 * j10;
         this.i11 = i10 * j01 + i11 * j11;
         this.i12 += i10 * j02 + i11 * j12;
-
         return this;
     }
     invert() {
@@ -586,7 +574,6 @@ class Transform {
         // this centers the target rectangle
         const tx = mx ? (pixelWidth + ds * w) * 0.5 : (pixelWidth - ds * w) * 0.5;
         const ty = my ? (pixelHeight + ds * h) * 0.5 : (pixelHeight - ds * h) * 0.5;
-
         // the actual scale (y-scale is negative because of the vertical flip of
         // the y-axis: in metric systems the y-axis goes up, in images it goes
         // down! The x.axis always goes from left to right. His involves rotations
@@ -666,7 +653,8 @@ class Transform {
             rot = parent.rotation;
             mx = parent.mirrorX;
             my = parent.mirrorY;
-        } else if (params) {
+        }
+        else if (params) {
             d00 = this.d00;
             d01 = this.d01;
             x = this.x;
@@ -688,12 +676,14 @@ class Transform {
                     // add the rotated and scaled translation vector
                     x += d00 * tx + d01 * ty;
                     y += d10 * tx + d11 * ty;
-                } else {
+                }
+                else {
                     // add the rotated and scaled translation vector
                     x += d00 * tx;
                     y += d10 * tx;
                 }
-            } else if (ty !== 0.0 && typeof ty === 'number') {
+            }
+            else if (ty !== 0.0 && typeof ty === 'number') {
                 // add the rotated and scaled translation vector
                 x += d01 * ty;
                 y += d11 * ty;
@@ -726,7 +716,8 @@ class Transform {
             if (params.upright === true) {
                 if (phi !== undefined) {
                     phi += mx === my ? -rot : rot;
-                } else {
+                }
+                else {
                     phi = mx === my ? -rot : rot;
                 }
             }
@@ -747,7 +738,8 @@ class Transform {
                 m01 = pmy ? -(-sin * d00 + cos * d01) : -sin * d00 + cos * d01;
                 m10 = pmx ? -(cos * d10 + sin * d11) : cos * d10 + sin * d11;
                 m11 = pmy ? -(-sin * d10 + cos * d11) : -sin * d10 + cos * d11;
-            } else {
+            }
+            else {
                 m00 = pmx ? -d00 : d00;
                 m01 = pmy ? -d01 : d01;
                 m10 = pmx ? -d10 : d10;
@@ -768,7 +760,8 @@ class Transform {
             this.i11 = m00 / det;
             this.i02 = (m01 * y - m11 * x) / det;
             this.i12 = (m10 * x - m00 * y) / det;
-        } else if (parent) { // no parameters but at least a parent transform
+        }
+        else if (parent) { // no parameters but at least a parent transform
             this.mirrorX = mx;
             this.mirrorY = my;
             this.d00 = d00;
@@ -814,16 +807,16 @@ class Transform {
         const tf = stack ? stack.pop() : undefined;
         if (tf) {
             copyTransform(this, tf);
-        } else {
+        }
+        else {
             this.setToIdentity();
         }
     }
 }
-
 /**
  * This mechanism maps positions given by an absolute value onto a track
  * departed in zones of different length.
- * 
+ *
  * @param {Object}
  *          i_curveSection The curve section
  * @param {Object}
@@ -892,9 +885,11 @@ class Adjuster {
             const dt = t2 - t1;
             if (is ? source <= s1 : source >= s1) {
                 return t1 + (source - s1) / ds * dt;
-            } else if (is ? source >= s2 : source <= s2) {
+            }
+            else if (is ? source >= s2 : source <= s2) {
                 return t2 + (source - s2) / ds * dt;
-            } else {
+            }
+            else {
                 for (const c of config) {
                     if (is ? source <= c.s2 : source >= c.s2) {
                         return c.t1 + (source - c.s1) / c.ds * c.dt;
@@ -918,9 +913,11 @@ class Adjuster {
             const dt = t2 - t1;
             if (it ? target <= t1 : target >= t1) {
                 return s1 + (target - t1) / dt * ds;
-            } else if (it ? target >= t2 : target <= t2) {
+            }
+            else if (it ? target >= t2 : target <= t2) {
                 return s2 + (target - t2) / dt * ds;
-            } else {
+            }
+            else {
                 for (const c of config) {
                     if (it ? target <= c.t2 : target >= c.t2) {
                         return c.s1 + (target - c.t1) / c.dt * c.ds;
@@ -951,12 +948,12 @@ class Adjuster {
                 id1 = id2;
             }
             return txt;
-        } else {
+        }
+        else {
             return false;
         }
     }
 }
-
 function getHarmonicRGB(value, min, max) {
     const mi = typeof min === 'number' ? Math.max(min, 0) : 0;
     const ma = typeof max === 'number' ? Math.min(max, 256) : 256;
@@ -967,7 +964,6 @@ function getHarmonicRGB(value, min, max) {
     const b = Math.floor(mi + (Math.cos(val - TWO_PI / 3) + 1) * diff);
     return 'rgb(' + r + ',' + g + ',' + b + ')';
 }
-
 /**
  * This function computes an arc defined with 2 tangents and a radius. -
  * tangent 1: from point {x1,y1} to {x2,y2} - tangent 2: from point {x2,y2} to
@@ -1042,9 +1038,11 @@ function getArc(x1, y1, x2, y2, x3, y3, radius) {
     let centerY = undefined;
     if (line23x3 !== line23x2) {
         centerY = (line23y3 - line23y2) / (line23x3 - line23x2) * (centerX - line23x2) + line23y2;
-    } else if (line12x2 !== line12x1) {
+    }
+    else if (line12x2 !== line12x1) {
         centerY = (line12y2 - line12y1) / (line12x2 - line12x1) * (centerX - line12x1) + line12y1;
-    } else {
+    }
+    else {
         return false;
     }
     return {
@@ -1061,7 +1059,6 @@ function getArc(x1, y1, x2, y2, x3, y3, radius) {
         endPhi: v23phi
     };
 }
-
 function prepareArc(context, contextTransform, point, part, start, end, left, curveTransform) {
     const arc = part.arc;
     const sphi = arc.startPhi;
@@ -1094,7 +1091,6 @@ function prepareArc(context, contextTransform, point, part, start, end, left, cu
     radius *= curveTransform.scale;
     context.arc(point.x, point.y, radius, phi1 + tfrot, phi2 + tfrot, arc.left === (mx !== my));
 }
-
 class ArcLine {
     #curve;
     #p;
@@ -1298,7 +1294,8 @@ class ArcLine {
                 const y = part.y1 + part.ey * offset + part.ex * i_left;
                 tf.transform(x, y, p);
                 p.phi = (mirrored ? -part.phi : part.phi) + tf.rotation;
-            } else {
+            }
+            else {
                 const cos = Math.cos(arc.startPhi);
                 const sin = Math.sin(arc.startPhi);
                 const x = arc.centerX + (arc.left ? sin * arc.radius : -sin * arc.radius) + cos * offset - sin * i_left;
@@ -1320,7 +1317,8 @@ class ArcLine {
                 const y = part.y2 + part.ey * offset + part.ex * i_left;
                 tf.transform(x, y, p);
                 p.phi = (mirrored ? -part.phi : part.phi) + tf.rotation;
-            } else {
+            }
+            else {
                 const cos = Math.cos(arc.endPhi);
                 const sin = Math.sin(arc.endPhi);
                 const x = arc.centerX + (arc.left ? sin * arc.radius : -sin * arc.radius) + cos * offset - sin * i_left;
@@ -1357,7 +1355,8 @@ class ArcLine {
                     if (arc === false) {
                         context.moveTo(x1, y1);
                         context.lineTo(p.x, p.y);
-                    } else {
+                    }
+                    else {
                         prepareArc(context, transform, p, part, start_pos, end_pos, left, this.#tf);
                     }
                     context.stroke();
@@ -1462,11 +1461,11 @@ class ArcLine {
         }
     }
 }
-
 function getFromArray(array, selector) {
     if (typeof selector === 'number') {
         return array[selector];
-    } else {
+    }
+    else {
         for (const obj of array) {
             if (obj.child === selector) {
                 return obj;
@@ -1475,16 +1474,15 @@ function getFromArray(array, selector) {
         return undefined;
     }
 }
-
 /**
  * CurveSection implements an mechanism to place items and zones on a curve
  * (arc- or rope-line). The actual length of the curve is given through it's
  * geometry. The length of the curve section will be compute as the sum of the
  * lengths of all contained zone-elements.
- * 
+ *
  * ATTENTION! If there is no element with a valid length attribute, this
  * mechanism does not work!
- * 
+ *
  * All items and zones will be placed on the actual curve relatively to it's
  * position on the section. (If a curve has a length of 80m, but the section
  * has to be 100m long an item at position 50m on the section will be at 40m
@@ -1531,7 +1529,8 @@ class CurveSection {
                     sec_offset += sec_zone_length;
                     const sec_zone_end = sec_offset;
                     elementsWithLength.push({ child, start: sec_zone_start, end: sec_zone_end });
-                } else {
+                }
+                else {
                     // If the element has no length it is located somewhere on the curve.
                     // First of all it may be located by an explicit position parameter.
                     // [1]
@@ -1621,7 +1620,8 @@ class CurveSection {
         let position = sectionPosition;
         if (typeof offset === 'number') {
             position += offset;
-        } else if (offset !== null && typeof offset === 'object' && typeof offset.offset === 'number') {
+        }
+        else if (offset !== null && typeof offset === 'object' && typeof offset.offset === 'number') {
             position += offset.offset;
         }
         let left = 0.0;
@@ -1629,7 +1629,8 @@ class CurveSection {
             const l = offset.left;
             if (typeof l === 'number') {
                 left = l;
-            } else {
+            }
+            else {
                 const r = offset.right;
                 if (typeof r === 'number') {
                     left = -r;
@@ -1646,10 +1647,8 @@ class CurveSection {
         return this.#cu_offset + position * this.#sec_to_cu_factor;
     }
 }
-
 const THIRD_PART = 1.0 / 3.0;
 const GOLDEN_SECTION_INTERVAL_PART = (3.0 - Math.sqrt(5.0)) * 0.5;
-
 // the default iteration parameters
 const DEFAULT_MAX_ITERATIONS = 1000;
 const DEFAULT_DISTANCE_TOLERANCE = 1.0e-6;
@@ -1659,22 +1658,21 @@ const POINT_SITUATION_INVALID_DOUBLE_POINT = 1;
 const POINT_SITUATION_INVALID_DOUBLE_START = 2;
 const POINT_SITUATION_INVALID_DOUBLE_END = 3;
 const POINT_SITUATION_INVALID_TRIPLE_POINT = 4;
-
 function isZeroInfinitOrInvalid(value) {
     return value === 0.0 || isNaN(value) || isFinite(value) !== true;
 }
-
 function compareWithTolerance(value1, value2, tolerance) {
     const t = tolerance > 0.0 ? tolerance : 0.0;
     if (value1 > value2 + t) {
         return 1;
-    } else if (value1 < value2 - t) {
+    }
+    else if (value1 < value2 - t) {
         return -1;
-    } else {
+    }
+    else {
         return 0;
     }
 }
-
 function initTupel(tuple, x1, y1, x2, y2, tolerance) {
     const res = compareWithTolerance(x1, x2, tolerance);
     if (res > 0) {
@@ -1683,13 +1681,15 @@ function initTupel(tuple, x1, y1, x2, y2, tolerance) {
         tuple.x2 = x1;
         tuple.y2 = y1;
         tuple.state = POINT_SITUATION_VALID;
-    } else if (res === 0) {
+    }
+    else if (res === 0) {
         tuple.x1 = x1;
         tuple.y1 = y1;
         tuple.x2 = x1;
         tuple.y2 = y1;
         tuple.state = POINT_SITUATION_INVALID_DOUBLE_POINT;
-    } else {
+    }
+    else {
         tuple.x1 = x1;
         tuple.y1 = y1;
         tuple.x2 = x2;
@@ -1697,7 +1697,6 @@ function initTupel(tuple, x1, y1, x2, y2, tolerance) {
         tuple.state = POINT_SITUATION_VALID;
     }
 }
-
 function initTriplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
     let res = compareWithTolerance(x1, x2, tolerance);
     if (res > 0) {
@@ -1712,7 +1711,8 @@ function initTriplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
             triplet.x3 = x1;
             triplet.y3 = y1;
             triplet.state = POINT_SITUATION_VALID;
-        } else if (res === 0) {
+        }
+        else if (res === 0) {
             // #2
             triplet.x1 = x2;
             triplet.y1 = y2;
@@ -1721,7 +1721,8 @@ function initTriplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
             triplet.x3 = x1;
             triplet.y3 = y1;
             triplet.state = POINT_SITUATION_INVALID_DOUBLE_START;
-        } else {
+        }
+        else {
             // #3-5
             res = compareWithTolerance(x1, x3, tolerance);
             if (res > 0) {
@@ -1733,7 +1734,8 @@ function initTriplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
                 triplet.x3 = x1;
                 triplet.y3 = y1;
                 triplet.state = POINT_SITUATION_VALID;
-            } else if (res === 0) {
+            }
+            else if (res === 0) {
                 // #4
                 triplet.x1 = x2;
                 triplet.y1 = y2;
@@ -1742,7 +1744,8 @@ function initTriplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
                 triplet.x3 = x1;
                 triplet.y3 = y1;
                 triplet.state = POINT_SITUATION_INVALID_DOUBLE_END;
-            } else {
+            }
+            else {
                 // #5
                 triplet.x1 = x2;
                 triplet.y1 = y2;
@@ -1753,7 +1756,8 @@ function initTriplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
                 triplet.state = POINT_SITUATION_VALID;
             }
         }
-    } else if (res === 0) {
+    }
+    else if (res === 0) {
         // #6-8
         res = compareWithTolerance(x2, x3, tolerance);
         if (res > 0) {
@@ -1765,7 +1769,8 @@ function initTriplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
             triplet.x3 = x1;
             triplet.y3 = y1;
             triplet.state = POINT_SITUATION_INVALID_DOUBLE_END;
-        } else if (res === 0) {
+        }
+        else if (res === 0) {
             // #7
             triplet.x1 = x1;
             triplet.y1 = y1;
@@ -1774,7 +1779,8 @@ function initTriplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
             triplet.x3 = x1;
             triplet.y3 = y1;
             triplet.state = POINT_SITUATION_INVALID_TRIPLE_POINT;
-        } else {
+        }
+        else {
             // #8
             triplet.x1 = x1;
             triplet.y1 = y1;
@@ -1784,7 +1790,8 @@ function initTriplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
             triplet.y3 = y3;
             triplet.state = POINT_SITUATION_INVALID_DOUBLE_START;
         }
-    } else {
+    }
+    else {
         // #9-13
         res = compareWithTolerance(x2, x3, tolerance);
         if (res > 0) {
@@ -1799,7 +1806,8 @@ function initTriplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
                 triplet.x3 = x2;
                 triplet.y3 = y2;
                 triplet.state = POINT_SITUATION_VALID;
-            } else if (res === 0) {
+            }
+            else if (res === 0) {
                 // #10
                 triplet.x1 = x1;
                 triplet.y1 = y1;
@@ -1808,7 +1816,8 @@ function initTriplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
                 triplet.x3 = x2;
                 triplet.y3 = y2;
                 triplet.state = POINT_SITUATION_INVALID_DOUBLE_START;
-            } else {
+            }
+            else {
                 // #11
                 triplet.x1 = x1;
                 triplet.y1 = y1;
@@ -1818,7 +1827,8 @@ function initTriplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
                 triplet.y3 = y2;
                 triplet.state = POINT_SITUATION_VALID;
             }
-        } else if (res === 0) {
+        }
+        else if (res === 0) {
             // #12
             triplet.x1 = x1;
             triplet.y1 = y1;
@@ -1827,7 +1837,8 @@ function initTriplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
             triplet.x3 = x2;
             triplet.y3 = y2;
             triplet.state = POINT_SITUATION_INVALID_DOUBLE_END;
-        } else {
+        }
+        else {
             // #13
             triplet.x1 = x1;
             triplet.y1 = y1;
@@ -1839,7 +1850,6 @@ function initTriplet(triplet, x1, y1, x2, y2, x3, y3, tolerance) {
         }
     }
 }
-
 function initParabolaForThreePoints(parabola, x1, y1, x2, y2, x3, y3) {
     // compute some help values
     const dx12 = x1 - x2;
@@ -1857,18 +1867,15 @@ function initParabolaForThreePoints(parabola, x1, y1, x2, y2, x3, y3) {
     parabola.b = -(x1Sq * dy23 + x2Sq * dy31 + x3Sq * dy12) / r;
     parabola.c = -(x1Sq * (x2 * y3 - x3 * y2) + x1 * (x3Sq * y2 - x2Sq * y3) + x2 * x3 * y1 * dx23) / r;
 }
-
 function initParabolaForTwoPoints(parabola, x1, y1, x2, y2) {
     const r = x1 - x2;
     parabola.a = 0.0;
     parabola.b = (y1 - y2) / r;
     parabola.c = (x1 * y2 - x2 * y1) / r;
 }
-
 function getParabolaValue(parabola, x) {
     return x * (parabola.a * x + parabola.b) + parabola.c;
 }
-
 class ChainFunction {
     #maxIterations;
     #distanceTolerance;
@@ -1959,7 +1966,6 @@ class ChainFunction {
         // some help values
         const dy12 = ny1 - ny2;
         const dy32 = ny3 - ny2;
-
         // First we compute a parabola through our three points. If we approximate
         // our cosh function as a Taylor polynomial function of second order we
         // get
@@ -1986,11 +1992,9 @@ class ChainFunction {
             const cax1b = (eax1bp + eax1bm) * 0.5;
             const cax2b = (eax2bp + eax2bm) * 0.5;
             const cax3b = (eax3bp + eax3bm) * 0.5;
-
             // these are our target functions
             const f1 = normA * dy12 - cax1b + cax2b;
             const f2 = normA * dy32 - cax3b + cax2b;
-
             // this is our iteration stop criterion
             if (Math.abs(f1) <= distTol && Math.abs(f2) <= distTol) {
                 // compute the other parameters
@@ -2010,7 +2014,6 @@ class ChainFunction {
             const df2da = dy32 - sax3b * nx3 + sax2b * nx2;
             const df2db = -sax3b + sax2b;
             const det = df1da * df2db - df1db * df2da;
-
             // if our determinant is zero our iteration fails
             if (isZeroInfinitOrInvalid(det)) {
                 return false;
@@ -2130,7 +2133,8 @@ class ChainFunction {
             if (normLength < nlen - lenTol) {
                 sag1 = sag2;
                 sag2 *= 2.0;
-            } else {
+            }
+            else {
                 found = true;
                 break;
             }
@@ -2149,9 +2153,11 @@ class ChainFunction {
             const normLength = this.#getNormalizedDistance(nx1, nx2);
             if (normLength > nlen + lenTol) {
                 csag -= dsag;
-            } else if (normLength < nlen - lenTol) {
+            }
+            else if (normLength < nlen - lenTol) {
                 csag += dsag;
-            } else {
+            }
+            else {
                 found = true;
                 break;
             }
@@ -2272,7 +2278,8 @@ class ChainFunction {
                 sag2 = sag3 - dsag;
                 this.#initForThreeNormalizedPoints(nx1, ny1, xm, ym - sag2, nx2, ny2);
                 frc2 = this.#getNormalizedForce(nx);
-            } else {
+            }
+            else {
                 sag3 = sag2;
                 sag2 = sag1;
                 frc2 = frc1;
@@ -2285,7 +2292,8 @@ class ChainFunction {
         if (dsag <= distTol) {
             this.#valid = true;
             return true;
-        } else {
+        }
+        else {
             this.reset();
             return false;
         }
@@ -2343,7 +2351,8 @@ class ChainFunction {
             frc = this.#getNormalizedForce(nx);
             if (frc < normFrc) {
                 csag -= dsag;
-            } else {
+            }
+            else {
                 csag += dsag;
             }
             dsag *= 0.5;
@@ -2410,11 +2419,13 @@ class ChainFunction {
             const nx = this.#toNormalizedLocation(x);
             const ny = this.#getNormalizedHeight(nx);
             return this.#fromNormalizedHeight(ny);
-        } else if (this.#valid) {
+        }
+        else if (this.#valid) {
             const nx = this.#toNormalizedLocation(x);
             const ny = getParabolaValue(this.#parabola, nx);
             return this.#fromNormalizedHeight(ny);
-        } else {
+        }
+        else {
             return 0.0;
         }
     }
@@ -2556,8 +2567,6 @@ class ChainFunction {
         return this.#normC * this.#transScaleInv - this.#transYOffset;
     }
 }
-
-
 function normalizeRopeAngle(phi) {
     let p = phi;
     while (p < -HALF_PI) {
@@ -2568,10 +2577,9 @@ function normalizeRopeAngle(phi) {
     }
     return p;
 }
-
 /**
  * This method computes a support between two chains
- * 
+ *
  * @param chainFunction1
  *          The first chain function
  * @param chainFunction2
@@ -2658,7 +2666,6 @@ function computeRopeSupport(chainFunction1, chainFunction2, x, radius, maxIterat
     }
     return false;
 }
-
 /**
  * Assuming i_referenceX lies within the range of i_x1 and i_x2 this method
  * returns zero if i_x is exactly i_x1, i_x2 or outside the range, one if i_x
@@ -2671,35 +2678,38 @@ function getRelativeLinearValues(x1, x2, referenceX, x, values) {
             const denom = referenceX - x1;
             val.value = (x - x1) / denom;
             val.gradient = 1.0 / denom;
-        } else if (x > referenceX) {
+        }
+        else if (x > referenceX) {
             const denom = x2 - referenceX;
             val.value = (x2 - x) / denom;
             val.gradient = -1.0 / denom;
-        } else {
+        }
+        else {
             val.value = 1.0;
             val.gradient = 0.5 * (1.0 / (referenceX - x1) - 1.0 / (x2 - referenceX));
         }
-    } else {
+    }
+    else {
         if (x < referenceX) {
             const denom = referenceX - x2;
             val.value = (x - x2) / denom;
             val.gradient = 1.0 / denom;
-        } else if (x > referenceX) {
+        }
+        else if (x > referenceX) {
             const denom = x1 - referenceX;
             val.value = (x1 - x) / denom;
             val.gradient = -1.0 / denom;
-        } else {
+        }
+        else {
             val.value = 1.0;
             val.gradient = 0.5 * (1.0 / (referenceX - x2) - 1.0 / (x1 - referenceX));
         }
     }
     return val;
 }
-
 function getLinearHeight(x1, y1, x2, y2, x) {
     return y1 + (x - x1) * (y2 - y1) / (x2 - x1);
 }
-
 function getSteelRopeQ0(diameter) {
     // compute the cross section [m^2]
     const cross_section = diameter * diameter * 0.25 * PI;
@@ -2708,12 +2718,10 @@ function getSteelRopeQ0(diameter) {
     // [kg/s^2] = [kg/m] * [m/s^2]
     return weight_per_meter * EARTH_GRAVITATION;
 }
-
 function getSmoothRopeSagFactor(x1, x2, x, s1, s2) {
     const xm = (x1 + x2) * 0.5;
     return getSmoothNormalizedTransfer(Math.abs(x - xm) / Math.abs(x2 - xm), s1, s2);
 }
-
 class RopeLine {
     #curve;
     #stress1;
@@ -2737,7 +2745,6 @@ class RopeLine {
         // die vertikale Distanz hingegen minimal gr�sser.
         // public fields
         this.length = 0.0;
-
         // internal parameters
         this.#curve = curve;
         this.#stress1 = DEFAULT_STRESS_S1;
@@ -2753,7 +2760,6 @@ class RopeLine {
         this.#fields = [];
         this.#adjuster = new Adjuster();
         this.#tf = new Transform();
-
         // initialize
         this.adjust();
         this.#init();
@@ -2815,7 +2821,6 @@ class RopeLine {
             console.error('ERROR! Rope configuration does not contain valid points.');
             return false;
         }
-
         // ///////////////////////////////////////////////////////////////
         // WEIGHT PER METER
         // ///////////////////////////////////////////////////////////////
@@ -2860,7 +2865,8 @@ class RopeLine {
             if (pos !== null && typeof pos === 'object' && pos.type === 'support') {
                 if (prev === undefined) {
                     prev = pos;
-                } else {
+                }
+                else {
                     const x1 = typeof prev.x === 'number' ? prev.x : 0.0;
                     const y1 = typeof prev.y === 'number' ? prev.y : 0.0;
                     const x2 = typeof pos.x === 'number' ? pos.x : 0.0;
@@ -2871,13 +2877,15 @@ class RopeLine {
                     // well
                     if (this.#increasingX === undefined) {
                         this.#increasingX = incx;
-                    } else if (this.#increasingX === true) {
+                    }
+                    else if (this.#increasingX === true) {
                         if (incx !== true) {
                             console.error('ERROR! Rope configuration changed from increasing to decreasing x-coordinate (index: ' + i + ', x1: ' + x1 + '. x2: ' + x2 + ')');
                             this.#reset();
                             return false;
                         }
-                    } else {
+                    }
+                    else {
                         if (incx === true) {
                             console.error('ERROR! Rope configuration changed from decreasing to increasing x-coordinate (index: ' + i + ', x1: ' + x1 + '. x2: ' + x2 + ')');
                             this.#reset();
@@ -2924,7 +2932,8 @@ class RopeLine {
                 if (this.#q0 === undefined && pos.rope !== undefined) {
                     if (typeof pos.rope === 'number' && pos.rope > 0) {
                         this.#q0 = getSteelRopeQ0(pos.rope);
-                    } else if (Array.isArray(pos.rope)) {
+                    }
+                    else if (Array.isArray(pos.rope)) {
                         const q0 = 0.0;
                         for (let j = 0; j < pos.rope.length; j++) {
                             const rd = pos.rope[j];
@@ -2948,7 +2957,8 @@ class RopeLine {
                     }
                     if (typeof pos.length === 'number' && pos.length > 0.0) {
                         field.length = pos.length;
-                    } else if (typeof pos.y === 'number') {
+                    }
+                    else if (typeof pos.y === 'number') {
                         field.x = x !== undefined ? x : (field.support1x + field.support2x) * 0.5;
                         const dir_y = getLinearHeight(field.support1x, field.support1y, field.support2x, field.support2y, field.x);
                         if (pos.y >= dir_y) {
@@ -2957,11 +2967,13 @@ class RopeLine {
                             return false;
                         }
                         field.y = pos.y;
-                    } else if (typeof pos.sag === 'number' && pos.sag > 0.0) {
+                    }
+                    else if (typeof pos.sag === 'number' && pos.sag > 0.0) {
                         field.x = x !== undefined ? x : (field.support1x + field.support2x) * 0.5;
                         const dir_y = getLinearHeight(field.support1x, field.support1y, field.support2x, field.support2y, field.x);
                         field.y = dir_y - pos.sag;
-                    } else if (typeof pos.force === 'number' && pos.force > 0.0) {
+                    }
+                    else if (typeof pos.force === 'number' && pos.force > 0.0) {
                         field.x = x !== undefined ? x : (field.support1x + field.support2x) * 0.5;
                         field.force = pos.force;
                     }
@@ -2980,7 +2992,8 @@ class RopeLine {
             const chain = field.chain;
             chain.initForForce(field.support1x, field.support1y, field.support2x, field.support2y, field.support1x, this.#counterweight0 * EARTH_GRAVITATION, this.#q0);
             field.valid = chain.isValid() || chain.isCosinusHyperbolicus();
-        } else if (this.#counterweight1 !== undefined) {
+        }
+        else if (this.#counterweight1 !== undefined) {
             const field = fields[fields.length - 1];
             const chain = field.chain;
             chain.initForForce(field.support1x, field.support1y, field.support2x, field.support2y, field.support2x, this.#counterweight1 * EARTH_GRAVITATION, this.#q0);
@@ -2994,10 +3007,12 @@ class RopeLine {
                 if (field.length !== undefined) {
                     chain.initForLength(field.support1x, field.support1y, field.support2x, field.support2y, field.length);
                     field.valid = chain.isValid() || chain.isCosinusHyperbolicus();
-                } else if (field.x !== undefined && field.y !== undefined) {
+                }
+                else if (field.x !== undefined && field.y !== undefined) {
                     chain.initForThreePoints(field.support1x, field.support1y, field.support2x, field.support2y, field.x, field.y);
                     field.valid = chain.isValid() || chain.isCosinusHyperbolicus();
-                } else if (field.force !== undefined && field.x !== undefined) {
+                }
+                else if (field.force !== undefined && field.x !== undefined) {
                     chain.initForForce(field.support1x, field.support1y, field.support2x, field.support2y, field.x, field.force, this.#q0);
                     field.valid = chain.isValid() || chain.isCosinusHyperbolicus();
                 }
@@ -3056,7 +3071,8 @@ class RopeLine {
                 field2.sup1data = support;
                 field2.saddle1x = support.endX;
                 field2.saddle1y = support.endY;
-            } else {
+            }
+            else {
                 field1.sup2data = false;
                 field2.sup1data = false;
             }
@@ -3171,7 +3187,8 @@ class RopeLine {
                 txt += 'delta phi: ' + dphi + ' / ' + (dphi * RAD2DEG) + ' grad\n';
                 txt += JsonFX.stringify(arc, true);
                 txt += '\n\n';
-            } else {
+            }
+            else {
                 const field = part.field;
                 const chain = field.chain;
                 const x1 = field.saddle1x;
@@ -3221,7 +3238,8 @@ class RopeLine {
                 const x = chain.getLocation(saddle1x, this.#increasingX === true ? vehPos - start : start - vehPos);
                 field.vehicle_x = x;
                 field.vehicle_stress_rate = getSmoothRopeSagFactor(saddle1x, saddle2x, x, this.#stress1, this.#stress2);
-            } else {
+            }
+            else {
                 delete field.vehicle_position;
                 delete field.vehicle_x;
                 delete field.vehicle_stress_rate;
@@ -3459,7 +3477,8 @@ class RopeLine {
                                             transform.transform(p.x, p.y, p);
                                             context.lineTo(p.x, p.y);
                                         }
-                                    } else {
+                                    }
+                                    else {
                                         const cnt = Math.max(Math.ceil(Math.abs(end_phi - start_phi) * RAD2DEG), 1);
                                         const delta = (end_pos - start_pos) / cnt;
                                         for (let j = 1; j < cnt; j++) {
@@ -3470,7 +3489,8 @@ class RopeLine {
                                     }
                                 }
                                 context.lineTo(x2, y2);
-                            } else {
+                            }
+                            else {
                                 const l = this.#increasingX === false && typeof left === 'number' ? -left : left;
                                 prepareArc(context, transform, p, part, start_pos, end_pos, l, this.#tf);
                             }
@@ -3502,19 +3522,20 @@ class RopeLine {
         }
     }
 }
-
 function setOffset(offset, point) {
     let x = 0.0;
     if (typeof offset === 'number') {
         x = offset;
-    } else if (offset !== null && typeof offset === 'object' && typeof offset.offset === 'number') {
+    }
+    else if (offset !== null && typeof offset === 'object' && typeof offset.offset === 'number') {
         x = offset.offset;
     }
     let y = 0.0;
     if (offset !== null && typeof offset === 'object') {
         if (typeof offset.left === 'number') {
             y = offset.left;
-        } else if (typeof offset.right === 'number') {
+        }
+        else if (typeof offset.right === 'number') {
             y = -offset.right;
         }
     }
@@ -3522,11 +3543,12 @@ function setOffset(offset, point) {
         point.x = x;
         point.y = y;
         return point;
-    } else {
+    }
+    else {
         return { x, y };
     }
-};
-
+}
+;
 const TEN_POINT_ZERO = 10.0;
 const FIFE_POINT_ZERO = 5.0;
 const TWO_POINT_ZERO = 2.0;
@@ -3556,7 +3578,8 @@ function getFiscIterDiff(i_minDiff) {
             }
             diff = diff10;
         }
-    } else {
+    }
+    else {
         for (let i = 0; i < 300; i++) {
             const diff5 = diff * ZERO_POINT_FIFE;
             if (minDiff > diff5) {
@@ -3574,8 +3597,8 @@ function getFiscIterDiff(i_minDiff) {
         }
     }
     return 0.0;
-};
-
+}
+;
 class DiscretizationIterator {
     #diff;
     #start;
@@ -3597,7 +3620,8 @@ class DiscretizationIterator {
             this.#start = 0;
             this.#count = 0;
             this.#max = 0;
-        } else {
+        }
+        else {
             this.#raising = start < end;
             this.#start = fmd ? ((this.#raising ? Math.ceil(start / this.#diff) : Math.floor(start / this.#diff)) * this.#diff) : start;
             const e = fmd ? ((this.#raising ? Math.floor(end / this.#diff) : Math.ceil(end / this.#diff)) * this.#diff) : end;
@@ -3616,13 +3640,11 @@ class DiscretizationIterator {
         return value;
     }
 }
-
 const NONE = 0x0;
 const NORTH = 0x1;
 const WEST = 0x2;
 const SOUTH = 0x4;
 const EAST = 0x8;
-
 class Maze {
     #cells;
     #list;
@@ -3639,12 +3661,10 @@ class Maze {
         // set the dimension
         this.width = i_width;
         this.height = i_height;
-
         // clear
         const cells = this.#cells;
         cells.splice(0, cells.length);
         this.#list.splice(0, this.#list.length);
-
         // if invalid
         if (i_width <= 0 || i_height <= 0) {
             // nothing more to do
@@ -3680,25 +3700,19 @@ class Maze {
         const width = this.width;
         // add the middle cell to the stack
         list.push(cells[y * width + x]);
-
         // here we store the last index
         let xIdx, yIdx, type, last = 0;
-
         // while the stack is not empty
         while ((last = list.length - 1) >= 0) {
             // get the last cell in the stack
             let cell = list[last];
-
             // set visited
             cell.visited = true;
-
             // store the coordinates
             xIdx = cell.x;
             yIdx = cell.y;
-
             // get the next valid random neighbor cell type
             type = this.#getRandomValidCellNeighbour(xIdx, yIdx);
-
             // depending on the neighbor
             switch (type) {
                 case NORTH: {
@@ -3769,10 +3783,8 @@ class Maze {
         }
         // select index by random
         const idx = cnt > 1 ? Math.floor(Math.random() * cnt) : 0;
-
         // reset counter
         cnt = 0;
-
         // Above
         if (y > 0 && !cells[(y - 1) * width + x].visited) {
             if (cnt == idx) {
@@ -3804,7 +3816,6 @@ class Maze {
         return NONE;
     }
 }
-
 // helper class
 class WeightedGraphNode {
     constructor() {
@@ -3840,7 +3851,6 @@ class WeightedGraphNode {
         return undefined;
     }
 }
-
 // helper class
 class WeightedGraphEdge {
     constructor() {
@@ -3871,13 +3881,11 @@ class WeightedGraphEdge {
             // return second
             return this._node2;
         }
-
         // if given is identical to second
         else if (this._node2 === i_node) {
             // return first
             return this._node1;
         }
-
         // given node is not part of this edge
         else {
             // no opposite node available
@@ -3885,7 +3893,6 @@ class WeightedGraphEdge {
         }
     }
 }
-
 class WeightedGraph {
     #startNode;
     #endNode;
@@ -3973,7 +3980,6 @@ class WeightedGraph {
         }
         // add the edge
         this.#prepareEdge(false, edge, node1, node2, length);
-
         // success
         return true;
     }
@@ -4065,7 +4071,6 @@ class WeightedGraph {
         this.#list.splice(0, this.#list.length);
         this.#edges.splice(0, this.#edges.length);
         this.#nodes.splice(0, this.#nodes.length);
-
         // ////////////////////////////////////////////////////////////////////////////
         // This is an implementation of the Dijkstra algorithm.
         //
@@ -4389,7 +4394,6 @@ class WeightedGraph {
         return this.#nodes[this.#nodes.length - 1 - i_index];
     }
 }
-
 const exp = Object.freeze({
     THIRD,
     TWO_PI,

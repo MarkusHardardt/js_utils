@@ -5,7 +5,6 @@ import Sorting from './Sorting.js';
 import Utilities from './Utilities.js';
 import Core from './Core.js';
 import Mathematics from './Mathematics.js';
-
 /*  TODO:
     - Move all browser specific stuff to separate file(s)
 */
@@ -15,61 +14,59 @@ const $ = isNodeJS ? (await import('jquery')).default : globalThis.$;
 /*
  * Usage check of: "._hmi_init_dom(" [11] and "._hmi_destroy_dom(" [6] to
  * prevent memory leaks:
- * 
+ *
  * #grid: 2 x _hmi_init_dom: called on all children but with "is
  * TaskObjectImpl?" true without or false with html division 1 x
  * _hmi_destroy_dom: called on all children
- * 
+ *
  * #float: 2 x _hmi_init_dom: called on all children but with "is
  * TaskObjectImpl?" true without or false with html division 1 x
  * _hmi_destroy_dom: called on all children
- * 
+ *
  * #split: 2 x _hmi_init_dom: called on all possible split parts and all with
  * "is TaskObjectImpl?" 1 x _hmi_destroy_dom: called on all possible split
  * parts and all with "is TaskObjectImpl?"
- * 
+ *
  * #task: TaskObjectImpl 1 x _hmi_init_dom: called on children that are
  * handlers as well (all others ignored) 1 x _hmi_destroy_dom: called on
  * children that are handlers as well (all others ignored)
- * 
+ *
  * #graph: 3 x _hmi_init_dom: called on children that are graphics as well,
  * html objects or handlers 1 x _hmi_destroy_dom: called on all children
- * 
+ *
  * #create/destroy_hmi_object_branch: 1 + 2 2 x _hmi_init_dom: called on
  * object (debug or not) 1 x _hmi_destroy_dom: called on object
- * 
+ *
  * ==> all initialized objects destroyed! (Hm, 2015-07-29)
  */
-
 const DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION = '<div style="box-sizing: border-box;position: relative;width: 100%;height: 100%;" />';
 ObjectLifecycleManager.DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION = DEFAULT_RELATIVE_POSITIONED_FILLED_BORDER_BOX_DIVISION;
 const DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION = '<div style="box-sizing: border-box;position: absolute;" />';
 ObjectLifecycleManager.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION = DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION;
-
 /**
  * Analyzes the passed object and returns true if it is an object with the attribute 'type' with the value 'task'.
  * On node js we only can handle 'task' objects so we just check if it is not another type.
- * @param {*} object 
+ * @param {*} object
  * @returns true for task objects
  */
 function isTaskType(object) {
     if (object === undefined) {
         return false;
-    } else if (object === null) {
+    }
+    else if (object === null) {
         return false;
-    } else if (typeof object !== 'object') {
+    }
+    else if (typeof object !== 'object') {
         return false;
-    } else {
+    }
+    else {
         return (isNodeJS && object.type === undefined) || object.type === 'task';
     }
 }
 ObjectLifecycleManager.isTaskType = isTaskType;
-
 let s_applyGraphicObject = null;
 const s_types = {};
-
 const s_extensions = [];
-
 function attachHmiObject(object) {
     // If we got a valid object we iterate to the actual visualization object
     // first. [1]
@@ -106,7 +103,6 @@ function attachHmiObject(object) {
         }
     }
 }
-
 function detachHmiObject(object) {
     if (object !== null && typeof object === 'object') {
         // detach children
@@ -129,7 +125,6 @@ function detachHmiObject(object) {
         }
     }
 }
-
 function processObjectSubTree(object, fromRootToLeaf, isValid, callback) {
     if (isValid === undefined || isValid(object) === true) {
         // perform callback if from root to leaf
@@ -143,7 +138,8 @@ function processObjectSubTree(object, fromRootToLeaf, isValid, callback) {
                 for (let i = 0, l = children.length; i < l; i++) {
                     processObjectSubTree(children[i]._hmi_object, fromRootToLeaf, isValid, callback);
                 }
-            } else {
+            }
+            else {
                 for (let i = children.length - 1; i >= 0; i--) {
                     processObjectSubTree(children[i]._hmi_object, fromRootToLeaf, isValid, callback);
                 }
@@ -156,7 +152,6 @@ function processObjectSubTree(object, fromRootToLeaf, isValid, callback) {
     }
 }
 ObjectLifecycleManager.processObjectSubTree = processObjectSubTree;
-
 function setBounds(element, bounds) {
     element.css('left', bounds.x.toString() + 'px');
     element.css('top', bounds.y.toString() + 'px');
@@ -164,7 +159,6 @@ function setBounds(element, bounds) {
     element.css('height', bounds.height.toString() + 'px');
 }
 ObjectLifecycleManager.setBounds = setBounds;
-
 function getPixelValue(value) {
     if (typeof value !== 'string') {
         return undefined;
@@ -180,38 +174,42 @@ function getPixelValue(value) {
     return parseFloat(px);
 }
 ObjectLifecycleManager.getPixelValue = getPixelValue;
-
 function getAlignment(align, result, mirrorX, mirrorY) {
     const res = result || {};
     if (typeof align === 'string') {
         if (align.indexOf('left') !== -1) {
             res.x = mirrorX === true ? 1.0 : 0.0;
-        } else if (align.indexOf('right') !== -1) {
+        }
+        else if (align.indexOf('right') !== -1) {
             res.x = mirrorX === true ? 0.0 : 1.0;
-        } else {
+        }
+        else {
             res.x = 0.5;
         }
         if (align.indexOf('bottom') !== -1) {
             res.y = mirrorY === true ? 1.0 : 0.0;
-        } else if (align.indexOf('top') !== -1) {
+        }
+        else if (align.indexOf('top') !== -1) {
             res.y = mirrorY === true ? 0.0 : 1.0;
-        } else {
+        }
+        else {
             res.y = 0.5;
         }
-    } else if (align !== null && typeof align === 'object') {
+    }
+    else if (align !== null && typeof align === 'object') {
         const x = align.x;
         const y = align.y;
         res.x = typeof x === 'number' ? (mirrorX === true ? 1.0 - x : x) : 0.5;
         res.y = typeof y === 'number' ? (mirrorY === true ? 1.0 - y : y) : 0.5;
-    } else {
+    }
+    else {
         res.x = 0.5;
         res.y = 0.5;
     }
     return res;
 }
 ObjectLifecycleManager.getAlignment = getAlignment;
-
-function updateCoordinates(element, x, y, width, height, containerWidth, containerHeight, align) { // TODO: Used?
+function updateCoordinates(element, x, y, width, height, containerWidth, containerHeight, align) {
     // get the alignment
     const alignment = getAlignment(align, undefined, false, true);
     // get pixel values as number if available (returns undefined if not
@@ -232,7 +230,6 @@ function updateCoordinates(element, x, y, width, height, containerWidth, contain
     element.css('height', Math.floor(pixH).toString() + 'px');
 }
 ObjectLifecycleManager.updateCoordinates = updateCoordinates;
-
 function applyListenerSupport(that) {
     let listeners = [];
     that._hmi_addEditListener = listener => {
@@ -268,9 +265,7 @@ function applyListenerSupport(that) {
     });
 }
 ObjectLifecycleManager.applyListenerSupport = applyListenerSupport;
-
 let _lastUserActionDate = undefined;
-
 function preventDefaultAndStopPropagation(event) {
     // do not perform default browser actions
     if (typeof event.preventDefault === 'function') {
@@ -283,23 +278,21 @@ function preventDefaultAndStopPropagation(event) {
     _lastUserActionDate = new Date().getTime();
 }
 ObjectLifecycleManager.preventDefaultAndStopPropagation = preventDefaultAndStopPropagation;
-
 function getLastUserActionDate() {
     return _lastUserActionDate;
 }
 ObjectLifecycleManager.getLastUserActionDate = getLastUserActionDate;
-
 function initObject(object, data) {
     if (typeof object.init === 'function') {
         try {
             object.init(data);
-        } catch (exc) {
+        }
+        catch (exc) {
             console.error(`EXCEPTION Calling init(): '${exc}' '${object.init.toString()}'`);
         }
     }
 }
 ObjectLifecycleManager.initObject = initObject;
-
 const s_eventListeners = [];
 ObjectLifecycleManager.addEventListener = listener => {
     for (const l of s_eventListeners) {
@@ -326,7 +319,6 @@ function updateEventListenersState(enabled) {
         s_eventListeners[i][enabled ? '_hmi_addEventListeners' : '_hmi_removeEventListeners']();
     }
 }
-
 function applyButtonHandling(that, context) {
     let _timeout = undefined;
     let _pressed = false;
@@ -373,11 +365,13 @@ function applyButtonHandling(that, context) {
                 if (typeof that.pressed === 'function') {
                     try {
                         that.pressed();
-                    } catch (error) {
+                    }
+                    catch (error) {
                         console.error(`Failed calling pressed(): ${that.pressed.toString()}`, error);
                     }
                 }
-            } else if (_minimumTimeoutTimer === undefined) { // if the button has been untouched, the mouse pointer went up or leaves the element or the timeout expired
+            }
+            else if (_minimumTimeoutTimer === undefined) { // if the button has been untouched, the mouse pointer went up or leaves the element or the timeout expired
                 // first we got to clear eventual timeouts
                 if (_timeout !== undefined) {
                     clearTimeout(_timeout);
@@ -390,7 +384,8 @@ function applyButtonHandling(that, context) {
                 if (typeof that.released === 'function') {
                     try {
                         that.released();
-                    } catch (error) {
+                    }
+                    catch (error) {
                         console.error(`Failed calling released(): ${that.released.toString()}`, error);
                     }
                 }
@@ -403,11 +398,13 @@ function applyButtonHandling(that, context) {
                     if (typeof that.longClicked === 'function') {
                         try {
                             that.longClicked();
-                        } catch (error) {
+                        }
+                        catch (error) {
                             console.error(`Failed calling longClicked(): ${that.longClicked.toString()}`, error);
                         }
                     }
-                } else {
+                }
+                else {
                     if (that.verbose === true) {
                         console.log('button clicked');
                     }
@@ -415,7 +412,8 @@ function applyButtonHandling(that, context) {
                     if (typeof that.clicked === 'function') {
                         try {
                             that.clicked();
-                        } catch (error) {
+                        }
+                        catch (error) {
                             console.error(`Failed calling clicked(): ${that.clicked.toString()}`, error);
                         }
                     }
@@ -446,11 +444,13 @@ function applyButtonHandling(that, context) {
         if (typeof that.updateEnabled === 'function') {
             try {
                 that.updateEnabled(_enabled);
-            } catch (error) {
+            }
+            catch (error) {
                 console.error(`Failed calling updateEnabled(): ${that.updateEnabled.toString()}`, error);
             }
         }
-    };
+    }
+    ;
     that.hmi_setEnabled = enabled => {
         if (_enabled !== enabled) {
             _enabled = enabled === true;
@@ -484,20 +484,19 @@ function applyButtonHandling(that, context) {
         _cont = undefined;
         that = undefined;
     });
-};
+}
+;
 applyButtonHandling.isRequired = (object, disableVisuEvents) => {
     if (disableVisuEvents === true) {
         return false;
     }
     return typeof object.pressed === 'function' || typeof object.released === 'function' || typeof object.clicked === 'function' || typeof object.longClicked === 'function';
 };
-
-function dumpLifecycle(state) { // TODO: Replace with monitoring of server tasks
+function dumpLifecycle(state) {
     if (false) {
-        console.log(`lifecycle state: ${state}`)
+        console.log(`lifecycle state: ${state}`);
     }
 }
-
 function applyContainer(that, onSuccess) {
     let _cont = that._hmi_context.container;
     _cont.addClass('overflow-hidden');
@@ -528,11 +527,13 @@ function applyContainer(that, onSuccess) {
             }, error => {
                 if (typeof onError === 'function') {
                     onError(error);
-                } else {
+                }
+                else {
                     console.error(error);
                 }
             }, dumpLifecycle);
-        } else if (typeof onSuccess === 'function') {
+        }
+        else if (typeof onSuccess === 'function') {
             onSuccess();
         }
     };
@@ -557,7 +558,6 @@ function applyContainer(that, onSuccess) {
     onSuccess();
 }
 s_types['container'] = applyContainer;
-
 function applyTimeRangeSelector(that) {
     let _min = undefined;
     let _max = undefined;
@@ -584,11 +584,13 @@ function applyTimeRangeSelector(that) {
         if (typeof that.handleRangeUpdate === 'function') {
             try {
                 that.handleRangeUpdate(_from, _to, _syncInterval !== undefined);
-            } catch (error) {
+            }
+            catch (error) {
                 console.error(`Failed calling handleRangeUpdate(): ${that.handleRangeUpdate.toString()}`, error);
             }
         }
-    };
+    }
+    ;
     that.hmi_setAbsoluteRange = (min, max) => {
         if (typeof min === 'number') {
             _min = that.onlyInteger === true ? Math.floor(min) : min;
@@ -633,14 +635,16 @@ function applyTimeRangeSelector(that) {
         _from += diff;
         _to += diff;
         update();
-    };
+    }
+    ;
     that.hmi_shiftDown = pressed => {
         if (pressed === true) {
             if (_shiftDownInterval === undefined) {
                 _shiftDownInterval = setInterval(() => shift(false), typeof that.shiftMillis === 'number' && that.shiftMillis > 0 ? that.shiftMillis : 1000);
             }
             shift(false);
-        } else {
+        }
+        else {
             if (_shiftDownInterval !== undefined) {
                 clearInterval(_shiftDownInterval);
                 _shiftDownInterval = undefined;
@@ -653,7 +657,8 @@ function applyTimeRangeSelector(that) {
                 _shiftUpInterval = setInterval(() => shift(true), typeof that.shiftMillis === 'number' && that.shiftMillis > 0 ? that.shiftMillis : 1000);
             }
             shift(true);
-        } else {
+        }
+        else {
             if (_shiftUpInterval !== undefined) {
                 clearInterval(_shiftUpInterval);
                 _shiftUpInterval = undefined;
@@ -666,7 +671,8 @@ function applyTimeRangeSelector(that) {
                 _syncInterval = setInterval(update, typeof that.syncMillis === 'number' && that.syncMillis > 0 ? that.syncMillis : 1000);
                 update();
             }
-        } else {
+        }
+        else {
             if (_syncInterval !== undefined) {
                 clearInterval(_syncInterval);
                 _syncInterval = undefined;
@@ -700,53 +706,62 @@ function applyTimeRangeSelector(that) {
         shift = undefined;
         that = undefined;
     });
-};
+}
+;
 applyTimeRangeSelector.isRequired = object => typeof object.handleRangeUpdate === 'function';
-
 function isVisible(visible) {
     if (visible === false) {
         return false;
-    } else if (typeof visible === 'string') {
+    }
+    else if (typeof visible === 'string') {
         return that.hmi.env.isInstance(visible);
-    } else if (Array.isArray(visible) && visible.length > 0) {
+    }
+    else if (Array.isArray(visible) && visible.length > 0) {
         for (let i = 0; i < visible.length; i++) {
             if (that.hmi.env.isInstance(visible[i]) === true) {
                 return true;
             }
         }
         return false;
-    } else if (typeof visible === 'function') {
+    }
+    else if (typeof visible === 'function') {
         try {
             return visible() !== false;
-        } catch (error) {
+        }
+        catch (error) {
             console.error(`Failed calling visible: ${visible.toString()}`, error);
             return true;
         }
-    } else {
+    }
+    else {
         return true;
     }
-};
-
+}
+;
 function getDimensionParameter(object, attributeName, separator) {
     if (object === true) {
         return separator;
-    } else if (typeof object === 'number') {
+    }
+    else if (typeof object === 'number') {
         return object;
-    } else if (object !== null && typeof object === 'object') {
+    }
+    else if (object !== null && typeof object === 'object') {
         const margin = object[attributeName];
         if (margin === true) {
             return separator;
-        } else if (typeof margin === 'number') {
+        }
+        else if (typeof margin === 'number') {
             return margin;
-        } else {
+        }
+        else {
             return 0;
         }
-    } else {
+    }
+    else {
         return 0;
     }
 }
 ObjectLifecycleManager.getDimensionParameter = getDimensionParameter;
-
 function computeCentralRectangle(sourceWidth, sourceHeight, targetWidth, targetHeight, targetMargin, targetBorder, relativeX, relativeY) {
     // first we compute the maximum dimension we have for our image
     const marginLeft = getDimensionParameter(targetMargin, 'left', targetBorder);
@@ -777,8 +792,8 @@ function computeCentralRectangle(sourceWidth, sourceHeight, targetWidth, targetH
         height,
         scale
     };
-};
-
+}
+;
 let _dummyText = undefined;
 function getTextSize(text, font) {
     if (_dummyText === undefined) {
@@ -793,7 +808,6 @@ function getTextSize(text, font) {
     return dimension;
 }
 ObjectLifecycleManager.getTextSize = getTextSize;
-
 function applyDefaultHtmlObject(that) {
     let _cont = that._hmi_context.container;
     _cont.data('hmi_object', that);
@@ -809,7 +823,8 @@ function applyDefaultHtmlObject(that) {
                     if (typeof func === 'function') {
                         try {
                             func(width, height);
-                        } catch (error) {
+                        }
+                        catch (error) {
                             console.error(`Failed calling resize: ${func.toString()}`, error);
                         }
                     }
@@ -817,7 +832,8 @@ function applyDefaultHtmlObject(that) {
                 if (typeof that.resized === 'function') {
                     try {
                         that.resized(width, height);
-                    } catch (error) {
+                    }
+                    catch (error) {
                         console.error(`Failed calling resized: ${that.resized.toString()}`, error);
                     }
                 }
@@ -834,7 +850,8 @@ function applyDefaultHtmlObject(that) {
         if (that.border === true) {
             _cont[engraved === true ? 'removeClass' : 'addClass']('hmi-border-embossed');
             _cont[engraved === true ? 'addClass' : 'removeClass']('hmi-border-engraved');
-        } else if (that.border === false) {
+        }
+        else if (that.border === false) {
             _cont[engraved === true ? 'removeClass' : 'addClass']('hmi-border-engraved');
             _cont[engraved === true ? 'addClass' : 'removeClass']('hmi-border-embossed');
         }
@@ -870,12 +887,14 @@ function applyDefaultHtmlObject(that) {
     that.hmi_css = (key, value) => {
         if (value === null || value === '') {
             _cont.css(key, '');
-        } else if (typeof value === 'string') {
+        }
+        else if (typeof value === 'string') {
             _cont.css(key, value);
             if (that._hmi_updateAlignment) {
                 that._hmi_updateAlignment();
             }
-        } else {
+        }
+        else {
             return _cont.css(key);
         }
     };
@@ -885,7 +904,8 @@ function applyDefaultHtmlObject(that) {
             if (that._hmi_updateAlignment) {
                 that._hmi_updateAlignment();
             }
-        } else {
+        }
+        else {
             return _cont.attr(key);
         }
     };
@@ -974,16 +994,18 @@ function getWatch(watch) {
                 }
             }
             return ws;
-        } else {
+        }
+        else {
             return undefined;
         }
-    } else if (typeof watch === 'string') {
+    }
+    else if (typeof watch === 'string') {
         return [watch];
-    } else {
+    }
+    else {
         return undefined;
     }
 }
-
 function applySimpleHtmlObject(that, onSuccess) {
     let _cont = that._hmi_context.container;
     let _image = undefined;
@@ -1029,7 +1051,8 @@ function applySimpleHtmlObject(that, onSuccess) {
         if (_image !== undefined) {
             const img = _image[0];
             return img !== undefined ? img.naturalWidth : undefined;
-        } else {
+        }
+        else {
             return undefined;
         }
     };
@@ -1037,7 +1060,8 @@ function applySimpleHtmlObject(that, onSuccess) {
         if (_image !== undefined) {
             const img = _image[0];
             return img !== undefined ? img.naturalHeight : undefined;
-        } else {
+        }
+        else {
             return undefined;
         }
     };
@@ -1072,7 +1096,8 @@ function applySimpleHtmlObject(that, onSuccess) {
             _text.empty();
             _text.text(typeof text === 'string' ? text : text.toString());
             that._hmi_updateAlignment();
-        } else {
+        }
+        else {
             return _text.text();
         }
     };
@@ -1090,7 +1115,8 @@ function applySimpleHtmlObject(that, onSuccess) {
             _html = true;
             _cont.empty();
             _cont.html(typeof html === 'string' ? html : html.toString());
-        } else {
+        }
+        else {
             return _cont.html();
         }
     };
@@ -1115,7 +1141,8 @@ function applySimpleHtmlObject(that, onSuccess) {
                     _text._hmi_marginLeft = left;
                     _text.css('margin-left', left.toString() + 'px');
                 }
-            } else {
+            }
+            else {
                 if (_text._hmi_marginLeft !== undefined) {
                     _text._hmi_marginLeft = undefined;
                     _text.css('margin-left', '');
@@ -1127,13 +1154,15 @@ function applySimpleHtmlObject(that, onSuccess) {
                     _text._hmi_marginTop = top;
                     _text.css('margin-top', top.toString() + 'px');
                 }
-            } else {
+            }
+            else {
                 if (_text._hmi_marginTop !== undefined) {
                     _text._hmi_marginTop = undefined;
                     _text.css('margin-top', '');
                 }
             }
-        } else if (_image !== undefined) {
+        }
+        else if (_image !== undefined) {
             const align = getAlignment(that.align, undefined, false, true);
             const containerWidth = Math.floor(_cont.innerWidth());
             const containerHeight = Math.floor(_cont.innerHeight());
@@ -1166,13 +1195,16 @@ function applySimpleHtmlObject(that, onSuccess) {
         _html = true;
         _cont.addClass(that.scrollable === true ? 'default-scroll-container' : 'overflow-hidden');
         _cont.html(that.html);
-    } else if (typeof that.text === 'string' || typeof that.text === 'number' || typeof that.text === 'boolean') { // TEXT CONTENT
+    }
+    else if (typeof that.text === 'string' || typeof that.text === 'number' || typeof that.text === 'boolean') { // TEXT CONTENT
         _cont.addClass(that.scrollable === true ? 'default-scroll-container' : 'overflow-hidden');
         that.hmi_text(that.text);
-    } else if (typeof that.image === 'string') { // IMAGE CONTENT
+    }
+    else if (typeof that.image === 'string') { // IMAGE CONTENT
         _cont.addClass('overflow-hidden');
         that.hmi_setImageSource(that.image);
-    } else { // NO CONTENT
+    }
+    else { // NO CONTENT
         _cont.addClass(that.scrollable === true ? 'default-scroll-container' : 'overflow-hidden');
     }
     that._hmi_destroys.push(() => {
@@ -1192,15 +1224,16 @@ function applySimpleHtmlObject(that, onSuccess) {
         that = undefined;
     });
     onSuccess();
-};
-
+}
+;
 function applyTaskObject(that, context, disableVisuEvents, enableEditorEvents, onSuccess, onError) {
     let tasks = [];
     let _cont = that._hmi_context.container;
     that.hmi_text = text => {
         if (text !== undefined && text !== null) {
             that.text = typeof text === 'string' ? text : text.toString();
-        } else {
+        }
+        else {
             return that.text;
         }
     };
@@ -1229,7 +1262,7 @@ function applyTaskObject(that, context, disableVisuEvents, enableEditorEvents, o
                     (function () {
                         const ho = hmiobj;
                         // #task: 1
-                        tasks.push((os, oe) => ho._hmi_destroy_dom(os, oe))
+                        tasks.push((os, oe) => ho._hmi_destroy_dom(os, oe));
                     }());
                 }
             }
@@ -1242,7 +1275,6 @@ function applyTaskObject(that, context, disableVisuEvents, enableEditorEvents, o
     });
     Executor.run(tasks, onSuccess, onError);
 }
-
 /**
  * This is our actual hmi object implementation
  */
@@ -1268,7 +1300,6 @@ function applyObject(that, disableVisuEvents, enableEditorEvents) {
     // //////////////////////////////////////////////////////////////////////////////
     // INTERNAL METHODS
     // //////////////////////////////////////////////////////////////////////////////
-
     // INITIALIZE THE DOCUMENT
     that._hmi_init_dom = (context, onSuccess, onError) => {
         const tasks = [];
@@ -1276,15 +1307,18 @@ function applyObject(that, disableVisuEvents, enableEditorEvents) {
         _cont = context.container;
         if (isTaskType(that)) {
             tasks.push((onSuc, onErr) => applyTaskObject(that, that._hmi_context, disableVisuEvents, enableEditorEvents, onSuc, onErr));
-        } else {
+        }
+        else {
             if (that.type === 'graph') {
                 // if a graphics object apply graphic functionality
                 if (s_applyGraphicObject) {
                     tasks.push((onSuc, onErr) => s_applyGraphicObject(that, that._hmi_context, disableVisuEvents, enableEditorEvents, onSuc, onErr));
-                } else {
+                }
+                else {
                     onError('Type "graph" is not supported');
                 }
-            } else {
+            }
+            else {
                 tasks.push((onSuc, onErr) => {
                     applyDefaultHtmlObject(that);
                     onSuc();
@@ -1293,7 +1327,8 @@ function applyObject(that, disableVisuEvents, enableEditorEvents) {
                 const applyType = typeof that.type === 'string' ? s_types[that.type] : false;
                 if (typeof applyType === 'function') { // if type is available
                     tasks.push((onSuc, onErr) => applyType(that, onSuc, onErr, enableEditorEvents));
-                } else { // no type
+                }
+                else { // no type
                     tasks.push((onSuc, onErr) => applySimpleHtmlObject(that, onSuc));
                 }
                 // EXTENSIONS
@@ -1367,14 +1402,17 @@ function applyObject(that, disableVisuEvents, enableEditorEvents) {
                                 // this is for our editor
                                 _cont.css('opacity', '0.3819660112501052');
                             }
-                        } else {
+                        }
+                        else {
                             that.hmi_setVisible(false);
                         }
-                    } else {
+                    }
+                    else {
                         that.hmi_setVisible(true);
                     }
                     onSuc();
-                } catch (error) {
+                }
+                catch (error) {
                     onErr(error);
                 }
             });
@@ -1400,12 +1438,13 @@ function applyObject(that, disableVisuEvents, enableEditorEvents) {
         if (Array.isArray(_watch)) {
             _onEventCallbacks = [];
             for (let i = 0; i < _watch.length; i++) {
-                (function () { // Closure
+                (function () {
                     const dataId = _watch[i];
                     let type;
                     try {
                         type = that.hmi.access.getType(dataId);
-                    } catch (error) {
+                    }
+                    catch (error) {
                         type = Core.DataType.Unknown;
                     }
                     try {
@@ -1413,32 +1452,39 @@ function applyObject(that, disableVisuEvents, enableEditorEvents) {
                             try {
                                 if (typeof that.handleDataUpdate === 'function') {
                                     that.handleDataUpdate(dataId, value, type);
-                                } else if (type === Core.DataType.HTML) {
+                                }
+                                else if (type === Core.DataType.HTML) {
                                     if (that.hmi_html) {
                                         that.hmi_html(value !== null ? value : 'null');
                                     }
-                                } else if (that.hmi_text) {
+                                }
+                                else if (that.hmi_text) {
                                     if (typeof that.formatValue === 'function') {
                                         const text = that.formatValue(dataId, value, type);
                                         that.hmi_text(text);
-                                    } else if (typeof value === 'number') {
+                                    }
+                                    else if (typeof value === 'number') {
                                         const text = typeof that.factor === 'number' ? that.factor * value : value;
                                         that.hmi_text(Utilities.formatNumber(text, typeof that.postDecimalPositions === 'number' ? that.postDecimalPositions : 0));
-                                    } else {
+                                    }
+                                    else {
                                         that.hmi_text(value !== null ? value : 'null');
                                     }
                                 }
-                            } catch (error) {
+                            }
+                            catch (error) {
                                 console.error(`Failed to handle value on refresh: ${error}`);
                             }
                         };
                         _onEventCallbacks.push(onRefresh);
                         try {
                             that.hmi.access.registerObserver(dataId, onRefresh);
-                        } catch (error) {
+                        }
+                        catch (error) {
                             console.error(`Failed subscribing to '${dataId}':\n${error.message}`);
                         }
-                    } catch (error) {
+                    }
+                    catch (error) {
                         console.error(`Failed to get type for '${dataId}':\n${error.message}`);
                     }
                 }());
@@ -1451,7 +1497,8 @@ function applyObject(that, disableVisuEvents, enableEditorEvents) {
             try {
                 that.hmi.lang.addLanguageObserver(onLanguageChanged);
                 that._hmi_onLanguageChanged = onLanguageChanged;
-            } catch (error) {
+            }
+            catch (error) {
                 console.error(`Failed subscribing on language:\n${error.message}`);
             }
         }
@@ -1461,7 +1508,8 @@ function applyObject(that, disableVisuEvents, enableEditorEvents) {
             if (typeof func === 'function') {
                 try {
                     func();
-                } catch (error) {
+                }
+                catch (error) {
                     console.error(`Failed adding listeners: ${func.toString()}`, error);
                 }
             }
@@ -1487,7 +1535,8 @@ function applyObject(that, disableVisuEvents, enableEditorEvents) {
         if (that._hmi_onLanguageChanged) {
             try {
                 that.hmi.lang.removeLanguageObserver(that._hmi_onLanguageChanged);
-            } catch (error) {
+            }
+            catch (error) {
                 console.error(`Failed subscribing from language:\n${error.message}`);
             }
             delete that._hmi_onLanguageChanged;
@@ -1496,7 +1545,8 @@ function applyObject(that, disableVisuEvents, enableEditorEvents) {
             for (let i = _watch.length - 1; i >= 0; i--) {
                 try {
                     that.hmi.access.unregisterObserver(_watch[i], _onEventCallbacks[i]);
-                } catch (error) {
+                }
+                catch (error) {
                     console.error(`Failed unsubscribing from '${_watch[i]}':\n${error.message}`);
                 }
             }
@@ -1517,7 +1567,8 @@ function applyObject(that, disableVisuEvents, enableEditorEvents) {
             if (typeof func === 'function') {
                 try {
                     func();
-                } catch (error) {
+                }
+                catch (error) {
                     console.error(`Failed destroying object with id '${that._hmi_objectId}': ${func.toString()}`, error);
                 }
             }
@@ -1568,7 +1619,6 @@ function applyObject(that, disableVisuEvents, enableEditorEvents) {
         that = undefined;
     };
 }
-
 function showDialog(hmi, config, onSuccess, onError) {
     // dialog opacity: search for "ui-widget-overlay" in CSS and modify:
     // opacity: .0;
@@ -1576,7 +1626,8 @@ function showDialog(hmi, config, onSuccess, onError) {
     let _buttons = undefined;
     function fnClose() {
         dialogElement.dialog('close');
-    };
+    }
+    ;
     const options = {
         // configure
         autoOpen: true,
@@ -1626,7 +1677,8 @@ function showDialog(hmi, config, onSuccess, onError) {
     if (config.noClose === true) {
         options.dialogClass = 'no-close';
         options.closeOnEscape = false;
-    } else {
+    }
+    else {
         options.closeOnEscape = true;
     }
     dialogElement.dialog(options);
@@ -1637,7 +1689,7 @@ function showDialog(hmi, config, onSuccess, onError) {
             if (Array.isArray(_buttons) && _buttons.length > 0) {
                 const buttons = [];
                 for (let i = 0; i < _buttons.length; i++) {
-                    (function () { // closure
+                    (function () {
                         const button = _buttons[i];
                         if (typeof button.click === 'function') {
                             createIdNodeSubTree(button, hmiobj, button.id, hmiobj);
@@ -1675,7 +1727,8 @@ function showDialog(hmi, config, onSuccess, onError) {
         if (typeof onSuccess === 'function') {
             try {
                 onSuccess();
-            } catch (error) {
+            }
+            catch (error) {
                 console.error(`Failed calling ready callback: ${onSuccess.toString()}`, error);
             }
         }
@@ -1683,16 +1736,17 @@ function showDialog(hmi, config, onSuccess, onError) {
     return fnClose;
 }
 ObjectLifecycleManager.showDialog = showDialog;
-
 function showDefaultConfirmationDialog(hmi, config, onSuccess, onError) {
     function perform(callback, close) {
         try {
             callback();
-        } catch (error) {
+        }
+        catch (error) {
             console.error(`Failed calling callback: ${callback.toString()}`, error);
         }
         close();
-    };
+    }
+    ;
     const buttons = [];
     if (typeof config.ok === 'function') {
         buttons.push({
@@ -1721,9 +1775,11 @@ function showDefaultConfirmationDialog(hmi, config, onSuccess, onError) {
     let object = undefined;
     if (config.object !== null && typeof config.object === 'object') {
         object = config.object;
-    } else if (config.text !== undefined) {
+    }
+    else if (config.text !== undefined) {
         object = { text: config.text };
-    } else if (config.html !== undefined) {
+    }
+    else if (config.html !== undefined) {
         object = { html: config.html };
     }
     const dialog = {
@@ -1740,14 +1796,13 @@ function showDefaultConfirmationDialog(hmi, config, onSuccess, onError) {
     return showDialog(hmi, dialog, onSuccess, onError);
 }
 ObjectLifecycleManager.showDefaultConfirmationDialog = showDefaultConfirmationDialog;
-
 /**
  * This method transfers the specified attribute from the source to the
  * target. If source and target attribute are both arrays we treat their
  * elements analogically. If source and target attribute are both objects we
  * transfer all primitive attributes and treat array and object attributes
  * analogically.
- * 
+ *
  * @param {Object}
  *          source The source object or array
  * @param {Object}
@@ -1761,18 +1816,23 @@ function transferAttribute(source, target, attribute) {
     if (Array.isArray(sourceAttribute)) {
         if (Array.isArray(targetAttribute)) {
             transferAttributes(sourceAttribute, targetAttribute, undefined);
-        } else {
+        }
+        else {
             target[attribute] = sourceAttribute;
         }
-    } else if (sourceAttribute !== null && typeof sourceAttribute === 'object') {
+    }
+    else if (sourceAttribute !== null && typeof sourceAttribute === 'object') {
         if (Array.isArray(targetAttribute)) {
             target[attribute] = sourceAttribute;
-        } else if (targetAttribute !== null && typeof targetAttribute === 'object') {
+        }
+        else if (targetAttribute !== null && typeof targetAttribute === 'object') {
             transferAttributes(sourceAttribute, targetAttribute, undefined);
-        } else {
+        }
+        else {
             target[attribute] = sourceAttribute;
         }
-    } else if (sourceAttribute !== undefined) {
+    }
+    else if (sourceAttribute !== undefined) {
         target[attribute] = sourceAttribute;
     }
 }
@@ -1780,7 +1840,7 @@ function transferAttribute(source, target, attribute) {
  * This method transfers all attributes from the source to the target. If
  * source and target are both arrays we iterate over all elements. If source
  * and target are both objects we iterate over all attributes.
- * 
+ *
  * @param {Object}
  *          source The source object or array
  * @param {Object}
@@ -1793,7 +1853,8 @@ function transferAttributes(source, target, ignoreAttribute) {
         for (let i = 0; i < source.length; i++) {
             transferAttribute(source, target, i);
         }
-    } else {
+    }
+    else {
         for (const attr in source) {
             if (source.hasOwnProperty(attr) && (ignoreAttribute === undefined || ignoreAttribute !== attr)) {
                 transferAttribute(source, target, attr);
@@ -1827,7 +1888,8 @@ function getIdNode(node, path) {
             if (parent !== undefined && parent !== null) {
                 idNode = parent;
                 continue;
-            } else {
+            }
+            else {
                 return undefined;
             }
         }
@@ -1853,7 +1915,8 @@ function getIdNode(node, path) {
             }
             if (found === true) {
                 continue;
-            } else {
+            }
+            else {
                 return undefined;
             }
         }
@@ -1880,16 +1943,19 @@ function createIdNodeSubTree(object, parentObject, id, nodeParent) {
     }
     if (typeof id === 'string') {
         object._hmi_nodeId = id;
-    } else if (typeof object.id === 'string') {
+    }
+    else if (typeof object.id === 'string') {
         object._hmi_nodeId = object.id;
-    } else {
+    }
+    else {
         delete object._hmi_nodeId;
     }
     if (nodeParent !== null && typeof nodeParent === 'object') {
         object._hmi_nodeParent = nodeParent;
         if (nodeParent._hmi_nodeChildren === undefined) {
             nodeParent._hmi_nodeChildren = [];
-        } else if (object._hmi_nodeId !== undefined) {
+        }
+        else if (object._hmi_nodeId !== undefined) {
             const clds = nodeParent._hmi_nodeChildren;
             for (let i = 0; i < clds.length; i++) {
                 if (clds[i]._hmi_nodeId === object._hmi_nodeId) {
@@ -1955,7 +2021,7 @@ function destroyIdNodeSubTree(object) {
  * object the data attributes will be copied to the object. If data is an
  * array this function will be called recursively on all elements. If data is
  * a function the function will be called repeatedly as long it returns true.
- * 
+ *
  * @param {Object}
  *          object The object
  * @param {Object}
@@ -1970,10 +2036,12 @@ function performDataOnHmiObject(contextObject, object, data, onSuccess, onError)
             // call the function as method of our context object (meaning inside our
             // function "this" refers to the context object)
             data.call(contextObject, object, onSuccess, onError);
-        } catch (error) {
+        }
+        catch (error) {
             onError('EXCEPTION! Calling function:\n' + data.toString() + '\nreason: ' + error);
         }
-    } else if (Array.isArray(data)) {
+    }
+    else if (Array.isArray(data)) {
         if (data.length > 0) {
             // we call ourself recursively for all array elements within a pipe to
             // handle asynchronous operations
@@ -1987,31 +2055,35 @@ function performDataOnHmiObject(contextObject, object, data, onSuccess, onError)
             }
             // add final action
             Executor.run(tasks, onSuccess, onError);
-        } else {
+        }
+        else {
             onSuccess();
         }
-    } else if (data !== null && typeof data === 'object') {
+    }
+    else if (data !== null && typeof data === 'object') {
         if (typeof data.id === 'string') {
             // we got to find a specific visualization object
             const hmiObject = typeof object.hmi_node === 'function' ? object.hmi_node(data.id) : undefined;
             if (hmiObject !== null && typeof hmiObject === 'object') {
                 transferAttributes(data, hmiObject, 'id');
             }
-        } else {
+        }
+        else {
             // just call on visualization object
             transferAttributes(data, object, 'id');
         }
         onSuccess();
-    } else {
+    }
+    else {
         onSuccess();
     }
-};
-
+}
+;
 /**
  * This function transfers data to object attributes and iterates over objects
  * children recursively . What comes first must be specified by the "from root
  * to leaf" flag.
- * 
+ *
  * @param {Object}
  *          object The object
  * @param {Object}
@@ -2038,10 +2110,12 @@ function performAttributeOnObjectSubTree(object, attributeName, fromRootToLeaf, 
                 }());
             }
             Executor.run(tasks, onSuccess, onError);
-        } else {
+        }
+        else {
             onSuccess();
         }
-    } else if (object !== null && typeof object === 'object') { // if we are an object or a holder
+    }
+    else if (object !== null && typeof object === 'object') { // if we are an object or a holder
         if (hmi) {
             object.hmi = hmi;
         }
@@ -2066,31 +2140,35 @@ function performAttributeOnObjectSubTree(object, attributeName, fromRootToLeaf, 
                 }
                 if (fromRootToLeaf === true) {
                     performDataOnHmiObject(object, hmiobj, data, () => performAttributeOnObjectSubTree(subObject, attributeName, fromRootToLeaf, success, onError, hmi), onError);
-                } else {
+                }
+                else {
                     performAttributeOnObjectSubTree(subObject, attributeName, fromRootToLeaf, () => performDataOnHmiObject(object, hmiobj, data, success, onError), onError, hmi);
                 }
-            } else {
+            }
+            else {
                 performAttributeOnObjectSubTree(subObject, attributeName, fromRootToLeaf, success, onError, hmi);
             }
-        } else { // we contain no object named object so we are the hmi object
+        }
+        else { // we contain no object named object so we are the hmi object
             const data = object[attributeName];
             if (data !== undefined && data !== null) {
                 if (fromRootToLeaf === true) {
                     performDataOnHmiObject(object, object, data, () => performAttributeOnObjectSubTree(object.children, attributeName, fromRootToLeaf, success, onError, hmi), onError);
-                } else {
+                }
+                else {
                     performAttributeOnObjectSubTree(object.children, attributeName, fromRootToLeaf, () => performDataOnHmiObject(object, object, data, success, onError), onError, hmi);
                 }
-            } else {
+            }
+            else {
                 performAttributeOnObjectSubTree(object.children, attributeName, fromRootToLeaf, success, onError, hmi);
             }
         }
-    } else {
+    }
+    else {
         onSuccess();
     }
 }
-
 const s_root_objects = [];
-
 const LifecycleLevel = Object.freeze({ Idle: 0, Initialized: 1, BaseFeaturesAdded: 2, DOMFeaturesAdded: 3, ListenersAdded: 4, Running: 5 });
 const LifecycleState = Object.freeze({
     Idle: 0, Build: 1, Apply: 2, Prepare: 3, Start: 4,
@@ -2114,11 +2192,10 @@ ObjectLifecycleManager.formatObjectLifecycleState = state => {
     return `Unknown state: ${state}`;
 };
 const DEFAULT_TIMEOUT = 5000;
-
 // /////////////////////////////////////////////////////////////////////////////////////////
 // INITIALIZATION AND DESTROY
 // /////////////////////////////////////////////////////////////////////////////////////////
-function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, initData, parentObject, nodeId, parentNode, disableVisuEvents, enableEditorEvents, onLifecycleStateChanged) { // TODO: Clean up this argument list
+function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, initData, parentObject, nodeId, parentNode, disableVisuEvents, enableEditorEvents, onLifecycleStateChanged) {
     if (object !== null && typeof object === 'object' && !Array.isArray(object)) {
         const onStateChanged = typeof onLifecycleStateChanged === 'function' ? onLifecycleStateChanged : state => { };
         const tasks = [];
@@ -2126,7 +2203,8 @@ function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, ini
         tasks.push((onSuc, onErr) => {
             if (object._hmi_kill) {
                 onErr('Object has been killed before initialization');
-            } else {
+            }
+            else {
                 initObject(object, initData);
                 object._hmi_lifecycleLevel = LifecycleLevel.Initialized;
                 onSuc();
@@ -2135,13 +2213,14 @@ function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, ini
         tasks.push((onSuc, onErr) => {
             if (object._hmi_kill) {
                 onErr(`Object has been killed before ${LifecycleUserMethod.Build}()`);
-            } else {
+            }
+            else {
                 onStateChanged(LifecycleState.Build);
                 const timeout = object[LifecycleUserMethodTimeout.Build];
                 if (typeof timeout === 'number' && timeout > 0) {
-                    Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Build, true, os, oe, hmi),
-                        onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Build}() (${timeout} ms)`), timeout);
-                } else {
+                    Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Build, true, os, oe, hmi), onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Build}() (${timeout} ms)`), timeout);
+                }
+                else {
                     performAttributeOnObjectSubTree(object, LifecycleUserMethod.Build, true, onSuc, onErr, hmi);
                 }
             }
@@ -2149,7 +2228,8 @@ function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, ini
         tasks.push((onSuc, onErr) => {
             if (object._hmi_kill) {
                 onErr('Object has been killed before adding core features');
-            } else {
+            }
+            else {
                 attachHmiObject(object);
                 hmiobj = object._hmi_object;
                 createIdNodeSubTree(hmiobj, parentObject, nodeId, parentNode);
@@ -2161,13 +2241,14 @@ function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, ini
         tasks.push((onSuc, onErr) => {
             if (object._hmi_kill) {
                 onErr(`Object has been killed before ${LifecycleUserMethod.Apply}()`);
-            } else {
+            }
+            else {
                 onStateChanged(LifecycleState.Apply);
                 const timeout = object[LifecycleUserMethodTimeout.Apply];
                 if (typeof timeout === 'number' && timeout > 0) {
-                    Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Apply, false, os, oe),
-                        onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Apply}() (${timeout} ms)`), timeout);
-                } else {
+                    Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Apply, false, os, oe), onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Apply}() (${timeout} ms)`), timeout);
+                }
+                else {
                     performAttributeOnObjectSubTree(object, LifecycleUserMethod.Apply, false, onSuc, onErr);
                 }
             }
@@ -2175,9 +2256,11 @@ function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, ini
         tasks.push((onSuc, onErr) => {
             if (object._hmi_kill) {
                 onErr('Object has been killed before adding dom features');
-            } else if (typeof hmiobj._hmi_init_dom !== 'function') {
+            }
+            else if (typeof hmiobj._hmi_init_dom !== 'function') {
                 onErr(`Missing '_hmi_init_dom()'`);
-            } else {
+            }
+            else {
                 // #create/destroy_hmi_object_branch: 2
                 hmiobj._hmi_init_dom({ container: jQueryElement }, () => {
                     object._hmi_lifecycleLevel = LifecycleLevel.DOMFeaturesAdded;
@@ -2188,13 +2271,14 @@ function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, ini
         tasks.push((onSuc, onErr) => {
             if (object._hmi_kill) {
                 onErr(`Object has been killed before ${LifecycleUserMethod.Prepare}()`);
-            } else {
+            }
+            else {
                 onStateChanged(LifecycleState.Prepare);
                 const timeout = object[LifecycleUserMethodTimeout.Prepare];
                 if (typeof timeout === 'number' && timeout > 0) {
-                    Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Prepare, true, os, oe),
-                        onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Prepare}() (${timeout} ms)`), timeout);
-                } else {
+                    Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Prepare, true, os, oe), onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Prepare}() (${timeout} ms)`), timeout);
+                }
+                else {
                     performAttributeOnObjectSubTree(object, LifecycleUserMethod.Prepare, true, onSuc, onErr);
                 }
             }
@@ -2202,7 +2286,8 @@ function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, ini
         tasks.push((onSuc, onErr) => {
             if (object._hmi_kill) {
                 onErr('Object has been killed before adding listeners');
-            } else {
+            }
+            else {
                 // TODO: handle external sources here
                 performAttributeOnObjectSubTree(object, '_hmi_addListeners', true, () => {
                     object._hmi_lifecycleLevel = LifecycleLevel.ListenersAdded;
@@ -2213,13 +2298,14 @@ function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, ini
         tasks.push((onSuc, onErr) => {
             if (object._hmi_kill) {
                 onErr(`Object has been killed before ${LifecycleUserMethod.Start}()`);
-            } else {
+            }
+            else {
                 onStateChanged(LifecycleState.Start);
                 const timeout = object[LifecycleUserMethodTimeout.Start];
                 if (typeof timeout === 'number' && timeout > 0) {
-                    Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Start, false, os, oe),
-                        onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Start}() (${timeout} ms)`), timeout);
-                } else {
+                    Executor.run((os, oe) => performAttributeOnObjectSubTree(object, LifecycleUserMethod.Start, false, os, oe), onSuc, onErr, () => onErr(`timeout expired during ${LifecycleUserMethod.Start}() (${timeout} ms)`), timeout);
+                }
+                else {
                     performAttributeOnObjectSubTree(object, LifecycleUserMethod.Start, false, onSuc, onErr);
                 }
             }
@@ -2227,7 +2313,8 @@ function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, ini
         tasks.push((onSuc, onErr) => {
             if (object._hmi_kill) {
                 onErr('Object has been killed before running');
-            } else {
+            }
+            else {
                 // set alive
                 processObjectSubTree(hmiobj, true, undefined, processObject => processObject._hmi_alive = true);
                 // handle root objects
@@ -2253,18 +2340,20 @@ function createObjectSubTree(object, jQueryElement, onSuccess, onError, hmi, ini
             onStateChanged(LifecycleState.Running);
             onSuccess();
         }, onError, () => onError(`timeout expired during 'create' procedure (${timeout} ms)`), timeout);
-    } else {
+    }
+    else {
         onError('Invalid object');
     }
 }
 ObjectLifecycleManager.createObject = createObjectSubTree;
-
 function killObjectSubTree(object, onSuccess, onError, onLifecycleStateChanged) {
     if (object === undefined || object === null || typeof object !== 'object' && Array.isArray(object)) {
         onError('Invalid object');
-    } else if (object._hmi_kill) {
+    }
+    else if (object._hmi_kill) {
         onError('Object killing procedure has already been triggered');
-    } else {
+    }
+    else {
         const hmiobj = object._hmi_object;
         const onStateChanged = typeof onLifecycleStateChanged === 'function' ? onLifecycleStateChanged : state => { };
         object._hmi_kill = true;
@@ -2302,7 +2391,8 @@ function killObjectSubTree(object, onSuccess, onError, onLifecycleStateChanged) 
                         storeFirstError(`timeout expired during ${LifecycleUserMethod.Stop}() (${timeout} ms)`);
                         onSuc();
                     }, timeout);
-                } else {
+                }
+                else {
                     performAttributeOnObjectSubTree(object, LifecycleUserMethod.Stop, true, onSuc, error => {
                         storeFirstError(error);
                         onSuc();
@@ -2326,7 +2416,8 @@ function killObjectSubTree(object, onSuccess, onError, onLifecycleStateChanged) 
                         storeFirstError(`timeout expired during ${LifecycleUserMethod.Destroy}() (${timeout} ms)`);
                         onSuc();
                     }, timeout);
-                } else {
+                }
+                else {
                     performAttributeOnObjectSubTree(object, LifecycleUserMethod.Destroy, false, onSuc, error => {
                         storeFirstError(error);
                         onSuc();
@@ -2353,7 +2444,8 @@ function killObjectSubTree(object, onSuccess, onError, onLifecycleStateChanged) 
                         storeFirstError(`timeout expired during ${LifecycleUserMethod.Remove}() (${timeout} ms)`);
                         onSuc();
                     }, timeout);
-                } else {
+                }
+                else {
                     performAttributeOnObjectSubTree(object, LifecycleUserMethod.Remove, true, onSuc, error => {
                         storeFirstError(error);
                         onSuc();
@@ -2383,7 +2475,8 @@ function killObjectSubTree(object, onSuccess, onError, onLifecycleStateChanged) 
                         storeFirstError(`timeout expired during ${LifecycleUserMethod.Cleanup}() (${timeout} ms)`);
                         onSuc();
                     }, timeout);
-                } else {
+                }
+                else {
                     performAttributeOnObjectSubTree(object, LifecycleUserMethod.Cleanup, false, onSuc, error => {
                         storeFirstError(error);
                         onSuc();
@@ -2404,14 +2497,14 @@ function killObjectSubTree(object, onSuccess, onError, onLifecycleStateChanged) 
         Executor.run(tasks, () => {
             if (firstError) {
                 onError(firstError);
-            } else {
+            }
+            else {
                 onSuccess();
             }
         }, onError, () => onError(`timeout expired during 'kill' procedure (${timeout} ms)`), timeout);
     }
 }
 ObjectLifecycleManager.killObject = killObjectSubTree;
-
 function refreshObjectRecursive(object, date) {
     // first we call all found user refresh functions
     processObjectSubTree(object, true, undefined, processObject => {
@@ -2419,7 +2512,8 @@ function refreshObjectRecursive(object, date) {
             if (typeof processObject.refresh === 'function') {
                 try {
                     processObject.refresh(processObject, date);
-                } catch (error) {
+                }
+                catch (error) {
                     console.error(`Failed calling refresh: '${error}' '${processObject.refresh.toString()}'`);
                 }
             }
@@ -2435,7 +2529,8 @@ function refreshObjectRecursive(object, date) {
                     if (typeof func === 'function') {
                         try {
                             func(date);
-                        } catch (error) {
+                        }
+                        catch (error) {
                             console.error(`Failed calling _hmi_refresh: ${func.toString()}`, error);
                         }
                     }
@@ -2445,58 +2540,59 @@ function refreshObjectRecursive(object, date) {
     });
 }
 ObjectLifecycleManager.refreshObject = refreshObjectRecursive;
-
 function refreshRootObjects(date) {
     for (const object of s_root_objects) {
         refreshObjectRecursive(object, date);
     }
 }
 ObjectLifecycleManager.refreshRootObjects = refreshRootObjects;
-
 function setApplyGraphicObjectFunction(apply) {
     if (typeof apply !== 'function') {
         throw new Error(`Invalid type '${type}' apply function`);
-    } else {
+    }
+    else {
         s_applyGraphicObject = apply;
     }
 }
 ObjectLifecycleManager.setApplyGraphicObjectFunction = setApplyGraphicObjectFunction;
-
 /**
  * Add a new type to the visualization object handler.
- * 
+ *
  * The type function may use the following standard object arrays to add
  * functions that will be called by the framework.
- * 
+ *
  * Add/remove listeners: Push function() into the arrays
  * this._hmi_listenerAdds and this._hmi_listenerRemoves to add and remove
  * listeners
- * 
+ *
  * Resize: Push function(width, height) to the array this._hmi_resizes to
  * handle resize events. "width" and "height" represent the dimension of
  * the objects HTML container.
- * 
+ *
  * Refresh: Push function(time, repaint) to the array this._hmi_refreshs
  * to handle refresh events. "time" will be the UTC time value in
  * milliseconds and the "repaint" flag will be true if the refresh is
  * called from the requestAnimationFrame mechanism on repaint events if
  * the window is visible or false if called periodically if the window is
  * invisible.
- * 
+ *
  * Destroy: Push function() to the array this._hmi_destroys to handle
  * destroying your object.
- * 
+ *
  * @param {Object}
  *          type Function as closure for type specific features.
  */
 function addApplyFunctionForType(type, apply) {
     if (typeof type !== 'string' || type.length === 0) {
         throw new Error('Invalid type');
-    } else if (s_types[type] !== undefined) {
+    }
+    else if (s_types[type] !== undefined) {
         throw new Error(`Type '${type}' alreday exists`);
-    } else if (typeof apply !== 'function') {
+    }
+    else if (typeof apply !== 'function') {
         throw new Error(`Invalid type '${type}' apply function`);
-    } else {
+    }
+    else {
         s_types[type] = apply;
     }
 }
@@ -2507,8 +2603,6 @@ function _add_extension(extension) {
     }
 }
 ObjectLifecycleManager._add_extension = _add_extension;
-
 Object.seal(ObjectLifecycleManager);
 // export
-
 export default ObjectLifecycleManager;

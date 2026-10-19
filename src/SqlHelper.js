@@ -1,6 +1,5 @@
 import Executor from './Executor.js';
 import Common from './Common.js';
-
 const SqlHelper = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 const fs = isNodeJS ? await import('node:fs') : undefined;
@@ -9,7 +8,6 @@ function escape(value) {
     return mysql ? mysql.escape(value) : globalThis.SqlString.escape(value);
 }
 SqlHelper.escape = escape;
-
 class Adapter {
     #logger;
     #connection;
@@ -27,7 +25,6 @@ class Adapter {
         this.#wheres = [];
         this.#values = [];
     }
-
     close() {
         if (!this.#connection) {
             this.#logger.error('SQL adapter has allready been closed');
@@ -36,26 +33,21 @@ class Adapter {
         this.#connection.release();
         this.#connection = null;
     }
-
     #clear() {
         this.#values.splice(0, this.#values.length);
         this.#columns.splice(0, this.#columns.length);
         this.#joins.splice(0, this.#joins.length);
         this.#wheres.splice(0, this.#wheres.length);
     }
-
     addColumn(expression) {
         this.#columns.push(expression);
     }
-
     addJoin(expression) {
         this.#joins.push(expression);
     }
-
     addWhere(expression, and) {
         this.#wheres.push({ expr: expression, opr: and !== false ? ' AND ' : ' OR ' });
     }
-
     addValue(column, data) {
         let values = this.#values, value;
         for (let i = 0, l = values.length; i < l; i++) {
@@ -63,7 +55,8 @@ class Adapter {
             if (value.column === column) {
                 if (Array.isArray(value.data)) {
                     value.data.push(data);
-                } else {
+                }
+                else {
                     value.data = [value.data, data];
                 }
                 return;
@@ -71,7 +64,6 @@ class Adapter {
         }
         this.#values.push({ column, data, apostrophes: false });
     }
-
     #query(queryString, onSuccess, onError) {
         if (this.#verbose) {
             this.#logger.trace(queryString);
@@ -81,26 +73,23 @@ class Adapter {
                 if (typeof onError === 'function') {
                     onError(error);
                 }
-            } else {
+            }
+            else {
                 if (typeof onSuccess === 'function') {
                     onSuccess(results, fields);
                 }
             }
         });
     }
-
     startTransaction(onSuccess, onError) {
         this.#query('START TRANSACTION', onSuccess, onError);
     }
-
     rollbackTransaction(onSuccess, onError) {
         this.#query('ROLLBACK', onSuccess, onError);
     }
-
     commitTransaction(onSuccess, onError) {
         this.#query('COMMIT', onSuccess, onError);
     }
-
     #formatSelect(table, group, order, limit) {
         let query = 'SELECT', l, columns = this.#columns, joins = this.#joins, wheres = this.#wheres, expr;
         // COLUMNS
@@ -150,12 +139,10 @@ class Adapter {
         this.#clear();
         return query;
     }
-
     performSelect(table, group, order, limit, onSuccess, onError) {
         const query = this.#formatSelect(table, group, order, limit);
         this.#query(query, onSuccess, onError);
     }
-
     #formatInsert(table) {
         let insert = 'INSERT INTO ';
         insert += table;
@@ -185,7 +172,8 @@ class Adapter {
                 data = value.data;
                 if (data === null) {
                     insert += 'NULL';
-                } else {
+                }
+                else {
                     if (value.apostrophes) {
                         insert += "'";
                     }
@@ -198,7 +186,8 @@ class Adapter {
             insert += ')';
             this.#clear();
             return insert;
-        } else {
+        }
+        else {
             const inserts = [];
             for (let d = 0; d < max; d++) {
                 let query = '(';
@@ -211,7 +200,8 @@ class Adapter {
                     data = value.data[d];
                     if (data === null) {
                         query += 'NULL';
-                    } else {
+                    }
+                    else {
                         if (value.apostrophes) {
                             query += "'";
                         }
@@ -233,10 +223,12 @@ class Adapter {
                     if (query.length + 1 + nxt.length > this._maxAllowedPacket) {
                         queries.push(query);
                         query = insert;
-                    } else {
+                    }
+                    else {
                         query += ',';
                     }
-                } else {
+                }
+                else {
                     queries.push(query);
                 }
                 idx++;
@@ -244,12 +236,12 @@ class Adapter {
             return queries;
         }
     }
-
     performInsert(table, onSuccess, onError) {
         const query = this.#formatInsert(table);
         if (typeof query === 'string') {
             this.#query(query, onSuccess, onError);
-        } else if (Array.isArray(query)) {
+        }
+        else if (Array.isArray(query)) {
             const that = this, tasks = [];
             tasks.parallel = false;
             for (let i = 0, l = query.length; i < l; i++) {
@@ -262,7 +254,6 @@ class Adapter {
             Executor.run(tasks, onSuccess, onError);
         }
     }
-
     #formatUpdate(table, order, limit) {
         let query = `UPDATE ${table} SET `;
         let values = this.#values, value, data, i, l;
@@ -277,7 +268,8 @@ class Adapter {
             data = Array.isArray(value.data) ? value.data[0] : value.data;
             if (data === null) {
                 query += 'NULL';
-            } else {
+            }
+            else {
                 if (value.apostrophes) {
                     query += "'";
                 }
@@ -313,12 +305,10 @@ class Adapter {
         this.#clear();
         return query;
     }
-
     performUpdate(table, order, limit, onSuccess, onError) {
         const query = this.#formatUpdate(table, order, limit);
         this.#query(query, onSuccess, onError);
     }
-
     #formatDelete(table, order, limit) {
         let query = 'DELETE FROM ';
         query += table;
@@ -348,12 +338,10 @@ class Adapter {
         this.#clear();
         return query;
     }
-
     performDelete(table, order, limit, onSuccess, onError) {
         const query = this.#formatDelete(table, order, limit);
         this.#query(query, onSuccess, onError);
     }
-
     /**
      * This returns an array containing objects like this: <code>
      * {
@@ -389,7 +377,6 @@ class Adapter {
         throw new Error('ERROR! Not implemented: getTrendData()');
     }
 }
-
 function getAdapterFactory(logger, config, verbose) {
     Common.validateAsLogger(logger, true);
     const db_access = JSON.parse(fs.readFileSync(typeof config === 'string' ? config : new URL('../cfg/db_access.json', import.meta.url), 'utf8'));
@@ -398,14 +385,13 @@ function getAdapterFactory(logger, config, verbose) {
         helper.getConnection((onErr, connection) => {
             if (onErr) {
                 onError(onErr);
-            } else {
+            }
+            else {
                 onSuccess(new Adapter(logger, connection, verbose));
             }
         });
     };
 }
 SqlHelper.getAdapterFactory = getAdapterFactory;
-
 Object.freeze(SqlHelper);
-
 export default SqlHelper;

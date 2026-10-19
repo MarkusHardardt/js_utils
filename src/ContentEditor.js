@@ -5,9 +5,7 @@ import Utilities from './Utilities.js';
 import Mathematics from './Mathematics.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import ContentManager from './ContentManager.js';
-
 const ContentEditor = {};
-
 const DEFAULT_ROW_HEIGHT = '24px';
 const DEFAULT_COLUMN_WIDTH = '64px';
 const SMALL_COLUMN_WIDTH = '42px';
@@ -20,11 +18,9 @@ const CHECKBOX_OFF = '☐';
 function checkboxChar(on) {
     return on === true ? CHECKBOX_ON : CHECKBOX_OFF;
 }
-
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 // DIVERSE
 // ///////////////////////////////////////////////////////////////////////////////////////////////
-
 function getCheckbox() {
     let checked = false;
     let onChanged = null;
@@ -67,20 +63,18 @@ function getCheckbox() {
         setOnChanged: callback => onChanged = typeof callback === 'function' ? callback : null
     };
 }
-
 function saveScrolling(scrollings, id, textarea) {
     const scrolling = textarea.hmi_getScrolling(scrollings[id]);
     if (scrolling) {
         scrollings[id] = scrolling;
-    } else {
+    }
+    else {
         delete scrollings[id];
     }
 }
-
 function initScrolling(scrollings, id, textarea) {
     textarea.hmi_setScrolling(scrollings[id]);
 }
-
 function updateScrollings(scrollingsArray, params) {
     switch (params.action) {
         case ContentManager.COPY:
@@ -126,7 +120,6 @@ function updateScrollings(scrollingsArray, params) {
             break;
     }
 }
-
 function updateContainer(container, previous, next, data, language, onSuccess, onError) {
     if (previous) {
         if (next) {
@@ -136,19 +129,22 @@ function updateContainer(container, previous, next, data, language, onSuccess, o
                         container.hmi_setContent(next, () => next.onKeyChanged(data, language, onSuccess, onError), onError);
                     }, onError);
                 }, onError);
-            } else {
+            }
+            else {
                 next.onKeyChanged(data, language, onSuccess, onError);
             }
-        } else {
+        }
+        else {
             previous.onKeyChanged(false, language, () => container.hmi_removeContent(onSuccess, onError), onError);
         }
-    } else if (next) {
+    }
+    else if (next) {
         container.hmi_setContent(next, () => next.onKeyChanged(data, language, onSuccess, onError), onError);
-    } else {
+    }
+    else {
         onSuccess();
     }
 }
-
 function performModification(hmi, startEditChecksum, startEditId, id, language, value, onSuccess, onError) {
     let cms = hmi.cms, tasks = [], checksum = false, equal_id = startEditId === id;
     if (equal_id) {
@@ -175,13 +171,15 @@ function performModification(hmi, startEditChecksum, startEditId, id, language, 
                 ok: () => onSuccess(false),
                 closed: () => onSuccess(false)
             });
-        } else {
+        }
+        else {
             cms.getModificationParams(id, language, value, params => {
                 if (typeof params.error === 'string') {
                     if (typeof onError === 'function') {
                         onError(params.error);
                     }
-                } else if (params.action === ContentManager.DELETE) {
+                }
+                else if (params.action === ContentManager.DELETE) {
                     if (Array.isArray(params.externalUsers) && params.externalUsers.length > 0) {
                         let html = '<b>';
                         html += `Object '${id}' is referenced!`;
@@ -206,10 +204,12 @@ function performModification(hmi, startEditChecksum, startEditId, id, language, 
                             cancel: () => onSuccess(false),
                             closed: () => onSuccess(false)
                         });
-                    } else {
+                    }
+                    else {
                         cms.setObject(id, language, value, params.checksum, () => onSuccess(params), onError);
                     }
-                } else if (params.action === ContentManager.NONE) {
+                }
+                else if (params.action === ContentManager.NONE) {
                     hmi.showDefaultConfirmationDialog({
                         width: $(window).width() * 0.8,
                         height: $(window).height() * 0.8,
@@ -218,7 +218,8 @@ function performModification(hmi, startEditChecksum, startEditId, id, language, 
                         ok: () => onSuccess(params),
                         closed: () => onSuccess(params)
                     });
-                } else if (!equal_id) {
+                }
+                else if (!equal_id) {
                     // if the id has changed
                     cms.exists(id, exists => {
                         if (exists !== false) {
@@ -237,11 +238,13 @@ function performModification(hmi, startEditChecksum, startEditId, id, language, 
                                 cancel: () => onSuccess(false),
                                 closed: () => onSuccess(false)
                             });
-                        } else {
+                        }
+                        else {
                             cms.setObject(id, language, value, params.checksum, () => onSuccess(params), onError);
                         }
-                    }, onError)
-                } else {
+                    }, onError);
+                }
+                else {
                     // selected node has changed
                     cms.setObject(id, language, value, params.checksum, () => onSuccess(params), onError);
                 }
@@ -249,7 +252,6 @@ function performModification(hmi, startEditChecksum, startEditId, id, language, 
         }
     }, onError);
 }
-
 function performRefactoring(hmi, source, target, action, onSuccess, onEerror) {
     const cms = hmi.cms;
     cms.getRefactoringParams(source, target, action, params => {
@@ -262,7 +264,8 @@ function performRefactoring(hmi, source, target, action, onSuccess, onEerror) {
                 ok: () => onSuccess(false),
                 closed: () => onSuccess(false)
             });
-        } else if (params.action === ContentManager.DELETE) {
+        }
+        else if (params.action === ContentManager.DELETE) {
             let txt = '';
             if (params.externalUsers !== undefined && Array.isArray(params.externalUsers) && params.externalUsers.length > 0) {
                 txt += `<b>Object '${source}' is referenced!</b><br><code>`;
@@ -275,7 +278,8 @@ function performRefactoring(hmi, source, target, action, onSuccess, onEerror) {
                     txt += params.externalUsers[i];
                 }
                 txt += '</code>';
-            } else {
+            }
+            else {
                 txt += `<b>Delete::</b><br><code>${source}</code>`; // TODO: What is this???
             }
             txt += '<br><br><b>';
@@ -290,7 +294,8 @@ function performRefactoring(hmi, source, target, action, onSuccess, onEerror) {
                 cancel: () => onSuccess(false),
                 closed: () => onSuccess(false)
             });
-        } else if (params.action === ContentManager.MOVE || params.action === ContentManager.COPY) {
+        }
+        else if (params.action === ContentManager.MOVE || params.action === ContentManager.COPY) {
             if (params.existingTargets !== undefined && Array.isArray(params.existingTargets) && params.existingTargets.length > 0) {
                 let txt = `<b>Object '${source}' already exists!</b><br><code>`;
                 for (let i = 0; i < params.existingTargets.length; i++) {
@@ -311,29 +316,29 @@ function performRefactoring(hmi, source, target, action, onSuccess, onEerror) {
                     cancel: () => onSuccess(false),
                     closed: () => onSuccess(false)
                 });
-            } else {
+            }
+            else {
                 cms.performRefactoring(source, target, action, params.checksum, () => onSuccess(params), onEerror);
             }
-        } else {
+        }
+        else {
             onSuccess(false);
         }
     }, onEerror);
 }
-
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 // LANGUAGES
 // ///////////////////////////////////////////////////////////////////////////////////////////////
-
 function getLanguageSelector(hmi, adapter) {
     const languageSwitching = hmi.lang;
     const langs = languageSwitching.getLanguages(), columns = [1];
     let language = languageSwitching.getLanguage();
     const children = [{
-        x: 0,
-        y: 0,
-        align: 'right',
-        text: 'languages:'
-    }];
+            x: 0,
+            y: 0,
+            align: 'right',
+            text: 'languages:'
+        }];
     function selectLanguage(btn) {
         for (let i = 0, l = children.length; i < l; i++) {
             const button = children[i];
@@ -346,7 +351,8 @@ function getLanguageSelector(hmi, adapter) {
         }, error => {
             hmi.env.loggererror(`failed loading language '${language}'`, error);
         });
-    };
+    }
+    ;
     for (let i = 0; i < langs.length; i++) {
         (function () {
             const lang = langs[i];
@@ -371,13 +377,11 @@ function getLanguageSelector(hmi, adapter) {
         getLanguage: () => language
     };
 }
-
 function compareErrors(error1, error2) {
     let time1 = error1.date.getTime();
     let time2 = error2.date.getTime();
     return time2 !== time1 ? time2 - time1 : Sorting.compareTextsAndNumbers(error1.text, error2.text, false, false);
 }
-
 function getLogHandler(hmi) {
     let last_read_offset = 0;
     const errors = [], push = entry => {
@@ -414,14 +418,14 @@ function getLogHandler(hmi) {
                 searching: true,
                 paging: false,
                 columns: [{
-                    width: 15,
-                    text: 'timestamp',
-                    textsAndNumbers: true
-                }, {
-                    width: 85,
-                    text: 'error',
-                    textsAndNumbers: true
-                }],
+                        width: 15,
+                        text: 'timestamp',
+                        textsAndNumbers: true
+                    }, {
+                        width: 85,
+                        text: 'error',
+                        textsAndNumbers: true
+                    }],
                 getRowCount: () => errors.length,
                 getCellHtml: (row, column) => {
                     const error = errors[row];
@@ -539,11 +543,9 @@ function getLogHandler(hmi) {
     button.info = info;
     return button;
 }
-
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 // KEY TEXTFIELD
 // ///////////////////////////////////////////////////////////////////////////////////////////////
-
 function getKeyTextfield(hmi, adapter) {
     const cms = hmi.cms;
     const keyTextField = {
@@ -583,11 +585,9 @@ function getKeyTextfield(hmi, adapter) {
     };
     return keyTextField;
 }
-
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 // BROWSER TREE
 // ///////////////////////////////////////////////////////////////////////////////////////////////
-
 function getBrowserTree(hmi, adapter) {
     const cms = hmi.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
     let sel_data, selected = false;
@@ -618,7 +618,6 @@ function getBrowserTree(hmi, adapter) {
     };
     return tree;
 }
-
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 // SEARCH CONTAINER
 // ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -694,13 +693,13 @@ function getSearchContainer(hmi, adapter) {
         paging: false,
         highlightSelectedRow: true,
         columns: [{
-            width: 150,
-            text: 'identificator',
-            textsAndNumbers: true
-        }, {
-            width: 10,
-            text: 'type'
-        }],
+                width: 150,
+                text: 'identificator',
+                textsAndNumbers: true
+            }, {
+                width: 10,
+                text: 'type'
+            }],
         getRowCount: () => search_results.length,
         getCellHtml: (row, column) => {
             let result = search_results[row];
@@ -725,25 +724,23 @@ function getSearchContainer(hmi, adapter) {
         columns: [SMALL_COLUMN_WIDTH, 1, SMALL_COLUMN_WIDTH, 1, DEFAULT_COLUMN_WIDTH],
         rows: [DEFAULT_ROW_HEIGHT, 1],
         children: [{
-            x: 0,
-            y: 0,
-            text: 'key:',
-            align: 'right'
-        }, search_key_textfield, {
-            x: 2,
-            y: 0,
-            text: 'value:',
-            align: 'right'
-        }, search_value_textfield, button_search, search_table],
+                x: 0,
+                y: 0,
+                text: 'key:',
+                align: 'right'
+            }, search_key_textfield, {
+                x: 2,
+                y: 0,
+                text: 'value:',
+                align: 'right'
+            }, search_value_textfield, button_search, search_table],
         getActiveSearchValue: () => container.hmi_isVisible() ? search_value_textfield.hmi_value().trim() : false
     };
     return container;
 }
-
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 // MAIN NAIGATION BROWSER
 // ///////////////////////////////////////////////////////////////////////////////////////////////
-
 function getNavigator(hmi, adapter, keyTextfield, browserTree, searchContainer) {
     function update_mode(button) {
         button_select_browse.selected = button === button_select_browse;
@@ -752,10 +749,12 @@ function getNavigator(hmi, adapter, keyTextfield, browserTree, searchContainer) 
         button_select_search.hmi_setSelected(button_select_search.selected);
         if (button_select_browse.selected) {
             adapter.showBrowserTree();
-        } else {
+        }
+        else {
             adapter.showSearchTable();
         }
-    };
+    }
+    ;
     const button_select_browse = {
         x: 1,
         y: 0,
@@ -783,26 +782,24 @@ function getNavigator(hmi, adapter, keyTextfield, browserTree, searchContainer) 
         columns: 1,
         rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
         children: [keyTextfield, {
-            type: 'grid',
-            x: 0,
-            y: 1,
-            columns: [1, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH],
-            rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
-            children: [{
+                type: 'grid',
                 x: 0,
-                y: 0,
-                align: 'right',
-                text: `${hmi.applicationName} content manager`
-            }, button_select_browse, button_select_search, button_reload]
-        }, browserTree, searchContainer],
+                y: 1,
+                columns: [1, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH],
+                rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
+                children: [{
+                        x: 0,
+                        y: 0,
+                        align: 'right',
+                        text: `${hmi.applicationName} content manager`
+                    }, button_select_browse, button_select_search, button_reload]
+            }, browserTree, searchContainer],
         showBrowser: () => update_mode(button_select_browse)
     };
 }
-
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 // CROSS REFERENCES BROWSER
 // ///////////////////////////////////////////////////////////////////////////////////////////////
-
 function getReferences(hmi, adapter) {
     const cms = hmi.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
     let sel_data, selected = false;
@@ -848,7 +845,8 @@ function getReferences(hmi, adapter) {
             text.hmi_value(id);
             tree.hmi_setRootPath(id, onSuccess, onError);
         });
-    };
+    }
+    ;
     const buttonRefTo = {
         x: 1,
         y: 0,
@@ -882,11 +880,11 @@ function getReferences(hmi, adapter) {
         columns: [1, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH],
         rows: [DEFAULT_ROW_HEIGHT, DEFAULT_ROW_HEIGHT, 1],
         children: [text, {
-            x: 0,
-            y: 0,
-            align: 'right',
-            text: 'cross references:'
-        }, buttonRefTo, buttonRefFrom, buttonEdit, tree],
+                x: 0,
+                y: 0,
+                align: 'right',
+                text: 'cross references:'
+            }, buttonRefTo, buttonRefFrom, buttonEdit, tree],
         setRootIdData: data => {
             sel_data = data;
             updateReferences();
@@ -895,11 +893,9 @@ function getReferences(hmi, adapter) {
         getIdData: () => cms.analyzeId(text.hmi_value())
     };
 }
-
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 // LABELS - PREVIEW & EDITOR
 // ///////////////////////////////////////////////////////////////////////////////////////////////
-
 function getLabelView(hmi, adapter, editable) {
     const cms = hmi.cms, langs = cms.getLanguages(), children = [], rows = [], values = {};
     function onKeyChanged(data, language, onSuccess, onError) {
@@ -910,7 +906,8 @@ function getLabelView(hmi, adapter, editable) {
                         const lang = langs[i], lab = result[lang];
                         values[lang].hmi_value(lab || '');
                     }
-                } else {
+                }
+                else {
                     for (let i = 0, l = langs.length; i < l; i++) {
                         values[langs[i]].hmi_value('');
                     }
@@ -922,13 +919,15 @@ function getLabelView(hmi, adapter, editable) {
                 }
                 onError(error);
             });
-        } else {
+        }
+        else {
             for (let i = 0, l = langs.length; i < l; i++) {
                 values[langs[i]].hmi_value('');
             }
             onSuccess();
         }
-    };
+    }
+    ;
     for (let i = 0, l = langs.length; i < l; i++) {
         const lang = langs[i];
         children.push({
@@ -980,11 +979,9 @@ function getLabelView(hmi, adapter, editable) {
         }
     };
 }
-
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 // HTML - PREVIEW & EDITOR
 // ///////////////////////////////////////////////////////////////////////////////////////////////
-
 function getHtmlPreview(hmi, adapter) {
     let mode = ContentManager.RAW;
     function update_mode(md) {
@@ -994,7 +991,8 @@ function getHtmlPreview(hmi, adapter) {
         button_raw.selected = md === ContentManager.RAW;
         button_raw.hmi_setSelected(button_raw.selected);
         adapter.triggerReload();
-    };
+    }
+    ;
     function reload(data, language, onSuccess, onError) {
         if (data && data.file) {
             hmi.cms.getObject(data.file, language, mode, response => {
@@ -1004,11 +1002,13 @@ function getHtmlPreview(hmi, adapter) {
                 preview.hmi_html('');
                 onError(error);
             });
-        } else {
+        }
+        else {
             preview.hmi_html('');
             onSuccess();
         }
-    };
+    }
+    ;
     const preview = {
         x: 0,
         y: 0,
@@ -1058,7 +1058,6 @@ function getHtmlPreview(hmi, adapter) {
         }
     };
 }
-
 function getHtmlEditor(hmi, adapter) {
     const cms = hmi.cms, scrollings = {};
     function onKeyChanged(data, language, onSuccess, onError) {
@@ -1079,11 +1078,13 @@ function getHtmlEditor(hmi, adapter) {
                 textarea.hmi_html('');
                 onError(error);
             });
-        } else {
+        }
+        else {
             textarea.hmi_value('');
             onSuccess();
         }
-    };
+    }
+    ;
     const textarea = {
         x: 0,
         y: 0,
@@ -1118,12 +1119,11 @@ function getHtmlEditor(hmi, adapter) {
         getValue: () => textarea.hmi_value().trim(),
         scrollings
     };
-};
-
+}
+;
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 // TEXT - PREVIEW & EDITOR
 // ///////////////////////////////////////////////////////////////////////////////////////////////
-
 function getTextPreview(hmi, adapter) {
     const cms = hmi.cms, rawScrollings = {}, includeScrollings = {};
     let mode = ContentManager.RAW;
@@ -1134,7 +1134,8 @@ function getTextPreview(hmi, adapter) {
         button_raw.selected = md === ContentManager.RAW;
         button_raw.hmi_setSelected(button_raw.selected);
         adapter.triggerReload();
-    };
+    }
+    ;
     function reload(data, language, onSuccess, onError) {
         if (textarea._mode) {
             switch (textarea._mode) {
@@ -1168,11 +1169,13 @@ function getTextPreview(hmi, adapter) {
                 textarea.hmi_value('');
                 onError(error);
             });
-        } else {
+        }
+        else {
             textarea.hmi_value('');
             onSuccess();
         }
-    };
+    }
+    ;
     const textarea = {
         x: 0,
         y: 0,
@@ -1232,7 +1235,6 @@ function getTextPreview(hmi, adapter) {
         includeScrollings
     };
 }
-
 function getTextEditor(hmi, adapter) {
     const cms = hmi.cms, scrollings = {};
     function onKeyChanged(data, language, onSuccess, onError) {
@@ -1253,11 +1255,13 @@ function getTextEditor(hmi, adapter) {
                 textarea.hmi_value('');
                 onError(error);
             });
-        } else {
+        }
+        else {
             textarea.hmi_value('');
             onSuccess();
         }
-    };
+    }
+    ;
     const textarea = {
         x: 0,
         y: 0,
@@ -1292,11 +1296,9 @@ function getTextEditor(hmi, adapter) {
         scrollings
     };
 }
-
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 // JSONFX - PREVIEW & EDITOR
 // ///////////////////////////////////////////////////////////////////////////////////////////////
-
 function getJsonFxPreview(hmi, adapter) {
     const cms = hmi.cms, rawScrollings = {}, includeScrollings = {};
     let mode = ContentManager.RAW;
@@ -1309,7 +1311,8 @@ function getJsonFxPreview(hmi, adapter) {
         button_raw.selected = md === ContentManager.RAW;
         button_raw.hmi_setSelected(button_raw.selected);
         adapter.triggerReload();
-    };
+    }
+    ;
     function reload(data, language, onSuccess, onError) {
         if (textarea._mode) {
             switch (textarea._mode) {
@@ -1349,11 +1352,13 @@ function getJsonFxPreview(hmi, adapter) {
                         case ContentManager.PARSE:
                             if (response !== null && typeof response === 'object' && !Array.isArray(response)) {
                                 container.hmi_setContent(response, onSuccess, onError);
-                            } else if (response !== undefined) {
+                            }
+                            else if (response !== undefined) {
                                 container.hmi_setContent({
                                     html: '<b>Invalid hmi-object: "' + data.file + '"</b><br>Type is: ' + (Array.isArray(response) ? 'array' : typeof response)
                                 }, onSuccess, onError);
-                            } else {
+                            }
+                            else {
                                 container.hmi_setContent({
                                     html: '<b>No data available: "' + data.file + '"</b>'
                                 }, onSuccess, onError);
@@ -1362,10 +1367,12 @@ function getJsonFxPreview(hmi, adapter) {
                     }
                 }, onError);
             }, onError);
-        } else {
+        }
+        else {
             container.hmi_removeContent(onSuccess, onError);
         }
-    };
+    }
+    ;
     const textarea = {
         x: 0,
         y: 0,
@@ -1442,7 +1449,6 @@ function getJsonFxPreview(hmi, adapter) {
         includeScrollings
     };
 }
-
 function getJsonFxEditor(hmi, adapter) {
     const cms = hmi.cms, scrollings = {};
     let mode = ContentManager.RAW;
@@ -1453,7 +1459,8 @@ function getJsonFxEditor(hmi, adapter) {
         button_raw.selected = md === ContentManager.RAW;
         button_raw.hmi_setSelected(button_raw.selected);
         adapter.triggerReload();
-    };
+    }
+    ;
     let edited = false, object, raw;
     function reload(data, language, onSuccess, onError) {
         if (textarea.file) {
@@ -1497,17 +1504,20 @@ function getJsonFxEditor(hmi, adapter) {
                                             }
                                             onSuccess();
                                         }, onError, undefined, true, true);
-                                    } else if (parsed !== undefined) {
+                                    }
+                                    else if (parsed !== undefined) {
                                         container.hmi_setContent({
                                             html: '<b>Invalid hmi-object: "' + data.file + '"</b><br>Type is: ' + (Array.isArray(parsed) ? 'array' : typeof parsed)
                                         }, onSuccess, onError);
-                                    } else {
+                                    }
+                                    else {
                                         container.hmi_setContent({
                                             html: '<b>No data available: "' + data.file + '"</b>'
                                         }, onSuccess, onError);
                                     }
                                 }, onError);
-                            } else {
+                            }
+                            else {
                                 container.hmi_setContent({
                                     html: '<b>No data available: "' + data.file + '"</b>'
                                 }, onSuccess, onError);
@@ -1516,10 +1526,12 @@ function getJsonFxEditor(hmi, adapter) {
                     }, onError);
                     break;
             }
-        } else {
+        }
+        else {
             container.hmi_removeContent(onSuccess, onError);
         }
-    };
+    }
+    ;
     const textarea = {
         type: 'textarea',
         code: 'javascript',
@@ -1596,27 +1608,29 @@ function getJsonFxEditor(hmi, adapter) {
                         height: Math.floor($(window).height() * 0.95),
                         object: popup_obj,
                         buttons: [{
-                            text: 'commit',
-                            click: onClose => {
-                                try {
-                                    const value = src_obj.hmi_value().trim();
-                                    const object = value.length > 0 ? JsonFX.parse(value, true, true) : undefined;
-                                    if (object !== undefined) {
-                                        raw.children[typeof index === 'number' && index >= 0 ? index : raw.children.length] = object;
-                                    } else if (typeof index === 'number' && index >= 0) {
-                                        raw.children.splice(index, 1);
+                                text: 'commit',
+                                click: onClose => {
+                                    try {
+                                        const value = src_obj.hmi_value().trim();
+                                        const object = value.length > 0 ? JsonFX.parse(value, true, true) : undefined;
+                                        if (object !== undefined) {
+                                            raw.children[typeof index === 'number' && index >= 0 ? index : raw.children.length] = object;
+                                        }
+                                        else if (typeof index === 'number' && index >= 0) {
+                                            raw.children.splice(index, 1);
+                                        }
+                                        adapter.performCommit(JsonFX.stringify(raw, false));
+                                        onClose();
                                     }
-                                    adapter.performCommit(JsonFX.stringify(raw, false));
-                                    onClose();
-                                } catch (exc) {
-                                    info_obj.hmi_addClass('highlighted-red');
-                                    info_obj.hmi_text(exc);
+                                    catch (exc) {
+                                        info_obj.hmi_addClass('highlighted-red');
+                                        info_obj.hmi_text(exc);
+                                    }
                                 }
-                            }
-                        }, {
-                            text: 'cancel',
-                            click: onClose => onClose()
-                        }]
+                            }, {
+                                text: 'cancel',
+                                click: onClose => onClose()
+                            }]
                     });
                 }
             }
@@ -1666,25 +1680,27 @@ function getJsonFxEditor(hmi, adapter) {
                         }
                     }
                     return JsonFX.stringify(raw, false);
-                } else {
+                }
+                else {
                     throw new Error('Invalid hmi-edit-content');
                 }
             default:
                 throw new Error(`Invalid mode: ${mode}`);
         }
-    };
+    }
+    ;
     return {
         type: 'grid',
         columns: 1,
         rows: [1, DEFAULT_ROW_HEIGHT],
         children: [container, {
-            x: 0,
-            y: 1,
-            type: 'grid',
-            columns: [1, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH],
-            rows: 1,
-            children: [info_lang, button_hmi, button_raw]
-        }],
+                x: 0,
+                y: 1,
+                type: 'grid',
+                columns: [1, DEFAULT_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH],
+                rows: 1,
+                children: [info_lang, button_hmi, button_raw]
+            }],
         onKeyChanged: (data, language, onSuccess, onError) => {
             edited = false;
             info_lang.hmi_text(`language: '${language}'`);
@@ -1711,7 +1727,6 @@ function getJsonFxEditor(hmi, adapter) {
         scrollings
     };
 }
-
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 // HMIS - PREVIEW & EDITOR
 // ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1734,7 +1749,8 @@ function getHmiView(hmi, adapter, editable) {
                     enableCheckbox.setValue((object.flagsColumn & ContentManager.HMI_FLAG_ENABLE) !== 0);
                     enableCheckbox.setOnChanged(editable === true ? onEdited : null);
                     watchEditActions = true;
-                } else {
+                }
+                else {
                     viewObjectValue.hmi_value('');
                     queryParameterValue.hmi_value('');
                     enableCheckbox.setValue(false);
@@ -1748,14 +1764,16 @@ function getHmiView(hmi, adapter, editable) {
                 enableCheckbox.setOnChanged(null);
                 onError(error);
             });
-        } else {
+        }
+        else {
             viewObjectValue.hmi_value('');
             queryParameterValue.hmi_value('');
             enableCheckbox.setValue(false);
             enableCheckbox.setOnChanged(null);
             onSuccess();
         }
-    };
+    }
+    ;
     const viewObjectLabel = {
         x: 0,
         y: 0,
@@ -1827,8 +1845,8 @@ function getHmiView(hmi, adapter, editable) {
         type: 'grid',
         columns: ['40px', 1],
         children: [{
-            object: enableCheckbox
-        }]
+                object: enableCheckbox
+            }]
     };
     return {
         type: 'grid',
@@ -1849,11 +1867,9 @@ function getHmiView(hmi, adapter, editable) {
         }
     };
 }
-
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 // TASKS - PREVIEW & EDITOR
 // ///////////////////////////////////////////////////////////////////////////////////////////////
-
 function getTaskView(hmi, adapter, editable) {
     const cms = hmi.cms;
     let watchEditActions = false;
@@ -1873,7 +1889,8 @@ function getTaskView(hmi, adapter, editable) {
                     autorunCheckbox.setOnChanged(editable === true ? onEdited : null);
                     cycleIntervalMillisValue.hmi_value(object.cycleIntervalMillisColumn.toString());
                     watchEditActions = true;
-                } else {
+                }
+                else {
                     taskObjectValue.hmi_value('');
                     autorunCheckbox.setValue(false);
                     autorunCheckbox.setOnChanged(null);
@@ -1887,14 +1904,16 @@ function getTaskView(hmi, adapter, editable) {
                 cycleIntervalMillisValue.hmi_value('');
                 onError(error);
             });
-        } else {
+        }
+        else {
             taskObjectValue.hmi_value('');
             autorunCheckbox.setValue(false);
             autorunCheckbox.setOnChanged(null);
             cycleIntervalMillisValue.hmi_value('');
             onSuccess();
         }
-    };
+    }
+    ;
     const taskObjectLabel = {
         x: 0,
         y: 0,
@@ -1941,8 +1960,8 @@ function getTaskView(hmi, adapter, editable) {
         type: 'grid',
         columns: ['40px', 1],
         children: [{
-            object: autorunCheckbox
-        }]
+                object: autorunCheckbox
+            }]
     };
     const cycleMillisLabel = {
         x: 0,
@@ -1986,8 +2005,9 @@ function getTaskView(hmi, adapter, editable) {
             const cycleIntervalMillisString = cycleIntervalMillisValue.hmi_value();
             let cycleIntervalMillis = 0;
             if (isNaN(cycleIntervalMillisString)) {
-                adapter.notifyError(`Invalid cycle interval millis '${cycleIntervalMillisString}`)
-            } else {
+                adapter.notifyError(`Invalid cycle interval millis '${cycleIntervalMillisString}`);
+            }
+            else {
                 cycleIntervalMillis = parseInt(cycleIntervalMillisString);
             }
             return {
@@ -1998,11 +2018,9 @@ function getTaskView(hmi, adapter, editable) {
         }
     };
 }
-
 // ///////////////////////////////////////////////////////////////////////////////////////////////
 // MAIN - PREVIEW & EDITOR & CONTENT EDITOR
 // ///////////////////////////////////////////////////////////////////////////////////////////////
-
 function getPreview(hmi, adapter) {
     const cms = hmi.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
     let preview = false, sel_data, language;
@@ -2015,7 +2033,8 @@ function getPreview(hmi, adapter) {
                 onSuccess();
             }, onError);
         });
-    };
+    }
+    ;
     adapter.triggerReload = reload;
     const jsonFxPreview = getJsonFxPreview(hmi, adapter);
     const textPreview = getTextPreview(hmi, adapter);
@@ -2044,7 +2063,6 @@ function getPreview(hmi, adapter) {
     };
     return container;
 }
-
 function getRefactoring(hmi, adapter) {
     const cms = hmi.cms;
     let sel_data = false, mode = false, source = false, enabled = true;
@@ -2076,12 +2094,14 @@ function getRefactoring(hmi, adapter) {
                 info += '"';
                 info += sel_data.id;
                 info += '"';
-            } else {
+            }
+            else {
                 info += '?';
             }
             adapter.updateInfo(info);
         }
-    };
+    }
+    ;
     const button_move = {
         x: 1,
         y: 0,
@@ -2143,7 +2163,7 @@ function getRefactoring(hmi, adapter) {
                 adapter.updateInfo('performed remove');
                 adapter.updateScrolling(params);
                 adapter.reload();
-            }, error => { // TODO: This has not been called for SQL errors
+            }, error => {
                 mode = false;
                 source = false;
                 update();
@@ -2174,7 +2194,8 @@ function getRefactoring(hmi, adapter) {
                 handler.handleImport(hmi, text.replace(/\r?\n|\r/g, '\n'), state => {
                     if (state !== undefined) {
                         adapter.updateInfo('import ' + state);
-                    } else {
+                    }
+                    else {
                         adapter.updateInfo('import ready');
                         adapter.reload();
                     }
@@ -2188,11 +2209,11 @@ function getRefactoring(hmi, adapter) {
         rows: 1,
         separator: SEPARATOR,
         children: [{
-            x: 0,
-            y: 0,
-            align: 'right',
-            text: 'refactoring:'
-        }, button_move, button_copy, button_paste, button_delete, button_export, button_import],
+                x: 0,
+                y: 0,
+                align: 'right',
+                text: 'refactoring:'
+            }, button_move, button_copy, button_paste, button_delete, button_export, button_import],
         update: data => {
             sel_data = data;
             update();
@@ -2207,14 +2228,12 @@ function getRefactoring(hmi, adapter) {
     };
     return container;
 }
-
 const HmiObjectsTableColumn = Object.freeze({
     Id: 0,
     ViewObject: 1,
     QueryParameter: 2,
     Enable: 3
 });
-
 function showHmisConfigurationDialog(hmi, adapter, currentlySelectedData) {
     const cms = hmi.cms;
     let hmiObjects = null;
@@ -2242,14 +2261,15 @@ function showHmisConfigurationDialog(hmi, adapter, currentlySelectedData) {
                         cms.getChecksum(obj.file, checksum => {
                             obj.checksum = checksum;
                             onSuccess();
-                        }, onError)
+                        }, onError);
                     });
                 }());
             }
             Executor.run(tasks, () => {
                 try {
                     table.hmi_reload();
-                } catch (error) {
+                }
+                catch (error) {
                     adapter.notifyError(`Error preparing hmi objects table: ${error}`);
                 }
             }, error => adapter.notifyError(`Error loading hmi objects: ${error}`));
@@ -2262,21 +2282,21 @@ function showHmisConfigurationDialog(hmi, adapter, currentlySelectedData) {
         paging: false,
         highlightSelectedRow: true,
         columns: [{
-            width: 100,
-            text: 'HMI object',
-            textsAndNumbers: true
-        }, {
-            width: 100,
-            text: 'JsonFX object',
-            textsAndNumbers: true
-        }, {
-            width: 100,
-            text: 'query parameter',
-            textsAndNumbers: true
-        }, {
-            width: 10,
-            text: 'enabled'
-        }],
+                width: 100,
+                text: 'HMI object',
+                textsAndNumbers: true
+            }, {
+                width: 100,
+                text: 'JsonFX object',
+                textsAndNumbers: true
+            }, {
+                width: 100,
+                text: 'query parameter',
+                textsAndNumbers: true
+            }, {
+                width: 10,
+                text: 'enabled'
+            }],
         getRowCount: () => hmiObjects ? hmiObjects.length : 0,
         getCellHtml: (rowIndex, columnIndex) => {
             const row = hmiObjects[rowIndex];
@@ -2397,8 +2417,8 @@ function showHmisConfigurationDialog(hmi, adapter, currentlySelectedData) {
         type: 'grid',
         columns: ['40px', 1],
         children: [{
-            object: enableCheckbox
-        }]
+                object: enableCheckbox
+            }]
     };
     function onEnableEdited() {
         if (selectedDataIndex !== -1) {
@@ -2455,8 +2475,8 @@ function showHmisConfigurationDialog(hmi, adapter, currentlySelectedData) {
                 }
             });
         }
-    }
-    const resetButton = { text: 'reset', visible: false, click: onClose => reload() }
+    };
+    const resetButton = { text: 'reset', visible: false, click: onClose => reload() };
     const browseHmiObjectButton = {
         text: 'browse HMI object',
         visible: false,
@@ -2487,14 +2507,13 @@ function showHmisConfigurationDialog(hmi, adapter, currentlySelectedData) {
             children: [table, editorGrid]
         },
         buttons: [commitButton, resetButton, browseHmiObjectButton, browseJsonFXObjectButton, {
-            text: 'close',
-            click: onClose => onClose()
-        }]
+                text: 'close',
+                click: onClose => onClose()
+            }]
     };
     hmi.showDialog(dialogObject);
     reload();
 }
-
 const TaskObjectsTableColumn = Object.freeze({
     Id: 0,
     TaskObject: 1,
@@ -2502,7 +2521,6 @@ const TaskObjectsTableColumn = Object.freeze({
     Autorun: 3,
     State: 4
 });
-
 function showTasksConfigurationDialog(hmi, adapter, currentlySelectedData) {
     const cms = hmi.cms;
     let taskObjects = null;
@@ -2531,14 +2549,15 @@ function showTasksConfigurationDialog(hmi, adapter, currentlySelectedData) {
                     cms.getChecksum(taskObject.config.file, checksum => {
                         taskObject.checksum = checksum;
                         onSuccess();
-                    }, onError)
+                    }, onError);
                 });
             }());
         }
         Executor.run(tasks, () => {
             try {
                 table.hmi_reload();
-            } catch (error) {
+            }
+            catch (error) {
                 adapter.notifyError(`Error preparing task objects table: ${error}`);
             }
         }, error => adapter.notifyError(`Error loading task objects: ${error}`));
@@ -2569,24 +2588,24 @@ function showTasksConfigurationDialog(hmi, adapter, currentlySelectedData) {
         paging: false,
         highlightSelectedRow: true,
         columns: [{
-            width: 100,
-            text: 'task object',
-            textsAndNumbers: true
-        }, {
-            width: 100,
-            text: 'JsonFX object',
-            textsAndNumbers: true
-        }, {
-            width: 50,
-            text: 'cycle millis',
-            textsAndNumbers: true
-        }, {
-            width: 10,
-            text: 'autorun'
-        }, {
-            width: 20,
-            text: 'state'
-        }],
+                width: 100,
+                text: 'task object',
+                textsAndNumbers: true
+            }, {
+                width: 100,
+                text: 'JsonFX object',
+                textsAndNumbers: true
+            }, {
+                width: 50,
+                text: 'cycle millis',
+                textsAndNumbers: true
+            }, {
+                width: 10,
+                text: 'autorun'
+            }, {
+                width: 20,
+                text: 'state'
+            }],
         getRowCount: () => taskObjects ? taskObjects.length : 0,
         getCellHtml: (rowIndex, columnIndex) => {
             const taskObject = taskObjects[rowIndex];
@@ -2696,8 +2715,9 @@ function showTasksConfigurationDialog(hmi, adapter, currentlySelectedData) {
             const cycleMillisString = cycleIntervalMillisValue.hmi_value();
             let cycleMillis = 0;
             if (isNaN(cycleMillisString)) {
-                adapter.notifyError(`Invalid cycle interval millis '${cycleMillisString}`)
-            } else {
+                adapter.notifyError(`Invalid cycle interval millis '${cycleMillisString}`);
+            }
+            else {
                 cycleMillis = parseInt(cycleMillisString);
             }
             if (cycleMillis !== selectedData.config.cycleMillis) {
@@ -2719,8 +2739,8 @@ function showTasksConfigurationDialog(hmi, adapter, currentlySelectedData) {
         type: 'grid',
         columns: ['40px', 1],
         children: [{
-            object: autorunCheckbox
-        }]
+                object: autorunCheckbox
+            }]
     };
     function onAutorunEdited() {
         if (selectedDataIndex !== -1) {
@@ -2778,8 +2798,8 @@ function showTasksConfigurationDialog(hmi, adapter, currentlySelectedData) {
                 }
             });
         }
-    }
-    const resetButton = { text: 'reset', visible: false, click: onClose => reload() }
+    };
+    const resetButton = { text: 'reset', visible: false, click: onClose => reload() };
     const startTaskButton = {
         text: 'start task',
         visible: false,
@@ -2834,13 +2854,13 @@ function showTasksConfigurationDialog(hmi, adapter, currentlySelectedData) {
             children: [table, editorGrid]
         },
         buttons: [commitButton, resetButton, startTaskButton, stopTaskButton, browseTaskObjectButton, browseJsonFXObjectButton, {
-            text: 'close',
-            click: onClose => {
-                hmi.tasks.onConfigChanged = null;
-                hmi.tasks.onStateChanged = null;
-                onClose();
-            }
-        }]
+                text: 'close',
+                click: onClose => {
+                    hmi.tasks.onConfigChanged = null;
+                    hmi.tasks.onStateChanged = null;
+                    onClose();
+                }
+            }]
     };
     hmi.showDialog(dialogObject);
     reload();
@@ -2851,7 +2871,6 @@ function showTasksConfigurationDialog(hmi, adapter, currentlySelectedData) {
     };
     hmi.tasks.onStateChanged = onStateChanged;
 }
-
 function getEditController(hmi, adapter) {
     const cms = hmi.cms, unstress = Executor.unstress(adapter.notifyError, () => adapter.notifyTimeout(sel_data), DEFAULT_TIMEOUT);
     let editor = false, sel_data = false, sel_cs = false, edit_data = false, edit_cs = false, sel_lang, edit_lang;
@@ -2868,13 +2887,15 @@ function getEditController(hmi, adapter) {
                     cms.getChecksum(sel_data.file, checksum => {
                         sel_cs = checksum;
                         onSuccess();
-                    }, onError)
-                } else {
+                    }, onError);
+                }
+                else {
                     onSuccess();
                 }
             }, onError);
         });
-    };
+    }
+    ;
     let edited = false, editListenerEnabled = true, pending_commit = false, pending_reset = false;
     function updateEditorButtons() {
         const isJsonFX = sel_data.type === ContentManager.DataType.JsonFX;
@@ -2889,7 +2910,8 @@ function getEditController(hmi, adapter) {
                 tasksButton.hmi_setSelected(false);
                 adapter.notifyError(error);
             });
-        } else {
+        }
+        else {
             tasksButton.hmi_setSelected(false);
         }
         hmisButton.hmi_setEnabled(!edited && !pending_commit && !pending_reset);
@@ -2903,7 +2925,8 @@ function getEditController(hmi, adapter) {
                 hmisButton.hmi_setSelected(false);
                 adapter.notifyError(error);
             });
-        } else {
+        }
+        else {
             hmisButton.hmi_setSelected(false);
         }
         commitButton.hmi_setEnabled(edited && !pending_commit && !pending_reset && edit_data.extension === sel_data.extension);
@@ -2913,15 +2936,18 @@ function getEditController(hmi, adapter) {
             if (edit_data.extension === sel_data.extension) {
                 if (edit_data.id === sel_data.id) {
                     info += ' commit enabled';
-                } else {
+                }
+                else {
                     info += ` commit as: '${sel_data.id}'`;
                 }
-            } else {
+            }
+            else {
                 info += ' commit disabled - invalid object id';
             }
             adapter.updateInfo(info);
         }
-    };
+    }
+    ;
     function performCommit(value) {
         pending_commit = true;
         updateEditorButtons();
@@ -2938,7 +2964,8 @@ function getEditController(hmi, adapter) {
                 adapter.updateInfo('performed commit');
                 adapter.updateScrolling(params);
                 adapter.stateChanged(false, data);
-            } else {
+            }
+            else {
                 updateEditorButtons();
             }
         }, error => {
@@ -2949,7 +2976,8 @@ function getEditController(hmi, adapter) {
             updateEditorButtons();
             adapter.notifyError(error);
         });
-    };
+    }
+    ;
     adapter.triggerReload = reload;
     adapter.edited = () => {
         if (editListenerEnabled && !edited) {
@@ -3005,7 +3033,8 @@ function getEditController(hmi, adapter) {
                         }
                     }, error => adapter.notifyError(error));
                 }
-            } catch (error) {
+            }
+            catch (error) {
                 adapter.notifyError(error);
             }
         },
@@ -3033,7 +3062,8 @@ function getEditController(hmi, adapter) {
                         }
                     }, error => adapter.notifyError(error));
                 }
-            } catch (exc) {
+            }
+            catch (exc) {
                 adapter.notifyError(exc);
             }
         },
@@ -3048,7 +3078,8 @@ function getEditController(hmi, adapter) {
         clicked: () => {
             try {
                 performCommit(editor.getValue());
-            } catch (exc) {
+            }
+            catch (exc) {
                 adapter.notifyError(exc);
             }
         }
@@ -3072,11 +3103,11 @@ function getEditController(hmi, adapter) {
         rows: 1,
         separator: SEPARATOR,
         children: [{
-            x: 0,
-            y: 0,
-            align: 'right',
-            text: 'editor:'
-        }, tasksButton, hmisButton, commitButton, resetButton],
+                x: 0,
+                y: 0,
+                align: 'right',
+                text: 'editor:'
+            }, tasksButton, hmisButton, commitButton, resetButton],
         update: (data, lang) => {
             sel_data = data;
             sel_lang = lang;
@@ -3091,7 +3122,6 @@ function getEditController(hmi, adapter) {
         jsonFxScrollings: jsonFxEditor.scrollings
     };
 }
-
 function create(hmi) {
     // For every kind of text editors or previews we store the scroll positions
     // so it it easy to switch between objects and stay where you are.
@@ -3310,26 +3340,24 @@ function create(hmi) {
         type: 'grid',
         rows: [DEFAULT_ROW_HEIGHT, 1, DEFAULT_ROW_HEIGHT],
         children: [header, {
-            x: 0,
-            y: 1,
-            type: 'split',
-            rightSize: Mathematics.GOLDEN_CUT_INVERTED,
-            children: [{
-                location: 'left',
+                x: 0,
+                y: 1,
                 type: 'split',
-                topSize: Mathematics.GOLDEN_CUT_INVERTED,
-                children: [navigator, references]
-            }, {
-                location: 'right',
-                type: 'split',
-                children: [edit_ctrl.editor, preview]
-            }]
-        }, footer],
+                rightSize: Mathematics.GOLDEN_CUT_INVERTED,
+                children: [{
+                        location: 'left',
+                        type: 'split',
+                        topSize: Mathematics.GOLDEN_CUT_INVERTED,
+                        children: [navigator, references]
+                    }, {
+                        location: 'right',
+                        type: 'split',
+                        children: [edit_ctrl.editor, preview]
+                    }]
+            }, footer],
         notifyError: log_handler.pushError
     };
 }
 ContentEditor.create = create;
-
 Object.freeze(ContentEditor);
-
 export default ContentEditor;

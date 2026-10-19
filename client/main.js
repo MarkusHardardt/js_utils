@@ -31,20 +31,15 @@ import ContentEditor from '../src/ContentEditor.js';
 import GridLayout from '../src/GridLayout.js';
 import LanguageSwitching from '../src/LanguageSwitching.js';
 import TaskManager from '../src/TaskManager.js';
-
 const $ = globalThis.$;
-
 // create 'hmi' environment object
 const hmi = {
     evalFunc: Evaluate.evalFunc,
     // add hmi-object-framweork
-    createObject: (object, element, onSuccess, onError, initData) =>
-        ObjectLifecycleManager.createObject(object, element, onSuccess, onError, hmi, initData),
+    createObject: (object, element, onSuccess, onError, initData) => ObjectLifecycleManager.createObject(object, element, onSuccess, onError, hmi, initData),
     killObject: ObjectLifecycleManager.killObject,
-    showDialog: (object, onSuccess, onError) =>
-        ObjectLifecycleManager.showDialog(hmi, object, onSuccess, onError),
-    showDefaultConfirmationDialog: (object, onSuccess, onError) =>
-        ObjectLifecycleManager.showDefaultConfirmationDialog(hmi, object, onSuccess, onError),
+    showDialog: (object, onSuccess, onError) => ObjectLifecycleManager.showDialog(hmi, object, onSuccess, onError),
+    showDefaultConfirmationDialog: (object, onSuccess, onError) => ObjectLifecycleManager.showDefaultConfirmationDialog(hmi, object, onSuccess, onError),
     // Environment
     env: {
         isInstance: instance => false, // TODO: Implement isInstance(instance)
@@ -71,13 +66,11 @@ $(() => {
             onSuccess();
         }, onError);
     });
-
     // prepare logging
     tasks.push((onSuccess, onError) => {
         hmi.logger = new Logger(config.applicationName);
         onSuccess();
     });
-
     // prepare content management system
     tasks.push((onSuccess, onError) => hmi.cms = ContentManager.getInstance(hmi.logger, Evaluate.evalFunc, onSuccess, onError));
     tasks.push((onSuccess, onError) => {
@@ -116,7 +109,6 @@ $(() => {
                     hmi.logger.debug(`web socket client closed (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}')`);
                     taskManager.onClose();
                     dataConnector.onClose();
-
                 },
                 onError: error => {
                     hmi.logger.error(`error in connection (sessionId: '${WebSocketConnection.formatSesionId(webSocketConnection.sessionId)}') to server`, error);
@@ -125,7 +117,8 @@ $(() => {
             taskManager.connection = webSocketConnection;
             dataConnector.connection = webSocketConnection;
             onSuccess();
-        } catch (error) {
+        }
+        catch (error) {
             onError(error);
         }
     });
@@ -139,14 +132,14 @@ $(() => {
         hmi.access = bufferedDataAccess; // Enable access from anyhwere
         onSuccess();
     });
-
     let rootObject = null;
     tasks.push((onSuccess, onError) => {
         if (hmiQueryParameterValue) {
             hmi.cms.getHMIObject(hmiQueryParameterValue, hmi.lang.getLanguage(), object => {
                 if (object !== null && typeof object === 'object' && !Array.isArray(object)) {
                     rootObject = object;
-                } else {
+                }
+                else {
                     rootObject = { text: `view: '${hmiQueryParameterValue}' is not an HMI object` }; // TODO: Implement 'better' info object
                 }
                 onSuccess();
@@ -154,7 +147,8 @@ $(() => {
                 rootObject = { html: `<h1>Failed loading HMI: '<code>${hmiQueryParameterValue}</code>'</h1><br />Error reason: <code>${error}</code>` };
                 onSuccess();
             });
-        } else {
+        }
+        else {
             let userField;
             let passwordField;
             let statusField;
@@ -189,17 +183,15 @@ $(() => {
                                 if (isValid === true) {
                                     hmi.killObject(rootObject, () => {
                                         rootObject = ContentEditor.create(hmi);
-                                        hmi.createObject(rootObject, $(document.body),
-                                            () => hmi.logger.info(`${config.applicationName} started`),
-                                            error => hmi.logger.error(`Failed starting ${config.applicationName}`, error)
-                                        );
+                                        hmi.createObject(rootObject, $(document.body), () => hmi.logger.info(`${config.applicationName} started`), error => hmi.logger.error(`Failed starting ${config.applicationName}`, error));
                                     }, error => {
                                         isAuthenticating = false;
                                         loginButton.hmi_setEnabled(true);
                                         statusField.hmi_value('Failed to open content editor');
                                         hmi.logger.error('Failed closing content manager login', error);
                                     });
-                                } else {
+                                }
+                                else {
                                     isAuthenticating = false;
                                     loginButton.hmi_setEnabled(true);
                                     statusField.hmi_value('Invalid user name or password');
@@ -238,7 +230,8 @@ $(() => {
             Object.freeze(hmi.env);
             Object.freeze(hmi);
             onSuccess();
-        } catch (error) {
+        }
+        catch (error) {
             onError('Failed validation of services', error);
         }
     });
@@ -247,13 +240,7 @@ $(() => {
         const body = $(document.body);
         body.empty();
         body.addClass('hmi-body');
-        hmi.createObject(rootObject, body,
-            () => hmi.logger.info(`${config.applicationName} started`),
-            error => hmi.logger.error(`Failed starting ${config.applicationName}`, error)
-        );
-        body.on('unload', () => hmi.killObject(rootObject,
-            () => hmi.logger.info(`${config.applicationName} stopped`),
-            error => hmi.logger.error(`Failed stopping ${config.applicationName}`, error)
-        ));
+        hmi.createObject(rootObject, body, () => hmi.logger.info(`${config.applicationName} started`), error => hmi.logger.error(`Failed starting ${config.applicationName}`, error));
+        body.on('unload', () => hmi.killObject(rootObject, () => hmi.logger.info(`${config.applicationName} stopped`), error => hmi.logger.error(`Failed stopping ${config.applicationName}`, error)));
     }, error => hmi.logger.error(`Failed building ${config.applicationName}`, error));
 });

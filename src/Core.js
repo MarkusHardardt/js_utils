@@ -1,7 +1,5 @@
 import Regex from './Regex.js';
-
 const Core = {};
-
 /*  Standard datatypes */
 const DataType = Object.freeze({
     Null: 0,
@@ -22,18 +20,15 @@ const DataType = Object.freeze({
     Unknown: -1
 });
 Core.DataType = DataType;
-
 /*  Returns a function witch on each call returns a number (radix 36, starting at zero). */
 function createIdGenerator(prefix, suffix) {
     let id = 0;
     return () => `${prefix}${(id++).toString(36)}${suffix}`;
 }
 Core.createIdGenerator = createIdGenerator;
-
 Core.defaultEqual = (v1, v2) => v1 === v2;
-
 /*  Look at this sample to understand what is returned:
-    object = { 
+    object = {
         'a': '1',
         'b': '2',
         'c': '3'
@@ -60,7 +55,6 @@ function getTransformedObject(object, getKey, getValue) {
     return transformed;
 }
 Core.getTransformedObject = getTransformedObject;
-
 /*  Kahn's algorithm  */
 function getTopologicalSorting(dependencies) {
     const graph = new Map();
@@ -99,7 +93,6 @@ function getTopologicalSorting(dependencies) {
     return result;
 }
 Core.getTopologicalSorting = getTopologicalSorting;
-
 /*  Callack for all elements in the sources-array not found in the targets-array */
 function handleNotFound(sources, targets, equal, onNotFound, backward) {
     let sidx, slen = sources.length, tidx, tlen = targets.length;
@@ -123,7 +116,6 @@ function handleNotFound(sources, targets, equal, onNotFound, backward) {
     }
 }
 Core.handleNotFound = handleNotFound;
-
 /*  Function and object interface validation */
 (function () {
     // This pattern matches on valid javascript identifiers:
@@ -158,9 +150,11 @@ Core.handleNotFound = handleNotFound;
     function validateFunction(functionInstance, expectedArguments, validateMethodArguments) {
         if (functionInstance === undefined) {
             throw new Error('is undefined!');
-        } if (functionInstance === null) {
+        }
+        if (functionInstance === null) {
             throw new Error('is null');
-        } else if (typeof functionInstance !== 'function') {
+        }
+        else if (typeof functionInstance !== 'function') {
             throw new Error('is not a function');
         }
         if (validateMethodArguments !== true) {
@@ -191,14 +185,14 @@ Core.handleNotFound = handleNotFound;
         throw new Error(`has no arguments: '${functionSource}'`);
     }
     Core.validateFunction = validateFunction;
-
     function validateDetail(instanceType, objectInstance, aspect, validateMethodArguments) {
         const methodMatch = attributeMethodRegex.exec(aspect);
         if (methodMatch) {
             const methodName = methodMatch[1];
             try {
-                validateFunction(objectInstance[methodName], methodMatch[2], validateMethodArguments)
-            } catch (error) {
+                validateFunction(objectInstance[methodName], methodMatch[2], validateMethodArguments);
+            }
+            catch (error) {
                 throw new Error(`${instanceType} method '${methodName}' ${error.message}`);
             }
             return;
@@ -210,24 +204,28 @@ Core.handleNotFound = handleNotFound;
             const actualPropertyValue = objectInstance[propertyName];
             if (actualPropertyValue === undefined) {
                 throw new Error(`${instanceType} has no property '${propertyName}'`);
-            } else if (typeof actualPropertyValue !== expectedType) {
+            }
+            else if (typeof actualPropertyValue !== expectedType) {
                 throw new Error(`${instanceType} property '${propertyName}' has invalid type (expected: '${expectedType}', actual: '${(typeof actualPropertyValue)}')`);
             }
             return;
         }
         throw new Error(`Invalid method/property check pattern: '${aspect}'`);
     }
-
     function validateAs(instanceType, objectInstance, config, validateMethodArguments) {
         if (objectInstance === undefined) {
             throw new Error(`${instanceType} is undefined!`);
-        } if (objectInstance === null) {
+        }
+        if (objectInstance === null) {
             throw new Error(`${instanceType} is null`);
-        } else if (typeof objectInstance !== 'object') {
+        }
+        else if (typeof objectInstance !== 'object') {
             throw new Error(`${instanceType} is not an object`);
-        } else if (typeof config === 'string') {
+        }
+        else if (typeof config === 'string') {
             validateDetail(instanceType, objectInstance, config, validateMethodArguments);
-        } else if (Array.isArray(config)) {
+        }
+        else if (Array.isArray(config)) {
             for (const aspect of config) {
                 validateDetail(instanceType, objectInstance, aspect, validateMethodArguments);
             }
@@ -235,23 +233,24 @@ Core.handleNotFound = handleNotFound;
         return objectInstance;
     }
     Core.validateAs = validateAs;
-
     function validateMethod(instanceType, objectInstance, methodName) {
         if (objectInstance === undefined) {
             throw new Error(`${instanceType} is undefined!`);
-        } if (objectInstance === null) {
+        }
+        if (objectInstance === null) {
             throw new Error(`${instanceType} is null`);
-        } else if (typeof objectInstance !== 'object') {
+        }
+        else if (typeof objectInstance !== 'object') {
             throw new Error(`${instanceType} is not an object`);
-        } else if (typeof objectInstance[methodName] !== 'function') {
+        }
+        else if (typeof objectInstance[methodName] !== 'function') {
             throw new Error(`${instanceType} method '${methodName}' is not a function`);
-        } else {
+        }
+        else {
             return objectInstance;
         }
     }
     Core.validateMethod = validateMethod;
 }());
-
 Object.freeze(Core);
-
 export default Core;

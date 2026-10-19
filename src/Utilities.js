@@ -4,7 +4,8 @@ const CryptoJS = isNodeJS ? undefined : (await import('../ext/md5.js')).default;
 function equals(value1, value2, compareFunctions) {
     if (typeof value1 !== typeof value2) {
         return false;
-    } else if (Array.isArray(value1)) {
+    }
+    else if (Array.isArray(value1)) {
         if (value1.length !== value2.length) {
             return false;
         }
@@ -14,12 +15,15 @@ function equals(value1, value2, compareFunctions) {
             }
         }
         return true;
-    } else if (typeof value1 === 'object') {
+    }
+    else if (typeof value1 === 'object') {
         if (value1 === null) {
             return value2 === null;
-        } else if (value2 === null) {
+        }
+        else if (value2 === null) {
             return false;
-        } else {
+        }
+        else {
             for (const attr in value1) {
                 if (value1.hasOwnProperty(attr)) {
                     if (!equals(value1[attr], value2[attr])) {
@@ -36,17 +40,17 @@ function equals(value1, value2, compareFunctions) {
             }
             return true;
         }
-    } else if (typeof value1 === 'function') {
+    }
+    else if (typeof value1 === 'function') {
         return typeof compareFunctions === 'function' ? compareFunctions(value1, value2) : true;
-    } else {
+    }
+    else {
         return value1 === value2;
     }
 }
 Utilities.equals = equals;
-
 /** The place holder object */
 const DNYNAMIC_LIST_DUMMY = {};
-
 class DynamicList {
     #create;
     #array;
@@ -78,7 +82,8 @@ class DynamicList {
                     throw new Error('Exception! Create method returns null!');
                 }
                 array.splice(index, 1, object);
-            } catch (error) {
+            }
+            catch (error) {
                 throw new Error('EXCEPTION! Cannot create_' + error);
             }
         }
@@ -89,7 +94,8 @@ class DynamicList {
         if (index >= 0 && index < array.length) {
             const object = array.splice(index, 1);
             return object !== DNYNAMIC_LIST_DUMMY ? object : undefined;
-        } else {
+        }
+        else {
             return undefined;
         }
     }
@@ -102,7 +108,6 @@ class DynamicList {
     }
 }
 Utilities.DynamicList = DynamicList;
-
 function getObjectProperties(object, properties) {
     const props = properties ? properties : [];
     for (const id in object) {
@@ -113,7 +118,6 @@ function getObjectProperties(object, properties) {
     return props;
 }
 Utilities.getObjectProperties = getObjectProperties;
-
 function getObjectAttributes(object, attributes) {
     let attrs = attributes.split('.'), idx = 0, len = attrs.length, obj = object;
     while (idx < len) {
@@ -125,18 +129,16 @@ function getObjectAttributes(object, attributes) {
     return obj;
 }
 Utilities.getObjectAttributes = getObjectAttributes;
-
 // //////////////////////////////////////////////////////////////////////////////////////////
 // TRANSFER PROPERTIES
 // //////////////////////////////////////////////////////////////////////////////////////////
-
 /**
  * This method transfers the specified attribute from the source to the
  * target. If source and target attribute are both arrays we treat their
  * elements analogically. If source and target attribute are both objects we
  * transfer all primitive attributes and treat array and object attributes
  * analogically.
- * 
+ *
  * @param {boolean}
  *          arrayMode True if source and target are arrays, false if both
  *          are objects
@@ -158,62 +160,71 @@ function transferProperty(arrayMode, source, target, key, preIncludeSource) {
         if (Array.isArray(tgtval)) {
             // #2
             transferProperties(srcval, tgtval);
-        } else {
+        }
+        else {
             // #3
             if (arrayMode) {
                 target[key] = srcval;
-            } else {
+            }
+            else {
                 if (preIncludeSource && tgtval !== undefined) {
                     preIncludeSource[key] = tgtval;
                 }
                 target[key] = srcval;
             }
         }
-    } else if (typeof srcval === 'object') {
+    }
+    else if (typeof srcval === 'object') {
         // #4
         if (Array.isArray(tgtval)) {
             // #5
             if (arrayMode) {
                 target[key] = srcval;
-            } else {
-                if (preIncludeSource && tgtval !== undefined) {
-                    preIncludeSource[key] = tgtval;
-                }
-                target[key] = srcval;
             }
-        } else if (typeof tgtval === 'object') {
-            // #6
-            transferProperties(srcval, tgtval);
-        } else {
-            // #7
-            if (arrayMode) {
-                target[key] = srcval;
-            } else {
+            else {
                 if (preIncludeSource && tgtval !== undefined) {
                     preIncludeSource[key] = tgtval;
                 }
                 target[key] = srcval;
             }
         }
-    } else if (srcval !== undefined) {
+        else if (typeof tgtval === 'object') {
+            // #6
+            transferProperties(srcval, tgtval);
+        }
+        else {
+            // #7
+            if (arrayMode) {
+                target[key] = srcval;
+            }
+            else {
+                if (preIncludeSource && tgtval !== undefined) {
+                    preIncludeSource[key] = tgtval;
+                }
+                target[key] = srcval;
+            }
+        }
+    }
+    else if (srcval !== undefined) {
         // #8
         if (arrayMode) {
             target[key] = srcval;
-        } else {
+        }
+        else {
             if (preIncludeSource && tgtval !== undefined) {
                 preIncludeSource[key] = tgtval;
             }
             target[key] = srcval;
         }
     }
-};
-
+}
+;
 /**
  * This method transfers all attributes from the source to the target. If
  * source and target are both arrays we iterate over all elements. If source
  * and target are both objects we iterate over all attributes. In any other
  * case, no data will be transfered
- * 
+ *
  * @param {Object}
  *          source The source object or array
  * @param {Object}
@@ -227,7 +238,8 @@ function transferProperties(source, target, preIncludeSource) {
         for (let key = 0, len = source.length; key < len; key++) {
             transferProperty(arrayMode, source, target, key, preIncludeSource);
         }
-    } else if (typeof source === 'object' && source !== null && typeof target === 'object' && target !== null) {
+    }
+    else if (typeof source === 'object' && source !== null && typeof target === 'object' && target !== null) {
         for (let key in source) {
             if (source.hasOwnProperty(key)) {
                 transferProperty(arrayMode, source, target, key, preIncludeSource);
@@ -240,7 +252,6 @@ const md5 = isNodeJS ? (await import('md5')).default : function (text, options) 
     return CryptoJS.MD5(text, options).toString(CryptoJS.enc.Hex);
 };
 Utilities.md5 = md5; // TODO: Replace with Server.createSHA256()  !!! WILL ONLY RUN ON SERVER SIDE !!!
-
 function copyArray(source, target) {
     let array = target || [];
     for (let i = 0; i < source.length; i++) {
@@ -249,14 +260,12 @@ function copyArray(source, target) {
     return array;
 }
 Utilities.copyArray = copyArray;
-
 // provider for unique ids
 let _unique_id = 0;
 function getUniqueId() {
     return `uid${(_unique_id++)}`;
 }
 Utilities.getUniqueId = getUniqueId; // replace usage with Core.createIdGenerator(prefix)
-
 class ScrollHandler {
     constructor() { }
     prepare(scrollContainer, element) {
@@ -271,9 +280,11 @@ class ScrollHandler {
         // restore horizontal scroll position
         if (this._prevScrollLeft <= 0) {
             scrollContainer.scrollLeft(0);
-        } else if (this._prevScrollLeft >= this._prevElemWidth - this._prevContWidth) {
+        }
+        else if (this._prevScrollLeft >= this._prevElemWidth - this._prevContWidth) {
             scrollContainer.scrollLeft(element.width() - scrollContainer.width());
-        } else {
+        }
+        else {
             const curr = element.width() - scrollContainer.width();
             const prev = this._prevElemWidth - this._prevContWidth;
             scrollContainer.scrollLeft(Math.floor(1.0 * this._prevScrollLeft / prev * curr));
@@ -281,9 +292,11 @@ class ScrollHandler {
         // restore vertical scroll position
         if (this._prevScrollTop <= 0) {
             scrollContainer.scrollTop(0);
-        } else if (this._prevScrollTop >= this._prevElemHeight - this._prevContHeight) {
+        }
+        else if (this._prevScrollTop >= this._prevElemHeight - this._prevContHeight) {
             scrollContainer.scrollTop(element.height() - scrollContainer.height());
-        } else {
+        }
+        else {
             const curr = element.height() - scrollContainer.height();
             const prev = this._prevElemHeight - this._prevContHeight;
             scrollContainer.scrollTop(Math.floor(1.0 * this._prevScrollTop / prev * curr));
@@ -291,7 +304,6 @@ class ScrollHandler {
     }
 }
 Utilities.ScrollHandler = ScrollHandler;
-
 function createRelativeParts(param) {
     // here we store the resulting coordinates
     const coor = [];
@@ -303,7 +315,8 @@ function createRelativeParts(param) {
         for (let i = 0; i < len; i++) {
             coor.push(part);
         }
-    } else if (param !== undefined && param !== null && $.isArray(param) && param.length > 0) { // in case of an array we add relative parts
+    }
+    else if (param !== undefined && param !== null && $.isArray(param) && param.length > 0) { // in case of an array we add relative parts
         let validMaximaCnt = 0;
         let maximum = 0.0;
         for (let i = 0; i < param.length; i++) {
@@ -318,13 +331,13 @@ function createRelativeParts(param) {
             const part = param[i] > 0.0 && maximum > 0 ? param[i] / maximum * validMaxima : invalidPart;
             coor.push(part);
         }
-    } else {
+    }
+    else {
         coor.push(1.0);
     }
     return coor;
 }
 Utilities.createRelativeParts = createRelativeParts;
-
 function formatTimestamp(date, hideMillis) {
     let txt = ('0000' + date.getFullYear()).slice(-4);
     txt += '-';
@@ -344,7 +357,6 @@ function formatTimestamp(date, hideMillis) {
     return txt;
 }
 Utilities.formatTimestamp = formatTimestamp;
-
 function formatNumber(value, postDecimalPositions) {
     if (postDecimalPositions < 1 || postDecimalPositions > 14) {
         return value;
@@ -358,7 +370,6 @@ function formatNumber(value, postDecimalPositions) {
     return k.substring(0, k.indexOf('.') + postDecimalPositions + 1);
 }
 Utilities.formatNumber = formatNumber;
-
 function loadClientTextFile(onResponse) {
     // Note: This next code looks really ugly but unfortunatelly there
     // seems to be be no other solluting for loading an client side text
@@ -372,7 +383,6 @@ function loadClientTextFile(onResponse) {
     input.trigger("click");
 }
 Utilities.loadClientTextFile = loadClientTextFile;
-
 Utilities.utf8Symbols = {
     ok: '✅',
     error: '❌',
@@ -390,8 +400,6 @@ Utilities.utf8Symbols = {
     phone: '☎️',
     checkboxOn: '☑️',
     checkboxOff: '☐'
-}
-
+};
 Object.freeze(Utilities);
-
 export default Utilities;

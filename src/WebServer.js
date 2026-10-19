@@ -1,8 +1,6 @@
 import JsonFX from './JsonFX.js';
 import Server from './Server.js';
-
 const WebServer = {};
-
 const js_rx = /\.js$/i;
 const css_rx = /\.css$/i;
 const fs = await import('node:fs');
@@ -44,7 +42,8 @@ class WebSrv {
         this.#server = typeof options.secureKeyFile === 'string' && typeof options.secureCertFile === 'string' ? https.createServer({
             key: fs.readFileSync(options.secureKeyFile),
             cert: fs.readFileSync(options.secureCertFile),
-        }, app) : http.createServer(app);;
+        }, app) : http.createServer(app);
+        ;
         // support parsing of application/json type post data
         app.use(bodyParser.json({ limit: '32mb' }));
         //support parsing of application/x-www-form-urlencoded post data
@@ -71,19 +70,17 @@ class WebSrv {
                 const body = request.body;
                 if (typeof body.receiver !== 'string') {
                     response.send(JsonFX.stringify({ error: `Invalid receiver for request: ${body.receiver}` }, false));
-                } else {
+                }
+                else {
                     const handler = this.#postRequestHandler[body.receiver];
                     if (typeof handler !== 'function') {
                         response.send(JsonFX.stringify({ error: `Invalid handler for receiver: ${body.receiver}` }, false));
                         return;
                     }
                     try {
-                        handler(
-                            body.request,
-                            result => response.send(JsonFX.stringify({ result }, false)),
-                            error => response.send(JsonFX.stringify({ error: error.toString() }, false))
-                        );
-                    } catch (error) {
+                        handler(body.request, result => response.send(JsonFX.stringify({ result }, false)), error => response.send(JsonFX.stringify({ error: error.toString() }, false)));
+                    }
+                    catch (error) {
                         response.send(JsonFX.stringify({ error: `Failed calling handler for receiver: ${body.receiver}: ${error.message}` }, false));
                     }
                 }
@@ -121,7 +118,7 @@ class WebSrv {
         const id = this.addStaticDirectory(directory);
         buffer.push(`/${id}/${name}`);
     }
-    addStaticFile() { // Note: No not change to lambda function, because 'arguments' will not work anymore!
+    addStaticFile() {
         const dir = arguments.length === 1 ? path.dirname(arguments[0]) : arguments[0];
         const name = arguments.length === 1 ? path.basename(arguments[0]) : arguments[1];
         if (typeof dir === 'string' && typeof name === 'string') {
@@ -203,30 +200,35 @@ class WebSrv {
     registerPostRequestHandler(receiver, onRequest) {
         if (typeof receiver !== 'string') {
             throw new Error(`WebServer.registerPostRequestHandler(): Invalid receiver for post request handler: '${receiver}'`);
-        } else if (typeof onRequest !== 'function') {
+        }
+        else if (typeof onRequest !== 'function') {
             throw new Error(`WebServer.registerPostRequestHandler(): Post request handler for receiver '${receiver}' is not a function`);
-        } else if (this.#postRequestHandler[receiver] !== undefined) {
+        }
+        else if (this.#postRequestHandler[receiver] !== undefined) {
             throw new Error(`WebServer.registerPostRequestHandler(): Post request handler '${receiver}' is already registered`);
-        } else {
+        }
+        else {
             this.#postRequestHandler[receiver] = onRequest;
         }
     }
     unregisterPostRequestHandler(receiver, onRequest) {
         if (typeof receiver !== 'string') {
             throw new Error(`WebServer.unregisterPostRequestHandler(): Invalid receiver for post request handler: '${receiver}'`);
-        } else if (typeof onRequest !== 'function') {
+        }
+        else if (typeof onRequest !== 'function') {
             throw new Error(`WebServer.unregisterPostRequestHandler(): Post request handler for receiver '${receiver}' is not a function`);
-        } else if (this.#postRequestHandler[receiver] === undefined) {
+        }
+        else if (this.#postRequestHandler[receiver] === undefined) {
             throw new Error(`WebServer.unregisterPostRequestHandler(): Post request handler '${receiver}' is not registered`);
-        } else if (this.#postRequestHandler[receiver] !== onRequest) {
+        }
+        else if (this.#postRequestHandler[receiver] !== onRequest) {
             throw new Error(`WebServer.unregisterPostRequestHandler(): Post request handler '${receiver}' is registered for another handler`);
-        } else {
+        }
+        else {
             delete this.#postRequestHandler[receiver];
         }
     }
 }
 WebServer.Server = WebSrv;
-
 Object.freeze(WebServer);
-
 export default WebServer;

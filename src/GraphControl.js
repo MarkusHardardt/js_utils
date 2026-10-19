@@ -5,23 +5,21 @@ import Sorting from './Sorting.js';
 import Core from './Core.js';
 import Mathematics from './Mathematics.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
-
 const GraphControl = {};
-
 const RAD2DEG = Mathematics.RAD2DEG;
 const DEG2RAD = Mathematics.DEG2RAD;
 const PI = Math.PI;
 const TWO_PI = PI + PI;
 // zoom factor: double by three clicks: Math.exp(Math.log(2)/3)
 const ZOOM_FACTOR = Math.exp(Math.log(2) / 3);
-
 function getCanvasAttribute(hmiObject, attribute) {
     let object = hmiObject;
     while (object !== null && typeof object === 'object') {
         let val = object[attribute];
         if (val !== undefined) {
             return val;
-        } else if (object._hmi_canvas !== undefined) {
+        }
+        else if (object._hmi_canvas !== undefined) {
             // this is our canvas root object so we must not search on higher level
             return undefined;
         }
@@ -36,18 +34,15 @@ function getCanvasAttribute(hmiObject, attribute) {
     }
     return undefined;
 }
-
 function getCanvasPixel(object, attribute, scale, defaultValue) {
     const val = getCanvasAttribute(object, attribute);
     const pix = ObjectLifecycleManager.getPixelValue(val);
     return typeof pix === 'number' ? pix : (typeof val === 'number' ? val * scale : defaultValue);
 }
-
 function getPixelSize(value, scale, defaultValue) {
     const pix = ObjectLifecycleManager.getPixelValue(value);
     return typeof pix === 'number' ? pix : (typeof value === 'number' ? value * scale : defaultValue);
 }
-
 function applyZoom(that, disableVisuEvents, enableEditorEvents) {
     let _p = {};
     let _cont = that._hmi_context.container;
@@ -240,7 +235,8 @@ function applyZoom(that, disableVisuEvents, enableEditorEvents) {
                                     _tf.initForPoints(_x1, _y1, _x2, _y2, ix1, iy1, ix2, iy2);
                                     // we got to set this flag because the standard initForBounds() method does not handle rotation
                                     that._hmi_rotated = true;
-                                } else {
+                                }
+                                else {
                                     delete _bounds.x;
                                     delete _bounds.y;
                                     delete _bounds.width;
@@ -353,7 +349,6 @@ function applyZoom(that, disableVisuEvents, enableEditorEvents) {
         that = undefined;
     });
 }
-
 const REQUIRED_CONTEXT2D_METHODS = ['save', 'restore', 'setTransform', 'clearRect', 'fillRect', 'strokeRect', 'beginPath', 'closePath', 'moveTo', 'lineTo', 'arcTo', 'stroke', 'fill', 'translate', 'rotate', 'scale', 'arc', 'rect', 'fillText', 'strokeText', 'drawImage'];
 function isValidContext2d(context) {
     for (let i = 0; i < REQUIRED_CONTEXT2D_METHODS.length; i++) {
@@ -363,8 +358,7 @@ function isValidContext2d(context) {
     }
     return true;
 }
-
-function validateAsContext2d(instance) { // TODO: Use or remove
+function validateAsContext2d(instance) {
     return Core.validateAs('Context2d', instance, [
         'save|function',
         'restore|function',
@@ -389,7 +383,6 @@ function validateAsContext2d(instance) { // TODO: Use or remove
         'drawImage|function'
     ], false);
 }
-
 /**
  * <code> compare(1,2)
  * 2 \ 1 |  f  |  l  |  b
@@ -405,31 +398,36 @@ function compareGraphicObjectLayer(object1, object2, mirror) {
     if (z1 === 'foreground') {
         // #1 or #2/#3
         return z2 === 'foreground' ? Sorting.EQUAL : Sorting.BIGGER;
-    } else if (z1 === 'background') {
+    }
+    else if (z1 === 'background') {
         // #9 or #7/#8
         return z2 === 'background' ? Sorting.EQUAL : Sorting.SMALLER;
-    } else {
+    }
+    else {
         if (z2 === 'foreground') {
             // #4
             return Sorting.SMALLER;
-        } else if (z2 === 'background') {
+        }
+        else if (z2 === 'background') {
             // #6
             return Sorting.BIGGER;
-        } else {
+        }
+        else {
             // #5
             if (typeof z1 === 'number') {
                 const res = Sorting.compareNumber(z1, typeof z2 === 'number' ? z2 : 0);
                 return mirror ? -res : res;
-            } else if (typeof z2 === 'number') {
+            }
+            else if (typeof z2 === 'number') {
                 const res = Sorting.compareNumber(0, z2);
                 return mirror ? -res : res;
-            } else {
+            }
+            else {
                 return Sorting.EQUAL;
             }
         }
     }
 }
-
 // graph types
 const ARC = 1;
 const RECT = 2;
@@ -437,7 +435,6 @@ const IMAGE = 3;
 const TEXT = 4;
 const PATH = 5;
 const CURVE = 6;
-
 const EVENT_CROSS_SIZE = 20;
 function strokeCross(context, x, y) {
     context.beginPath();
@@ -447,7 +444,6 @@ function strokeCross(context, x, y) {
     context.lineTo(x + EVENT_CROSS_SIZE, y - EVENT_CROSS_SIZE);
     context.stroke();
 }
-
 function updateBounds(bounds, x, y) {
     // get the current bound values
     const x1 = bounds.x1, y1 = bounds.y1, x2 = bounds.x2, y2 = bounds.y2;
@@ -464,9 +460,7 @@ function updateBounds(bounds, x, y) {
         bounds.y2 = y;
     }
 }
-
 const s_bounds_transform = new Mathematics.Transform();
-
 const s_layouts_regex = {
     finalNullRequired: false,
     first: /\b(?:top|bottom|left|right)\b/g,
@@ -478,8 +472,7 @@ const s_layouts_regex = {
     },
     convertMatchToId: id => id
 };
-
-function layoutChildren(children, layoutRules, separator) { // TODO: Check if this still works after refactoring
+function layoutChildren(children, layoutRules, separator) {
     // check for layout rules
     const layout = layoutRules && typeof layoutRules === 'string' && layoutRules.length > 0 ? layoutRules : '';
     const layoutParts = [];
@@ -537,7 +530,8 @@ function layoutChildren(children, layoutRules, separator) { // TODO: Check if th
                     if (child.align2 === true) {
                         val2 = val12;
                         val1 = val11;
-                    } else {
+                    }
+                    else {
                         val2 = d1 / 2;
                         val1 = -val2;
                     }
@@ -579,7 +573,8 @@ function layoutChildren(children, layoutRules, separator) { // TODO: Check if th
                                 off2 -= bounds._hmi_d2;
                             }
                         }
-                    } else {
+                    }
+                    else {
                         off2 = bounds[v22];
                         for (let i = cen1 + 1; i < end; i++) {
                             child = children[i];
@@ -594,7 +589,8 @@ function layoutChildren(children, layoutRules, separator) { // TODO: Check if th
                         }
                     }
                 }
-            } else { // no explicit center means we center the whole row
+            }
+            else { // no explicit center means we center the whole row
                 off2 = (inc2 ? -dim2 : dim2) / 2;
             }
             dif1 = max1 - min1;
@@ -607,7 +603,8 @@ function layoutChildren(children, layoutRules, separator) { // TODO: Check if th
                 if (child !== object && bounds._hmi_valid === true) {
                     if (child.align2 === true) {
                         child[v1] = off1;
-                    } else {
+                    }
+                    else {
                         d1 = bounds._hmi_d1;
                         child[v1] = off1 + bounds._hmi_d1 / 2 - bounds[v12];
                     }
@@ -627,7 +624,6 @@ function layoutChildren(children, layoutRules, separator) { // TODO: Check if th
         sta = end;
     }
 }
-
 // mouse events
 const MOUSEEVENT_CLICK = 1;
 const MOUSEEVENT_DBLCLICK = 2;
@@ -648,7 +644,6 @@ const TOUCHEVENT_TOUCHMOVE = 22;
 const TOUCHEVENT_TOUCHEND = 23;
 const TOUCHEVENT_TOUCHLEAVE = 24;
 const TOUCHEVENT_TOUCHCANCEL = 25;
-
 function applyEventListener(that, context, onEvent) {
     let _cont = context.container;
     let _listening = false;
@@ -806,16 +801,15 @@ function applyEventListener(that, context, onEvent) {
     that._hmi_addEventListeners();
     ObjectLifecycleManager.addEventListener(that);
 }
-
 function isNumberOrPixelValue(value) {
     if (typeof value === 'string') {
         const idx = value.indexOf('px');
         return idx > 0 && isNaN(value.substring(0, idx)) === false;
-    } else {
+    }
+    else {
         return typeof value === 'number';
     }
 }
-
 function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents, onSuccess, onError) {
     that._hmi_graphics = true;
     that._hmi_isButton = typeof that.pressed === 'function';
@@ -870,10 +864,10 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
             that._hmi_refreshs.push(date => {
                 /*
                  * This is the repaint function for the whole canvas object tree.
-                 * 
+                 *
                  * The framework calls this function after the optional configuration
                  * objects refresh method has been called.
-                 * 
+                 *
                  * The following operations will be performed in this order: 1.
                  * Initialize base coordinate transformation to transform between the
                  * given bounds and our canvas. The default canvas origin is top left
@@ -1010,10 +1004,12 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                                 const t = tt[i];
                                 strokeCross(_ctx, t.clientX - offs.left, t.clientY - offs.top);
                             }
-                        } else {
+                        }
+                        else {
                             strokeCross(_ctx, evt.clientX - offs.left, evt.clientY - offs.top);
                         }
-                    } else {
+                    }
+                    else {
                         _white = true;
                     }
                     _ctx.restore();
@@ -1031,7 +1027,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     const rect = container.offset();
                     that._hmi_mouseMoveX = event.clientX - rect.left;
                     that._hmi_mouseMoveY = event.clientY - rect.top;
-                };
+                }
+                ;
                 container.on('mousemove', on_mouse_move);
                 that._hmi_destroys.push(() => {
                     container.off('mousemove', on_mouse_move);
@@ -1055,7 +1052,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                                 search = false;
                                 try {
                                     hmiObject.pressed(event);
-                                } catch (error) {
+                                }
+                                catch (error) {
                                     console.error(`Failed calling pressed(): ${hmiObject.pressed.toString()}`, error);
                                 }
                             }
@@ -1105,7 +1103,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 }
             };
             applyEventListener(that, context, onEvent);
-        } else {
+        }
+        else {
             that._hmi_canvas.remove();
             let div = '<div style="box-sizing: border-box;position: relative;width: 100%;height: 100%;"><h1>';
             div += '!!! INVALID CANVAS CONTEXT 2D !!!';
@@ -1116,7 +1115,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
             div += '()</div>';
             $(div).appendTo(_cont);
         }
-    } else {
+    }
+    else {
         that.hmi_setVisible = visible => that._hmi_visible = visible === true;
         that.hmi_isVisible = () => that._hmi_visible;
     }
@@ -1143,7 +1143,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
     that.hmi_text = text => {
         if (text !== undefined && text !== null) {
             that.text = typeof text === 'string' ? text : text.toString();
-        } else {
+        }
+        else {
             return that.text;
         }
     };
@@ -1172,7 +1173,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
             }
             res.width = width / scale;
             res.height = text.length * fontSize / scale;
-        } else {
+        }
+        else {
             let txt = text;
             if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                 txt = txt.toString();
@@ -1191,7 +1193,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
             try {
                 paint.call(that, date);
                 return true;
-            } catch (error) {
+            }
+            catch (error) {
                 console.error(`Failed calling paint(): ${paint.toString()}`, error);
                 return false;
             }
@@ -1219,7 +1222,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 return false;
             }
             type = ARC;
-        } else if (w !== undefined && h !== undefined) {
+        }
+        else if (w !== undefined && h !== undefined) {
             w = getPixelSize(w, scale);
             h = getPixelSize(h, scale);
             if (typeof w !== 'number' || w <= 0.5 || typeof h !== 'number' || h <= 0.5) {
@@ -1230,10 +1234,12 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     return false;
                 }
                 type = IMAGE;
-            } else {
+            }
+            else {
                 type = RECT;
             }
-        } else if (w !== undefined && img !== undefined) {
+        }
+        else if (w !== undefined && img !== undefined) {
             w = getPixelSize(w, scale);
             if (typeof w !== 'number' || w < 0.5) {
                 return false;
@@ -1241,7 +1247,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
             h = Math.floor(w * img.naturalHeight / img.naturalWidth);
             w = Math.floor(w);
             type = IMAGE;
-        } else if (h !== undefined && img !== undefined) {
+        }
+        else if (h !== undefined && img !== undefined) {
             h = getPixelSize(h, scale);
             if (typeof h !== 'number' || h < 0.5) {
                 return false;
@@ -1249,19 +1256,24 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
             w = Math.floor(h * img.naturalWidth / img.naturalHeight);
             h = Math.floor(h);
             type = IMAGE;
-        } else if (text !== undefined) {
+        }
+        else if (text !== undefined) {
             fontSize = getCanvasPixel(that, 'fontSize', scale);
             if (typeof fontSize !== 'number') {
                 fontSize = 10;
-            } else if (fontSize < 2) {
+            }
+            else if (fontSize < 2) {
                 return false;
             }
             type = TEXT;
-        } else if (Array.isArray(points) && points.length >= 2) {
+        }
+        else if (Array.isArray(points) && points.length >= 2) {
             type = PATH;
-        } else if (curve && curve.stroke && typeof from === 'number' && typeof to === 'number') {
+        }
+        else if (curve && curve.stroke && typeof from === 'number' && typeof to === 'number') {
             type = CURVE;
-        } else if (img) {
+        }
+        else if (img) {
             w = img.naturalWidth;
             h = img.naturalHeight;
             type = IMAGE;
@@ -1306,7 +1318,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     _ctx.rotate(theta);
                     _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
-                } else if (typeof angle === 'number') {
+                }
+                else if (typeof angle === 'number') {
                     _ctx.translate(ox, oy);
                     let theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
                     if (that.upright !== true) {
@@ -1315,7 +1328,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     _ctx.rotate(theta);
                     _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
-                } else if (that.upright !== true) {
+                }
+                else if (that.upright !== true) {
                     _ctx.translate(ox, oy);
                     _ctx.rotate(tfrot);
                     _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
@@ -1340,7 +1354,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 if (typeof that.phi1 === 'number' && typeof that.phi2 === 'number') {
                     phi1 = that.phi1;
                     phi2 = that.phi2;
-                } else if (typeof that.angle1 === 'number' && typeof that.angle2 === 'number') {
+                }
+                else if (typeof that.angle1 === 'number' && typeof that.angle2 === 'number') {
                     phi1 = that.angle1 * DEG2RAD;
                     phi2 = that.angle2 * DEG2RAD;
                 }
@@ -1385,7 +1400,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     // 4. round edge
                     _ctx.arcTo(x, y, xr, y, rb);
                     _ctx.closePath();
-                } else {
+                }
+                else {
                     _ctx.rect(x, y, w, h);
                 }
                 break;
@@ -1400,13 +1416,15 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     const y1 = _p.y;
                     if (i === 0 || p.move === true) {
                         _ctx.moveTo(x1, y1);
-                    } else if (typeof rad === 'number' && rad > 0.0 && (closed ? i < len : i < len - 1)) {
+                    }
+                    else if (typeof rad === 'number' && rad > 0.0 && (closed ? i < len : i < len - 1)) {
                         const p = points[(i + 1) % len];
                         _tf.transform(p.x, p.y, _p);
                         const x2 = _p.x;
                         const y2 = _p.y;
                         _ctx.arcTo(x1, y1, x2, y2, rad * scale);
-                    } else {
+                    }
+                    else {
                         _ctx.lineTo(x1, y1);
                     }
                 }
@@ -1511,7 +1529,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     const l = that.left;
                     if (typeof l === 'number') {
                         left = l;
-                    } else {
+                    }
+                    else {
                         const r = that.right;
                         if (typeof r === 'number') {
                             left = -r;
@@ -1561,7 +1580,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                                 _ctx.strokeText(txt, x, y);
                             }
                         }
-                    } else {
+                    }
+                    else {
                         let txt = text;
                         if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                             txt = txt.toString();
@@ -1607,7 +1627,6 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
         let type = undefined;
         const img = that._hmi_image;
         const curve = that._hmi_curve;
-
         // ///////////////////////////////////////////////////////////////////////////////////////////////
         // In the next blocks we update some values and try to find out what we
         // are and if we are visible
@@ -1618,7 +1637,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 return false;
             }
             type = ARC;
-        } else if (w !== undefined && h !== undefined) {
+        }
+        else if (w !== undefined && h !== undefined) {
             w = getPixelSize(w, scale);
             h = getPixelSize(h, scale);
             if (typeof w !== 'number' || w <= 0.5 || typeof h !== 'number' || h <= 0.5) {
@@ -1629,10 +1649,12 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     return false;
                 }
                 type = IMAGE;
-            } else {
+            }
+            else {
                 type = RECT;
             }
-        } else if (w !== undefined && img !== undefined) {
+        }
+        else if (w !== undefined && img !== undefined) {
             w = getPixelSize(w, scale);
             if (typeof w !== 'number' || w < 0.5) {
                 return false;
@@ -1640,7 +1662,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
             h = Math.floor(w * img.naturalHeight / img.naturalWidth);
             w = Math.floor(w);
             type = IMAGE;
-        } else if (h !== undefined && img !== undefined) {
+        }
+        else if (h !== undefined && img !== undefined) {
             h = getPixelSize(h, scale);
             if (typeof h !== 'number' || h < 0.5) {
                 return false;
@@ -1648,19 +1671,24 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
             w = Math.floor(h * img.naturalWidth / img.naturalHeight);
             h = Math.floor(h);
             type = IMAGE;
-        } else if (text !== undefined) {
+        }
+        else if (text !== undefined) {
             fontSize = getCanvasPixel(that, 'fontSize', scale); // TODO: Why we do this twice?
             if (typeof fontSize !== 'number') {
                 fontSize = 10;
-            } else if (fontSize < 5) {
+            }
+            else if (fontSize < 5) {
                 return false;
             }
             type = TEXT;
-        } else if (Array.isArray(points) && points.length >= 2) {
+        }
+        else if (Array.isArray(points) && points.length >= 2) {
             type = PATH;
-        } else if (curve) {
+        }
+        else if (curve) {
             type = CURVE;
-        } else if (img) {
+        }
+        else if (img) {
             w = img.naturalWidth;
             h = img.naturalHeight;
             type = IMAGE;
@@ -1697,7 +1725,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     _ctx.rotate(theta);
                     _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
-                } else if (typeof angle === 'number') {
+                }
+                else if (typeof angle === 'number') {
                     _ctx.translate(ox, oy);
                     const theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
                     if (that.upright !== true) {
@@ -1706,7 +1735,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     _ctx.rotate(theta);
                     _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
                     _ctx.translate(-ox, -oy);
-                } else if (that.upright !== true) {
+                }
+                else if (that.upright !== true) {
                     _ctx.translate(ox, oy);
                     _ctx.rotate(tfrot);
                     _ctx.scale(that.flipX === true ? -sc : sc, that.flipY === true ? -sc : sc);
@@ -1731,7 +1761,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 if (typeof that.phi1 === 'number' && typeof that.phi2 === 'number') {
                     phi1 = that.phi1;
                     phi2 = that.phi2;
-                } else if (typeof that.angle1 === 'number' && typeof that.angle2 === 'number') {
+                }
+                else if (typeof that.angle1 === 'number' && typeof that.angle2 === 'number') {
                     phi1 = that.angle1 * DEG2RAD;
                     phi2 = that.angle2 * DEG2RAD;
                 }
@@ -1776,7 +1807,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     // 4. round edge
                     _ctx.arcTo(x, y, xr, y, rb);
                     _ctx.closePath();
-                } else {
+                }
+                else {
                     _ctx.rect(x, y, w, h);
                 }
                 break;
@@ -1790,13 +1822,15 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     const y1 = _p.y;
                     if (i === 0 || p.move === true) {
                         _ctx.moveTo(x1, y1);
-                    } else if (typeof rad === 'number' && rad > 0.0 && (closed ? i < len : i < len - 1)) {
+                    }
+                    else if (typeof rad === 'number' && rad > 0.0 && (closed ? i < len : i < len - 1)) {
                         const p = points[i + 1];
                         _tf.transform(p.x, p.y, _p);
                         const x2 = _p.x;
                         const y2 = _p.y;
                         _ctx.arcTo(x1, y1, x2, y2, p.r * scale);
-                    } else {
+                    }
+                    else {
                         _ctx.lineTo(x1, y1);
                     }
                 }
@@ -1842,7 +1876,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                         }
                     }
                     _ctx.rect(x0, y0, x1 - x0, fontSize * text.length);
-                } else {
+                }
+                else {
                     let txt = text;
                     if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                         txt = txt.toString();
@@ -1908,14 +1943,15 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
         _ctx.restore();
         return result;
     };
-    that.hmi_getBounds = function () { // Note: No not change to lambda function, because 'arguments' will not work anymore!
+    that.hmi_getBounds = function () {
         let recursive, bounds;
         // try to read from arguments
         for (let i = 0, l = arguments.length; i < l; i++) {
             const arg = arguments[i];
             if (recursive === undefined && typeof arg === 'boolean') {
                 recursive = arg;
-            } else if (bounds === undefined && arg !== null && typeof arg === 'object') {
+            }
+            else if (bounds === undefined && arg !== null && typeof arg === 'object') {
                 bounds = arg;
             }
         }
@@ -1974,7 +2010,6 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
         let type = undefined;
         const img = that._hmi_image;
         const curve = that._hmi_curve;
-
         // ///////////////////////////////////////////////////////////////////////////////////////////////
         // In the next blocks we update some values and try to find out what we
         // are and if we are visible
@@ -1985,7 +2020,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 return;
             }
             type = ARC;
-        } else if (w !== undefined && h !== undefined) {
+        }
+        else if (w !== undefined && h !== undefined) {
             w = getPixelSize(w, 1.0);
             h = getPixelSize(h, 1.0);
             if (typeof w !== 'number' || w <= 0.0 || typeof h !== 'number' || h <= 0.0) {
@@ -1996,36 +2032,44 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     return;
                 }
                 type = IMAGE;
-            } else {
+            }
+            else {
                 type = RECT;
             }
-        } else if (w !== undefined && img !== undefined) {
+        }
+        else if (w !== undefined && img !== undefined) {
             w = getPixelSize(w, 1.0);
             if (typeof w !== 'number' || w <= 0.0) {
                 return;
             }
             h = w * img.naturalHeight / img.naturalWidth;
             type = IMAGE;
-        } else if (h !== undefined && img !== undefined) {
+        }
+        else if (h !== undefined && img !== undefined) {
             h = getPixelSize(h, 1.0);
             if (typeof h !== 'number' || h <= 0.0) {
                 return;
             }
             w = h * img.naturalWidth / img.naturalHeight;
             type = IMAGE;
-        } else if (text !== undefined) {
-            fontSize = getCanvasPixel(that, 'fontSize', 1.0);  // TODO: Why we do this twice?
+        }
+        else if (text !== undefined) {
+            fontSize = getCanvasPixel(that, 'fontSize', 1.0); // TODO: Why we do this twice?
             if (typeof fontSize !== 'number') {
                 fontSize = 10;
-            } else if (fontSize <= 0) {
+            }
+            else if (fontSize <= 0) {
                 return;
             }
             type = TEXT;
-        } else if (Array.isArray(points) && points.length >= 2) {
+        }
+        else if (Array.isArray(points) && points.length >= 2) {
             type = PATH;
-        } else if (curve) {
+        }
+        else if (curve) {
             type = CURVE;
-        } else if (img) {
+        }
+        else if (img) {
             w = img.naturalWidth;
             h = img.naturalHeight;
             type = IMAGE;
@@ -2060,12 +2104,14 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     transform.rotate(phi);
                     transform.setScale(sc);
                     transform.translate(-ox, -oy);
-                } else if (typeof angle === 'number') {
+                }
+                else if (typeof angle === 'number') {
                     transform.translate(ox, oy);
                     transform.rotate(angle * DEG2RAD);
                     transform.setScale(sc);
                     transform.translate(-ox, -oy);
-                } else if (that.upright !== true) {
+                }
+                else if (that.upright !== true) {
                     transform.translate(ox, oy);
                     transform.setScale(sc);
                     transform.translate(-ox, -oy);
@@ -2156,7 +2202,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     updateBounds(bounds, _p.x, _p.y);
                     transform.transform(x1, y0 + h, _p);
                     updateBounds(bounds, _p.x, _p.y);
-                } else {
+                }
+                else {
                     let txt = text;
                     if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                         txt = txt.toString();
@@ -2220,7 +2267,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 _ctx.rotate(theta);
                 _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                 _ctx.translate(-ox, -oy);
-            } else if (typeof angle === 'number') {
+            }
+            else if (typeof angle === 'number') {
                 _ctx.translate(ox, oy);
                 const theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
                 if (config.upright !== true) {
@@ -2229,7 +2277,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 _ctx.rotate(theta);
                 _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                 _ctx.translate(-ox, -oy);
-            } else if (config.upright !== true) {
+            }
+            else if (config.upright !== true) {
                 _ctx.translate(ox, oy);
                 _ctx.rotate(tfrot);
                 _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
@@ -2269,7 +2318,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 _ctx.rotate(theta);
                 _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                 _ctx.translate(-ox, -oy);
-            } else if (typeof angle === 'number') {
+            }
+            else if (typeof angle === 'number') {
                 _ctx.translate(ox, oy);
                 const theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
                 if (config.upright !== true) {
@@ -2278,7 +2328,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 _ctx.rotate(theta);
                 _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                 _ctx.translate(-ox, -oy);
-            } else if (config.upright !== true) {
+            }
+            else if (config.upright !== true) {
                 _ctx.translate(ox, oy);
                 _ctx.rotate(tfrot);
                 _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
@@ -2303,7 +2354,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 // 4. round edge
                 _ctx.arcTo(x, y, xr, y, rb);
                 _ctx.closePath();
-            } else {
+            }
+            else {
                 _ctx.rect(x, y, w, h);
             }
         };
@@ -2331,7 +2383,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
             if (typeof config.phi1 === 'number' && typeof config.phi2 === 'number') {
                 phi1 = config.phi1;
                 phi2 = config.phi2;
-            } else if (typeof config.angle1 === 'number' && typeof config.angle2 === 'number') {
+            }
+            else if (typeof config.angle1 === 'number' && typeof config.angle2 === 'number') {
                 phi1 = config.angle1 * DEG2RAD;
                 phi2 = config.angle2 * DEG2RAD;
             }
@@ -2377,13 +2430,15 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 const y1 = _p.y;
                 if (i === 0 || p.move === true) {
                     _ctx.moveTo(x1, y1);
-                } else if (typeof rad === 'number' && rad > 0.0 && i < len - 1) {
+                }
+                else if (typeof rad === 'number' && rad > 0.0 && i < len - 1) {
                     const p = points[i + 1];
                     _tf.transform(p.x, p.y, _p);
                     const x2 = _p.x;
                     const y2 = _p.y;
                     _ctx.arcTo(x1, y1, x2, y2, rad * scale);
-                } else {
+                }
+                else {
                     _ctx.lineTo(x1, y1);
                 }
             }
@@ -2410,7 +2465,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
             let fontSize = getCanvasPixel(config, 'fontSize', scale); // TODO: Why we do this twice?
             if (typeof fontSize !== 'number') {
                 fontSize = 10;
-            } else if (fontSize < 5) {
+            }
+            else if (fontSize < 5) {
                 return;
             }
             _tf.transform(typeof config.x === 'number' ? config.x : 0.0, typeof config.y === 'number' ? config.y : 0.0, _p);
@@ -2434,7 +2490,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 _ctx.rotate(theta);
                 _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                 _ctx.translate(-ox, -oy);
-            } else if (typeof angle === 'number') {
+            }
+            else if (typeof angle === 'number') {
                 _ctx.translate(ox, oy);
                 const theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
                 if (config.upright !== true) {
@@ -2443,7 +2500,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 _ctx.rotate(theta);
                 _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                 _ctx.translate(-ox, -oy);
-            } else if (config.upright !== true) {
+            }
+            else if (config.upright !== true) {
                 _ctx.translate(ox, oy);
                 _ctx.rotate(tfrot);
                 _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
@@ -2503,7 +2561,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                             _ctx.strokeText(txt, x, y);
                         }
                     }
-                } else {
+                }
+                else {
                     let txt = text;
                     if (typeof txt !== 'string' && txt !== undefined && txt !== null) {
                         txt = txt.toString();
@@ -2532,21 +2591,24 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 if (typeof w !== 'number' || w <= 0.5 || typeof h !== 'number' || h <= 0.5) {
                     return;
                 }
-            } else if (w !== undefined) {
+            }
+            else if (w !== undefined) {
                 w = getPixelSize(w, scale);
                 if (typeof w !== 'number' || w < 0.5) {
                     return;
                 }
                 h = Math.floor(w * image.naturalHeight / image.naturalWidth);
                 w = Math.floor(w);
-            } else if (h !== undefined) {
+            }
+            else if (h !== undefined) {
                 h = getPixelSize(h, scale);
                 if (typeof h !== 'number' || h < 0.5) {
                     return;
                 }
                 w = Math.floor(h * image.naturalWidth / image.naturalHeight);
                 h = Math.floor(h);
-            } else {
+            }
+            else {
                 w = image.naturalWidth;
                 h = image.naturalHeight;
             }
@@ -2571,7 +2633,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 _ctx.rotate(theta);
                 _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                 _ctx.translate(-ox, -oy);
-            } else if (typeof angle === 'number') {
+            }
+            else if (typeof angle === 'number') {
                 _ctx.translate(ox, oy);
                 const theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
                 if (config.upright !== true) {
@@ -2580,7 +2643,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 _ctx.rotate(theta);
                 _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
                 _ctx.translate(-ox, -oy);
-            } else if (config.upright !== true) {
+            }
+            else if (config.upright !== true) {
                 _ctx.translate(ox, oy);
                 _ctx.rotate(tfrot);
                 _ctx.scale(config.flipX === true ? -sc : sc, config.flipY === true ? -sc : sc);
@@ -2664,7 +2728,7 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
          * paintable object or other groups. Every child of our group has its own
          * coordinate transform that may be translated, rotated, scaled and
          * mirrored at the x or y axis.
-         * 
+         *
          * In the next lines we iterate over all children and those which are
          * graphical objects will be handled recursively.
          */
@@ -2727,13 +2791,15 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                     theta += tfrot;
                 }
                 rot = Math.floor(Mathematics.normalizeToPlusMinus180deg(theta * RAD2DEG));
-            } else if (typeof angle === 'number') {
+            }
+            else if (typeof angle === 'number') {
                 const theta = mx === my ? angle * DEG2RAD : -angle * DEG2RAD;
                 if (child.upright !== true) {
                     theta += tfrot;
                 }
                 rot = Math.floor(Mathematics.normalizeToPlusMinus180deg(theta * RAD2DEG));
-            } else if (child.upright !== true) {
+            }
+            else if (child.upright !== true) {
                 rot = Math.floor(Mathematics.normalizeToPlusMinus180deg(tfrot * RAD2DEG));
             }
             let scale = child.scale;
@@ -2774,7 +2840,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                         if (child !== hmiobj) {
                             hmiobj._hmi_context.transform.setToCoordinateTransform(child, _tf);
                         }
-                    } else if (!ObjectLifecycleManager.isTaskType(hmiobj)) {
+                    }
+                    else if (!ObjectLifecycleManager.isTaskType(hmiobj)) {
                         const width = getPixelSize(child.width, _tf.scale);
                         const height = getPixelSize(child.height, _tf.scale);
                         if (typeof width === 'number' && typeof height === 'number') {
@@ -2792,16 +2859,18 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                 if (curve.type === 'arcline') {
                     const al = new Mathematics.ArcLine(curve);
                     curve._hmi_curveImpl = al;
-                } else if (curve.type === 'ropeline') {
+                }
+                else if (curve.type === 'ropeline') {
                     const rl = new Mathematics.RopeLine(curve);
                     curve._hmi_curveImpl = rl;
                 }
             }
-        } else {
+        }
+        else {
             _curves = undefined;
         }
         for (let i = 0; i < _children.length; i++) {
-            (function () { // closure
+            (function () {
                 const child = _children[i];
                 const hmiobj = child._hmi_object;
                 if (hmiobj) {
@@ -2879,10 +2948,12 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
                             }
                             // #graph: 1
                             tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont, transform: ctf, context2d: _ctx }, onSuc, onErr));
-                        } else if (ObjectLifecycleManager.isTaskType(hmiobj)) {
+                        }
+                        else if (ObjectLifecycleManager.isTaskType(hmiobj)) {
                             // #graph: 2
                             tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont }, onSuc, onErr));
-                        } else {
+                        }
+                        else {
                             child._hmi_graphHtmlElement = $(ObjectLifecycleManager.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                             child._hmi_graphHtmlElement.appendTo(_cont);
                             const width = getPixelSize(child.width, _tf.scale);
@@ -2985,7 +3056,8 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
             that._hmi_canvas.remove();
             delete that._hmi_canvas;
             delete that._hmi_graphicsRoot;
-        } else {
+        }
+        else {
             delete that.hmi_setVisible;
             delete that.hmi_isVisible;
         }
@@ -3033,9 +3105,6 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
     });
     Executor.run(tasks, onSuccess, onError);
 }
-
 ObjectLifecycleManager.setApplyGraphicObjectFunction(applyGraphicObject);
-
 Object.freeze(GraphControl);
-
 export default GraphControl;

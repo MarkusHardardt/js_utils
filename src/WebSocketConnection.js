@@ -1,7 +1,6 @@
 import Server from './Server.js';
 import Core from './Core.js';
 import Common from './Common.js';
-
 const WebSocketConnection = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 const wsModule = isNodeJS ? await import('ws') : null;
@@ -14,9 +13,7 @@ function formatSesionId(sessionId) {
     return `${sessionId.substring(0, FORMATED_SESSION_ID_PART_LENGTH)}..${sessionId.substring(sessionId.length - FORMATED_SESSION_ID_PART_LENGTH, sessionId.length)}`;
 }
 WebSocketConnection.formatSesionId = formatSesionId;
-
 WebSocketConnection.GET_WEB_SOCKET_SESSION_CONFIG = '/get_web_socket_session_config';
-
 const TelegramType = Object.freeze({
     PingRequest: 1,
     PingResponse: 2,
@@ -24,7 +21,6 @@ const TelegramType = Object.freeze({
     DataResponse: 4,
     ErrorResponse: 5
 });
-
 /*  The Connection constructor requires the following arguments:
     - sessionId: received from web server (using ajax)
     - options: {
@@ -49,7 +45,8 @@ class Connection {
             if (typeof options.onOpen === 'function') {
                 try {
                     options.onOpen();
-                } catch (error) {
+                }
+                catch (error) {
                     this._logger.error('Failed calling onOpen()', error);
                 }
             }
@@ -58,7 +55,8 @@ class Connection {
             if (typeof options.onClose === 'function') {
                 try {
                     options.onClose();
-                } catch (error) {
+                }
+                catch (error) {
                     this._logger.error('Failed calling onClose()', error);
                 }
             }
@@ -82,14 +80,16 @@ class Connection {
             const telegram = { type: TelegramType.PingRequest };
             this._callbacks[telegram.callback = this._nextId()] = { localRequestUTC: Date.now(), onResponse, onError };
             this._webSocket.send(JSON.stringify(telegram));
-        } else {
+        }
+        else {
             throw new Error('Connection.ping(): cannot send ping request when disconnected!');
         }
     }
     #handlePingRequest(callback) {
         if (this.isConnected) {
             this._webSocket.send(JSON.stringify({ type: TelegramType.PingResponse, callback, utc: Date.now() }));
-        } else {
+        }
+        else {
             this._logger.error('Cannot send ping reponse when disconnected');
         }
     }
@@ -112,10 +112,12 @@ class Connection {
                 if (cb.onResponse) {
                     cb.onResponse(localResponseUTC - cb.localRequestUTC);
                 }
-            } catch (error) {
+            }
+            catch (error) {
                 this._logger.error('Failed calling onResponse()', error);
             }
-        } else {
+        }
+        else {
             this._logger.error('Missing ping callback');
         }
     }
@@ -126,20 +128,25 @@ class Connection {
     register(receiver, handler) {
         if (typeof receiver !== 'string') {
             throw new Error('Connection.register(receiver, handler): receiver must be a string!');
-        } else if (typeof handler !== 'function') {
+        }
+        else if (typeof handler !== 'function') {
             throw new Error('Connection.register(receiver, handler): handler must be a function!');
-        } else if (this._handlers[receiver]) {
+        }
+        else if (this._handlers[receiver]) {
             throw new Error(`Connection.register(receiver, handler): handler "${receiver}" already registered!`);
-        } else {
+        }
+        else {
             this._handlers[receiver] = handler;
         }
     }
     unregister(receiver) {
         if (typeof receiver !== 'string') {
             throw new Error('Connection.unregister(receiver): receiver must be a string!');
-        } else if (this._handlers[receiver] === undefined) {
+        }
+        else if (this._handlers[receiver] === undefined) {
             throw new Error(`Connection.unregister(receiver): "${receiver}" not registered!`);
-        } else {
+        }
+        else {
             delete this._handlers[receiver];
         }
     }
@@ -151,7 +158,8 @@ class Connection {
             }
             this._webSocket.send(JSON.stringify(telegram));
             return true;
-        } else {
+        }
+        else {
             throw new Error('Connection.send(): cannot send data request when disconnected!');
         }
     }
@@ -163,20 +171,24 @@ class Connection {
                     handler(requestData, responseData => {
                         if (this.isConnected) {
                             this._webSocket.send(JSON.stringify({ type: TelegramType.DataResponse, callback, data: responseData }));
-                        } else {
+                        }
+                        else {
                             this._logger.error('Cannot send data response when disconnected');
                         }
                     }, error => {
                         if (this.isConnected) {
                             this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: error ? error : true }));
-                        } else {
+                        }
+                        else {
                             this._logger.error('Cannot send error response when disconnected', error);
                         }
                     });
-                } catch (error) {
+                }
+                catch (error) {
                     if (this.isConnected) {
                         this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `failed calling receive handler '${receiver}'! error: ${error.message}` }));
-                    } else {
+                    }
+                    else {
                         this._logger.error(`Failed calling receive handler '${receiver}' but cannot send error response when disconnected`, error);
                     }
                 }
@@ -184,18 +196,22 @@ class Connection {
             else {
                 try {
                     handler(requestData);
-                } catch (error) {
+                }
+                catch (error) {
                     if (this.isConnected) {
                         this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, error: `failed calling receive handler '${receiver}'! error: ${error.message}` }));
-                    } else {
+                    }
+                    else {
                         this._logger.error(`Failed calling receive handler '${receiver}' but cannot send error response when disconnected`, error);
                     }
                 }
             }
-        } else {
+        }
+        else {
             if (this.isConnected) {
                 this._webSocket.send(JSON.stringify({ type: TelegramType.ErrorResponse, callback, error: `unknown receiver: '${receiver}'` }));
-            } else {
+            }
+            else {
                 this._logger.error(`Cannot send error response for unknown receiver: '${receiver}' when disconnected`);
             }
         }
@@ -208,10 +224,12 @@ class Connection {
                 if (cb.onResponse) {
                     cb.onResponse(data, Date.now() - cb.localRequestUTC);
                 }
-            } catch (error) {
+            }
+            catch (error) {
                 this._logger.error('Failed calling onResponse()', error);
             }
-        } else {
+        }
+        else {
             this._logger.error('Missing data callback');
         }
     }
@@ -222,13 +240,16 @@ class Connection {
             if (cb.onError) {
                 try {
                     cb.onError(error, Date.now() - cb.localRequestUTC);
-                } catch (error) {
+                }
+                catch (error) {
                     this._logger.error('Failed calling onError()', error);
                 }
-            } else {
+            }
+            else {
                 this._logger.error(error);
             }
-        } else {
+        }
+        else {
             this._logger.error(error);
         }
     }
@@ -255,7 +276,6 @@ class Connection {
         }
     }
 }
-
 // Client
 if (!isNodeJS) {
     const ClientState = Object.freeze({
@@ -265,12 +285,10 @@ if (!isNodeJS) {
         Online: 3,
         Disconnected: 4
     });
-
     const DEFAULT_HEARTBEAT_INTERVAL = 5000;
     const DEFAULT_HEARTBEAT_TIMEOUT = 1000;
     const DEFAULT_RECONNECT_START_INTERVAL = 1000;
     const DEFAULT_RECONNECT_MAX_INTERVAL = 32000;
-
     /*  WebSocketClientConnection extends Connection and the constructor requires the following arguments:
         - hostname: taken from url (using document.location.hostname)
         - config: { received as stuct from web server (using ajax)
@@ -341,18 +359,15 @@ if (!isNodeJS) {
                 case ClientState.Idle:
                     this.#stopHeartbeatMonitoring();
                     break;
-
                 case ClientState.Connecting:
                 case ClientState.Reconnecting:
                     this.#connect();
                     break;
-
                 case ClientState.Online:
                     this.#startHeartbeatMonitoring();
                     this.#retryDelay = this.#reconnectStart;
                     this._onOpen();
                     break;
-
                 case ClientState.Disconnected:
                     this.#stopHeartbeatMonitoring();
                     this.#scheduleReconnect();
@@ -403,15 +418,11 @@ if (!isNodeJS) {
                     this.#transition(ClientState.Reconnecting);
                 }
             }, this.#retryDelay);
-            this.#retryDelay = Math.min(
-                this.#retryDelay * 2,
-                this.#reconnectMax
-            );
+            this.#retryDelay = Math.min(this.#retryDelay * 2, this.#reconnectMax);
         }
     }
     WebSocketConnection.ClientConnection = WebSocketClientConnection;
 }
-
 // Server
 if (isNodeJS) {
     /*  WebSocketServerConnection extends Connection and the constructor requires the following arguments:
@@ -459,9 +470,7 @@ if (isNodeJS) {
             this._onOpen(this);
         }
     }
-
     const DEFAULT_CLOSED_CONNECTION_DISPOSE_TIMEOUT = 60000;
-
     /*  The WebSocketServer constructor requires the following arguments:
         - port: the port for the socket server
         - options: {
@@ -471,8 +480,8 @@ if (isNodeJS) {
             onClose(connection): will be called when socket connection has been lost
             onDispose(connection): will be called when socket connection has been lost and not established again before the timeout has expired
             onError(connection, error): will be called when an error occurred
-          }   
-        A server has the following public interface:    
+          }
+        A server has the following public interface:
         - CreateSessionConfig(): returns a configuration object containing the port and a new unique session id    */
     class WebSocketServer {
         #logger;
@@ -492,7 +501,8 @@ if (isNodeJS) {
                     cert: fs.readFileSync(options.secureCertFile)
                 });
                 this.#server = new WebSocketServerImplementation({ server: this.#httpsServer });
-            } else {
+            }
+            else {
                 this.#httpsServer = null;
                 this.#server = new WebSocketServerImplementation({ port });
             }
@@ -505,8 +515,9 @@ if (isNodeJS) {
                     this.#instances[sessionId] = instance = {};
                     if (isUTC) {
                         instance.createdUTC = createdUTC;
-                    } else {
-                        this.#logger.debug(`Web socket connected with unknown session id: '${formatSesionId(sessionId)}'`)
+                    }
+                    else {
+                        this.#logger.debug(`Web socket connected with unknown session id: '${formatSesionId(sessionId)}'`);
                     }
                     instance.connection = new WebSocketServerConnection(logger, sessionId, {
                         onOpen: () => {
@@ -516,21 +527,26 @@ if (isNodeJS) {
                                 if (typeof options.onOpen === 'function') {
                                     try {
                                         options.onOpen(instance.connection);
-                                    } catch (error) {
+                                    }
+                                    catch (error) {
                                         this.#logger.error('Failed calling onOpen()', error);
                                     }
-                                } else {
+                                }
+                                else {
                                     this.#logger.debug(`Connection opened with session id: '${formatSesionId(sessionId)}'`);
                                 }
-                            } else {
+                            }
+                            else {
                                 clearTimeout(instance.disposeTimeoutTimer);
                                 if (typeof options.onReopen === 'function') {
                                     try {
                                         options.onReopen(instance.connection);
-                                    } catch (error) {
+                                    }
+                                    catch (error) {
                                         this.#logger.error('Failed calling onReopen()', error);
                                     }
-                                } else {
+                                }
+                                else {
                                     this.#logger.debug(`Connection reopened with session id: '${formatSesionId(sessionId)}'`);
                                 }
                             }
@@ -540,10 +556,12 @@ if (isNodeJS) {
                             if (typeof options.onClose === 'function') {
                                 try {
                                     options.onClose(instance.connection);
-                                } catch (error) {
+                                }
+                                catch (error) {
                                     this.#logger.error('Failed calling onClose()', error);
                                 }
-                            } else {
+                            }
+                            else {
                                 this.#logger.debug(`Connection closed with session id: '${formatSesionId(sessionId)}'`);
                             }
                             instance.disposeTimeoutTimer = setTimeout(() => {
@@ -551,10 +569,12 @@ if (isNodeJS) {
                                 if (typeof options.onDispose === 'function') {
                                     try {
                                         options.onDispose(instance.connection);
-                                    } catch (error) {
+                                    }
+                                    catch (error) {
                                         this.#logger.error('Failed calling onDispose()', error);
                                     }
-                                } else {
+                                }
+                                else {
                                     this.#logger.debug(`Connection disposed with session id: '${formatSesionId(sessionId)}'`);
                                 }
                             }, options.closedConnectionDisposeTimeout ?? DEFAULT_CLOSED_CONNECTION_DISPOSE_TIMEOUT);
@@ -563,10 +583,12 @@ if (isNodeJS) {
                             if (typeof options.onError === 'function') {
                                 try {
                                     options.onError(instance.connection, error);
-                                } catch (error) {
+                                }
+                                catch (error) {
                                     this.#logger.error('Failed calling onError()', error);
                                 }
-                            } else {
+                            }
+                            else {
                                 this.#logger.error(`Error in connection with session id: '${formatSesionId(sessionId)}'`, error);
                             }
                         }
@@ -600,7 +622,5 @@ if (isNodeJS) {
     }
     WebSocketConnection.Server = WebSocketServer;
 }
-
 Object.freeze(WebSocketConnection);
-
 export default WebSocketConnection;

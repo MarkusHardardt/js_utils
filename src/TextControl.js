@@ -17,7 +17,6 @@ import { Decoration, ViewPlugin } from '@codemirror/view';
 import { html } from '@codemirror/lang-html';
 import { javascript, javascriptLanguage, scopeCompletionSource } from '@codemirror/lang-javascript';
 import { SearchQuery, search } from '@codemirror/search';
-
 const TextControl = {};
 const autocompleteScope = {
     Executor,
@@ -34,7 +33,6 @@ const autocompleteScope = {
     Access,
     ContentManager
 };
-
 const setTextSearch = StateEffect.define();
 function createTextSearchQuery(searchText) {
     return new SearchQuery({
@@ -80,8 +78,7 @@ const textSearchHighlight = ViewPlugin.fromClass(class {
             while (i < ranges.length - 1 && to > ranges[i + 1].from - 2 * searchText.length) {
                 to = ranges[++i].to;
             }
-            const cursor = query.getCursor(view.state, Math.max(0, from - searchText.length),
-                Math.min(view.state.doc.length, to + searchText.length));
+            const cursor = query.getCursor(view.state, Math.max(0, from - searchText.length), Math.min(view.state.doc.length, to + searchText.length));
             let match;
             while (!(match = cursor.next()).done) {
                 decorations.add(match.value.from, match.value.to, textSearchMark);
@@ -96,7 +93,6 @@ const textSearchTheme = EditorView.baseTheme({
     '.cm-hmi-searchMatch': { backgroundColor: '#ffff0054' },
     '&dark .cm-hmi-searchMatch': { backgroundColor: '#00ffff8a' }
 });
-
 function applyTextField(that, onSuccess) {
     let _cont = that._hmi_context.container;
     _cont.addClass('overflow-hidden');
@@ -105,7 +101,8 @@ function applyTextField(that, onSuccess) {
     that.hmi_value = value => {
         if (typeof value === 'string') {
             _textfield.val(value);
-        } else {
+        }
+        else {
             return _textfield.val();
         }
     };
@@ -136,7 +133,6 @@ function applyTextField(that, onSuccess) {
     onSuccess();
 }
 ObjectLifecycleManager.addApplyFunctionForType('textfield', applyTextField);
-
 function applyTextArea(that, onSuccess) {
     let _cont = that._hmi_context.container;
     _cont.addClass('overflow-hidden');
@@ -189,22 +185,26 @@ function applyTextArea(that, onSuccess) {
                         comma_first: false,
                         e4x: false,
                     };
-                } else if (that.beautify !== null && typeof that.beautify === 'object') {
+                }
+                else if (that.beautify !== null && typeof that.beautify === 'object') {
                     opts = that.beautify;
                 }
                 if (opts) {
                     try {
                         // source = unpacker_filter(source);
                         source = that.code === 'html' ? html_beautify(source, opts) : js_beautify(source, opts);
-                    } catch (error) {
+                    }
+                    catch (error) {
                         console.error('Beautifyer failed', error);
                     }
                 }
                 _code.setValue(source);
-            } else {
+            }
+            else {
                 _textarea.val(value);
             }
-        } else {
+        }
+        else {
             return _code ? _code.getValue() : _textarea.val();
         }
     };
@@ -225,7 +225,8 @@ function applyTextArea(that, onSuccess) {
             const scrollTopMax = _code.scrollDOM.scrollHeight - _code.scrollDOM.clientHeight;
             const top = scrollTopMax > 0 ? _code.scrollDOM.scrollTop / scrollTopMax : 0.0;
             return left > 0 || top > 0 ? { left, top } : null;
-        } else {
+        }
+        else {
             return null;
         }
     };
@@ -359,7 +360,8 @@ function applyTextArea(that, onSuccess) {
                             break;
                         }
                         result = match;
-                    } else if (match.index >= from) {
+                    }
+                    else if (match.index >= from) {
                         result = match;
                         break;
                     }
@@ -408,14 +410,16 @@ function applyTextArea(that, onSuccess) {
     that.hmi_addChangeListener = listener => {
         if (_code) {
             _changeListeners.add(listener);
-        } else {
+        }
+        else {
             _textarea.bind('input propertychange', listener);
         }
     };
     that.hmi_removeChangeListener = listener => {
         if (_code) {
             _changeListeners.delete(listener);
-        } else {
+        }
+        else {
             _textarea.unbind('input propertychange', listener);
         }
     };
@@ -446,7 +450,5 @@ function applyTextArea(that, onSuccess) {
     onSuccess();
 }
 ObjectLifecycleManager.addApplyFunctionForType('textarea', applyTextArea);
-
 Object.freeze(TextControl);
-
 export default TextControl;

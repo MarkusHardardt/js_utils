@@ -5,7 +5,7 @@ function exec(object, onSuccess, onError, onTimeout, timeoutMillis) {
         try {
             let thisCall = true, hasSuccess = false, hasError = false, result, exception;
             // call safely ...
-            object(response => { // on success:
+            object(response => {
                 if (!done) {
                     done = true;
                     if (timeoutTimer) {
@@ -14,11 +14,12 @@ function exec(object, onSuccess, onError, onTimeout, timeoutMillis) {
                     if (thisCall) {
                         hasSuccess = true;
                         result = response;
-                    } else {
+                    }
+                    else {
                         onSuccess(response);
                     }
                 }
-            }, error => { // on error:
+            }, error => {
                 if (!done) {
                     done = true;
                     if (timeoutTimer) {
@@ -27,7 +28,8 @@ function exec(object, onSuccess, onError, onTimeout, timeoutMillis) {
                     if (thisCall) {
                         hasError = true;
                         exception = error;
-                    } else {
+                    }
+                    else {
                         onError(error);
                     }
                 }
@@ -35,9 +37,11 @@ function exec(object, onSuccess, onError, onTimeout, timeoutMillis) {
             thisCall = false;
             if (hasError) {
                 onError(exception);
-            } else if (hasSuccess) {
+            }
+            else if (hasSuccess) {
                 onSuccess(result);
-            } else if (timeoutMillis && typeof onTimeout === 'function') { // start watchdog only if required
+            }
+            else if (timeoutMillis && typeof onTimeout === 'function') { // start watchdog only if required
                 timeoutTimer = setTimeout(() => {
                     if (!done) {
                         done = true;
@@ -45,11 +49,13 @@ function exec(object, onSuccess, onError, onTimeout, timeoutMillis) {
                     }
                 }, Math.ceil(timeoutMillis));
             }
-        } catch (error) {
+        }
+        catch (error) {
             done = true;
             onError(error);
         }
-    } else if (Array.isArray(object)) {
+    }
+    else if (Array.isArray(object)) {
         // There are several ways to configure the serial / parallel behavior of
         // this mechanism. So at first we try to resolve how many tasks may be
         // called together and what is our first task.
@@ -57,14 +63,16 @@ function exec(object, onSuccess, onError, onTimeout, timeoutMillis) {
         let count = 1;
         if (object.parallel === true || object[0] === true) {
             count = end - start;
-        } else if (typeof object.parallel === 'number' && object.parallel > 0) {
+        }
+        else if (typeof object.parallel === 'number' && object.parallel > 0) {
             count = Math.min(object.parallel, end - start);
-        } else if (typeof object[0] === 'number' && object[0] > 0) {
+        }
+        else if (typeof object[0] === 'number' && object[0] > 0) {
             count = Math.min(object[0], end - start);
         }
         // We store our task states inside an array and by calling 'next()' we
         // either trigger the next task or our success callback.
-        let results, done = false
+        let results, done = false;
         const states = [], next = () => {
             if (!done) {
                 let t, thisCall, hasSuccess, hasError, exception;
@@ -84,13 +92,15 @@ function exec(object, onSuccess, onError, onTimeout, timeoutMillis) {
                                 if (result !== undefined) {
                                     if (results) {
                                         results.push(result);
-                                    } else {
+                                    }
+                                    else {
                                         results = [result];
                                     }
                                 }
                                 if (thisCall) {
                                     hasSuccess = true;
-                                } else {
+                                }
+                                else {
                                     next();
                                 }
                             }, error => {
@@ -98,7 +108,8 @@ function exec(object, onSuccess, onError, onTimeout, timeoutMillis) {
                                 if (thisCall) {
                                     hasError = true;
                                     exception = error;
-                                } else {
+                                }
+                                else {
                                     onError(error);
                                 }
                             }, onTimeout, timeoutMillis);
@@ -107,7 +118,8 @@ function exec(object, onSuccess, onError, onTimeout, timeoutMillis) {
                         if (hasError) {
                             onError(exception);
                             return;
-                        } else if (!hasSuccess) {
+                        }
+                        else if (!hasSuccess) {
                             return;
                         }
                     }
@@ -132,15 +144,16 @@ function exec(object, onSuccess, onError, onTimeout, timeoutMillis) {
             for (let t = start; t < e; t++) {
                 next();
             }
-        } else {
+        }
+        else {
             onSuccess();
         }
-    } else {
+    }
+    else {
         onError(`Cannot execute! Object is not a function and no array: ${object}`);
     }
 }
-
-function run() { // Note: No not change to lambda function, because 'arguments' will not work anymore!
+function run() {
     // init callbacks and helpers
     const al = arguments.length;
     const onSuccess = al > 1 && typeof arguments[1] === 'function' ? arguments[1] : false;
@@ -150,7 +163,8 @@ function run() { // Note: No not change to lambda function, because 'arguments' 
         const ar = arguments[ai];
         if (onTimeout !== ar && typeof ar === 'function') {
             onTimeout = ar;
-        } else if (!millis && typeof ar === 'number' && ar > 0) {
+        }
+        else if (!millis && typeof ar === 'number' && ar > 0) {
             millis = ar;
         }
     }
@@ -159,16 +173,19 @@ function run() { // Note: No not change to lambda function, because 'arguments' 
         if (thisCall) {
             hasSuccess = true;
             result = res;
-        } else if (onSuccess) {
+        }
+        else if (onSuccess) {
             onSuccess(res);
         }
     }, error => {
         if (thisCall) {
             hasError = true;
             exception = error;
-        } else if (onError) {
+        }
+        else if (onError) {
             onError(error);
-        } else {
+        }
+        else {
             throw new Error(`EXCEPTION! Cannot execute: ${error}`);
         }
     }, onTimeout, millis);
@@ -176,16 +193,17 @@ function run() { // Note: No not change to lambda function, because 'arguments' 
     if (hasError) {
         if (onError) {
             onError(exception);
-        } else {
+        }
+        else {
             throw new Error(`EXCEPTION! Cannot execute: ${exception}`);
         }
-    } else if (hasSuccess && onSuccess) {
+    }
+    else if (hasSuccess && onSuccess) {
         onSuccess(result);
     }
 }
 Executor.run = run;
-
-function pipe() {// Note: No not change to lambda function, because 'arguments' will not work anymore!
+function pipe() {
     // init callbacks and helpers
     const al = arguments.length;
     const onError = al > 0 && typeof arguments[0] === 'function' ? arguments[0] : false;
@@ -194,7 +212,8 @@ function pipe() {// Note: No not change to lambda function, because 'arguments' 
         const ar = arguments[ai];
         if (onTimeout !== ar && typeof ar === 'function') {
             onTimeout = ar;
-        } else if (!timeoutMillis && typeof ar === 'number' && ar > 0) {
+        }
+        else if (!timeoutMillis && typeof ar === 'number' && ar > 0) {
             timeoutMillis = ar;
         }
     }
@@ -205,7 +224,7 @@ function pipe() {// Note: No not change to lambda function, because 'arguments' 
             while (tasks.length > 0) {
                 try {
                     // get next task, remove from pipe and run task
-                    task = tasks[0]
+                    task = tasks[0];
                     tasks.splice(0, 1);
                     running = true;
                     thisCall = true;
@@ -218,7 +237,8 @@ function pipe() {// Note: No not change to lambda function, because 'arguments' 
                             running = false;
                             if (thisCall) {
                                 hasSuccess = true;
-                            } else if (tasks.length > 0) {
+                            }
+                            else if (tasks.length > 0) {
                                 run();
                             }
                         }
@@ -230,9 +250,11 @@ function pipe() {// Note: No not change to lambda function, because 'arguments' 
                             if (thisCall) {
                                 hasError = true;
                                 exception = error;
-                            } else if (onError) {
+                            }
+                            else if (onError) {
                                 onError(error);
-                            } else {
+                            }
+                            else {
                                 console.error(`ERROR! On performing task: ${error}`);
                             }
                         }
@@ -241,11 +263,13 @@ function pipe() {// Note: No not change to lambda function, because 'arguments' 
                     if (hasError) {
                         if (onError) {
                             onError(exception);
-                        } else {
+                        }
+                        else {
                             console.error(`ERROR! On performing task: ${exception}`);
                         }
                         return;
-                    } else if (!hasSuccess) {
+                    }
+                    else if (!hasSuccess) {
                         if (timeoutMillis && onTimeout) {
                             timeoutTimer = setTimeout(() => {
                                 if (running) {
@@ -259,12 +283,14 @@ function pipe() {// Note: No not change to lambda function, because 'arguments' 
                         }
                         return;
                     }
-                } catch (exc) {
+                }
+                catch (exc) {
                     running = false;
                     tasks.splice(0, tasks.length);
                     if (onError) {
                         onError(exc);
-                    } else {
+                    }
+                    else {
                         console.error(`EXCEPTION! On performing task: ${exc}`);
                     }
                     return;
@@ -272,7 +298,7 @@ function pipe() {// Note: No not change to lambda function, because 'arguments' 
             }
         }
     };
-    return function () { // Note: No not change to lambda function, because 'arguments' will not work anymore!
+    return function () {
         if (typeof arguments[0] === 'function') {
             tasks.push(arguments[0]);
             if (!running) {
@@ -282,8 +308,7 @@ function pipe() {// Note: No not change to lambda function, because 'arguments' 
     };
 }
 Executor.pipe = pipe;
-
-function decouple() { // Note: No not change to lambda function, because 'arguments' will not work anymore!
+function decouple() {
     // init callbacks and times
     const al = arguments.length;
     let action = false, delay = false, millis = false;
@@ -291,13 +316,16 @@ function decouple() { // Note: No not change to lambda function, because 'argume
         const ar = arguments[ai];
         if (!action && typeof ar === 'function') {
             action = ar;
-        } else if (!millis && typeof ar === 'number' && ar > 0) {
+        }
+        else if (!millis && typeof ar === 'number' && ar > 0) {
             millis = ar;
-        } else if (!delay && typeof ar === 'number' && ar > 0) {
+        }
+        else if (!delay && typeof ar === 'number' && ar > 0) {
             if (ar > millis) {
                 delay = millis;
                 millis = ar;
-            } else {
+            }
+            else {
                 delay = ar;
             }
         }
@@ -305,7 +333,8 @@ function decouple() { // Note: No not change to lambda function, because 'argume
     const perform = () => {
         try {
             action();
-        } catch (exc) {
+        }
+        catch (exc) {
             console.error('EXCEPTION! Cannot perform minimum timeout action: ' + exc);
         }
     };
@@ -319,7 +348,8 @@ function decouple() { // Note: No not change to lambda function, because 'argume
                 // perform immediately
                 prev = time;
                 perform();
-            } else {
+            }
+            else {
                 // if previous call is too short in the past we wait until timeout
                 timeoutTimer = setTimeout(() => {
                     prev = new Date().getTime();
@@ -340,8 +370,7 @@ function decouple() { // Note: No not change to lambda function, because 'argume
     } : trigger;
 }
 Executor.decouple = decouple;
-
-function unstress() { // Note: No not change to lambda function, because 'arguments' will not work anymore!
+function unstress() {
     // init callbacks and helpers
     const al = arguments.length;
     const onError = al > 0 && typeof arguments[0] === 'function' ? arguments[0] : false;
@@ -350,7 +379,8 @@ function unstress() { // Note: No not change to lambda function, because 'argume
         const ar = arguments[ai];
         if (onTimeout !== ar && typeof ar === 'function') {
             onTimeout = ar;
-        } else if (!timeoutMillis && typeof ar === 'number' && ar > 0) {
+        }
+        else if (!timeoutMillis && typeof ar === 'number' && ar > 0) {
             timeoutMillis = ar;
         }
     }
@@ -369,7 +399,8 @@ function unstress() { // Note: No not change to lambda function, because 'argume
                             busy = false;
                             if (timeoutTimer) {
                                 clearTimeout(timeoutTimer);
-                            } if (latestRequestedTask !== task) {
+                            }
+                            if (latestRequestedTask !== task) {
                                 run(latestRequestedTask);
                             }
                         }
@@ -398,7 +429,8 @@ function unstress() { // Note: No not change to lambda function, because 'argume
                             }
                         }, Math.ceil(timeoutMillis));
                     }
-                } catch (exc) {
+                }
+                catch (exc) {
                     busy = false;
                     if (timeoutTimer) {
                         clearTimeout(timeoutTimer);
@@ -413,7 +445,5 @@ function unstress() { // Note: No not change to lambda function, because 'argume
     return run;
 }
 Executor.unstress = unstress;
-
 Object.seal(Executor);
-
 export default Executor;

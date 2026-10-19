@@ -1,9 +1,7 @@
 import Executor from './Executor.js';
 import Utilities from './Utilities.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
-
 const FloatLayout = {};
-
 function getFloatingBounds(child, containerWidth, containerHeight) {
     // get the alignment
     const alignment = ObjectLifecycleManager.getAlignment(child.align, undefined, false, true);
@@ -26,7 +24,6 @@ function getFloatingBounds(child, containerWidth, containerHeight) {
         height: Math.floor(pixH)
     };
 }
-
 function applyFloat(that, onSuccess, onError, enableEditorEvents) {
     let tasks = [];
     let _cont = that._hmi_context.container;
@@ -97,7 +94,8 @@ function applyFloat(that, onSuccess, onError, enableEditorEvents) {
                         // #float: 1
                         tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont }, onSuc, onErr));
                     }
-                } else {
+                }
+                else {
                     child._hmi_floatElement = $(ObjectLifecycleManager.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                     child._hmi_floatElement.appendTo(_mainDiv);
                     ObjectLifecycleManager.setBounds(child._hmi_floatElement, getFloatingBounds(child, width, height));
@@ -204,9 +202,8 @@ function applyFloat(that, onSuccess, onError, enableEditorEvents) {
         that = undefined;
     });
     Executor.run(tasks, onSuccess, onError);
-};
+}
+;
 ObjectLifecycleManager.addApplyFunctionForType('float', applyFloat);
-
 Object.freeze(FloatLayout);
-
 export default FloatLayout;

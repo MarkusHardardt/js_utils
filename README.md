@@ -43,6 +43,23 @@ See [HMI_CONFIGURATION.md](./HMI_CONFIGURATION.md) for the object types,
 database content model, object-key rules, include behavior, lifecycle hooks,
 and configuration fields.
 
+## TypeScript sources and build
+
+The `.ts` files are the source of truth. Their JavaScript output is kept beside
+them for existing Node.js package imports and browser module URLs. Run
+`npm run build` after changing TypeScript sources; the build also regenerates
+the public `js_utils` entry point from the module dependency graph. Run `npm run
+generate` when changing the module dependency graph or public exports; build
+requires the development dependencies to be installed.
+
+The initial library migration transpiles without type checking: the existing
+modules rely extensively on dynamically extended objects, so enabling the
+checker would require a separate API-typing migration. TypeScript does not
+make JavaScript stored in the database statically type-safe. JsonFX values and
+lifecycle/task hooks loaded from the database remain runtime JavaScript and
+continue to be reconstructed and evaluated by the existing runtime path.
+Configuration files remain JSON.
+
 ## HTTPS and secure WebSockets
 
 The server uses HTTPS and WSS when both `secureKeyFile` and `secureCertFile`

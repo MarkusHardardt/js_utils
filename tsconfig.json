@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "rootDir": ".",
+        "strict": false,
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "verbatimModuleSyntax": true,
+        "forceConsistentCasingInFileNames": true,
+        "types": ["node"],
+        "lib": ["ES2022", "DOM"],
+        "noCheck": true,
+        "noEmitOnError": true
+    },
+    "include": [
+        "js_utils.ts",
+        "js_utils_generator.ts",
+        "env/**/*.ts",
+        "src/**/*.ts",
+        "client/**/*.ts",
+        "server/**/*.ts"
+    ],
+    "exclude": ["node_modules"]
+}

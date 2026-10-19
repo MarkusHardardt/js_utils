@@ -1,5 +1,4 @@
 const Sorting = {};
-
 const CompareResult = Object.freeze({
     Bigger: 1,
     Equal: 0,
@@ -9,36 +8,39 @@ Sorting.CompareResult = CompareResult;
 Sorting.BIGGER = CompareResult.Bigger;
 Sorting.SMALLER = CompareResult.Smaller;
 Sorting.EQUAL = CompareResult.Equal;
-
 function compareNumber(n1, n2) {
     if (n1 > n2) {
         return CompareResult.Bigger;
-    } else if (n1 < n2) {
+    }
+    else if (n1 < n2) {
         return CompareResult.Smaller;
-    } else {
+    }
+    else {
         return CompareResult.Equal;
     }
 }
 Sorting.compareNumber = compareNumber;
-
 function compareObjects(o1, o2, compare) {
     if (o1 === o2) {
         return CompareResult.Equal;
-    } else if (typeof compare === 'function') {
+    }
+    else if (typeof compare === 'function') {
         return compare(o1, o2);
-    } else if (typeof o1.compareTo === 'function') {
+    }
+    else if (typeof o1.compareTo === 'function') {
         return o1.compareTo(o2);
-    } else if (typeof o2.compareTo === 'function') {
+    }
+    else if (typeof o2.compareTo === 'function') {
         return -o2.compareTo(o1);
-    } else {
+    }
+    else {
         return CompareResult.Equal;
     }
 }
-
 /**
  * This method returns the insertion index for the given object. The array
  * must be sorted!
- * 
+ *
  * @param {Object}
  *          entry The object to insert
  * @param {Object}
@@ -63,13 +65,15 @@ function getInsertionIndex(entry, array, negativeOnEqual, compare) {
             let result = compareObjects(entry, array[0], compare);
             if (negOnEq && result === 0) {
                 return -size;
-            } else if (result < 0) {
+            }
+            else if (result < 0) {
                 return 0;
             }
             result = compareObjects(entry, array[size - 1], compare);
             if (negOnEq && result === 0) {
                 return -1;
-            } else if (result >= 0) {
+            }
+            else if (result >= 0) {
                 return size;
             }
             // the following is a simple implementation of a bisection algorithm
@@ -88,7 +92,8 @@ function getInsertionIndex(entry, array, negativeOnEqual, compare) {
                 result = compareObjects(entry, array[Math.floor(idx + half)], compare);
                 if (negOnEq && result === 0) {
                     return idx + half - size;
-                } else if (result >= 0) {
+                }
+                else if (result >= 0) {
                     idx += half;
                 }
                 half = Math.floor(half / 2);
@@ -105,14 +110,12 @@ function getInsertionIndex(entry, array, negativeOnEqual, compare) {
     }
 }
 Sorting.getInsertionIndex = getInsertionIndex;
-
 // first equal
 function getIndexOfFirstEqual(value, array, compare) {
     const idx = getInsertionIndex(value, array, true, compare);
     return idx < 0 ? idx + array.length : -1;
 }
 Sorting.getIndexOfFirstEqual = getIndexOfFirstEqual;
-
 function getFirstIndexOfIdentical(array, value) {
     for (let i = 0, l = array.length; i < l; i++) {
         if (array[i] === value) {
@@ -122,7 +125,6 @@ function getFirstIndexOfIdentical(array, value) {
     return -1;
 }
 Sorting.getFirstIndexOfIdentical = getFirstIndexOfIdentical;
-
 function _quicksort(array, compare, low, high) {
     let i = low;
     let j = high;
@@ -149,7 +151,6 @@ function _quicksort(array, compare, low, high) {
         _quicksort(array, compare, i, high);
     }
 }
-
 function quicksort(array, compare) {
     if (array.length > 1) {
         _quicksort(array, compare, 0, array.length - 1);
@@ -157,7 +158,6 @@ function quicksort(array, compare) {
     return array;
 }
 Sorting.quicksort = quicksort;
-
 function compareStringsIgnorecase(s1, s2) {
     let idx = 0;
     const l1 = s1.length, l2 = s2.length;
@@ -167,7 +167,8 @@ function compareStringsIgnorecase(s1, s2) {
         const c2 = s2.charAt(idx).toLowerCase();
         if (c1 > c2) {
             return CompareResult.Bigger;
-        } else if (c1 < c2) {
+        }
+        else if (c1 < c2) {
             return CompareResult.Smaller;
         }
         idx++;
@@ -176,11 +177,9 @@ function compareStringsIgnorecase(s1, s2) {
     return dl > 0 ? CompareResult.Bigger : (dl < 0 ? CompareResult.Smaller : CompareResult.Equal);
 }
 Sorting.compareStringsIgnorecase = compareStringsIgnorecase;
-
 const MINUS = 45;
 const ZERO = 48;
 const NINE = 57;
-
 function compareTextsAndNumbers(s1, s2, ignoreCase, signed) {
     const ic = ignoreCase === true, sg = signed == true, l1 = s1.length, l2 = s2.length;
     let o1 = 0, c1, nc1, m1, e1, nl1, ni1;
@@ -217,10 +216,12 @@ function compareTextsAndNumbers(s1, s2, ignoreCase, signed) {
                         c1 = s1.charCodeAt(o1 + 1);
                         if (c1 === ZERO) {
                             o1++;
-                        } else if (c1 > ZERO && c1 <= NINE) {
+                        }
+                        else if (c1 > ZERO && c1 <= NINE) {
                             o1++;
                             break;
-                        } else {
+                        }
+                        else {
                             break;
                         }
                     }
@@ -230,7 +231,8 @@ function compareTextsAndNumbers(s1, s2, ignoreCase, signed) {
                     c1 = s1.charCodeAt(e1);
                     if (c1 >= ZERO && c1 <= NINE) {
                         e1++;
-                    } else {
+                    }
+                    else {
                         break;
                     }
                 }
@@ -241,10 +243,12 @@ function compareTextsAndNumbers(s1, s2, ignoreCase, signed) {
                         c2 = s2.charCodeAt(o2 + 1);
                         if (c2 === ZERO) {
                             o2++;
-                        } else if (c2 > ZERO && c2 <= NINE) {
+                        }
+                        else if (c2 > ZERO && c2 <= NINE) {
                             o2++;
                             break;
-                        } else {
+                        }
+                        else {
                             break;
                         }
                     }
@@ -254,7 +258,8 @@ function compareTextsAndNumbers(s1, s2, ignoreCase, signed) {
                     c2 = s2.charCodeAt(e2);
                     if (c2 >= ZERO && c2 <= NINE) {
                         e2++;
-                    } else {
+                    }
+                    else {
                         break;
                     }
                 }
@@ -266,7 +271,8 @@ function compareTextsAndNumbers(s1, s2, ignoreCase, signed) {
                 // handle different number lenghts
                 if (nl1 > nl2) {
                     return m1 ? CompareResult.Smaller : CompareResult.Bigger;
-                } else if (nl1 < nl2) {
+                }
+                else if (nl1 < nl2) {
                     return m2 ? CompareResult.Bigger : CompareResult.Smaller;
                 }
                 // handle equal number lenghts
@@ -277,7 +283,8 @@ function compareTextsAndNumbers(s1, s2, ignoreCase, signed) {
                     c2 = m2 ? -s2.charCodeAt(ni2) : s2.charCodeAt(ni2);
                     if (c1 > c2) {
                         return CompareResult.Bigger;
-                    } else if (c1 < c2) {
+                    }
+                    else if (c1 < c2) {
                         return CompareResult.Smaller;
                     }
                     ni1++;
@@ -285,15 +292,18 @@ function compareTextsAndNumbers(s1, s2, ignoreCase, signed) {
                 }
                 o1 = e1;
                 o2 = e2;
-            } else {
+            }
+            else {
                 // second is not a number
                 return CompareResult.Smaller;
             }
-        } else { // first is not a number
+        }
+        else { // first is not a number
             // second is a number
             if (c2 >= ZERO && c2 <= NINE) {
                 return CompareResult.Bigger;
-            } else {
+            }
+            else {
                 // second is not a number too
                 if (ic) {
                     c1 = s1.charAt(o1).toLowerCase();
@@ -301,7 +311,8 @@ function compareTextsAndNumbers(s1, s2, ignoreCase, signed) {
                 }
                 if (c1 > c2) {
                     return CompareResult.Bigger;
-                } else if (c1 < c2) {
+                }
+                else if (c1 < c2) {
                     return CompareResult.Smaller;
                 }
                 o1++;
@@ -313,7 +324,6 @@ function compareTextsAndNumbers(s1, s2, ignoreCase, signed) {
     return dl > 0 ? CompareResult.Bigger : (dl < 0 ? CompareResult.Smaller : CompareResult.Equal);
 }
 Sorting.compareTextsAndNumbers = compareTextsAndNumbers;
-
 function getTextsAndNumbersCompareFunction(ignoreCase, signed, upward) {
     return function (s1, s2) {
         const res = compareTextsAndNumbers(s1, s2, ignoreCase, signed);
@@ -321,19 +331,19 @@ function getTextsAndNumbersCompareFunction(ignoreCase, signed, upward) {
     };
 }
 Sorting.getTextsAndNumbersCompareFunction = getTextsAndNumbersCompareFunction;
-
 function compareDates(d1, d2) {
     const time1 = d1.getTime(), time2 = d2.getTime();
     if (time1 < time2) {
         return CompareResult.Smaller;
-    } else if (time1 > time2) {
+    }
+    else if (time1 > time2) {
         return CompareResult.Bigger;
-    } else {
+    }
+    else {
         return CompareResult.Equal;
     }
 }
 Sorting.compareDates = compareDates;
-
 class SortedSet {
     #noEqualObjectsAllowed;
     #compare;
@@ -343,21 +353,18 @@ class SortedSet {
         this.#compare = compare;
         this.#array = [];
     }
-
     resort() {
         quicksort(this.#array, this.#compare);
     }
-
     set compare(value) {
         if (typeof value !== 'function') {
             throw new Error(`Invalid function ompare(o1,o2): ${value}`);
-        } else {
+        }
+        else {
             this.#compare = compare;
             this.resort();
         }
-
     }
-
     insert(value) {
         const idx = getInsertionIndex(value, this.#array, this.#noEqualObjectsAllowed, this.#compare);
         if (idx >= 0) {
@@ -365,11 +372,11 @@ class SortedSet {
         }
         return idx;
     }
-
     remove(value) {
         if (typeof value === 'number') {
             return this.#array.splice(value, 1);
-        } else {
+        }
+        else {
             const idx = getFirstIndexOfIdentical(this.#array, value);
             if (idx !== -1) {
                 return this.#array.splice(idx, 1);
@@ -377,15 +384,12 @@ class SortedSet {
         }
         return null;
     }
-
     size() {
         return this.#array.length;
     }
-
     get(index) {
         return this.#array[index];
     }
-
     clear(offset, length) {
         const off = typeof offset === 'number' ? Math.max(offset, 0) : 0;
         const len = typeof length === 'number' ? Math.min(length, this.#array.length - off) : this.#array.length;
@@ -393,7 +397,5 @@ class SortedSet {
     }
 }
 Sorting.SortedSet = SortedSet;
-
 Object.freeze(Sorting);
-
 export default Sorting;

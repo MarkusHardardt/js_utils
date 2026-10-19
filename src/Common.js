@@ -1,7 +1,5 @@
 import Core from './Core.js';
-
 const Common = {};
-
 /* Logger interface */
 function validateAsLogger(instance, validateMethodArguments) {
     return Core.validateAs('Logger', instance, [
@@ -15,7 +13,6 @@ function validateAsLogger(instance, validateMethodArguments) {
     ], validateMethodArguments);
 }
 Common.validateAsLogger = validateAsLogger;
-
 /*  Observable inferface  */
 function validateAsObservable(instance, validateMethodArguments) {
     return Core.validateAs('Observable', instance, [
@@ -24,7 +21,6 @@ function validateAsObservable(instance, validateMethodArguments) {
     ], validateMethodArguments);
 }
 Common.validateAsObservable = validateAsObservable;
-
 /*  DataAccessObject inferface  */
 function validateAsDataAccessObject(instance, validateMethodArguments) {
     return Core.validateAs('DataAccessObject', instance, [
@@ -36,14 +32,12 @@ function validateAsDataAccessObject(instance, validateMethodArguments) {
     ], validateMethodArguments);
 }
 Common.validateAsDataAccessObject = validateAsDataAccessObject;
-
 /*  DataAccessServerObject inferface  */
 function validateAsDataAccessServerObject(instance, validateMethodArguments) {
     validateAsDataAccessObject(instance, validateMethodArguments);
     return Core.validateAs('DataAccessServerObject', instance, 'getDataPoints()', validateMethodArguments);
 }
 Common.validateAsDataAccessServerObject = validateAsDataAccessServerObject;
-
 /*  Connection inferface  */
 function validateAsConnection(instance, validateMethodArguments) {
     return Core.validateAs('Connection', instance, [
@@ -54,7 +48,6 @@ function validateAsConnection(instance, validateMethodArguments) {
     ], validateMethodArguments);
 }
 Common.validateAsConnection = validateAsConnection;
-
 /*  Connector inferface */
 function validateAsConnector(instance, validateMethodArguments) {
     return Core.validateAs('Connector', instance, [
@@ -63,14 +56,12 @@ function validateAsConnector(instance, validateMethodArguments) {
     ], validateMethodArguments);
 }
 Common.validateAsConnector = validateAsConnector;
-
 /*  ServerConnector inferface  */
 function validateAsServerConnector(instance, validateMethodArguments) {
     validateAsConnector(instance, validateMethodArguments);
     return Core.validateAs('ServerConnector', instance, 'setDataPoints(dataPoints)', validateMethodArguments);
 }
 Common.validateAsServerConnector = validateAsServerConnector;
-
 /*  ContentManager inferface  */
 function validateAsContentManager(instance, validateMethodArguments) {
     return Core.validateAs('ContentManager', instance, [
@@ -96,7 +87,6 @@ function validateAsContentManager(instance, validateMethodArguments) {
         'getAllForLanguage(language, onResponse, onError)'
     ], validateMethodArguments);
 }
-
 function validateAsClientContentManager(instance, validateMethodArguments) {
     validateAsContentManager(instance, validateMethodArguments);
     return Core.validateAs('ServerContentManager', instance, [
@@ -109,7 +99,6 @@ function validateAsClientContentManager(instance, validateMethodArguments) {
     ], validateMethodArguments);
 }
 Common.validateAsClientContentManager = validateAsClientContentManager;
-
 function validateAsServerContentManager(instance, validateMethodArguments) {
     validateAsContentManager(instance, validateMethodArguments);
     return Core.validateAs('ServerContentManager', instance, [
@@ -119,7 +108,5 @@ function validateAsServerContentManager(instance, validateMethodArguments) {
     ], validateMethodArguments);
 }
 Common.validateAsServerContentManager = validateAsServerContentManager;
-
 Object.freeze(Common);
-
 export default Common;

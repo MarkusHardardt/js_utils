@@ -2,9 +2,7 @@ import Executor from './Executor.js';
 import Utilities from './Utilities.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import ContentManager from './ContentManager.js';
-
 const GridLayout = {};
-
 function createGridCoordinates(parameter) {
     // here we store the resulting coordinates
     const coordinates = [];
@@ -16,7 +14,8 @@ function createGridCoordinates(parameter) {
         for (let i = 0; i < len; i++) {
             coordinates.push({ part });
         }
-    } else if (parameter !== undefined && parameter !== null && Array.isArray(parameter) && parameter.length > 0) { // in case of an array we add relative parts and absolute pixels
+    }
+    else if (parameter !== undefined && parameter !== null && Array.isArray(parameter) && parameter.length > 0) { // in case of an array we add relative parts and absolute pixels
         let validPartCnt = 0;
         let validPixelCnt = 0;
         let sum = 0.0;
@@ -27,7 +26,8 @@ function createGridCoordinates(parameter) {
             if (typeof pixel === 'number') {
                 coor.pixel = Math.floor(pixel);
                 validPixelCnt++;
-            } else if (typeof param === 'number' && param > 0.0) {
+            }
+            else if (typeof param === 'number' && param > 0.0) {
                 sum += param;
                 validPartCnt++;
             }
@@ -38,7 +38,8 @@ function createGridCoordinates(parameter) {
             const coor = coordinates[coordinates.length - 1];
             delete coor.pixel;
             coor.part = 1.0;
-        } else {
+        }
+        else {
             const invalidPart = 1.0 / (parameter.length - validPixelCnt);
             const validSum = validPartCnt * invalidPart;
             for (let i = 0; i < parameter.length; i++) {
@@ -47,18 +48,19 @@ function createGridCoordinates(parameter) {
                 if (coor.pixel === undefined) {
                     if (typeof param === 'number' && param > 0.0 && sum > 0) {
                         coor.part = param / sum * validSum;
-                    } else {
+                    }
+                    else {
                         coor.part = invalidPart;
                     }
                 }
             }
         }
-    } else {
+    }
+    else {
         coordinates.push({ part: 1.0 });
     }
     return coordinates;
 }
-
 function computeGridAxisPixel(coordinates, size, separator, startMargin, endMargin) {
     let offset = startMargin;
     let sizeForRelativeParts = size - startMargin - separator * (coordinates.length - 1) - endMargin;
@@ -77,17 +79,14 @@ function computeGridAxisPixel(coordinates, size, separator, startMargin, endMarg
         offset = end + separator;
     }
 }
-
 function getGridCoordinate(coordinates, index, parameter) {
     const coor = index >= 0 ? (index < coordinates.length ? coordinates[index] : coordinates[coordinates.length - 1]) : coordinates[0];
     return coor[parameter];
 }
-
 const DEFAULT_MAX_STACK_SIZE = 1;
-
 /**
  * Determines whether or not the rectangle 1 and the rectangle 2 are equal.
- * 
+ *
  * @param {Object}
  *          rect1 The first rectangle
  * @param {Object}
@@ -98,19 +97,21 @@ const DEFAULT_MAX_STACK_SIZE = 1;
 function isEqualRectangle(rect1, rect2) {
     if (rect1 === rect2) { // the rectangles are equal if identical
         return true;
-    } else if (rect1.x !== rect2.x || rect1.y !== rect2.y) { // not equal if different location
+    }
+    else if (rect1.x !== rect2.x || rect1.y !== rect2.y) { // not equal if different location
         return false;
-    } else if (rect1.width !== rect2.width || rect1.height !== rect2.height) { // not equal if different size
+    }
+    else if (rect1.width !== rect2.width || rect1.height !== rect2.height) { // not equal if different size
         return false;
-    } else { // if reaching that point and the id is equal
+    }
+    else { // if reaching that point and the id is equal
         return rect1.id === rect2.id;
     }
 }
-
 /**
  * Determines whether or not the rectangle 1 and the rectangle 2 intersect.
  * Two rectangles intersect if their intersection is nonempty.
- * 
+ *
  * @param {Object}
  *          i_rect1 The first rectangle
  * @param {Object}
@@ -134,7 +135,6 @@ function rectanglesIntersect(x1, y1, width1, height1, x2, y2, width2, height2) {
     // overflow || intersect
     return ((w2 < x2 || w2 > x1) && (h2 < y2 || h2 > y1) && (w1 < x1 || w1 > x2) && (h1 < y1 || h1 > y2));
 }
-
 function performModification(rectanglesToHandle, rectanglesToIgnore, method, onSuccess, onError) {
     let cnt = 0;
     if (Array.isArray(rectanglesToHandle)) {
@@ -152,12 +152,13 @@ function performModification(rectanglesToHandle, rectanglesToIgnore, method, onS
             }
             // if not found we perform the given method
             if (rect) {
-                (function () { // Closure
+                (function () {
                     const r = rect;
                     tasks.push((onSuc, onErr) => {
                         try {
                             method(r.x, r.y, r.width, r.height, r.id, onSuc, onErr, r.init);
-                        } catch (error) {
+                        }
+                        catch (error) {
                             onErr(`Failed calling rectangle handler: ${method.toString()}, error: ${error.message}`);
                         }
                         cnt++;
@@ -167,20 +168,15 @@ function performModification(rectanglesToHandle, rectanglesToIgnore, method, onS
         }
         tasks.parallel = true;
         Executor.run(tasks, () => onSuccess(cnt), onError);
-    } else {
+    }
+    else {
         onSuccess(0);
     }
 }
-
 function changeConstellation(source, target, onLoadRectangle, onUnloadRectangle, onSuccess, onError) {
     // first we iterate over all sources and check if they still exist in the targets
-    performModification(source, target, onUnloadRectangle, removedCount =>
-        performModification(target, source, onLoadRectangle, addedCount =>
-            onSuccess(removedCount + addedCount), onError),
-        onError
-    );
+    performModification(source, target, onUnloadRectangle, removedCount => performModification(target, source, onLoadRectangle, addedCount => onSuccess(removedCount + addedCount), onError), onError);
 }
-
 class RectangleHandler {
     #columns;
     #rows;
@@ -205,7 +201,8 @@ class RectangleHandler {
     prepareNextSet(empty) {
         if (this.#set === null) {
             this.#set = [];
-        } else {
+        }
+        else {
             this.#set.splice(0, this.#set.length);
         }
         // add all current existing rectangles if available
@@ -249,7 +246,8 @@ class RectangleHandler {
             if (x === rect.x && y === rect.y && id === rect.id) {
                 try {
                     this.#onReloadRectangle(id, init);
-                } catch (error) {
+                }
+                catch (error) {
                     console.error(`Failed calling rectangle handler: ${this.#onReloadRectangle.toString()}`, error);
                 }
                 return false;
@@ -283,7 +281,8 @@ class RectangleHandler {
             if (this.#set[i].id === id) {
                 try {
                     this.#onReloadRectangle(id, init);
-                } catch (error) {
+                }
+                catch (error) {
                     console.error(`Failed calling rectangle handler: ${this.#onReloadRectangle.toString()}`, error);
                 }
                 return false;
@@ -332,7 +331,8 @@ class RectangleHandler {
                     onSuccess();
                 }
             }, onError);
-        } else if (typeof onSuccess === 'function') {
+        }
+        else if (typeof onSuccess === 'function') {
             onSuccess();
         }
     }
@@ -350,14 +350,16 @@ class RectangleHandler {
                     onSuccess();
                 }
             }, onError);
-        } else if (this.#currentLevel === 0) {
+        }
+        else if (this.#currentLevel === 0) {
             changeConstellation(this.#stack[this.#currentLevel], null, this.#onLoadRectangle, this.#onUnloadRectangle, () => {
                 this.#currentLevel--;
                 if (typeof onSuccess === 'function') {
                     onSuccess();
                 }
             }, onError);
-        } else if (typeof onSuccess === 'function') {
+        }
+        else if (typeof onSuccess === 'function') {
             onSuccess();
         }
     }
@@ -369,14 +371,16 @@ class RectangleHandler {
                     onSuccess();
                 }
             }, onError);
-        } else if (this.#currentLevel < this.#stack.length - 1) {
+        }
+        else if (this.#currentLevel < this.#stack.length - 1) {
             changeConstellation(this.#stack[this.#currentLevel], this.#stack[this.#currentLevel + 1], this.#onLoadRectangle, this.#onUnloadRectangle, () => {
                 this.#currentLevel++;
                 if (typeof onSuccess === 'function') {
                     onSuccess();
                 }
             }, onError);
-        } else if (typeof onSuccess === 'function') {
+        }
+        else if (typeof onSuccess === 'function') {
             onSuccess();
         }
     }
@@ -388,7 +392,8 @@ class RectangleHandler {
                     onSuccess();
                 }
             }, onError);
-        } else if (typeof onSuccess === 'function') {
+        }
+        else if (typeof onSuccess === 'function') {
             onSuccess();
         }
     }
@@ -401,7 +406,8 @@ class RectangleHandler {
                     onSuccess();
                 }
             }, oError);
-        } else if (typeof onSuccess === 'function') {
+        }
+        else if (typeof onSuccess === 'function') {
             onSuccess();
         }
     }
@@ -423,7 +429,6 @@ class RectangleHandler {
         return false;
     }
 }
-
 class Grid {
     #columnCoordinates;
     #rowCoordinates;
@@ -481,7 +486,6 @@ class Grid {
         };
     }
 }
-
 function applyGrid(that, onSuccess, onError, enableEditorEvents) {
     let _cont = that._hmi_context.container;
     let _scope = enableEditorEvents === true ? Utilities.getUniqueId() : undefined;
@@ -706,7 +710,8 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
                             child.hmi_object = object._hmi_object;
                             onSuc();
                         }, onErr, that.hmi, initData, that, child.id, that.hmi_node());
-                    } else {
+                    }
+                    else {
                         // in case object is not available we at least call the callback
                         onSuc();
                     }
@@ -815,7 +820,8 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
                 that.hmi.droppables[that.droppable] = _dropable;
             }
         }
-    } else {
+    }
+    else {
         for (let i = 0, l = _children.length; i < l; i++) {
             // closure
             (function () {
@@ -828,7 +834,8 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
                             // #grid: 1
                             tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont }, onSuc, onErr));
                         }
-                    } else {
+                    }
+                    else {
                         child._hmi_gridElement = $(ObjectLifecycleManager.DEFAULT_ABSOLUTE_POSITIONED_BORDER_BOX_DIVISION);
                         child._hmi_gridElement.appendTo(_mainDiv);
                         ObjectLifecycleManager.setBounds(child._hmi_gridElement, _grid.getBounds(child));
@@ -955,7 +962,5 @@ function applyGrid(that, onSuccess, onError, enableEditorEvents) {
     Executor.run(tasks, onSuccess, onError);
 }
 ObjectLifecycleManager.addApplyFunctionForType('grid', applyGrid);
-
 Object.freeze(GridLayout);
-
 export default GridLayout;

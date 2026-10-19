@@ -3,12 +3,10 @@
  * date: 2018-11-25
  */
 const Regex = {};
-
 Regex.Linebreaks = /\r?\n|\r/m;
 Regex.Comments = /(?:\(\*(?:[^*]|(?:\*+[^*\)]))*\*+\)\s*)|(?:\/\/.*\s*)/m; // for IEC61131-3 source code
 Regex.Spaces = /\s+/m;
 Regex.EmptyString = /^\s*$/m;
-
 function each(rx, text, callback, matches) {
     let match, off = 0, idx, len;
     rx.lastIndex = 0;
@@ -38,7 +36,6 @@ function each(rx, text, callback, matches) {
     }
 }
 Regex.each = each;
-
 function replace(rx, text, replacement) {
     let res, off = 0, txt = '', idx, len;
     rx.lastIndex = 0;
@@ -65,11 +62,11 @@ function replace(rx, text, replacement) {
     return txt;
 }
 Regex.replace = replace;
-
 function getNextMatch(text, elements, elementIndex, rx) {
     if (rx.global !== true) {
         throw new Error('EXCEPTION! Regex is not global: "' + rx.toString() + '"');
-    } else if (elementIndex.value >= elements.length) { // if already at the end we have no match
+    }
+    else if (elementIndex.value >= elements.length) { // if already at the end we have no match
         return null;
     }
     // get the current element and set our next search start offset to
@@ -85,7 +82,8 @@ function getNextMatch(text, elements, elementIndex, rx) {
                 if (elem.code) {
                     // the match is on a code segment so we return it as valid match
                     return match;
-                } else {
+                }
+                else {
                     // the match is located inside o comment so we run the search
                     // again starting at the start position of our next found code
                     // segments
@@ -97,7 +95,8 @@ function getNextMatch(text, elements, elementIndex, rx) {
                     }
                     break;
                 }
-            } else {
+            }
+            else {
                 // the match is behind our current element so we step forward
                 elementIndex.value++;
             }
@@ -111,7 +110,6 @@ function getNextMatch(text, elements, elementIndex, rx) {
     // no more matches available
     return null;
 }
-
 function followMatches(config, text, elements) {
     let elem_idx = {
         value: 0
@@ -133,20 +131,23 @@ function followMatches(config, text, elements) {
                 elements.splice(elem_idx.value, 0, id);
                 elem_idx.value++;
                 elements[elem_idx.value].start = end;
-            } else {
+            }
+            else {
                 // #2: "codeMATCH"
                 elem.end = match.index;
                 elem_idx.value++;
                 elements.splice(elem_idx.value, 0, id);
                 elem_idx.value++;
             }
-        } else {
+        }
+        else {
             if (end < elem.end) {
                 // #3: "MATCHcode"
                 elements.splice(elem_idx.value, 0, id);
                 elem_idx.value++;
                 elem.start = end;
-            } else {
+            }
+            else {
                 // #4: "MATCH"
                 elements.splice(elem_idx.value, 1, id);
             }
@@ -154,28 +155,31 @@ function followMatches(config, text, elements) {
         regex = config.next[id];
         if (regex === null) {
             return id;
-        } else if (regex === undefined) {
+        }
+        else if (regex === undefined) {
             throw new Error('EXCEPTION! Unexpected match: "' + match[0] + '" at index: ' + match.index);
-        } else if (regex.global !== true) {
+        }
+        else if (regex.global !== true) {
             throw new Error('EXCEPTION! Regex is not global: "' + regex.toString() + '"');
         }
     }
     if (config.finalNullRequired === true) {
         // reaching this point means we did not end successfully
         throw new Error('EXCEPTION! Unexpected end of file');
-    } else {
+    }
+    else {
         // return last match
         return id;
     }
 }
-
 const not_empty_regex = /[^\s]/gi;
 function analyse(config, text, elements) {
     if (config.comment !== undefined) {
         // first we separate code and comments
         // add all segments - if we got a comment match the segment represents code
         each(config.comment, text, (start, end, match) => elements.push({ code: !match, start: start, end: end }));
-    } else {
+    }
+    else {
         // we start with a single segment containing all
         elements.push({ code: true, start: 0, end: text.length });
     }
@@ -191,7 +195,8 @@ function analyse(config, text, elements) {
             if (match && match.index < elem.end) {
                 elem.start = match.index;
                 idx++;
-            } else {
+            }
+            else {
                 elements.splice(idx, 1);
             }
             continue;
@@ -202,12 +207,9 @@ function analyse(config, text, elements) {
     return final;
 }
 Regex.analyse = analyse;
-
 function escape(text) {
     return text.replace(/[-\/\\^$*+?.()|\[\]{}]/g, '\\$&');
 }
 Regex.escape = escape;
-
 Object.freeze(Regex);
-
 export default Regex;

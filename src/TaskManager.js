@@ -3,9 +3,7 @@ import Core from './Core.js';
 import Common from './Common.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import ContentManager from './ContentManager.js';
-
 const TaskManager = {};
-
 const TASK_MANAGER_RECEIVER = 'TaskManager';
 const TransmissionType = Object.freeze({
     ConfigurationRequest: 1,
@@ -14,9 +12,7 @@ const TransmissionType = Object.freeze({
     StopTask: 4,
     StateRefresh: 5
 });
-
 const RELOAD_TASKS_TIMEOUT = 1000;
-
 class ServerManager {
     #logger;
     #cms;
@@ -25,7 +21,7 @@ class ServerManager {
     #taskObjects;
     #onTasksChanged;
     #reloadingTasks;
-    #reloadTasksTimeout
+    #reloadTasksTimeout;
     constructor(logger, cms, hmi) {
         this.#logger = logger;
         this.#cms = cms;
@@ -54,7 +50,8 @@ class ServerManager {
     #reloadTasks(onSuccess, onError) {
         if (this.#reloadingTasks) {
             onError('Reloading tasks is already in progress');
-        } else {
+        }
+        else {
             this.#reloadingTasks = true;
             const that = this;
             this.#cms.getTaskObjects(response => {
@@ -77,7 +74,8 @@ class ServerManager {
                                 }));
                             }
                             taskObject.config = config;
-                        } else {
+                        }
+                        else {
                             that.#taskObjects[path] = taskObject = {
                                 config,
                                 state: ObjectLifecycleManager.LifecycleState.Idle,
@@ -113,7 +111,8 @@ class ServerManager {
                                     that.#logger.error(message);
                                     onErr(message);
                                 }));
-                            } else {
+                            }
+                            else {
                                 delete that.#taskObjects[path];
                             }
                         }
@@ -128,7 +127,8 @@ class ServerManager {
                             }
                         }
                         onSuc();
-                    } catch (error) {
+                    }
+                    catch (error) {
                         onErr(error);
                     }
                 });
@@ -196,16 +196,19 @@ class ServerManager {
         const taskObject = this.#taskObjects[path];
         if (!taskObject) {
             onError(`Unknown task: '${path}'`);
-        } else if (taskObject.task) {
+        }
+        else if (taskObject.task) {
             onError(`Task '${path}' has already been started`);
-        } else {
+        }
+        else {
             this.#cms.getObject(taskObject.config.taskObject, undefined, ContentManager.PARSE, task => {
                 taskObject.task = task;
                 ObjectLifecycleManager.createObject(taskObject.task, null, () => {
                     if (typeof taskObject.config.cycleMillis === 'number' && taskObject.config.cycleMillis > 0) {
                         taskObject.intervalTimer = setInterval(() => ObjectLifecycleManager.refreshObject(taskObject.task, new Date()), Math.ceil(taskObject.config.cycleMillis));
                         this.#logger.info(`Started task '${path}' with object '${taskObject.config.taskObject}' (cycles at ${taskObject.config.cycleMillis} ms)`);
-                    } else {
+                    }
+                    else {
                         this.#logger.info(`Started task '${path}' with object '${taskObject.config.taskObject}' (no cycles)`);
                     }
                     onSuccess();
@@ -221,9 +224,11 @@ class ServerManager {
         const taskObject = this.#taskObjects[path];
         if (!taskObject) {
             onError(`Unknown task: '${path}'`);
-        } else if (!taskObject.task) {
+        }
+        else if (!taskObject.task) {
             onError(`Task '${path}' has not been started`);
-        } else {
+        }
+        else {
             const task = taskObject.task;
             delete taskObject.task; // TODO: Should we delete the reference in the success/error callbacks?
             if (taskObject.intervalTimer) {
@@ -270,7 +275,6 @@ class ServerManager {
         Executor.run(tasks, onSuccess, onError);
     }
 }
-
 class ClientManager {
     #logger;
     #open;
@@ -297,7 +301,8 @@ class ClientManager {
             Common.validateAsConnection(value, true);
             this.#connection = value;
             this.#connection.register(TASK_MANAGER_RECEIVER, this.#handler);
-        } else if (this.#connection) {
+        }
+        else if (this.#connection) {
             this.#connection.unregister(TASK_MANAGER_RECEIVER);
             this.#connection = null;
         }
@@ -308,7 +313,8 @@ class ClientManager {
                 throw new Error('Value for onConfigChanged() is not a function');
             }
             this.#onConfigChanged = value;
-        } else {
+        }
+        else {
             this.#onConfigChanged = null;
         }
     }
@@ -318,7 +324,8 @@ class ClientManager {
                 throw new Error('Value for onStateChanged(path, state) is not a function');
             }
             this.#onStateChanged = value;
-        } else {
+        }
+        else {
             this.#onStateChanged = null;
         }
     }
@@ -342,12 +349,7 @@ class ClientManager {
         }
     }
     #loadConfiguration() {
-        Core.validateAs('Connection', this.#connection, 'send:function').send(
-            TASK_MANAGER_RECEIVER,
-            { type: TransmissionType.ConfigurationRequest },
-            response => this.#updateConfiguration(response),
-            error => this.#logger.error(error)
-        );
+        Core.validateAs('Connection', this.#connection, 'send:function').send(TASK_MANAGER_RECEIVER, { type: TransmissionType.ConfigurationRequest }, response => this.#updateConfiguration(response), error => this.#logger.error(error));
     }
     #updateConfiguration(tasksConfigAndState) {
         for (let configAndState of tasksConfigAndState) {
@@ -356,7 +358,8 @@ class ClientManager {
             if (taskObject) {
                 taskObject.config = configAndState.config;
                 taskObject.state = configAndState.state;
-            } else {
+            }
+            else {
                 this.#taskObjects[path] = { config: configAndState.config, state: configAndState.state };
             }
         }
@@ -377,7 +380,8 @@ class ClientManager {
         if (this.#onConfigChanged) {
             try {
                 this.#onConfigChanged();
-            } catch (error) {
+            }
+            catch (error) {
                 this.#logger.error('Failed calling onConfigChanged()', error);
             }
         }
@@ -390,7 +394,8 @@ class ClientManager {
         if (this.#onStateChanged) {
             try {
                 this.#onStateChanged(path, state);
-            } catch (error) {
+            }
+            catch (error) {
                 this.#logger.error('Failed calling onStateChanged(path, state)', error);
             }
         }
@@ -411,26 +416,27 @@ class ClientManager {
     startTask(path, onResponse, onError) {
         if (!this.#connection) {
             onError('Web socket connection is not available');
-        } else if (!this.#open) {
+        }
+        else if (!this.#open) {
             onError('Web socket connection is closed');
-        } else {
+        }
+        else {
             this.#connection.send(TASK_MANAGER_RECEIVER, { type: TransmissionType.StartTask, path }, onResponse, onError);
         }
     }
     stopTask(path, onResponse, onError) {
         if (!this.#connection) {
             onError('Web socket connection is not available');
-        } else if (!this.#open) {
+        }
+        else if (!this.#open) {
             onError('Web socket connection is closed');
-        } else {
+        }
+        else {
             this.#connection.send(TASK_MANAGER_RECEIVER, { type: TransmissionType.StopTask, path }, onResponse, onError);
         }
     }
 }
-
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 TaskManager.getInstance = isNodeJS ? (logger, cms, hmi) => new ServerManager(logger, cms, hmi) : TaskManager.getInstance = logger => new ClientManager(logger);
-
 Object.freeze(TaskManager);
-
 export default TaskManager;

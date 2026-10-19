@@ -1,11 +1,9 @@
 import JsonFX from './JsonFX.js';
-
 const Client = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 Client.GET_CLIENT_CONFIG = '/get_client_config';
 Client.HANDLE_REQUEST = '/handle_request';
 Client.VERIFY_CONTENT_MANAGER_ADMIN = '/verify_content_manager_admin';
-
 if (!isNodeJS) {
     // polyfill for requestAnimationFrame (by Opera engineer Erik Möller)
     (function () {
@@ -28,11 +26,9 @@ if (!isNodeJS) {
             globalThis.cancelAnimationFrame = timeout => clearTimeout(timeout);
         }
     }());
-
     Client.breakpoint = () => {
         console.log('breakpoint');
-    }
-
+    };
     /*  refresh cycle  */
     let refreshCycleEnabled = false;
     function startRefreshCycle(requestAnimationFrameCycle, onRefresh) {
@@ -57,7 +53,6 @@ if (!isNodeJS) {
     }
     Client.startRefreshCycle = startRefreshCycle;
     Client.stopRefreshCycle = () => refreshCycleEnabled = false;
-
     /** Fetch text by 'POST'
      * This function sends the passed request string unchanged and returns the resulting response string anchanged via callback.
      * @param {string} url - The url string
@@ -73,23 +68,23 @@ if (!isNodeJS) {
         });
         if (!response.ok) {
             onError(`Fetch for url '${url}' failed: ${response.status}, ${response.statusText}`);
-        } else {
+        }
+        else {
             const result = await response.text();
-            onResponse(result)
+            onResponse(result);
         }
     }
     Client.fetchAsync = fetchAsync;
-    Client.fetch = (url, requestString, onResponse, onError) => { (async () => await fetchAsync(url, requestString, onResponse, onError))(); }
-
+    Client.fetch = (url, requestString, onResponse, onError) => { (async () => await fetchAsync(url, requestString, onResponse, onError))(); };
     /** Fetch object by 'POST'
-     * This function transformes the passed request object by using JsonFX.stringify(request, false) and 
+     * This function transformes the passed request object by using JsonFX.stringify(request, false) and
      * returns the resulting response as object using JsonFX.parse(response, false, false) via callback.
      * If the response object contains the attribute 'error' the 'onError' callback will be called.
      * Therwise the attribute 'result' will be passed via 'onResponse' callback argument.
      * @param {string} url - The url string
      * @param {object} request - Request object - will be transformed to string by JsonFX.stringify(request, false)
      * @param {Function} onResponse - Callback for response for success
-     * @param {Function} onError - Callback for error event - occurred error will be passed as argument - 
+     * @param {Function} onError - Callback for error event - occurred error will be passed as argument -
      * the reason can be connection errors during fetch or application errors passed as error property.
      */
     function fetchJsonFX(url, request, onResponse, onError) {
@@ -99,26 +94,29 @@ if (!isNodeJS) {
                     const resp = JsonFX.parse(response, false, false);
                     if (resp.error !== undefined) {
                         onError(resp.error);
-                    } else {
+                    }
+                    else {
                         onResponse(resp.result);
                     }
-                } catch (error) {
+                }
+                catch (error) {
                     onError(error);
                 }
-            } else {
+            }
+            else {
                 onResponse();
             }
         }, onError);
     }
     Client.fetchJsonFX = fetchJsonFX;
-
     /*  fetch text by 'POST'  */
     async function fetchGetAsync(url, requestData, onResponse, onError, useMethodGet) {
         let getUrl;
         if (requestData !== undefined && requestData !== null) {
             const params = new URLSearchParams(requestData);
-            getUrl = `${url}?${params.toString()}`
-        } else {
+            getUrl = `${url}?${params.toString()}`;
+        }
+        else {
             getUrl = url;
         }
         const response = await fetch(getUrl, { method: 'GET' });
@@ -127,13 +125,11 @@ if (!isNodeJS) {
         }
         else {
             const result = await response.text();
-            onResponse(result)
+            onResponse(result);
         }
     }
     Client.fetchGetAsync = fetchGetAsync;
-    Client.fetchGet = (url, request, onResponse, onError) => { (async () => await fetchGetAsync(url, request, onResponse, onError))(); }
+    Client.fetchGet = (url, request, onResponse, onError) => { (async () => await fetchGetAsync(url, request, onResponse, onError))(); };
 }
-
 Object.freeze(Client);
-
 export default Client;

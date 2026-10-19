@@ -1,14 +1,11 @@
 import Executor from './Executor.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
-
 const SplitLayout = {};
-
 const SPLIT_LEFT = 0x10;
 const SPLIT_RIGHT = 0x08;
 const SPLIT_TOP = 0x04;
 const SPLIT_BOTTOM = 0x02;
 const SPLIT_CENTER = 0x01;
-
 function applySplit(that, onSuccess, onError) {
     let tasks = [];
     let _cont = that._hmi_context.container;
@@ -18,7 +15,8 @@ function applySplit(that, onSuccess, onError) {
             // #split: 1
             tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: split._hmi_splitElement }, onSuc, onErr));
         }
-    };
+    }
+    ;
     let _instance = undefined;
     function preparePanesAndInitHmiObjectDom(north, south, west, east, center) {
         const layout = {};
@@ -28,20 +26,24 @@ function applySplit(that, onSuccess, onError) {
             if (south) {
                 layout.north__size = Math.floor(height * (typeof that.topSize === 'number' ? that.topSize : 0.3));
                 layout.south__size = Math.floor(height * (typeof that.bottomSize === 'number' ? that.bottomSize : 0.3));
-            } else {
+            }
+            else {
                 layout.north__size = Math.floor(height * (typeof that.topSize === 'number' ? that.topSize : (typeof that.bottomSize === 'number' ? 1 - that.bottomSize : 0.5)));
             }
-        } else if (south) {
+        }
+        else if (south) {
             layout.south__size = Math.floor(height * (typeof that.bottomSize === 'number' ? that.bottomSize : 0.5));
         }
         if (west) {
             if (east) {
                 layout.west__size = Math.floor(width * (typeof that.leftSize === 'number' ? that.leftSize : 0.3));
                 layout.east__size = Math.floor(width * (typeof that.rightSize === 'number' ? that.rightSize : 0.3));
-            } else {
+            }
+            else {
                 layout.west__size = Math.floor(width * (typeof that.leftSize === 'number' ? that.leftSize : (typeof that.rightSize === 'number' ? 1 - that.rightSize : 0.5)));
             }
-        } else if (east) {
+        }
+        else if (east) {
             layout.east__size = Math.floor(width * (typeof that.rightSize === 'number' ? that.rightSize : 0.5));
         }
         if (north) {
@@ -106,7 +108,8 @@ function applySplit(that, onSuccess, onError) {
         }
         // do layout
         _instance = _cont.layout(layout);
-    };
+    }
+    ;
     // here we store the container
     let _left = undefined;
     let _right = undefined;
@@ -125,19 +128,24 @@ function applySplit(that, onSuccess, onError) {
                         // #split: 2
                         tasks.push((onSuc, onErr) => hmiobj._hmi_init_dom({ container: _cont }, onSuc, onErr));
                     }
-                } else if (child.location === 'left') {
+                }
+                else if (child.location === 'left') {
                     _left = child;
                     _mask |= SPLIT_LEFT;
-                } else if (child.location === 'right') {
+                }
+                else if (child.location === 'right') {
                     _right = child;
                     _mask |= SPLIT_RIGHT;
-                } else if (child.location === 'top') {
+                }
+                else if (child.location === 'top') {
                     _top = child;
                     _mask |= SPLIT_TOP;
-                } else if (child.location === 'bottom') {
+                }
+                else if (child.location === 'bottom') {
                     _bottom = child;
                     _mask |= SPLIT_BOTTOM;
-                } else if (child.location === 'center') {
+                }
+                else if (child.location === 'center') {
                     _center = child;
                     _mask |= SPLIT_CENTER;
                 }
@@ -330,9 +338,6 @@ function applySplit(that, onSuccess, onError) {
     });
     Executor.run(tasks, onSuccess, onError);
 }
-
 ObjectLifecycleManager.addApplyFunctionForType('split', applySplit);
-
 Object.freeze(SplitLayout);
-
 export default SplitLayout;

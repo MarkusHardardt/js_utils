@@ -13,7 +13,6 @@ import ADS from './ADS.js';
 import Common from './Common.js';
 import OPCUA from './OPCUA.js';
 import SqlHelper from './SqlHelper.js';
-
 const Evaluate = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 const md5 = isNodeJS ? {} : undefined;
@@ -24,5 +23,4 @@ const md5 = isNodeJS ? {} : undefined;
     The same function is used by ContentManager, whose module scope would not expose these bindings. */
 Evaluate.evalFunc = x => eval(`(${x})`);
 // TODO: response = eval ('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
-
 export default Evaluate;

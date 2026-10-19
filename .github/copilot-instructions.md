@@ -2,13 +2,13 @@
 
 ## Project overview
 
-`js_utils` is a Node.js ES-module library for browser-based SCADA/HMI systems on machines reachable through OPC UA or Beckhoff ADS. Shared library code runs at every installation; machine-specific HMI and server tasks are stored in the installation's SQL database. Deployments can host Node.js and MariaDB on an industrial PC, a Linux/Raspberry Pi, or a panel PC. This repo has about 70 tracked files (39 first-party JavaScript files), no TypeScript or build framework, and no standalone application.
+`js_utils` is a Node.js ES-module library for browser-based SCADA/HMI systems on machines reachable through OPC UA or Beckhoff ADS. Shared library code runs at every installation; machine-specific HMI and server tasks are stored in the installation's SQL database. Deployments can host Node.js and MariaDB on an industrial PC, a Linux/Raspberry Pi, or a panel PC. TypeScript files are the first-party source of truth; their compiled JavaScript counterparts are kept beside them for runtime compatibility. The repo has no standalone application.
 
 ## Architecture and data model
 
-- `src/` contains reusable modules. Key areas: `ObjectLifecycleManager.js` (HMI object lifecycle), `GridLayout.js`, `SplitLayout.js`, `FloatLayout.js`, `GraphControl.js` (layouts/graphics), `ContentManager.js` and `ContentEditor.js` (database content/access and browser editing), `DataConnector.js`, `Access.js`, `SqlHelper.js`, `WebServer.js`, and `WebSocketConnection.js` (data, persistence, transport).
-- `js_utils.js` is the generated package entry point; `js_utils_generator.js` assembles its exports from `src/`, using `env/Helper.js` to scan direct relative imports. Keep public exports synchronized when changing modules.
-- `client/main.js` assembles the browser HMI. `server/main.js` exports `main(config)` for a consuming application; this repo has no `start` script or local server configuration.
+- `src/` contains reusable modules. Key areas: `ObjectLifecycleManager.ts` (HMI object lifecycle), `GridLayout.ts`, `SplitLayout.ts`, `FloatLayout.ts`, `GraphControl.ts` (layouts/graphics), `ContentManager.ts` and `ContentEditor.ts` (database content/access and browser editing), `DataConnector.ts`, `Access.ts`, `SqlHelper.ts`, `WebServer.ts`, and `WebSocketConnection.ts` (data, persistence, transport).
+- `js_utils.ts` is the generated package entry point; `js_utils_generator.ts` assembles its exports from `src/`, using `env/Helper.ts` to scan direct relative imports. Run `npm run generate` after changing module dependencies or public exports; inspect its diff for order-only changes.
+- `client/main.ts` assembles the browser HMI. `server/main.ts` exports `main(config)` for a consuming application; `js_hmi` provides the runnable entry point and retains JSON runtime configuration.
 - `ContentManager` is the principal database-object access layer. Content includes JsonFX values (including JavaScript functions), UTF-8 text, localized labels/HTML, HMI mappings, and server-side task definitions. HMI records map the URL `hmi` query value to an enabled HMI object. Tasks can implement OPC UA/ADS clients or other server-side work.
 - Keys start with `$`, use slash-separated path segments, and end with a content-table extension configured in `cfg/db_config.json` (examples: `.j`, `.hmi`, `.task`). Prefer letters, digits, and underscores; the current matcher also accepts `+`, `-`, and `*`. ContentEditor folders are virtual groupings derived from keys, not database rows. Folder copy/move/delete and object-level refactoring rewrite references within the affected key set; moves also update references from other objects. Preserve this behavior when changing keys or content operations.
 - `include` references are recursively expanded server-side before delivery. Included values provide base properties; the including object overrides them. With `source: true`, replaced base properties are retained under a `source` object. See [HMI_CONFIGURATION.md](../HMI_CONFIGURATION.md) for data types, key rules, includes, and the complete HMI field/lifecycle reference. [README.md](../README.md) describes the application model and deployment options.
@@ -19,17 +19,18 @@
 
 Verified with Node.js `v24.14.0` and npm `11.21.0`. From the repository root:
 
-1. Always run `npm ci` before validation or using dependencies. It succeeded in about 9 seconds, installing 300 packages. It emitted a deprecated-`glob` warning and reported one high-severity audit finding; do not run `npm audit fix` or change dependencies unless asked.
-2. No build, lint, or real test suite is configured. `npm run` lists only `test`; `npm test` intentionally fails with `Error: no test specified`. Do not report it as a passing test.
-3. Syntax-check all first-party JavaScript (verified for 39 files; excludes vendored `ext/`):
+1. Run `npm ci` before validation or using dependencies. The package includes TypeScript compiler development dependencies. Do not run `npm audit fix` or change unrelated dependencies unless asked.
+2. `npm run build` compiles TypeScript sources to their adjacent JavaScript runtime files. `npm run generate` also regenerates the library entry point. The library build currently transpiles without type checking because its existing API relies extensively on dynamically extended objects; database-loaded JavaScript remains runtime-only.
+3. No real test suite or lint configuration is present. `npm test` intentionally fails with `Error: no test specified`; do not report it as a passing test.
+4. Syntax-check all first-party JavaScript output (excludes vendored `ext/`):
    ```sh
    for f in js_utils.js js_utils_generator.js env/*.js src/*.js client/*.js server/*.js; do node --check "$f" || exit 1; done
    ```
-4. Smoke-test the package entry point (verified; loads 35 exports):
+5. Smoke-test the package entry point and dynamic evaluation scope:
    ```sh
-   node --input-type=module -e "import('./js_utils.js').then(({default: api}) => console.log('Loaded exports:', Object.keys(api).length)).catch(error => { console.error(error); process.exitCode = 1; })"
+   node --input-type=module -e "import('./js_utils.js').then(({default: api, Evaluate}) => { const value = Evaluate.evalFunc('({ run() { return typeof JsonFX.stringify; } })'); if (value.run() !== 'function') throw new Error('Database evaluation scope changed'); console.log('Loaded exports:', Object.keys(api).length); }).catch(error => { console.error(error); process.exitCode = 1; })"
    ```
-5. Run `node js_utils_generator.js` only when changing the `src/` dependency graph or public API. It succeeds, but filesystem enumeration reorders generated imports/exports and creates order-only churn in `js_utils.js`; review the diff and do not keep reorder-only changes.
+6. The HMI project is at `../js_hmi`; it uses `file:../js_utils` and `npm start` builds its entry point before starting the server. Its JSON configuration remains unchanged.
 
 There is no standalone app to run. `.vscode/launch.json` runs the generator, not the HMI server. A consuming application must provide configuration and runtime resources for `server/main.js`. HTTPS/WSS requires both `secureKeyFile` and `secureCertFile`; paths are relative to the process working directory and certificate SANs must cover client hostnames. Without both, HTTP/WS behavior remains. The README's OpenSSL example is for testing in a consuming `js_hmi` project.
 

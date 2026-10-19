@@ -1,11 +1,8 @@
 import Regex from './Regex.js';
 import Core from './Core.js';
 import Common from './Common.js';
-
 const DataConnector = {};
-
 const RECEIVER = 'DataConnector';
-
 const TransmissionType = Object.freeze({
     ConfigurationRefresh: 1,
     ObserverRequest: 2,
@@ -13,12 +10,11 @@ const TransmissionType = Object.freeze({
     ReadRequest: 4,
     WriteRequest: 5
 });
-
 class BaseConnector {
     #handler;
     constructor() {
         if (this.constructor === BaseConnector) {
-            throw new Error('The abstract base class BaseConnector cannot be instantiated.')
+            throw new Error('The abstract base class BaseConnector cannot be instantiated.');
         }
         this._connection = null;
         this.#handler = (data, onResponse, onError) => this._handleReceived(data, onResponse, onError);
@@ -32,16 +28,16 @@ class BaseConnector {
             Common.validateAsConnection(value, true);
             this._connection = value;
             this._connection.register(RECEIVER, this.#handler);
-        } else if (this._connection) {
+        }
+        else if (this._connection) {
             this._connection.unregister(RECEIVER);
             this._connection = null;
         }
     }
     _handleReceived(data, onResponse, onError) {
-        throw new Error('Not implemented in base class: _handleReceived(data, onResponse, onError)')
+        throw new Error('Not implemented in base class: _handleReceived(data, onResponse, onError)');
     }
 }
-
 function getDataPointConfigsByShortId(dataPoints, getNextShortId) {
     // Build object containing all datapoints stored under e new generated unique id like:
     // { #0:{id0,type},#1:{id1,type},#2:{id2,type},#3:{id3,type},...}
@@ -62,7 +58,6 @@ function getDataPointConfigsByShortId(dataPoints, getNextShortId) {
     }
     return dataPointConfigsByShortId;
 }
-
 const SHORT_ID_PREFIX = '<';
 const SHORT_ID_SUFFIX = '>';
 const subscribeRequestShortIdRegex = /<[a-z0-9]+>/g;
@@ -93,7 +88,8 @@ class ServerDataConnector extends BaseConnector {
         if (value) {
             Common.validateAsDataAccessObject(value, true);
             this.#source = value;
-        } else {
+        }
+        else {
             this.#source = null;
         }
     }
@@ -110,14 +106,15 @@ class ServerDataConnector extends BaseConnector {
         for (const shortId in dataPointConfigsByShortId) {
             if (dataPointConfigsByShortId.hasOwnProperty(shortId)) {
                 const config = dataPointConfigsByShortId[shortId];
-                (function () { // We need a closure here to get access to the data point in onRefresh
+                (function () {
                     const dataId = config.dataId;
                     let dataPoint = that.#dataPointsByDataId[dataId];
                     if (dataPoint) {
                         that.#logger.trace(`DataConnector.setDataPoints(): Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.isObserved ? '' : '!'}observed)`);
                         dataPoint.shortId = shortId; // Note: Only data points with a short id exists!
                         dataPoint.type = config.type;
-                    } else {
+                    }
+                    else {
                         that.#logger.trace(`DataConnector.setDataPoints(): Create data point ${shortId}:'${dataId}'`);
                         that.#dataPointsByDataId[dataId] = dataPoint = {
                             shortId,
@@ -155,18 +152,21 @@ class ServerDataConnector extends BaseConnector {
                             try {
                                 this.#source.unregisterObserver(dataId, dataPoint.onRefresh);
                                 this.#logger.trace(`DataConnector.setDataPoints(): Removed observer for data point ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
-                            } catch (error) {
+                            }
+                            catch (error) {
                                 this.#logger.error(`DataConnector.setDataPoints(): Failed removing observer for data point with id ${dataPoint.shortId}:'${dataId}'`, error);
                             }
                             dataPoint.isObserved = false;
                         }
                         this.#logger.trace(`DataConnector.setDataPoints(): Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
                         delete dataPoint.shortId; // Note: Only data points with a short id exists!
-                    } else {
+                    }
+                    else {
                         this.#logger.trace(`DataConnector.setDataPoints(): Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !observed)`);
                         delete this.#dataPointsByDataId[dataId];
                     }
-                };
+                }
+                ;
             }
         }
         if (this.#isOpen) {
@@ -207,7 +207,8 @@ class ServerDataConnector extends BaseConnector {
                     }
                     try {
                         Core.validateAs('DataAccessObject', this.#source, 'read:function').read(readDPConf.dataId, onResponse, onError);
-                    } catch (error) {
+                    }
+                    catch (error) {
                         this.#logger.error(`DataConnector._handleReceived(): Failed calling read('${readDPConf.dataId}')`, error);
                     }
                     break;
@@ -219,7 +220,8 @@ class ServerDataConnector extends BaseConnector {
                     }
                     try {
                         Core.validateAs('DataAccessObject', this.#source, 'write:function').write(writeDPConf.dataId, data.value);
-                    } catch (error) {
+                    }
+                    catch (error) {
                         this.#logger.error(`DataConnector._handleReceived(): Failed calling write('${readDPConf.dataId}', value)`, error);
                     }
                     break;
@@ -239,7 +241,8 @@ class ServerDataConnector extends BaseConnector {
                     try {
                         this.#source.unregisterObserver(dataId, dataPoint.onRefresh);
                         this.#logger.trace(`DataConnector.updateObservations(): Unsubscribed datapoint ${dataPoint.shortId}:'${dataId}'`);
-                    } catch (error) {
+                    }
+                    catch (error) {
                         this.#logger.error(`DataConnector.updateObservations(): Failed unsubscribing data point with id ${dataPoint.shortId}:'${dataId}'`, error);
                     }
                     dataPoint.isObserved = false;
@@ -259,14 +262,17 @@ class ServerDataConnector extends BaseConnector {
                             this.#source.registerObserver(dataId, dataPoint.onRefresh);
                             dataPoint.isObserved = true;
                             this.#logger.trace(`DataConnector.updateObservations(): Observed data point ${shortId}:'${dataId}'`);
-                        } catch (error) {
+                        }
+                        catch (error) {
                             this.#logger.error(`DataConnector.updateObservations(): Failed observing data point with id ${shortId}:'${dataId}'`, error);
                         }
                     }
-                } else {
+                }
+                else {
                     this.#logger.error(`DataConnector.updateObservations(): Cannot find data point with id ${shortId}:'${dataId}'`);
                 }
-            } else {
+            }
+            else {
                 // TODO: Why we land here after stopping a task when items are monitored?
                 this.#logger.error(`DataConnector.updateObservations(): Cannot observe unknown data point with short id ${shortId}, stored:${JSON.stringify(this.#dataPointConfigsByShortId)}`);
             }
@@ -275,7 +281,8 @@ class ServerDataConnector extends BaseConnector {
     #valuesChanged() {
         if (!this.#sendDelay) {
             this.#sendValues();
-        } else if (!this.#sendTimer) {
+        }
+        else if (!this.#sendTimer) {
             this.#sendTimer = setTimeout(() => {
                 this.#sendTimer = null;
                 this.#sendValues();
@@ -300,17 +307,15 @@ class ServerDataConnector extends BaseConnector {
             }
             if (available) {
                 try {
-                    Core.validateAs('Connection', this._connection, 'send:function').send(RECEIVER,
-                        { type: TransmissionType.DataRefresh, values }
-                    );
-                } catch (error) {
+                    Core.validateAs('Connection', this._connection, 'send:function').send(RECEIVER, { type: TransmissionType.DataRefresh, values });
+                }
+                catch (error) {
                     this.#logger.error('DataConnector.sendValues(): Failed to send refreshed values', error);
                 }
             }
         }
     }
 }
-
 class ClientDataConnector extends BaseConnector {
     #logger;
     #open;
@@ -339,7 +344,8 @@ class ClientDataConnector extends BaseConnector {
     registerObserver(dataId, onRefresh) {
         if (typeof dataId !== 'string') {
             throw new Error(`Invalid id '${dataId}'`);
-        } else if (typeof onRefresh !== 'function') {
+        }
+        else if (typeof onRefresh !== 'function') {
             throw new Error(`Observer callback onRefresh(value) for id '${dataId}' is not a function`);
         }
         let dataPoint = this.#dataPointsByDataId[dataId];
@@ -351,9 +357,11 @@ class ClientDataConnector extends BaseConnector {
                 registerObserver: onRefresh => this.registerObserver(dataId, onRefresh),
                 unregisterObserver: onRefresh => this.unregisterObserver(dataId, onRefresh)
             };
-        } else if (dataPoint.onRefresh === onRefresh) {
+        }
+        else if (dataPoint.onRefresh === onRefresh) {
             this.#logger.error(`Data id '${dataId}' is already observed with this callback`);
-        } else if (dataPoint.onRefresh !== null) {
+        }
+        else if (dataPoint.onRefresh !== null) {
             this.#logger.error(`Data id '${dataId}' is already observed with another callback`);
         }
         dataPoint.onRefresh = onRefresh;
@@ -361,7 +369,8 @@ class ClientDataConnector extends BaseConnector {
         if (dataPoint.value !== undefined && dataPoint.value !== null) {
             try {
                 onRefresh(dataPoint.value);
-            } catch (error) {
+            }
+            catch (error) {
                 throw new Error(`Failed calling onRefresh(value) for '${dataId}':\n${error.message}`);
             }
         }
@@ -369,16 +378,19 @@ class ClientDataConnector extends BaseConnector {
     unregisterObserver(dataId, onRefresh) {
         if (typeof dataId !== 'string') {
             throw new Error(`Invalid unsubscription id '${dataId}'`);
-        } else if (typeof onRefresh !== 'function') {
+        }
+        else if (typeof onRefresh !== 'function') {
             throw new Error(`Observer callback onRefresh(value) for id '${dataId}' is not a function`);
         }
         const dataPoint = this.#dataPointsByDataId[dataId];
         if (!dataPoint) {
             this.#logger.error(`Data point with id '${dataId}' is not available to observe`);
             return;
-        } else if (dataPoint.onRefresh === null) {
+        }
+        else if (dataPoint.onRefresh === null) {
             this.#logger.error(`Data point with id '${dataId}' is not observed`);
-        } else if (dataPoint.onRefresh !== onRefresh) {
+        }
+        else if (dataPoint.onRefresh !== onRefresh) {
             this.#logger.error(`Data point with id '${dataId}' is observed with a another callback`);
         }
         dataPoint.onRefresh = null;
@@ -397,28 +409,26 @@ class ClientDataConnector extends BaseConnector {
             onError(`Unknown data point with id '${dataId}' for read`);
             return;
         }
-        Core.validateAs('Connection', this._connection, 'send:function').send(RECEIVER,
-            { type: TransmissionType.ReadRequest, shortId: dataPoint.shortId },
-            value => {
-                try {
-                    onResponse(value);
-                } catch (error) {
-                    this.#logger.error(`Failed calling onResponse() for id '${dataId}'`, error);
-                }
-                const dataPoint = this.#dataPointsByDataId[dataId];
-                if (dataPoint) {
-                    dataPoint.value = value;
-                    if (dataPoint.onRefresh && value !== undefined && value !== null) {
-                        try {
-                            dataPoint.onRefresh(value);
-                        } catch (error) {
-                            this.#logger.error(`Failed calling onRefresh(value) for id '${dataId}'`, error);
-                        }
+        Core.validateAs('Connection', this._connection, 'send:function').send(RECEIVER, { type: TransmissionType.ReadRequest, shortId: dataPoint.shortId }, value => {
+            try {
+                onResponse(value);
+            }
+            catch (error) {
+                this.#logger.error(`Failed calling onResponse() for id '${dataId}'`, error);
+            }
+            const dataPoint = this.#dataPointsByDataId[dataId];
+            if (dataPoint) {
+                dataPoint.value = value;
+                if (dataPoint.onRefresh && value !== undefined && value !== null) {
+                    try {
+                        dataPoint.onRefresh(value);
+                    }
+                    catch (error) {
+                        this.#logger.error(`Failed calling onRefresh(value) for id '${dataId}'`, error);
                     }
                 }
-            },
-            onError
-        );
+            }
+        }, onError);
     }
     write(dataId, value) {
         if (!this.#open) {
@@ -428,9 +438,7 @@ class ClientDataConnector extends BaseConnector {
         if (!dataPoint || !dataPoint.shortId) { // This means the datapoint is unknown on server side
             throw new Error(`Unknown data point with id '${dataId}' for write`);
         }
-        Core.validateAs('Connection', this._connection, 'send:function').send(RECEIVER,
-            { type: TransmissionType.WriteRequest, shortId: dataPoint.shortId, value }
-        );
+        Core.validateAs('Connection', this._connection, 'send:function').send(RECEIVER, { type: TransmissionType.WriteRequest, shortId: dataPoint.shortId, value });
     }
     onOpen() {
         this.#open = true;
@@ -465,14 +473,15 @@ class ClientDataConnector extends BaseConnector {
         for (const shortId in dataPointConfigsByShortId) {
             if (dataPointConfigsByShortId.hasOwnProperty(shortId)) {
                 const config = dataPointConfigsByShortId[shortId];
-                (function () { // We need a closure here to get access to the data point in onRefresh
+                (function () {
                     const dataId = config.dataId;
                     let dataPoint = that.#dataPointsByDataId[dataId];
                     if (dataPoint) {
                         that.#logger.trace(`Update short id ${dataPoint.shortId}->${shortId}:'${dataId}' (${dataPoint.onRefresh !== null ? '' : '!'}observed)`);
                         dataPoint.shortId = shortId;
                         dataPoint.type = config.type;
-                    } else {
+                    }
+                    else {
                         that.#logger.trace(`Create data point ${shortId}:'${dataId}'`);
                         that.#dataPointsByDataId[dataId] = dataPoint = {
                             shortId,
@@ -504,18 +513,21 @@ class ClientDataConnector extends BaseConnector {
                     if (dataPoint.onRefresh) {
                         this.#logger.trace(`Delete short id ${dataPoint.shortId}:'${dataId}' (!exists && observed)`);
                         delete dataPoint.shortId;
-                    } else {
+                    }
+                    else {
                         this.#logger.trace(`Delete data point ${dataPoint.shortId}:'${dataId}' (!exists && !observed)`);
                         delete this.#dataPointsByDataId[dataId];
                     }
-                };
+                }
+                ;
             }
         }
     }
     #observationsChanged() {
         if (!this.#sendObserverRequestDelay) {
             this.#sendObserverRequest();
-        } else if (!this.#addObserverTimer) {
+        }
+        else if (!this.#addObserverTimer) {
             this.#addObserverTimer = setTimeout(() => {
                 this.#sendObserverRequest();
                 this.#addObserverTimer = null;
@@ -534,9 +546,7 @@ class ClientDataConnector extends BaseConnector {
                     }
                 }
             }
-            Core.validateAs('Connection', this._connection, 'send:function').send(RECEIVER,
-                { type: TransmissionType.ObserverRequest, observations }
-            );
+            Core.validateAs('Connection', this._connection, 'send:function').send(RECEIVER, { type: TransmissionType.ObserverRequest, observations });
         }
     }
     #refresh(values) {
@@ -558,7 +568,8 @@ class ClientDataConnector extends BaseConnector {
                     try {
                         dataPoint.onRefresh(dataPoint.value);
                         this.#logger.trace(`Refreshed ${shortId}:'${dataId}': ${dataPoint.value}`);
-                    } catch (error) {
+                    }
+                    catch (error) {
                         this.#logger.error(`Failed calling onRefresh(value) for ${shortId}:'${dataId}'`, error);
                     }
                 }
@@ -566,10 +577,7 @@ class ClientDataConnector extends BaseConnector {
         }
     }
 }
-
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 DataConnector.getInstance = logger => isNodeJS ? new ServerDataConnector(logger) : new ClientDataConnector(logger);
-
 Object.freeze(DataConnector);
-
 export default DataConnector;

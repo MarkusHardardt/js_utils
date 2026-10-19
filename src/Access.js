@@ -1,8 +1,6 @@
 import Core from './Core.js';
 import Common from './Common.js';
-
 const Access = {};
-
 const NodeState = Object.freeze({
     Constructed: 0,
     Registered: 1,
@@ -10,7 +8,6 @@ const NodeState = Object.freeze({
     UnregisterTimerRunning: 3,
     Destructed: 4
 });
-
 class Node {
     #logger;
     #source;
@@ -64,7 +61,8 @@ class Node {
                     this.#source.registerObserver(this.#onRefresh);
                     this.#logger.trace('Access.Node.registerObserver(): Registered observer on source');
                     this.#state = NodeState.Registered;
-                } catch (error) {
+                }
+                catch (error) {
                     // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not yet running.
                     this.#logger.warn('Access.Node.registerObserver(): Failed to register observer on source', error);
                     this.#state = NodeState.NotRegistered;
@@ -115,7 +113,8 @@ class Node {
                             try {
                                 this.#source.unregisterObserver(this.#onRefresh);
                                 this.#logger.trace('Access.Node.unregisterObserver(): Unregistered on source after delay has expired');
-                            } catch (error) {
+                            }
+                            catch (error) {
                                 // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not running anymore.
                                 this.#logger.warn('Access.Node.unregisterObserver(): Failed to unregister on source after delay has expired', error);
                             }
@@ -123,11 +122,13 @@ class Node {
                             this.#onLastObserverUnregistered();
                         }, this.#unregisterObserverDelay);
                         this.#state = NodeState.UnregisterTimerRunning;
-                    } else {
+                    }
+                    else {
                         try {
                             this.#source.unregisterObserver(this.#onRefresh);
                             this.#logger.trace('Access.Node.unregisterObserver(): Unregistered on source without delay');
-                        } catch (error) {
+                        }
+                        catch (error) {
                             // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not running anymore.
                             this.#logger.warn('Access.Node.unregisterObserver(): Failed to unregister on source without delay', error);
                         }
@@ -145,7 +146,8 @@ class Node {
                     this.#source.registerObserver(this.#onRefresh);
                     this.#logger.trace('Access.Node.registerObserverOnSource(): Registered on source');
                     this.#state = NodeState.Registered;
-                } catch (error) {
+                }
+                catch (error) {
                     this.#logger.warn('Access.Node.registerObserverOnSource(): Failed to register on source', error);
                 }
                 return;
@@ -157,7 +159,8 @@ class Node {
                 try {
                     this.#source.unregisterObserver(this.#onRefresh);
                     this.#logger.trace('Access.Node.unregisterObserverOnSource(): Unregistered on source');
-                } catch (error) {
+                }
+                catch (error) {
                     this.#logger.warn('Access.Node.unregisterObserverOnSource(): Failed to unregister on source', error);
                 }
                 this.#state = NodeState.NotRegistered;
@@ -168,7 +171,8 @@ class Node {
                 try {
                     this.#source.unregisterObserver(this.#onRefresh);
                     this.#logger.trace('Access.Node.unregisterObserverOnSource(): Interruppted unregister timer and unregistered on source');
-                } catch (error) {
+                }
+                catch (error) {
                     this.#logger.warn('Access.Node.unregisterObserverOnSource(): Interruppted unregister timer but failed to unregister on source', error);
                 }
                 this.#state = NodeState.NotRegistered;
@@ -179,13 +183,13 @@ class Node {
         if (this.#value !== undefined && this.#value !== null) {
             try {
                 onRefresh(this.#value);
-            } catch (error) {
+            }
+            catch (error) {
                 this.#logger.error(`${context}: Failed calling onRefresh(value)`, error);
             }
         }
     }
 }
-
 class Buffer {
     #logger;
     #source;
@@ -204,7 +208,8 @@ class Buffer {
     registerObserver(dataId, onRefresh) {
         if (typeof dataId !== 'string') {
             throw new Error(`Access.Buffer.registerObserver(): Invalid data id '${dataId}'`);
-        } else if (typeof onRefresh !== 'function') {
+        }
+        else if (typeof onRefresh !== 'function') {
             throw new Error('Access.Buffer.registerObserver(): onRefresh(value) is not a function');
         }
         let dataPoint = this.#dataPointsByDataId[dataId];
@@ -218,7 +223,8 @@ class Buffer {
                 delete this.#dataPointsByDataId[dataId];
             });
             this.#logger.trace(`Access.Buffer.registerObserver(): Register first '${dataId}' on node`);
-        } else {
+        }
+        else {
             this.#logger.trace(`Access.Buffer.registerObserver(): Register next '${dataId}' on node`);
         }
         dataPoint.node.registerObserver(onRefresh);
@@ -226,7 +232,8 @@ class Buffer {
     unregisterObserver(dataId, onRefresh) {
         if (typeof dataId !== 'string') {
             throw new Error(`Access.Buffer.unregisterObserver(): Invalid data id '${dataId}'`);
-        } else if (typeof onRefresh !== 'function') {
+        }
+        else if (typeof onRefresh !== 'function') {
             throw new Error('Access.Buffer.unregisterObserver(): onRefresh(value) is not a function');
         }
         const dataPoint = this.#dataPointsByDataId[dataId];
@@ -261,7 +268,8 @@ class Buffer {
         this.#source.read(dataId, value => {
             try {
                 onResponse(value);
-            } catch (error) {
+            }
+            catch (error) {
                 this.#logger.error(`Access.Buffer.read(): Failed calling onResponse(${value}) for data id '${dataId}'`, error);
             }
             const dataPoint = this.#dataPointsByDataId[dataId];
@@ -274,13 +282,13 @@ class Buffer {
         try {
             this.#source.write(dataId, value);
             this.#logger.trace(`Access.Buffer.write(): Called write(${value}) for data id '${dataId}'`);
-        } catch (error) {
+        }
+        catch (error) {
             this.#logger.warn(`Access.Buffer.write(): Failed calling write(${value}) for data id '${dataId}'`, error);
         }
     }
 }
 Access.Buffer = Buffer;
-
 class Switch {
     #getDataAccessObject;
     constructor(getDataAccessObject) {
@@ -310,7 +318,6 @@ class Switch {
     }
 }
 Access.Switch = Switch;
-
 const targetIdValidRegex = /^[a-z0-9_]+$/i;
 const targetIdRegex = /^([a-z0-9_]+):.+$/i;
 class Router {
@@ -319,7 +326,7 @@ class Router {
     #dataAccessObjects;
     #getDataAccessObject;
     #onUnregisterObserversOnSource;
-    #onRegisterObserversOnSource
+    #onRegisterObserversOnSource;
     constructor(logger) {
         Common.validateAsLogger(logger, true);
         this.#logger = logger;
@@ -377,15 +384,18 @@ class Router {
     registerDataAccessObject(targetId, accessObject) {
         if (typeof targetId !== 'string') {
             throw new Error(`Access.Router.registerDataAccessObject(): Invalid target id '${targetId}'`);
-        } else if (!targetIdValidRegex.test(targetId)) {
+        }
+        else if (!targetIdValidRegex.test(targetId)) {
             throw new Error(`Access.Router.registerDataAccessObject(): Invalid target id format '${targetId}'`);
-        } else if (this.#dataAccessObjects[targetId] !== undefined) {
+        }
+        else if (this.#dataAccessObjects[targetId] !== undefined) {
             throw new Error(`Access.Router.registerDataAccessObject(): Target id '${targetId}' is already registered`);
-        } else {
+        }
+        else {
             Common.validateAsDataAccessServerObject(accessObject, true);
             // The router uses the target ID at the start of the data ID to identify the desired target system.
             // When a target system is accessed, only the raw data ID is passed to it, for which the following function is used.
-            const prefix = `${targetId}:`
+            const prefix = `${targetId}:`;
             function getRawDataId(dataId) {
                 return dataId.substring(prefix.length);
             }
@@ -406,7 +416,8 @@ class Router {
             for (const dataConnector of this.#dataConnectors) {
                 try {
                     dataConnector.setDataPoints(dataPoints);
-                } catch (error) {
+                }
+                catch (error) {
                     this.#logger.error('Access.Router.registerDataAccessObject(): Failed updating data points on connector', error);
                 }
             }
@@ -415,14 +426,18 @@ class Router {
     unregisterDataAccessObject(targetId, accessObject) {
         if (typeof targetId !== 'string') {
             throw new Error(`Access.Router.unregisterDataAccessObject(): Invalid target id: '${targetId}'`);
-        } else if (!targetIdValidRegex.test(targetId)) {
+        }
+        else if (!targetIdValidRegex.test(targetId)) {
             throw new Error(`Access.Router.unregisterDataAccessObject(): Invalid target id format '${targetId}'`);
-        } else if (this.#dataAccessObjects[targetId] === undefined) {
+        }
+        else if (this.#dataAccessObjects[targetId] === undefined) {
             throw new Error(`Access.Router.unregisterDataAccessObject(): Target id '${targetId}' is not registered`);
-        } else if (this.#dataAccessObjects[targetId].accessObject !== accessObject) {
+        }
+        else if (this.#dataAccessObjects[targetId].accessObject !== accessObject) {
             throw new Error(`Access.Router.unregisterDataAccessObject(): Target id '${targetId}' is registered for another data access object`);
-        } else {
-            const prefix = `${targetId}:`
+        }
+        else {
+            const prefix = `${targetId}:`;
             if (this.#onUnregisterObserversOnSource) {
                 // Note: Both in the browser and by services on the server, data points may have been registered for monitoring purposes 
                 // while the actual service was stopped. This triggers the actual unregistration on the service.
@@ -433,7 +448,8 @@ class Router {
             for (const dataConnector of this.#dataConnectors) {
                 try {
                     dataConnector.setDataPoints(dataPoints);
-                } catch (error) {
+                }
+                catch (error) {
                     this.#logger.error('Access.Router.unregisterDataAccessObject(): Failed updating data points on connector', error);
                 }
             }
@@ -457,7 +473,5 @@ class Router {
     }
 }
 Access.Router = Router;
-
 Object.freeze(Access);
-
 export default Access;

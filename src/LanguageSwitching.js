@@ -1,11 +1,8 @@
 import Core from './Core.js';
 import Common from './Common.js';
 import ContentManager from './ContentManager.js';
-
 const LanguageSwitching = {};
-
 const DEFAULT_VALUE_FOR_NOT_EXISTS = '???';
-
 class Handler {
     #logger;
     #cms;
@@ -26,7 +23,6 @@ class Handler {
         this.#languageObservers = [];
         Common.validateAsDataAccessObject(this, true);
     }
-
     addLanguageObserver(onLanguageChanged) {
         if (typeof onLanguageChanged !== 'function') {
             throw new Error('onLanguageChanged(language) is not a function');
@@ -39,7 +35,6 @@ class Handler {
         }
         this.#languageObservers.push(onLanguageChanged);
     }
-
     removeLanguageObserver(onLanguageChanged) {
         if (typeof onLanguageChanged !== 'function') {
             throw new Error('Callback for onLanguageChanged(language) is not a function');
@@ -52,21 +47,22 @@ class Handler {
         }
         this.#logger.warn('Callback onLanguageChanged(language) is not observed');
     }
-
     getType(dataId) {
         if (this.#isValidLabelType(dataId)) {
             return Core.DataType.String;
-        } else if (this.#isValidHTMLType(dataId)) {
+        }
+        else if (this.#isValidHTMLType(dataId)) {
             return Core.DataType.HTML;
-        } else {
+        }
+        else {
             return Core.DataType.Unknown;
         }
     }
-
     registerObserver(dataId, onRefresh) {
         if (typeof dataId !== 'string') {
             throw new Error(`Invalid id '${dataId}'`);
-        } else if (typeof onRefresh !== 'function') {
+        }
+        else if (typeof onRefresh !== 'function') {
             throw new Error(`Observer onRefresh(value) for id '${dataId}' is not a function`);
         }
         let dataPoint = this.#dataPoints[dataId];
@@ -74,32 +70,37 @@ class Handler {
             // If no data point is available, we create a new one but mark it as non-existent.
             // If the corresponding data point is added to the database later, the already existing callback will be called from then on automatically.
             dataPoint = this.#dataPoints[dataId] = { exists: false, value: DEFAULT_VALUE_FOR_NOT_EXISTS };
-        } else if (dataPoint.onRefresh === onRefresh) {
+        }
+        else if (dataPoint.onRefresh === onRefresh) {
             this.#logger.warn(`Data id '${dataId}' is already observed with this callback`);
-        } else if (dataPoint.onRefresh !== null) {
+        }
+        else if (dataPoint.onRefresh !== null) {
             this.#logger.warn(`Data id '${dataId}' is already observed with another callback`);
         }
         dataPoint.onRefresh = onRefresh;
         try {
             onRefresh(dataPoint.value);
-        } catch (error) {
+        }
+        catch (error) {
             throw new Error(`Failed calling onRefresh(value) for '${dataId}':\n${error.message}`);
         }
     }
-
     unregisterObserver(dataId, onRefresh) {
         if (typeof dataId !== 'string') {
             throw new Error(`Invalid id '${dataId}'`);
-        } else if (typeof onRefresh !== 'function') {
+        }
+        else if (typeof onRefresh !== 'function') {
             throw new Error(`Observer onRefresh(value) for id '${dataId}' is not a function`);
         }
         const dataPoint = this.#dataPoints[dataId];
         if (!dataPoint) {
             this.#logger.error(`Language value with id '${dataId}' is not available to unsubscribe`);
             return;
-        } else if (dataPoint.onRefresh === null) {
+        }
+        else if (dataPoint.onRefresh === null) {
             this.#logger.warn(`Language value with id '${dataId}' is not observed`);
-        } else if (dataPoint.onRefresh !== onRefresh) {
+        }
+        else if (dataPoint.onRefresh !== onRefresh) {
             this.#logger.warn(`Language value with id '${dataId}' is observed with a another callback`);
         }
         dataPoint.onRefresh = null;
@@ -107,32 +108,27 @@ class Handler {
             delete this.#dataPoints[dataId];
         }
     }
-
     read(dataId, onResponse, onError) {
         const dataPoint = this.#dataPoints[dataId];
         if (!dataPoint) {
             onError(`Unsupported data id for read: '${dataId}'`);
-        } else {
+        }
+        else {
             onResponse(dataPoint.value);
         }
     }
-
     write(dataId, value) {
         throw new Error(`write to data with id '${dataId}' is not supported`);
     }
-
     getLanguages() {
         return this.#languages.map(lang => lang);
     }
-
     getLanguage() {
         return this.#language;
     }
-
     isAvailable(language) {
         return this.#languages.indexOf(language) >= 0;
     }
-
     loadLanguage(language, onSuccess, onError) {
         // Load all label and html values
         this.#cms.getAllForLanguage(language, values => {
@@ -155,7 +151,8 @@ class Handler {
                     if (!dataPoint.exists) {
                         if (!dataPoint.onRefresh) {
                             delete this.#dataPoints[dataId];
-                        } else {
+                        }
+                        else {
                             dataPoint.value = DEFAULT_VALUE_FOR_NOT_EXISTS;
                         }
                     }
@@ -168,7 +165,8 @@ class Handler {
                     if (dataPoint.onRefresh) {
                         try {
                             dataPoint.onRefresh(dataPoint.value);
-                        } catch (error) {
+                        }
+                        catch (error) {
                             this.#logger.error(`Failed calling onRefresh(value) for data id '${dataId}'`, error);
                         }
                     }
@@ -177,16 +175,15 @@ class Handler {
             for (const observer of this.#languageObservers) {
                 try {
                     observer(language);
-                } catch (error) {
+                }
+                catch (error) {
                     this.#logger.error(`Failed calling onLanguageChanged('${language}')`, error);
                 }
             }
             onSuccess();
-        }, onError)
+        }, onError);
     }
 }
 LanguageSwitching.getInstance = (logger, cms) => new Handler(logger, cms);
-
 Object.freeze(LanguageSwitching);
-
 export default LanguageSwitching;

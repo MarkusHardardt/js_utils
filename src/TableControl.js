@@ -1,10 +1,8 @@
 import Sorting from './Sorting.js';
 import Utilities from './Utilities.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
-
 const TableControl = {};
 const $ = globalThis.$;
-
 // This is the global sorting of data tables: DO NOT REMOVE !!!
 if ($?.fn && $.fn.DataTable) {
     $.fn.DataTable.ext.oSort['texts-and-numbers-asc'] = Sorting.getTextsAndNumbersCompareFunction(true, false, true);
@@ -14,7 +12,6 @@ if ($?.fn && $.fn.DataTable) {
     $.fn.DataTable.ext.oSort['timestamp-asc'] = Sorting.getTextsAndNumbersCompareFunction(true, false, false);
     $.fn.DataTable.ext.oSort['timestamp-desc'] = Sorting.getTextsAndNumbersCompareFunction(true, false, true);
 }
-
 function applyTable(that, onSuccess) {
     let _cont = that._hmi_context.container;
     _cont.addClass('overflow-hidden');
@@ -24,7 +21,8 @@ function applyTable(that, onSuccess) {
     let _columns = [];
     if (typeof that.columns === 'number') {
         _columnCount = that.columns;
-    } else if (Array.isArray(that.columns) && that.columns.length > 0) {
+    }
+    else if (Array.isArray(that.columns) && that.columns.length > 0) {
         _columnCount = that.columns.length;
         let widths = [];
         for (let i = 0; i < _columnCount; i++) {
@@ -41,10 +39,12 @@ function applyTable(that, onSuccess) {
             if (column.textsAndNumbers === true) {
                 cfg.type = 'texts-and-numbers';
                 cfg.orderable = true;
-            } else if (column.timestamp === true) {
+            }
+            else if (column.timestamp === true) {
                 cfg.type = 'timestamp';
                 cfg.orderable = true;
-            } else {
+            }
+            else {
                 cfg.orderable = false;
             }
             _columns.push(cfg);
@@ -56,16 +56,19 @@ function applyTable(that, onSuccess) {
             const cell = $('#' + _columns[i]._id);
             if (typeof column.labelId === 'string' && column.labelId.length > 0) {
                 cell.text(that.hmi.access.Get(column.labelId)); // TODO: Get() not exists!
-            } else if (typeof column.text === 'string' && column.text.length > 0) {
+            }
+            else if (typeof column.text === 'string' && column.text.length > 0) {
                 cell.text(column.text);
             }
         }
-    };
+    }
+    ;
     function rowCallback(row, data, displayIndex, displayIndexFull) {
         if (typeof that.prepareTableRow === 'function') {
             that.prepareTableRow(row, row._DT_RowIndex);
         }
-    };
+    }
+    ;
     let txt = `<table width="100%" id="${_tableId}"`;
     if (typeof that.tableStyle === 'string') {
         txt += ` style="${that.tableStyle}"`;
@@ -76,7 +79,8 @@ function applyTable(that, onSuccess) {
         const column = that.columns[i];
         if (typeof column.labelId === 'string' && column.labelId.length > 0) {
             txt += `<b id="${_columns[i]._id}">${that.hmi.access.Get(column.labelId)}</b>`; // TODO: Get() not exists!
-        } else if (typeof column.text === 'string' && column.text.length > 0) {
+        }
+        else if (typeof column.text === 'string' && column.text.length > 0) {
             txt += `<b id="${_columns[i]._id}">${column.text}</b>`;
         }
         txt += '</th>';
@@ -92,7 +96,8 @@ function applyTable(that, onSuccess) {
         const cell = _dataTable.cell(row, column);
         if (typeof value === 'string') {
             cell.data(value).draw(false);
-        } else {
+        }
+        else {
             return cell.data();
         }
     };
@@ -137,7 +142,7 @@ function applyTable(that, onSuccess) {
                 // TODO???: _scroller.restore(_dataTable.parent(), _dataTable);
                 // if we have a click handler for table rows
                 if (typeof that.handleTableRowClicked === 'function') {
-                    $(`#${_tableId} tbody`).on('click', 'tr', function (event) { // Note: Do not convert to lambda because 'this' must refer to the table row
+                    $(`#${_tableId} tbody`).on('click', 'tr', function (event) {
                         if (that.highlightSelectedRow === true) {
                             _dataTable.$('tr.row_selected').removeClass('row_selected');
                             $(this).addClass('row_selected');
@@ -209,7 +214,5 @@ function applyTable(that, onSuccess) {
     onSuccess();
 }
 ObjectLifecycleManager.addApplyFunctionForType('table', applyTable);
-
 Object.freeze(TableControl);
-
 export default TableControl;

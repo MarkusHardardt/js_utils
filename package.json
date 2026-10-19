@@ -5,6 +5,8 @@
     "type": "module",
     "main": "js_utils.js",
     "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "generate": "npm run build && node js_utils_generator.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "repository": {
@@ -18,27 +20,30 @@
     },
     "homepage": "https://github.com/MarkusHardardt/js_utils#readme",
     "peerDependencies": {
-        "codemirror": "^6.0.2",
         "@codemirror/lang-html": "^6.4.12",
         "@codemirror/lang-javascript": "^6.2.5",
         "@codemirror/streamparser": "^6.0.0",
-        "express": "^5.2.1",
-        "mysql": "^2.18.1",
-        "path": "^0.12.7",
-        "ws": "^8.18.3",
         "ads-client": "^2.2.0",
         "body-parser": "^2.2.1",
+        "codemirror": "^6.0.2",
         "datatables": "^1.10.18",
         "datatables.net": "^2.3.5",
         "datatables.net-dt": "^2.3.5",
+        "express": "^5.2.1",
         "file-saver": "^2.0.5",
         "jquery": "^3.7.1",
         "jquery-ui-dist": "^1.13.3",
         "jquery.fancytree": "^2.38.5",
         "js-beautify": "^1.15.4",
         "md5": "^2.3.0",
+        "mysql": "^2.18.1",
         "node-opcua-client": "^2.161.0",
+        "path": "^0.12.7",
+        "ws": "^8.18.3",
         "xlsx": "^0.18.5"
     },
-    "dependencies": {}
+    "devDependencies": {
+        "@types/node": "^24.19.2",
+        "typescript": "^5.9.3"
+    }
 }

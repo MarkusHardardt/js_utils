@@ -1,7 +1,6 @@
 import Executor from './Executor.js';
 import Regex from './Regex.js';
 import Core from './Core.js';
-
 const OPCUA = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 const fs = isNodeJS ? await import('node:fs') : undefined;
@@ -53,9 +52,7 @@ function getAsCoreDataType(type) {
     }
 }
 OPCUA.getAsCoreDataType = getAsCoreDataType;
-
 const keyValueRegex = /^([_a-z0-9]+(?:[./][_a-z0-9]+)*);(.+)$/i;
-
 function getKeysAndValues(text) {
     const result = {};
     const lines = text.split(Regex.Linebreaks);
@@ -67,39 +64,36 @@ function getKeysAndValues(text) {
                 throw new Error(`OPCUA.getKeysAndValues(): Duplicate key found: '${key}'`);
             }
             result[key] = match[2];
-        } else if (line.length > 0) {
+        }
+        else if (line.length > 0) {
             throw new Error(`OPCUA.getKeysAndValues(): Invalid line: '${line}'`);
         }
     }
     return result;
 }
 OPCUA.getKeysAndValues = getKeysAndValues;
-
 function loadKeysAndValuesFromCSVFile(file, onSuccess, onError) {
     try {
         onSuccess(getKeysAndValues(fs.readFileSync(file, 'utf8')));
-    } catch (error) {
+    }
+    catch (error) {
         onError(`OPCUA.loadKeysAndValuesFromCSVFile(): Failed reading csv file '${file}': ${error.message}`);
     }
 }
 OPCUA.loadKeysAndValuesFromCSVFile = loadKeysAndValuesFromCSVFile;
-
 /* ChatGPT generated two versions which are 100% equivalent in behavior:
     await Promise.all(toAdd.map(async id => {
         const mi = await subscription.monitor(...);
         activeItems.set(id, mi);
-    })); 
-    await Promise.all(toAdd.map(id => 
+    }));
+    await Promise.all(toAdd.map(id =>
         subscription.monitor(...).then(mi => {
             activeItems.set(id, mi);
         })
     ));
     Here it makes a difference which one to use because we need the returned mi to add to our collection.  */
 function getEstablishMonitoringTask(subscription, node, logger) {
-    return (onSuccess, onError) => subscription.monitor(
-        { nodeId: node.nodeId, attributeId: AttributeIds.Value },
-        { samplingInterval: 500, discardOldest: true, queueSize: 10 },
-        TimestampsToReturn.Both // TODO: Required?
+    return (onSuccess, onError) => subscription.monitor({ nodeId: node.nodeId, attributeId: AttributeIds.Value }, { samplingInterval: 500, discardOldest: true, queueSize: 10 }, TimestampsToReturn.Both // TODO: Required?
     ).then(monitoredItem => {
         node.monitoredItem = monitoredItem;
         monitoredItem.on('changed', dataValue => {
@@ -108,7 +102,8 @@ function getEstablishMonitoringTask(subscription, node, logger) {
             if (node.onRefresh && node.value !== null) {
                 try {
                     node.onRefresh(node.value);
-                } catch (error) {
+                }
+                catch (error) {
                     logger.error(`OPCUA.Client: Failed calling onResfresh(value) for id '${node.dataId}'`, error);
                 }
             }
@@ -119,7 +114,6 @@ function getEstablishMonitoringTask(subscription, node, logger) {
         onError(`Failed to monitor '${node.dataId}': ${error.message}`);
     });
 }
-
 /* ChatGPT generated two versions which are 100% equivalent in behavior:
     await Promise.all(toRemove.map(id => {
         const mi = activeItems.get(id);
@@ -143,11 +137,9 @@ function getTerminateMonitoringTask(node, logger) {
         onError(`Failed to terminated monitoring '${node.dataId}': ${error.message}`);
     });
 }
-
 const START_TRY_RECONNECT_DELAY = 2;
 const MAX_TRY_RECONNECT_DELAY = 32;
 const UPDATE_MONITORING_DELAY = 500; // 50;
-
 const ClientOperationLevel = Object.freeze({
     Disconnected: 0,
     Connecting: 1,
@@ -156,7 +148,6 @@ const ClientOperationLevel = Object.freeze({
     NodeInitialized: 4,
     Subscribed: 5
 });
-
 class Client {
     #logger;
     #options;
@@ -173,9 +164,11 @@ class Client {
     constructor(logger, options = {}) {
         if (typeof options.endpointUrl !== 'string' || Regex.EmptyString.test(options.endpointUrl)) {
             throw new Error(`Invalid endpointUrl: '${options.endpointUrl}'`);
-        } else if (options.namespace === undefined || options.namespace === null) {
+        }
+        else if (options.namespace === undefined || options.namespace === null) {
             throw new Error('Missing namespace');
-        } else if (!options.nodesConfig || typeof options.nodesConfig !== 'object') {
+        }
+        else if (!options.nodesConfig || typeof options.nodesConfig !== 'object') {
             throw new Error('Invalid nodes configuration');
         }
         this.#logger = logger;
@@ -216,7 +209,8 @@ class Client {
                 throw new Error('OPCUA.Client: onConnected() is not a function');
             }
             this.#onConnected = value;
-        } else {
+        }
+        else {
             this.#onConnected = null;
         }
     }
@@ -226,7 +220,8 @@ class Client {
                 throw new Error('OPCUA.Client: onDisonnected() is not a function');
             }
             this.#onDisconnected = value;
-        } else {
+        }
+        else {
             this.#onDisconnected = null;
         }
     }
@@ -238,7 +233,8 @@ class Client {
             this.#opLevel = ClientOperationLevel.Connected;
             if (!this.#running) {
                 onErr('OPCUA.Client: Not running anymore');
-            } else {
+            }
+            else {
                 onSuc();
             }
         }).catch(onErr));
@@ -248,7 +244,8 @@ class Client {
             this.#logger.trace(`Created OPC UA session on endpoint url: ${this.#options.endpointUrl}`);
             if (!this.#running) {
                 onErr('OPCUA.Client: Not running anymore');
-            } else {
+            }
+            else {
                 onSuc();
             }
         }).catch(onErr));
@@ -258,7 +255,8 @@ class Client {
             this.#opLevel = ClientOperationLevel.NodeInitialized;
             if (!this.#running) {
                 onErr('OPCUA.Client: Not running anymore');
-            } else {
+            }
+            else {
                 onSuc();
             }
         }).catch(onErr));
@@ -266,7 +264,7 @@ class Client {
             try {
                 // Create subscription
                 this.#subscription = ClientSubscription.create(this.#session, {
-                    requestedPublishingInterval: 1000,   // ms
+                    requestedPublishingInterval: 1000, // ms
                     requestedLifetimeCount: 100,
                     requestedMaxKeepAliveCount: 5, // Make the server send keepalives more often.
                     maxNotificationsPerPublish: 100,
@@ -278,10 +276,12 @@ class Client {
                 this.#opLevel = ClientOperationLevel.Subscribed;
                 if (!this.#running) {
                     onErr('OPCUA.Client: Not running anymore');
-                } else {
+                }
+                else {
                     onSuc();
                 }
-            } catch (error) {
+            }
+            catch (error) {
                 onErr(`OPCUA.Client: Failed creating subscription: ${error.message}`);
             }
         });
@@ -290,23 +290,23 @@ class Client {
             if (this.#onConnected) {
                 try {
                     this.#onConnected();
-                } catch (error) {
+                }
+                catch (error) {
                     this.#logger.error('OPCUA.Client: Failed calling onConnected()', error);
                 }
             }
             if (!this.#running) {
                 onErr('OPCUA.Client: Not running anymore');
-            } else {
+            }
+            else {
                 onSuc();
             }
         });
-        Executor.run(tasks,
-            () => this.#logger.trace(`OPCUA.Client: Successfully started and subscribed OPC UA client to endpoint url: ${this.#options.endpointUrl}`),
-            error => {
-                if (this.#running) {
-                    this.#logger.error(`OPCUA.Client: Failed starting and subscribing OPC UA client to endpoint url ${this.#options.endpointUrl}`, error);
-                }
-            });
+        Executor.run(tasks, () => this.#logger.trace(`OPCUA.Client: Successfully started and subscribed OPC UA client to endpoint url: ${this.#options.endpointUrl}`), error => {
+            if (this.#running) {
+                this.#logger.error(`OPCUA.Client: Failed starting and subscribing OPC UA client to endpoint url ${this.#options.endpointUrl}`, error);
+            }
+        });
         // When the OPC UA server does not exist at start of this handler the _connect() call may take long.
         // Therefore in this method we do not wait for completion of the tasks above and call onSuccess immediately. 
         onSuccess();
@@ -322,7 +322,8 @@ class Client {
                 this.#logger.trace(`OPCUA.Client: Connected to OPC UA client with endpoint url: ${this.#options.endpointUrl}`);
                 this.#online = true;
                 return;
-            } catch (error) {
+            }
+            catch (error) {
                 if (this.#running) {
                     this.#logger.trace(`OPCUA.Client: Server not available, retrying in ${connectRetryDelay} s...`);
                     await new Promise(resolve => setTimeout(() => {
@@ -331,7 +332,8 @@ class Client {
                         }
                         resolve();
                     }, connectRetryDelay * 1000));
-                } else {
+                }
+                else {
                     return;
                 }
             }
@@ -343,7 +345,8 @@ class Client {
         if (this.#onDisconnected) {
             try {
                 this.#onDisconnected();
-            } catch (error) {
+            }
+            catch (error) {
                 this.#logger.error('OPCUA.Client: Failed calling onDisonnected()', error);
             }
         }
@@ -373,16 +376,14 @@ class Client {
             if (this.#onConnected) {
                 try {
                     this.#onConnected();
-                } catch (error) {
+                }
+                catch (error) {
                     this.#logger.error('OPCUA.Client: Failed calling onConnected()', error);
                 }
             }
             onSuccess();
         });
-        Executor.run(tasks,
-            () => this.#logger.trace(`OPCUA.Client: Successfully updated after reconnection OPC UA client to endpoint url: ${this.#options.endpointUrl}`),
-            error => this.#logger.error(`OPCUA.Client: Failed updating after reconnection OPC UA client to endpoint url ${this.#options.endpointUrl}`, error)
-        );
+        Executor.run(tasks, () => this.#logger.trace(`OPCUA.Client: Successfully updated after reconnection OPC UA client to endpoint url: ${this.#options.endpointUrl}`), error => this.#logger.error(`OPCUA.Client: Failed updating after reconnection OPC UA client to endpoint url ${this.#options.endpointUrl}`, error));
     }
     async #initNodesAsync() {
         if (this.#session) {
@@ -403,7 +404,8 @@ class Client {
                         node.value = dataValue.value.value;
                         node.rawType = dataValue.value.dataType;
                         node.type = getAsCoreDataType(dataValue.value.dataType);
-                    } else {
+                    }
+                    else {
                         node.value = null;
                         node.rawType = DataType.Null;
                         node.type = getAsCoreDataType(DataType.Null);
@@ -420,7 +422,8 @@ class Client {
             if (this.#online && this.#onDisconnected) {
                 try {
                     this.#onDisconnected();
-                } catch (error) {
+                }
+                catch (error) {
                     this.#logger.error('OPCUA.Client: Failed calling onDisonnected()', error);
                 }
             }
@@ -492,14 +495,17 @@ class Client {
         const node = this.#nodes[dataId];
         if (!node) {
             throw new Error(`OPCUA.Client: Unknown data id: '${dataId}'`);
-        } else if (node.onRefresh === onRefresh) {
+        }
+        else if (node.onRefresh === onRefresh) {
             this.#logger.error(`OPCUA.Client: Node with data id: '${dataId}' is already subscribed with same onRefresh(value) callback`);
-        } else {
+        }
+        else {
             node.onRefresh = onRefresh;
             if (node.value !== null) {
                 try {
                     onRefresh(node.value);
-                } catch (error) {
+                }
+                catch (error) {
                     this.#logger.error(`OPCUA.Client: Failed calling onResfresh(value) for id '${node.dataId}'`, error);
                 }
             }
@@ -514,9 +520,11 @@ class Client {
         const node = this.#nodes[dataId];
         if (!node) {
             throw new Error(`OPCUA.Client: Unknown data id: '${dataId}'`);
-        } else if (node.onRefresh !== onRefresh) {
+        }
+        else if (node.onRefresh !== onRefresh) {
             this.#logger.error(`OPCUA.Client: Node with data id: '${dataId}' is not subscribed with passed onRefresh(value) callback`);
-        } else {
+        }
+        else {
             node.onRefresh = null;
             if (this.#subscription && !this.#updateMonitoringTimer) {
                 this.#updateMonitoringTimer = setTimeout(() => {
@@ -535,7 +543,8 @@ class Client {
                         if (!node.monitoredItem) {
                             toAdd.push(getEstablishMonitoringTask(this.#subscription, node, this.#logger));
                         }
-                    } else {
+                    }
+                    else {
                         if (node.monitoredItem) {
                             toRemove.push(getTerminateMonitoringTask(node, this.#logger));
                         }
@@ -579,14 +588,16 @@ class Client {
                     const value = dataValue.value.value;
                     this.#logger.trace(`OPCUA.Client: Value ${value} read from node '${node.rawNodeId}'`);
                     onResponse(value);
-                } else {
+                }
+                else {
                     this.#logger.error(`OPCUA.Client: Node '${node.rawNodeId}' has bad status: ${dataValue.statusCode.name}`);
                 }
             }).catch(error => {
                 this.#logger.error(`OPCUA.Client: Cannot read from node '${node.rawNodeId}'`, error);
                 onError(`Cannot read from node ${node.rawNodeId}: ${error.message}`);
             });
-        } catch (error) {
+        }
+        catch (error) {
             this.#logger.error(`OPCUA.Client: Failed reading '${node.rawNodeId}'`, error);
             onError(`Failed reading '${node.rawNodeId}': ${error.message}`);
         }
@@ -600,7 +611,8 @@ class Client {
             this.#session.writeSingleNode(node.accessString, { dataType: node.rawType, value })
                 .then(() => this.#logger.trace(`OPCUA.Client: Value ${value} written to node '${node.rawNodeId}'`))
                 .catch(error => this.#logger.error(`Failed writing value ${value} to node '${node.rawNodeId}'`, error));
-        } catch (error) {
+        }
+        catch (error) {
             this.#logger.error(`OPCUA.Client: Failed writing value ${value} to node '${node.rawNodeId}'`, error);
         }
     }
@@ -615,7 +627,5 @@ class Client {
     }
 }
 OPCUA.Client = Client;
-
 Object.freeze(OPCUA);
-
 export default OPCUA;

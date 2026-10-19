@@ -1,16 +1,13 @@
 const JsonFX = {};
-
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 const beautifyModule = isNodeJS ? await import('js-beautify') : globalThis.js_beautify;
 const beautify_js = isNodeJS ? beautifyModule.js ?? beautifyModule.default?.js : globalThis.js_beautify;
-
 const standardFunctionRegex = /^\s*function\s*\(\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*\{(?:.|\n)*?\}\s*$/m;
 const lambdaFunctionRegex = /^\s*\(\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*(?:\s*,\s*[_$a-zA-Z][_$a-zA-Z0-9]*)*)?\s*\)\s*=>\s*(?:(?:\{(?:.|\n)*?\})|(?:(?:.|\n)*?))\s*$/;
 const lambdaFunctionSingleArgumentRegex = /^\s*(?:[_$a-zA-Z][_$a-zA-Z0-9]*)\s*=>\s*(?:(?:\{(?:.|\n)*?\})|(?:(?:.|\n)*?))\s*$/;
-
 const _cx = /[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g;
 const _escapable = /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g;
-const _meta = Object.freeze({// table of character substitutions
+const _meta = Object.freeze({
     '\b': '\\b',
     '\t': '\\t',
     '\n': '\\n',
@@ -37,7 +34,6 @@ const _beautify_opts = Object.freeze({
     comma_first: false,
     e4x: false,
 });
-
 function addQuotes(test, slapQuotes) {
     // If the string contains no control characters, no quote characters, and no
     // backslash characters, then we can safely slap some quotes around it.
@@ -53,7 +49,8 @@ function addQuotes(test, slapQuotes) {
             const c = _meta[a];
             return typeof c === 'string' ? c : '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
         });
-    } else {
+    }
+    else {
         txt += test;
     }
     if (slapQuotes) {
@@ -61,13 +58,12 @@ function addQuotes(test, slapQuotes) {
     }
     return txt;
 }
-
 function getString(key, holder, pretty) {
     // Produce a string from holder[i_key].
     let i, // The loop counter.
-        k, // The member key.
-        v, // The member value.
-        length, partial, value = holder[key];
+    k, // The member key.
+    v, // The member value.
+    length, partial, value = holder[key];
     // What happens next depends on the value's type.
     switch (typeof value) {
         case 'string':
@@ -131,13 +127,12 @@ function getString(key, holder, pretty) {
             return pretty ? func_str : addQuotes(func_str, true);
     }
 }
-
 /** Converts a value into a string
  * @param {boolean|number|string|object|array|function} value - The value for converting into a string
- * @param {boolean} pretty - If false a compact string without linebreaks as known from JSON.stringify(value) will be returned. 
- * On functions toString() will be called, all different styles of line endings will be replaced by single linefeeds, 
+ * @param {boolean} pretty - If false a compact string without linebreaks as known from JSON.stringify(value) will be returned.
+ * On functions toString() will be called, all different styles of line endings will be replaced by single linefeeds,
  * tabulators will be replaced by single whitespace, and on each line leading and ending whitespaces will be removed.
- * If true the value will be converted into multiline text. Object attribute names will be written without quotes 
+ * If true the value will be converted into multiline text. Object attribute names will be written without quotes
  * and functions will be formatted with indentation using a beautyfier (like a programming tool would do).
  * @returns The string representation of the passed value.
  */
@@ -147,14 +142,12 @@ function stringify(value, pretty) {
     // that can replace values, or an array of strings that will select the keys.
     // A default replacer method can be provided. Use of the space parameter
     // can produce text that is more easily readable.
-
     // Make a fake root object containing our value under the key of ''.
     // Return the result of stringifying the value.
     const str = getString('', { '': value }, pretty === true);
     return pretty === true ? beautify_js(str, _beautify_opts) : str;
 }
 JsonFX.stringify = stringify;
-
 /*  Call this function recursive on each object attribute or array element.
     Transforms strings to boolean, number or function if possible.  */
 function reconstruct(object, evalFunc) {
@@ -163,26 +156,32 @@ function reconstruct(object, evalFunc) {
             for (let i = 0, l = object.length; i < l; i++) {
                 object[i] = reconstruct(object[i], evalFunc);
             }
-        } else if (typeof object === 'object') { // Handle object attributes by calling recursive
+        }
+        else if (typeof object === 'object') { // Handle object attributes by calling recursive
             for (const attr in object) {
                 if (object.hasOwnProperty(attr)) {
                     object[attr] = reconstruct(object[attr], evalFunc);
                 }
             }
-        } else if (typeof object === 'string' && object.length > 0) { // Check if boolean, number or function as string and convert
+        }
+        else if (typeof object === 'string' && object.length > 0) { // Check if boolean, number or function as string and convert
             if (isNaN(object)) {
                 if (object === 'true') {
                     object = true;
-                } else if (object === 'false') {
+                }
+                else if (object === 'false') {
                     object = false;
-                } else if (standardFunctionRegex.test(object) || lambdaFunctionRegex.test(object) || lambdaFunctionSingleArgumentRegex.test(object)) {
+                }
+                else if (standardFunctionRegex.test(object) || lambdaFunctionRegex.test(object) || lambdaFunctionSingleArgumentRegex.test(object)) {
                     try {
                         object = evalFunc ? evalFunc(object) : eval(`(${object})`);
-                    } catch (error) {
+                    }
+                    catch (error) {
                         console.error('Failed evaluating function', error);
                     }
                 }
-            } else {
+            }
+            else {
                 object = object.indexOf('.') !== -1 ? parseFloat(object) : parseInt(object);
             }
         }
@@ -190,11 +189,10 @@ function reconstruct(object, evalFunc) {
     return object;
 }
 JsonFX.reconstruct = reconstruct;
-
 /**
- * 
+ *
  * @param {string} text - the text to parse
- * @param {boolean} sourceIsPretty - If the text to parse comes from a JavaScript source code editor this must be true. 
+ * @param {boolean} sourceIsPretty - If the text to parse comes from a JavaScript source code editor this must be true.
  * If the test is mode pure JSON pass false.
  * @param {boolean} doReconstruct - Set true if strings containg only boolean, number or functions should be cnverted to it raw type.
  * @param {Function} evalFunc - The eval function to use (allows using eval from a certain context)
@@ -214,7 +212,6 @@ function parse(text, sourceIsPretty, doReconstruct, evalFunc) {
     // look for non-JsonFX patterns. We are especially concerned with '()' and 'new'
     // because they can cause invocation, and '=' because it can cause mutation.
     // But just to be safe, we want to reject all unexpected forms.
-
     // We split the second stage into 4 regexp operations in order to work
     // around crippling inefficiencies in IE's and Safari's regexp engines. 
     // First we replace the JsonFX backslash pairs with '@' (a non-JsonFX character).
@@ -235,7 +232,5 @@ function parse(text, sourceIsPretty, doReconstruct, evalFunc) {
     throw new SyntaxError('JsonFX.parse systax error');
 }
 JsonFX.parse = parse;
-
 Object.freeze(JsonFX);
-
 export default JsonFX;

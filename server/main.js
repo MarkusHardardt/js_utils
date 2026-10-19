@@ -12,18 +12,15 @@ import Logger from '../src/Logger.js';
 import WebSocketConnection from '../src/WebSocketConnection.js';
 import TaskManager from '../src/TaskManager.js';
 import Evaluate from '../src/Evaluate.js';
-
 function main(config = {}) {
     Logger.setLevel(config.serverLogLevel);
-
     // create 'hmi' environment object
     const hmi = {
         applicationName: config.applicationName,
         logger: new Logger(config.applicationName),
         evalFunc: Evaluate.evalFunc,
         // add hmi-object-framweork
-        createObject: (object, element, onSuccess, onError, initData) =>
-            ObjectLifecycleManager.createObject(object, element, onSuccess, onError, hmi, initData),
+        createObject: (object, element, onSuccess, onError, initData) => ObjectLifecycleManager.createObject(object, element, onSuccess, onError, hmi, initData),
         killObject: ObjectLifecycleManager.killObject,
         // Environment
         env: {
@@ -102,7 +99,6 @@ function main(config = {}) {
         codeMirrorImports[name] = `/${id}/${file}`;
     }
     webServer.addImportMap(codeMirrorImports);
-
     webServer.addStaticFile('./node_modules/file-saver/dist/' + (minimized ? 'FileSaver.min.js' : 'FileSaver.js'));
     webServer.addStaticFile('./node_modules/js-beautify/js/lib/beautify.js');
     webServer.addStaticFile('./node_modules/js-beautify/js/lib/beautify-html.js');
@@ -140,7 +136,7 @@ function main(config = {}) {
         for (const receiver in config.postRequestHandler) {
             if (config.postRequestHandler.hasOwnProperty(receiver)) {
                 const onRequest = config.postRequestHandler[receiver];
-                webServer.registerPostRequestHandler(receiver, onRequest)
+                webServer.registerPostRequestHandler(receiver, onRequest);
             }
         }
     }
@@ -166,7 +162,6 @@ function main(config = {}) {
     dataAccessRouter.onRegisterObserversOnSource = filter => bufferedDataAccess.registerObserversOnSource(filter);
     dataAccessRouter.onUnregisterObserversOnSource = filter => bufferedDataAccess.unregisterObserversOnSource(filter);
     hmi.access = bufferedDataAccess; // Enable access from anyhwere
-
     // Add static files
     /* function addStaticFiles(file) {
         if (Array.isArray(file)) {
@@ -179,16 +174,12 @@ function main(config = {}) {
     }
     addStaticFiles(config.staticClientFiles);*/
     webServer.addStaticFile(config.touch ? config.scrollbar_hmi : config.scrollbar_config);
-
     // Here we store the tasks to be executed as a sequence in order to start the server environment.
     const tasks = [];
-
     // Prepare web socket server
     const dataConnectors = {};
     let webSocketServer = undefined;
-    webServer.post(WebSocketConnection.GET_WEB_SOCKET_SESSION_CONFIG,
-        (request, response) => response.send(JsonFX.stringify(webSocketServer.createSessionConfig(), false))
-    );
+    webServer.post(WebSocketConnection.GET_WEB_SOCKET_SESSION_CONFIG, (request, response) => response.send(JsonFX.stringify(webSocketServer.createSessionConfig(), false)));
     tasks.push((onSuccess, onError) => {
         try {
             webSocketServer = new WebSocketConnection.Server(hmi.logger, config.webSocketPort, {
@@ -236,22 +227,19 @@ function main(config = {}) {
                 }
             });
             onSuccess();
-        } catch (error) {
+        }
+        catch (error) {
             onError(error);
         }
     });
-
     tasks.push((onSuccess, onError) => taskManager.initialize(onSuccess, onError));
-
     tasks.push((onSuccess, onError) => taskManager.startAutorunTasks(onSuccess, onError));
-
     tasks.push((onSuccess, onError) => {
         webServer.listen(config.webServerPort, () => {
             hmi.logger.info(`${config.applicationName} web server listening on port: ${config.webServerPort}`);
             onSuccess();
         });
     });
-
     tasks.push((onSuccess, onError) => {
         try {
             // Validate services
@@ -264,16 +252,12 @@ function main(config = {}) {
             Object.freeze(hmi.ext);
             Object.freeze(hmi);
             onSuccess();
-        } catch (error) {
+        }
+        catch (error) {
             onError('Failed validation of services', error);
         }
     });
-
-    Executor.run(tasks,
-        () => hmi.logger.info(`${config.applicationName} running`),
-        error => hmi.logger.error(`Failed starting ${config.applicationName}`, error)
-    );
-
+    Executor.run(tasks, () => hmi.logger.info(`${config.applicationName} running`), error => hmi.logger.error(`Failed starting ${config.applicationName}`, error));
     function shutdownTaskManagerAsync() {
         return new Promise((resolve, reject) => {
             taskManager.shutdown(() => resolve(), error => {
@@ -282,21 +266,17 @@ function main(config = {}) {
             });
         });
     }
-
     async function cleanupAsync() {
         hmi.logger.info('cleaning up ...');
         await shutdownTaskManagerAsync();
         hmi.logger.info('cleanup done');
     }
-    const cleanup = () => { (async () => await cleanupAsync())(); }
-
+    const cleanup = () => { (async () => await cleanupAsync())(); };
     function cleanUpAndExit() {
         cleanupAsync().then(() => process.exit(0));
     }
-
     process.on('SIGINT', cleanUpAndExit);
     process.on('SIGTERM', cleanUpAndExit);
-
     if (false) { // TODO: Remove debug stuff
         setTimeout(() => {
             hmi.logger.info('Trigger debug shutdown');
@@ -304,5 +284,4 @@ function main(config = {}) {
         }, 5000);
     }
 }
-
 export default main;

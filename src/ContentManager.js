@@ -7,11 +7,9 @@ import Sorting from './Sorting.js';
 import SqlHelper from './SqlHelper.js';
 import Utilities from './Utilities.js';
 import Common from './Common.js';
-
 const ContentManager = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 const fs = isNodeJS ? await import('node:fs') : undefined;
-
 const DataType = Object.freeze({
     JsonFX: 'JsonFX',
     Text: 'Text',
@@ -21,7 +19,6 @@ const DataType = Object.freeze({
     Task: 'Task'
 });
 ContentManager.DataType = DataType;
-
 /*  Used by ContentEditor  */
 ContentManager.INSERT = 'insert';
 ContentManager.UPDATE = 'update';
@@ -37,30 +34,25 @@ ContentManager.GET_CONTENT_TREE_NODES_URL = '/get_content_tree_nodes';
 ContentManager.COMMAND_GET_CHILD_TREE_NODES = 'get_child_tree_nodes';
 ContentManager.COMMAND_GET_REFERENCES_TO_TREE_NODES = 'get_references_to_tree_nodes';
 ContentManager.COMMAND_GET_REFERENCES_FROM_TREE_NODES = 'get_references_from_tree_nodes';
-
 ContentManager.HMI_FLAG_ENABLE = 0x01;
 ContentManager.TASK_FLAG_AUTORUN = 0x01;
-
-
 // //////////////////////////////////////////////////////////////////////////////////////////
 // CROSS REFERENCES
 // //////////////////////////////////////////////////////////////////////////////////////////
-
 // search for keys in text within single quotation marks
 function formatReferencesFromCondition(escapedId, valCol) {
     return `LOCATE(${escapedId},${valCol}) > 0`;
 }
-
 // search for keys in text within double quotation marks
 function formatReferencesToLocate(userTab, userValCol, usedTabAlias, usedExt, usedKeyCol) {
     return `LOCATE(CONCAT('$',${usedTabAlias}.${usedKeyCol},'.${usedExt}'),${userTab}.${userValCol}) > 0`;
 }
-
 function formatReferencesToCondition(userTab, userValCol, usedTab, usedTabAlias, usedExt, usedKeyCol) {
     let query = `INNER JOIN ${usedTab} AS ${usedTabAlias} ON `;
     if (typeof userValCol === 'string') {
         query += formatReferencesToLocate(userTab, userValCol, usedTabAlias, usedExt, usedKeyCol);
-    } else {
+    }
+    else {
         let next = false;
         for (const attr in userValCol) {
             if (userValCol.hasOwnProperty(attr)) {
@@ -74,7 +66,6 @@ function formatReferencesToCondition(userTab, userValCol, usedTab, usedTabAlias,
     }
     return query;
 }
-
 function getValueForAttribute(collection, attribute) {
     if (collection === undefined) {
         return undefined;
@@ -85,7 +76,6 @@ function getValueForAttribute(collection, attribute) {
     }
     return typeof value === 'string' ? value : value.toString();
 }
-
 function getModificationParams(previous, next) {
     // within the next condition checks we detect if the value is available
     // after the update and if the data will be changed
@@ -94,25 +84,28 @@ function getModificationParams(previous, next) {
             if (previous !== next) {
                 // both values available and different
                 return { empty: false, changed: true, string: next };
-            } else {
+            }
+            else {
                 // both values available and equal
                 return { empty: false, changed: false };
             }
-        } else {
+        }
+        else {
             // reset current value
             return { empty: true, changed: true };
         }
-    } else {
+    }
+    else {
         if (typeof next === 'string' && next.length > 0) {
             // new value available
             return { empty: false, changed: true, string: next };
-        } else {
+        }
+        else {
             // both values unavailable
             return { empty: true, changed: false };
         }
     }
 }
-
 const COMMAND_GET_CONFIG = 'get_config';
 const COMMAND_GET_CHECKSUM = 'get_checksum';
 const COMMAND_GET_OBJECT = 'get_object';
@@ -131,19 +124,16 @@ const COMMAND_GET_HMI_OBJECT_SOURCE = 'get_hmi_object';
 const COMMAND_GET_HMI_OBJECTS = 'get_hmi_objects';
 const COMMAND_IS_TASK_OBJECT = 'is_task_object';
 const COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT = 'set_availability_as_task_object';
-
 const VALID_EXT_REGEX = /^\w+$/;
 const VALID_NAME_CHAR = '[a-zA-Z0-9_+\\-*]';
 const FOLDER_REGEX = new RegExp('^\\$((?:' + VALID_NAME_CHAR + '+\\/)*)$');
 const EXCHANGE_HEADER = 'js-hmi-config-exchange-data';
-
 const AUTO_KEY_LENGTH = 8;
-
 class ContentManagerBase {
     #logger;
     constructor(logger) {
         if (this.constructor === ContentManagerBase) {
-            throw new Error('The abstract base class ContentManagerBase cannot be instantiated.')
+            throw new Error('The abstract base class ContentManagerBase cannot be instantiated.');
         }
         this.#logger = logger;
     }
@@ -157,7 +147,8 @@ class ContentManagerBase {
         const regex = this._validIdForTypeRegex[type];
         if (regex) {
             return regex.test(id);
-        } else {
+        }
+        else {
             throw new Error(`Unsupported type: '${type}'`);
         }
     }
@@ -165,7 +156,8 @@ class ContentManagerBase {
         const regex = this._validIdForTypeRegex[type];
         if (regex) {
             return id => regex.test(id);
-        } else {
+        }
+        else {
             throw new Error(`Unsupported type: '${type}'`);
         }
     }
@@ -190,7 +182,8 @@ class ContentManagerBase {
             const desc = description || {};
             desc.type = table.type;
             return desc;
-        } else {
+        }
+        else {
             return false;
         }
     }
@@ -206,23 +199,24 @@ class ContentManagerBase {
                 }
             }
             return false;
-        } else if (FOLDER_REGEX.test(id)) {
+        }
+        else if (FOLDER_REGEX.test(id)) {
             return this._iconDirectory + this._config.folderIcon;
-        } else {
+        }
+        else {
             return false;
         }
     }
     compareIds(id1, id2) {
         if (FOLDER_REGEX.test(id1)) {
             return FOLDER_REGEX.test(id2) ? Sorting.compareTextsAndNumbers(id1, id2, false, false) : -1;
-        } else {
+        }
+        else {
             return FOLDER_REGEX.test(id2) ? 1 : Sorting.compareTextsAndNumbers(id1, id2, false, false);
         }
     }
 }
-
 const compareKeys = Sorting.getTextsAndNumbersCompareFunction(false, false, true);
-
 class ServerManager extends ContentManagerBase {
     #logger;
     #getSqlAdapter;
@@ -263,7 +257,8 @@ class ServerManager extends ContentManagerBase {
                 const extension = tableConfig.extension;
                 if (!VALID_EXT_REGEX.test(extension)) {
                     throw new Error(`Invalid extension: '${extension}'`);
-                } else if (this._contentTablesByExtension[extension] !== undefined) {
+                }
+                else if (this._contentTablesByExtension[extension] !== undefined) {
                     throw new Error(`Extension already exists: '${extension}'`);
                 }
                 const table = {
@@ -285,7 +280,8 @@ class ServerManager extends ContentManagerBase {
                     case DataType.HTML:
                         if (typeof tableConfig.valueColumnPrefix !== 'string') {
                             throw new Error(`Missing value column prefix parameter for table type '${type}'`);
-                        } else if (db_config.languages.length === 0) {
+                        }
+                        else if (db_config.languages.length === 0) {
                             throw new Error(`Language array has zero length for table type '${type}'`);
                         }
                         table.valueColumn = {};
@@ -297,9 +293,11 @@ class ServerManager extends ContentManagerBase {
                     case DataType.HMI:
                         if (typeof tableConfig.viewObjectColumn !== 'string') {
                             throw new Error(`Missing view object column parameter for table type '${type}'`);
-                        } else if (typeof tableConfig.queryParameterColumn !== 'string') {
+                        }
+                        else if (typeof tableConfig.queryParameterColumn !== 'string') {
                             throw new Error(`Missing query parameter column parameter for table type '${type}'`);
-                        } else if (typeof tableConfig.flagsColumn !== 'string') {
+                        }
+                        else if (typeof tableConfig.flagsColumn !== 'string') {
                             throw new Error(`Missing flags column parameter for table type '${type}'`);
                         }
                         table.viewObjectColumn = tableConfig.viewObjectColumn;
@@ -315,9 +313,11 @@ class ServerManager extends ContentManagerBase {
                     case DataType.Task:
                         if (typeof tableConfig.taskObjectColumn !== 'string') {
                             throw new Error(`Missing task object column parameter for table type '${type}'`);
-                        } else if (typeof tableConfig.flagsColumn !== 'string') {
+                        }
+                        else if (typeof tableConfig.flagsColumn !== 'string') {
                             throw new Error(`Missing flags column parameter for table type '${type}'`);
-                        } else if (typeof tableConfig.cycleIntervalMillisColumn !== 'string') {
+                        }
+                        else if (typeof tableConfig.cycleIntervalMillisColumn !== 'string') {
                             throw new Error(`Missing cycle tnterval millis column column parameter for table type '${type}'`);
                         }
                         table.taskObjectColumn = tableConfig.taskObjectColumn;
@@ -360,11 +360,13 @@ class ServerManager extends ContentManagerBase {
                 if (results.length === 1) {
                     let raw = results[0][column];
                     onResponse(raw !== null ? raw : '');
-                } else {
+                }
+                else {
                     onResponse(false);
                 }
             }, onError);
-        } else {
+        }
+        else {
             onError(`Invalid value column for table '${table.name}' and language '${language}'`);
         }
     }
@@ -383,7 +385,8 @@ class ServerManager extends ContentManagerBase {
                 adapter.close();
                 onError(error);
             }), onError);
-        } else {
+        }
+        else {
             onResponse(false);
         }
     }
@@ -415,7 +418,8 @@ class ServerManager extends ContentManagerBase {
             function error(err) {
                 adapter.close();
                 onError(err);
-            };
+            }
+            ;
             // if JsonFX or plain text is available we decode the string and
             // return with or without all includes included
             switch (table.type) {
@@ -492,17 +496,20 @@ class ServerManager extends ContentManagerBase {
                         const object = JsonFX.parse(rawString, false, false);
                         if (mode === ContentManager.RAW) {
                             onResponse(JsonFX.stringify(JsonFX.reconstruct(object, that.#evalFunc), true));
-                        } else {
+                        }
+                        else {
                             that.#handleInclude(adapter, object, isIncludable, language, result => {
                                 const json = JsonFX.stringify(JsonFX.reconstruct(result, that.#evalFunc), true);
                                 if (mode === ContentManager.PARSE) {
                                     onResponse(that.#evalFunc(json));
-                                } else {
+                                }
+                                else {
                                     onResponse(json);
                                 }
                             }, onError);
                         }
-                    } else {
+                    }
+                    else {
                         onResponse();
                     }
                 }, onError);
@@ -513,10 +520,12 @@ class ServerManager extends ContentManagerBase {
                     if (rawString !== false) {
                         if (mode === ContentManager.INCLUDE) {
                             that.#handleInclude(adapter, rawString, isIncludable, language, onResponse, onError);
-                        } else {
+                        }
+                        else {
                             onResponse(rawString);
                         }
-                    } else {
+                    }
+                    else {
                         onResponse();
                     }
                 }, onError);
@@ -529,14 +538,17 @@ class ServerManager extends ContentManagerBase {
                         if (rawString !== false) {
                             if (mode === ContentManager.INCLUDE) {
                                 that.#handleInclude(adapter, rawString, isIncludable, language, onResponse, onError);
-                            } else {
+                            }
+                            else {
                                 onResponse(rawString);
                             }
-                        } else {
+                        }
+                        else {
                             onResponse();
                         }
                     }, onError);
-                } else {
+                }
+                else {
                     for (const attr in table.valueColumn) {
                         if (table.valueColumn.hasOwnProperty(attr)) {
                             adapter.addColumn(`${table.name}.${table.valueColumn[attr]} AS ${attr}`);
@@ -563,10 +575,12 @@ class ServerManager extends ContentManagerBase {
                                 }
                                 tasks.parallel = that.#parallel;
                                 Executor.run(tasks, () => onResponse(object), onError);
-                            } else {
+                            }
+                            else {
                                 onResponse(object);
                             }
-                        } else {
+                        }
+                        else {
                             onResponse();
                         }
                     }, onError);
@@ -584,7 +598,8 @@ class ServerManager extends ContentManagerBase {
                     if (results.length === 1) {
                         const json = JsonFX.stringify(JsonFX.reconstruct(results[0], that.#evalFunc), true);
                         onResponse(json);
-                    } else {
+                    }
+                    else {
                         onResponse();
                     }
                 }, onError);
@@ -597,12 +612,14 @@ class ServerManager extends ContentManagerBase {
         const that = this;
         if (Array.isArray(object)) {
             this.#includeAllObjectPropertiesOrArrayElements(adapter, object, isIncludable, language, onResponse, onError);
-        } else if (typeof object === 'object' && object !== null) {
+        }
+        else if (typeof object === 'object' && object !== null) {
             const includeId = object.include;
             if (typeof includeId !== 'string') { // Object does not include another item so we just handle the object properties recursively
                 this.#includeAllObjectPropertiesOrArrayElements(adapter, object, isIncludable, language, onResponse, onError);
                 return;
-            } else if (!isIncludable(includeId)) { // Cyclical include dependency detected
+            }
+            else if (!isIncludable(includeId)) { // Cyclical include dependency detected
                 this.#logger.warn(`Cyclical include dependency detected: '${includeId}'`);
                 this.#includeAllObjectPropertiesOrArrayElements(adapter, object, isIncludable, language, onResponse, onError);
                 return;
@@ -641,23 +658,27 @@ class ServerManager extends ContentManagerBase {
                                     Utilities.transferProperties(object, inclObj, source);
                                     // finally we add our bases
                                     inclObj.source = source;
-                                } else {
+                                }
+                                else {
                                     // no attribute keeping - just attribute transfer
                                     Utilities.transferProperties(object, inclObj);
                                 }
                                 onResponse(inclObj);
                             }, onError);
-                        } else {
+                        }
+                        else {
                             // no real object means just return whatever it is
                             onResponse(inclObj);
                         }
                     }, onError);
-                } else {
+                }
+                else {
                     // no string available so just step on with building the object properties
                     that.#includeAllObjectPropertiesOrArrayElements(adapter, object, isIncludable, language, onResponse, onError);
                 }
             }, onError);
-        } else if ((typeof object === 'string')) {
+        }
+        else if ((typeof object === 'string')) {
             // Strings may contain include:$path/file.ext entries.
             // With the next regex call we build an array containing strings and include matches.
             const array = [];
@@ -671,7 +692,7 @@ class ServerManager extends ContentManagerBase {
                 if (Array.isArray(match)) {
                     tab = that._contentTablesByExtension[match[3]];
                     if (tab) {
-                        (function () { // Closure
+                        (function () {
                             const idx = i, orig = match[0], includeId = `$${match[2]}.${match[3]}`, table = tab, rawKey = match[2];
                             tasks.push((onSuc, onErr) => {
                                 that.#getRawString(adapter, table, rawKey, language, rawString => {
@@ -681,7 +702,8 @@ class ServerManager extends ContentManagerBase {
                                             array[idx] = table.type === DataType.JsonFX && array.length > 1 ? JsonFX.stringify(build, false) : build;
                                             onSuc();
                                         }, onErr);
-                                    } else {
+                                    }
+                                    else {
                                         // no raw string available means we replace with the original content
                                         array[idx] = orig;
                                         onSuc();
@@ -695,7 +717,8 @@ class ServerManager extends ContentManagerBase {
             tasks.parallel = that.#parallel;
             // if our string contains just one single element we return this as is.
             Executor.run(tasks, () => onResponse(array.length === 1 ? array[0] : array.join('')), onError);
-        } else {
+        }
+        else {
             // if our input object is not an array, an object or a string we have
             // nothing to build so we return the object as is.
             onResponse(object);
@@ -705,7 +728,7 @@ class ServerManager extends ContentManagerBase {
         const that = this, tasks = [];
         for (const attr in object) { // Note: This works for objects and arrays! 'attr' will be a string on objects and on arrays the index converted to a string.
             if (object.hasOwnProperty(attr)) {
-                (function () { // Closure
+                (function () {
                     const name = attr;
                     tasks.push((onSuc, onErr) => that.#handleInclude(adapter, object[name], isIncludable, language, result => {
                         object[name] = result;
@@ -806,7 +829,8 @@ class ServerManager extends ContentManagerBase {
                             let nextval = undefined;
                             if (typeof language === 'string') {
                                 nextval = language === attr ? (typeof value === 'string' ? value : undefined) : currval;
-                            } else if (typeof value === 'object' && value !== null) {
+                            }
+                            else if (typeof value === 'object' && value !== null) {
                                 nextval = value[attr];
                             }
                             // within the next condition checks we detect if the value is available after the update and if the data will be changed
@@ -859,7 +883,8 @@ class ServerManager extends ContentManagerBase {
             params.values = values;
             if (currentData !== undefined) {
                 params.action = stillNotEmpty ? (changed ? ContentManager.UPDATE : ContentManager.NONE) : ContentManager.DELETE;
-            } else {
+            }
+            else {
                 params.action = stillNotEmpty ? ContentManager.INSERT : ContentManager.NONE;
             }
             checksum += params.action;
@@ -882,7 +907,8 @@ class ServerManager extends ContentManagerBase {
                         adapter.close();
                         onError(err);
                     });
-                } else {
+                }
+                else {
                     adapter.close();
                     onResponse(params);
                 }
@@ -912,11 +938,14 @@ class ServerManager extends ContentManagerBase {
                 that.#getModificationParams(adapter, id, language, value, params => {
                     if (params.error !== undefined) {
                         onErr(params.error);
-                    } else if (params.checksum !== checksum) {
+                    }
+                    else if (params.checksum !== checksum) {
                         onErr('Database content has changed! Try again!');
-                    } else if (params.action === ContentManager.NONE) {
+                    }
+                    else if (params.action === ContentManager.NONE) {
                         onErr('No action to perform!');
-                    } else if (params.action === ContentManager.INSERT) {
+                    }
+                    else if (params.action === ContentManager.INSERT) {
                         adapter.addValue(`${table.name}.${table.keyColumn}`, SqlHelper.escape(rawKey));
                         switch (table.type) {
                             case DataType.JsonFX:
@@ -949,7 +978,8 @@ class ServerManager extends ContentManagerBase {
                             affectedTypes[table.type] = true;
                             onSuc();
                         }, onErr);
-                    } else if (params.action === ContentManager.UPDATE) {
+                    }
+                    else if (params.action === ContentManager.UPDATE) {
                         switch (table.type) {
                             case DataType.JsonFX:
                             case DataType.Text:
@@ -982,13 +1012,15 @@ class ServerManager extends ContentManagerBase {
                             affectedTypes[table.type] = true;
                             onSuc();
                         }, onErr);
-                    } else if (params.action === ContentManager.DELETE) {
+                    }
+                    else if (params.action === ContentManager.DELETE) {
                         adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(rawKey)}`);
                         adapter.performDelete(table.name, undefined, 1, () => {
                             affectedTypes[table.type] = true;
                             onSuc();
                         }, onErr);
-                    } else {
+                    }
+                    else {
                         onErr(`Unexpected action: '${params.action}'`);
                     }
                 }, onErr);
@@ -1028,7 +1060,8 @@ class ServerManager extends ContentManagerBase {
         if (typeof source === 'string' && source.length > 0) {
             params.source = source;
             checksum += source;
-        } else {
+        }
+        else {
             params.error = 'Missing source';
             onResponse(params);
             return;
@@ -1038,7 +1071,8 @@ class ServerManager extends ContentManagerBase {
             if (typeof target === 'string' && target.length > 0) {
                 params.target = target;
                 checksum += target;
-            } else {
+            }
+            else {
                 params.error = 'Missing target';
                 onResponse(params);
                 return;
@@ -1056,7 +1090,8 @@ class ServerManager extends ContentManagerBase {
             }
             sourceIsFolder = false;
             srcTabKey = match[1];
-        } else {
+        }
+        else {
             match = FOLDER_REGEX.exec(source);
             sourceIsFolder = !!match;
             if (!sourceIsFolder) {
@@ -1079,7 +1114,8 @@ class ServerManager extends ContentManagerBase {
                     return;
                 }
                 targetIsFolder = false;
-            } else {
+            }
+            else {
                 match = FOLDER_REGEX.exec(target);
                 targetIsFolder = !!match;
                 if (!targetIsFolder) {
@@ -1096,7 +1132,8 @@ class ServerManager extends ContentManagerBase {
                     onResponse(params);
                     return;
                 }
-            } else {
+            }
+            else {
                 if (targetIsFolder) {
                     params.error = 'Target is not a single object';
                     onResponse(params);
@@ -1142,7 +1179,8 @@ class ServerManager extends ContentManagerBase {
                 }
                 tasks.parallel = that.#parallel;
                 Executor.run(tasks, onSuc, onErr);
-            } else {
+            }
+            else {
                 srcKeysObj[source] = true;
                 onSuc();
             }
@@ -1174,7 +1212,8 @@ class ServerManager extends ContentManagerBase {
                         objects[src] = tgt;
                         checksum += tgt;
                     }
-                } else {
+                }
+                else {
                     objects[source] = target;
                     checksum += target;
                 }
@@ -1207,13 +1246,15 @@ class ServerManager extends ContentManagerBase {
                         });
                     }());
                 }
-            } else { // no target
+            }
+            else { // no target
                 if (sourceIsFolder) {
                     // in the next loop we build the resulting target paths
                     for (let i = 0; i < srcLen; i++) {
                         objects[srcKeysArr[i]] = null;
                     }
-                } else {
+                }
+                else {
                     objects[source] = null;
                 }
             }
@@ -1308,9 +1349,11 @@ class ServerManager extends ContentManagerBase {
                 that.#getRefactoringParams(adapter, source, target, action, params => {
                     if (params.error !== undefined) {
                         onErr(params.error);
-                    } else if (params.checksum !== checksum) {
+                    }
+                    else if (params.checksum !== checksum) {
                         onErr('Database content has changed! Try again!');
-                    } else {
+                    }
+                    else {
                         // for all sources of the parameters
                         const tasks = [], objects = params.objects;
                         tasks.parallel = false;
@@ -1329,7 +1372,8 @@ class ServerManager extends ContentManagerBase {
                                     }());
                                 }
                             }
-                        } else if (params.action === ContentManager.DELETE) {
+                        }
+                        else if (params.action === ContentManager.DELETE) {
                             if (params.folder) {
                                 const match = FOLDER_REGEX.exec(params.source), srcTabKey = SqlHelper.escape(match[1]);
                                 for (const attr in that._contentTablesByExtension) {
@@ -1346,7 +1390,8 @@ class ServerManager extends ContentManagerBase {
                                         }());
                                     }
                                 }
-                            } else {
+                            }
+                            else {
                                 const match = that._contentTablesKeyRegex.exec(source);
                                 const table = that._contentTablesByExtension[match[2]], srcTabKey = SqlHelper.escape(match[1]);
                                 tasks.push((os, oe) => {
@@ -1434,7 +1479,8 @@ class ServerManager extends ContentManagerBase {
                                     if (typeof value === 'string' && value.length > 0) {
                                         const string = getReplacement(value);
                                         adapter.addValue(`${table.name}.${table.valueColumn[attr]}`, SqlHelper.escape(string));
-                                    } else if (value !== undefined && value !== null) {
+                                    }
+                                    else if (value !== undefined && value !== null) {
                                         const string = value.toString();
                                         adapter.addValue(`${table.name}.${table.valueColumn[attr]}`, SqlHelper.escape(string));
                                     }
@@ -1451,20 +1497,24 @@ class ServerManager extends ContentManagerBase {
                                 affectedTypes[table.type] = true;
                                 onSuc();
                             }, onErr);
-                        } else {
+                        }
+                        else {
                             affectedTypes[table.type] = true;
                             onSuc();
                         }
-                    };
+                    }
+                    ;
                     if (targetAlreadyExists) {
                         adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(tgtTabKey)}`);
                         adapter.performUpdate(table.name, undefined, 1, success, onErr);
-                    } else {
+                    }
+                    else {
                         adapter.addValue(`${table.name}.${table.keyColumn}`, SqlHelper.escape(tgtTabKey));
                         if (params.action === ContentManager.MOVE) {
                             adapter.addWhere(`${table.name}.${table.keyColumn} = ${SqlHelper.escape(srcTabKey)}`);
                             adapter.performUpdate(table.name, undefined, 1, success, onErr);
-                        } else {
+                        }
+                        else {
                             adapter.performInsert(table.name, success, onErr);
                         }
                     }
@@ -1553,9 +1603,11 @@ class ServerManager extends ContentManagerBase {
         const listeners = this.#affectedTypesListeners[type];
         if (listeners === undefined) {
             throw new Error(`Failed to register listener for unknown type: '${type}'`);
-        } else if (typeof onChanged !== 'function') {
+        }
+        else if (typeof onChanged !== 'function') {
             throw new Error('Failed to register listener because onChanged() is not a function');
-        } else {
+        }
+        else {
             for (let listener of listeners) {
                 if (listener === onChanged) {
                     throw new Error('Failed to register listener because onChanged() is already stored');
@@ -1571,7 +1623,8 @@ class ServerManager extends ContentManagerBase {
                 for (let onChanged of listeners) {
                     try {
                         onChanged();
-                    } catch (error) {
+                    }
+                    catch (error) {
                         this.#logger.error(`Failed calling onChanged() for type '${type}'`, error);
                     }
                 }
@@ -1670,7 +1723,8 @@ class ServerManager extends ContentManagerBase {
                     onError(err);
                 });
             }, onError);
-        } else {
+        }
+        else {
             // if invalid key we simply found no reference
             onResponse(0);
         }
@@ -1733,7 +1787,8 @@ class ServerManager extends ContentManagerBase {
                     onError(err);
                 });
             }, onError);
-        } else {
+        }
+        else {
             // if invalid key we simply found no reference
             onResponse([]);
         }
@@ -1784,7 +1839,8 @@ class ServerManager extends ContentManagerBase {
                     onError(err);
                 });
             }, onError);
-        } else {
+        }
+        else {
             // if invalid key we simply found no reference
             onResponse(0);
         }
@@ -1797,7 +1853,8 @@ class ServerManager extends ContentManagerBase {
                 const tasks = [], nodes = [];
                 function compareRawNodes(node1, node2) {
                     return that.compareIds(node1.path, node2.path);
-                };
+                }
+                ;
                 for (const extension in that._contentTablesByExtension) {
                     if (that._contentTablesByExtension.hasOwnProperty(extension)) {
                         (function () {
@@ -1858,9 +1915,11 @@ class ServerManager extends ContentManagerBase {
                     onError(err);
                 });
             }, onError);
-        } else if (this._contentTablesKeyRegex.test(id)) {
+        }
+        else if (this._contentTablesKeyRegex.test(id)) {
             onResponse([]);
-        } else {
+        }
+        else {
             onError(`Invalid key: '${id}'`);
         }
     }
@@ -1964,7 +2023,8 @@ class ServerManager extends ContentManagerBase {
                     onError(err);
                 });
             }, onError);
-        } else {
+        }
+        else {
             onError(`Invalid selection: '${data.string}'`);
         }
     }
@@ -2020,11 +2080,12 @@ class ServerManager extends ContentManagerBase {
                                 const match = that._contentTablesKeyRegex.exec(id);
                                 if (!match) {
                                     oe(`Invalid id: '${id}'`);
-                                } else {
+                                }
+                                else {
                                     that.#resolveObject(adapter, id, match[1], table, language, ContentManager.INCLUDE, value => {
                                         values[id] = value;
                                         os();
-                                    }, oe)
+                                    }, oe);
                                 }
                             });
                         }());
@@ -2079,7 +2140,8 @@ class ServerManager extends ContentManagerBase {
         if (!table) {
             onError(`Invalid table: '${id}'`);
             return;
-        } else if (table.type !== DataType.JsonFX) {
+        }
+        else if (table.type !== DataType.JsonFX) {
             onError(`Is not a JsonFX object: '${id}'`);
             return;
         }
@@ -2099,7 +2161,8 @@ class ServerManager extends ContentManagerBase {
                     const random = Server.createSHA256(`#${(Math.E * Math.random())}%${id}&${Date.now()}?${(Math.PI * Math.random())}$`);
                     const keyValue = `${random.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${random.substring(random.length - Math.ceil(AUTO_KEY_LENGTH / 2), random.length)}`;
                     adapter.addValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(`${rawKey}_${keyValue}`));
-                } else {
+                }
+                else {
                     adapter.addValue(`${hmiTable.name}.${hmiTable.keyColumn}`, SqlHelper.escape(rawKey));
                 }
                 const idChecksum = Server.createSHA256(id);
@@ -2151,7 +2214,8 @@ class ServerManager extends ContentManagerBase {
                 if (enabledHmiObjectIds.length === 0) {
                     onError(`HMI could not be loaded: HMI for query parameter '${queryParameterValue}' is not available.`);
                     return;
-                } else if (enabledHmiObjectIds.length > 1) {
+                }
+                else if (enabledHmiObjectIds.length > 1) {
                     onError(`HMI could not be loaded: Query parameter '${queryParameterValue}' is ambiguous.`);
                     return;
                 }
@@ -2232,7 +2296,8 @@ class ServerManager extends ContentManagerBase {
         if (!table) {
             onError(`Invalid table: '${id}'`);
             return;
-        } else if (table.type !== DataType.JsonFX) {
+        }
+        else if (table.type !== DataType.JsonFX) {
             onError(`Is not a JsonFX object: '${id}'`);
             return;
         }
@@ -2252,7 +2317,8 @@ class ServerManager extends ContentManagerBase {
                     const random = Server.createSHA256(`#${(Math.E * Math.random())}%${id}&${Date.now()}?${(Math.PI * Math.random())}$`);
                     const keyValue = `${random.substring(0, Math.floor(AUTO_KEY_LENGTH / 2))}${random.substring(random.length - Math.ceil(AUTO_KEY_LENGTH / 2), random.length)}`;
                     adapter.addValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(`${rawKey}_${keyValue}`));
-                } else {
+                }
+                else {
                     adapter.addValue(`${taskTable.name}.${taskTable.keyColumn}`, SqlHelper.escape(rawKey));
                 }
                 adapter.addValue(`${taskTable.name}.${taskTable.taskObjectColumn}`, SqlHelper.escape(id));
@@ -2489,18 +2555,9 @@ class ServerManager extends ContentManagerBase {
     }
     registerOnWebServer(webServer) {
         // we need access via ajax from clients
-        webServer.post(ContentManager.GET_CONTENT_DATA_URL, (request, response) => this.#handleRequest(
-            request.body,
-            result => response.send(JsonFX.stringify({ result }, false)),
-            error => response.send(JsonFX.stringify({ error: error.toString() }, false))
-        ));
+        webServer.post(ContentManager.GET_CONTENT_DATA_URL, (request, response) => this.#handleRequest(request.body, result => response.send(JsonFX.stringify({ result }, false)), error => response.send(JsonFX.stringify({ error: error.toString() }, false))));
         // the tree control requests da via 'GET' so we handle those request separately
-        webServer.get(ContentManager.GET_CONTENT_TREE_NODES_URL, (request, response) => this.#handleFancyTreeRequest(
-            request.query.request,
-            request.query.path,
-            result => response.send(JsonFX.stringify(result, false)),
-            error => response.send(JsonFX.stringify(error.toString(), false))
-        ));
+        webServer.get(ContentManager.GET_CONTENT_TREE_NODES_URL, (request, response) => this.#handleFancyTreeRequest(request.query.request, request.query.path, result => response.send(JsonFX.stringify(result, false)), error => response.send(JsonFX.stringify(error.toString(), false))));
     }
     // Note: this next is a template method - copy when new request has to be implemented
     #tempdateMethodUsingTransaction(onResponse, onError) {
@@ -2531,7 +2588,6 @@ class ServerManager extends ContentManagerBase {
         }, onError);
     }
 }
-
 class ClientManager extends ContentManagerBase {
     #evalFunc;
     constructor(logger, evalFunc, onResponse, onError) {
@@ -2575,10 +2631,12 @@ class ClientManager extends ContentManagerBase {
             if (response !== undefined) {
                 try {
                     onResponse(this.#evalFunc(response));
-                } catch (error) {
+                }
+                catch (error) {
                     onError(error);
                 }
-            } else {
+            }
+            else {
                 onResponse();
             }
         } : onResponse, onError);
@@ -2618,10 +2676,12 @@ class ClientManager extends ContentManagerBase {
             if (response !== undefined) {
                 try {
                     onResponse(this.#evalFunc(response));
-                } catch (error) {
+                }
+                catch (error) {
                     onError(error);
                 }
-            } else {
+            }
+            else {
                 onResponse();
             }
         }, onError);
@@ -2636,19 +2696,15 @@ class ClientManager extends ContentManagerBase {
         Client.fetchJsonFX(ContentManager.GET_CONTENT_DATA_URL, { command: COMMAND_SET_AVAILABILITY_AS_TASK_OBJECT, id }, onResponse, onError);
     }
 }
-
 function createChecksum(group, path) {
     return Utilities.md5(`l.6l8033988749895${path}2.7l828l828459045${group}3.l4l592653589793`);
 }
-
 function createHeader(group, path) {
     return `[{(${group}<>${createChecksum(group, path)})}]\n${path}\n`;
 }
-
 function formatProgressInPercent(state) {
     return `${Utilities.formatNumber(state * 100, 2)}%`;
 }
-
 class ExchangeHandler {
     #logger;
     #cms;
@@ -2745,7 +2801,8 @@ class ExchangeHandler {
                         case DataType.Task:
                             try {
                                 data.value = JsonFX.parse(elements[idx++], true, true);
-                            } catch (exc) {
+                            }
+                            catch (exc) {
                                 onError(`EXCEPTION! Cannot evaluate object: ${exc}`);
                                 return false;
                             }
@@ -2779,7 +2836,8 @@ class ExchangeHandler {
                             this.#logger.error(`Invalid type '${data.type}'`);
                             break;
                     }
-                } else {
+                }
+                else {
                     onError(`EXCEPTION! Invalid: ${JSON.stringify(header)}`);
                     return false;
                 }
@@ -2848,22 +2906,23 @@ class ExchangeHandler {
         languages.sort(compareKeys);
         if (data.file) {
             that.#readConfigData([data.file], id, languages, onProgressChanged, onError);
-        } else if (data.folder) {
+        }
+        else if (data.folder) {
             cms.getIdKeyValues(data.folder, ids => {
                 ids.sort(compareKeys);
                 that.#readConfigData(ids, id, languages, onProgressChanged, onError);
             }, onError);
-        } else {
+        }
+        else {
             onProgressChanged();
         }
     }
 }
-
 if (isNodeJS) {
     ContentManager.getInstance = (logger, evalFunc, getSqlAdapter, iconDirectory, config) => new ServerManager(logger, evalFunc, getSqlAdapter, iconDirectory, config);
-} else {
+}
+else {
     ContentManager.getInstance = (logger, evalFunc, onResponse, onError) => new ClientManager(logger, evalFunc, onResponse, onError);
 }
 Object.freeze(ContentManager);
-
 export default ContentManager;

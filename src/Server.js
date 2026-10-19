@@ -21,8 +21,6 @@ if (isNodeJS) {
     Server.createSHA256 = text => createHash(text, 'SHA-256');
     Server.createSHA384 = text => createHash(text, 'SHA-384');
     Server.createSHA512 = text => createHash(text, 'SHA-512');
-
     Object.freeze(Server);
 }
-
 export default Server;

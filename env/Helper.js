@@ -1,12 +1,9 @@
 import fs from 'node:fs';
 import Regex from '../src/Regex.js';
-
 const Helper = {};
-
 // TODO: Must be modified if file structure changed. This is a very simple solution so far
 const moduleNameRegex = /^([a-zA-Z][_a-zA-Z0-9]*)\.js$/;
 const moduleRegex = /^\s*import\s+([a-zA-Z][_a-zA-Z0-9]*)\s+from\s+'\.\/([a-zA-Z][_a-zA-Z0-9]*)\.js'\s*;\s*$/mg;
-
 function loadDependencies(directory, ignorables, onSuccess, onError) {
     fs.readdir(directory, (error, files) => {
         if (error) {
@@ -31,7 +28,6 @@ function loadDependencies(directory, ignorables, onSuccess, onError) {
     });
 }
 Helper.loadDependencies = loadDependencies;
-
 function formatDependencies(dependencies) {
     let txt = '';
     txt += 'const dependencies = {\n';
@@ -44,9 +40,7 @@ function formatDependencies(dependencies) {
     return txt;
 }
 Helper.formatDependencies = formatDependencies;
-
 const addStaticWebServerFilesFunctionName = 'addStaticWebServerJsUtilsFiles';
-
 const extRegex = /\/([_a-zA-Z][_a-zA-Z0-9\.]*)\.js$/;
 /*  Generates index.js */
 function generateIndexJs(name, scope, components, browserIgnorables, ext) {
@@ -55,7 +49,6 @@ function generateIndexJs(name, scope, components, browserIgnorables, ext) {
         txt += `import ${component} from './src/${component}.js';\n`;
     }
     txt += '\n';
-
     txt += `function ${addStaticWebServerFilesFunctionName}(server, addMain) {\n`;
     const packageDirectory = `./node_modules/${scope}js_utils`;
     txt += `    server.addStaticDirectory('${packageDirectory}');\n`;
@@ -77,7 +70,10 @@ function generateIndexJs(name, scope, components, browserIgnorables, ext) {
     return txt;
 }
 Helper.generateIndexJs = generateIndexJs;
-
+function generateIndexTs(name, scope, components, browserIgnorables, ext) {
+    return generateIndexJs(name, scope, components, browserIgnorables, ext);
+}
+Helper.generateIndexTs = generateIndexTs;
 function generateInternalImports(dependencies, components) {
     let txt = '';
     txt += '    // ### inside js_utils ###\n\n';
@@ -96,7 +92,6 @@ function generateInternalImports(dependencies, components) {
     return txt;
 }
 Helper.generateInternalImports = generateInternalImports;
-
 function generateExternalImports(scope, components, ext) {
     let txt = '';
     txt += '// access js_utils components with ES modules:\n';
@@ -115,7 +110,6 @@ function generateExternalImports(scope, components, ext) {
     return txt;
 }
 Helper.generateExternalImports = generateExternalImports;
-
 function formatTopologicalSortedComponents(components) {
     let txt = '';
     txt += '/* topological sorting */\n';
@@ -130,6 +124,5 @@ function formatTopologicalSortedComponents(components) {
     return txt;
 }
 Helper.formatTopologicalSortedComponents = formatTopologicalSortedComponents;
-
 Object.freeze(Helper);
 export default Helper;

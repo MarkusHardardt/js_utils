@@ -3,13 +3,11 @@ import JsonFX from './JsonFX.js';
 import Client from './Client.js';
 import Core from './Core.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
-
 const TreeControl = {};
-
 function equalTreeNodes(node1, node2) {
     return node1.data && node2.data && node1.data.path === node2.data.path;
-};
-
+}
+;
 /**
  * This function asks the server for all children of the given node. Depending
  * on the response the given node will be updated - meaning the nodes children
@@ -45,7 +43,8 @@ function updateChildTreeNodes(url, request, node, compare, onSuccess, onError) {
                 if (typeof compare === 'function') {
                     node.sortChildren(compare, false);
                 }
-            } else if (Array.isArray(current)) { // if no children available in the database we remove all from the tree node
+            }
+            else if (Array.isArray(current)) { // if no children available in the database we remove all from the tree node
                 node.removeChildren();
             }
             // notify
@@ -76,13 +75,15 @@ function updateChildTreeNodes(url, request, node, compare, onSuccess, onError) {
                     if (addedNodes.length > 0) {
                         node.addChildren(addedNodes);
                     }
-                } else if (loaded.length > 0) { // if we do not have children we add all
+                }
+                else if (loaded.length > 0) { // if we do not have children we add all
                     node.addChildren(loaded);
                 }
                 if (typeof compare === 'function') {
                     node.sortChildren(compare, false);
                 }
-            } else if (Array.isArray(current)) { // if no children available in the database we remove all from the tree node
+            }
+            else if (Array.isArray(current)) { // if no children available in the database we remove all from the tree node
                 node.removeChildren();
             }
             // notify
@@ -92,7 +93,6 @@ function updateChildTreeNodes(url, request, node, compare, onSuccess, onError) {
         timeout: 10000
     });
 }
-
 /**
  * This function updates all children of the given node if it's a folder and
  * children have been loaded before. In case of available children after
@@ -105,22 +105,23 @@ function updateLoadedTreeNodes(url, request, node, compare, onSuccess, onError) 
             if (Array.isArray(children)) {
                 const tasks = [];
                 for (let i = 0, l = children.length; i < l; i++) {
-                    (function () { // Closure
+                    (function () {
                         const child = children[i];
                         tasks.push((onSuc, onErr) => updateLoadedTreeNodes(child.data.url, child.data.request, child, compare, onSuc, onErr));
                     }());
                 }
                 tasks.parallel = true;
                 Executor.run(tasks, onSuccess, onError);
-            } else {
+            }
+            else {
                 onSuccess();
             }
         }, onError);
-    } else { // no folder or no children loaded so far
+    }
+    else { // no folder or no children loaded so far
         onSuccess();
     }
 }
-
 function expandTreePath(url, request, node, path, compare, onSuccess, onError) {
     updateChildTreeNodes(url, request, node, compare, () => {
         const children = node.getChildren();
@@ -133,10 +134,12 @@ function expandTreePath(url, request, node, path, compare, onSuccess, onError) {
                         if (child.isFolder()) {
                             child.makeVisible({ scrollIntoView: false });
                             expandTreePath(url, request, child, path, compare, onSuccess, onError);
-                        } else {
+                        }
+                        else {
                             onSuccess(child);
                         }
-                    } else {
+                    }
+                    else {
                         onSuccess(child);
                     }
                     return;
@@ -148,7 +151,6 @@ function expandTreePath(url, request, node, path, compare, onSuccess, onError) {
         onSuccess(node);
     }, onError);
 }
-
 // @formatter:off
 // The following attributes are available as 'node.PROPERTY':
 // Type | Name | Description
@@ -263,7 +265,8 @@ function applyTree(that, onSuccess) {
     that._hmi_destroys.push(() => {
         try {
             _cont.fancytree('destroy');
-        } catch (error) {
+        }
+        catch (error) {
             console.error('Failed destroying tree', error);
         }
         delete that.hmi_setRootPath;
@@ -280,7 +283,5 @@ function applyTree(that, onSuccess) {
     onSuccess();
 }
 ObjectLifecycleManager.addApplyFunctionForType('tree', applyTree);
-
 Object.freeze(TreeControl);
-
 export default TreeControl;
