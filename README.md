@@ -31,6 +31,10 @@ task definitions. HMI objects are selected through a database mapping from a
 URL's `hmi` query parameter to an enabled HMI object. Tasks are configured
 separately and can be started/stopped through the task manager.
 
+To open the Content Editor, omit the `hmi` query parameter from the application
+URL and sign in with the configured Content Manager administrator credentials.
+See [CONTENT_EDITOR.md](./CONTENT_EDITOR.md) for the editor layout and usage.
+
 JsonFX objects can include other database objects as templates. The server
 recursively resolves `include` references before returning a requested object;
 the including object overrides attributes from the included object. Setting
