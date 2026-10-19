@@ -244,3 +244,4 @@ $(() => {
         body.on('unload', () => hmi.killObject(rootObject, () => hmi.logger.info(`${config.applicationName} stopped`), error => hmi.logger.error(`Failed stopping ${config.applicationName}`, error)));
     }, error => hmi.logger.error(`Failed building ${config.applicationName}`, error));
 });
+//# sourceMappingURL=main.js.map

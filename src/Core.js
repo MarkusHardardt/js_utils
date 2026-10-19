@@ -254,3 +254,4 @@ Core.handleNotFound = handleNotFound;
 }());
 Object.freeze(Core);
 export default Core;
+//# sourceMappingURL=Core.js.map

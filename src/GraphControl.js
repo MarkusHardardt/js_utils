@@ -3108,3 +3108,4 @@ function applyGraphicObject(that, context, disableVisuEvents, enableEditorEvents
 ObjectLifecycleManager.setApplyGraphicObjectFunction(applyGraphicObject);
 Object.freeze(GraphControl);
 export default GraphControl;
+//# sourceMappingURL=GraphControl.js.map

@@ -624,3 +624,4 @@ if (isNodeJS) {
 }
 Object.freeze(WebSocketConnection);
 export default WebSocketConnection;
+//# sourceMappingURL=WebSocketConnection.js.map

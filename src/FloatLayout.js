@@ -207,3 +207,4 @@ function applyFloat(that, onSuccess, onError, enableEditorEvents) {
 ObjectLifecycleManager.addApplyFunctionForType('float', applyFloat);
 Object.freeze(FloatLayout);
 export default FloatLayout;
+//# sourceMappingURL=FloatLayout.js.map

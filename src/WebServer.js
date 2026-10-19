@@ -232,3 +232,4 @@ class WebSrv {
 WebServer.Server = WebSrv;
 Object.freeze(WebServer);
 export default WebServer;
+//# sourceMappingURL=WebServer.js.map

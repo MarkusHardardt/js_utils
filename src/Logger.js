@@ -179,3 +179,4 @@ class Logger {
 }
 _a = Logger;
 export default Logger;
+//# sourceMappingURL=Logger.js.map

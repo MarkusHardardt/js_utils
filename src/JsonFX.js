@@ -234,3 +234,4 @@ function parse(text, sourceIsPretty, doReconstruct, evalFunc) {
 JsonFX.parse = parse;
 Object.freeze(JsonFX);
 export default JsonFX;
+//# sourceMappingURL=JsonFX.js.map

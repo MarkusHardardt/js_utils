@@ -399,3 +399,4 @@ class SortedSet {
 Sorting.SortedSet = SortedSet;
 Object.freeze(Sorting);
 export default Sorting;
+//# sourceMappingURL=Sorting.js.map

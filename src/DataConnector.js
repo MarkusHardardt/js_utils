@@ -581,3 +581,4 @@ const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.nod
 DataConnector.getInstance = logger => isNodeJS ? new ServerDataConnector(logger) : new ClientDataConnector(logger);
 Object.freeze(DataConnector);
 export default DataConnector;
+//# sourceMappingURL=DataConnector.js.map

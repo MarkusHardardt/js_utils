@@ -475,3 +475,4 @@ class Router {
 Access.Router = Router;
 Object.freeze(Access);
 export default Access;
+//# sourceMappingURL=Access.js.map

@@ -9,3 +9,4 @@ Template.content = {};
 }());
 Object.freeze(Template);
 export default Template;
+//# sourceMappingURL=EmptyTemplate.js.map

@@ -395,3 +395,4 @@ function getAdapterFactory(logger, config, verbose) {
 SqlHelper.getAdapterFactory = getAdapterFactory;
 Object.freeze(SqlHelper);
 export default SqlHelper;
+//# sourceMappingURL=SqlHelper.js.map

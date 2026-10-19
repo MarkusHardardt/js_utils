@@ -480,3 +480,4 @@ var exp = {
     ZonePositionAdjuster: ZonePositionAdjuster
 };
 export default exp;
+//# sourceMappingURL=ObjectPositionSystem.js.map

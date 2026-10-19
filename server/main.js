@@ -285,3 +285,4 @@ function main(config = {}) {
     }
 }
 export default main;
+//# sourceMappingURL=main.js.map

@@ -341,3 +341,4 @@ function applySplit(that, onSuccess, onError) {
 ObjectLifecycleManager.addApplyFunctionForType('split', applySplit);
 Object.freeze(SplitLayout);
 export default SplitLayout;
+//# sourceMappingURL=SplitLayout.js.map

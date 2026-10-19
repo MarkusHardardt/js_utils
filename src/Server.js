@@ -24,3 +24,4 @@ if (isNodeJS) {
     Object.freeze(Server);
 }
 export default Server;
+//# sourceMappingURL=Server.js.map

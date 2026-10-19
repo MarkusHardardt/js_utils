@@ -213,3 +213,4 @@ function escape(text) {
 Regex.escape = escape;
 Object.freeze(Regex);
 export default Regex;
+//# sourceMappingURL=Regex.js.map

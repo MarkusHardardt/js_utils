@@ -629,3 +629,4 @@ class Client {
 OPCUA.Client = Client;
 Object.freeze(OPCUA);
 export default OPCUA;
+//# sourceMappingURL=OPCUA.js.map

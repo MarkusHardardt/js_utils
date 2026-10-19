@@ -216,3 +216,4 @@ function applyTable(that, onSuccess) {
 ObjectLifecycleManager.addApplyFunctionForType('table', applyTable);
 Object.freeze(TableControl);
 export default TableControl;
+//# sourceMappingURL=TableControl.js.map

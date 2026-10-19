@@ -133,3 +133,4 @@ if (!isNodeJS) {
 }
 Object.freeze(Client);
 export default Client;
+//# sourceMappingURL=Client.js.map

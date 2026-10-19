@@ -187,3 +187,4 @@ class Handler {
 LanguageSwitching.getInstance = (logger, cms) => new Handler(logger, cms);
 Object.freeze(LanguageSwitching);
 export default LanguageSwitching;
+//# sourceMappingURL=LanguageSwitching.js.map

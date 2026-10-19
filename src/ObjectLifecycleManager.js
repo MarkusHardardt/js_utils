@@ -2606,3 +2606,4 @@ ObjectLifecycleManager._add_extension = _add_extension;
 Object.seal(ObjectLifecycleManager);
 // export
 export default ObjectLifecycleManager;
+//# sourceMappingURL=ObjectLifecycleManager.js.map

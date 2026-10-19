@@ -414,3 +414,4 @@ ADS.getAsCoreDataType = (typeName, adsDataTypeStr, isArray = false) => getAsCore
 ADS.Client = Client;
 Object.freeze(ADS);
 export default ADS;
+//# sourceMappingURL=ADS.js.map

@@ -440,3 +440,4 @@ const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.nod
 TaskManager.getInstance = isNodeJS ? (logger, cms, hmi) => new ServerManager(logger, cms, hmi) : TaskManager.getInstance = logger => new ClientManager(logger);
 Object.freeze(TaskManager);
 export default TaskManager;
+//# sourceMappingURL=TaskManager.js.map

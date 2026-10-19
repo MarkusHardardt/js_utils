@@ -24,3 +24,4 @@ const md5 = isNodeJS ? {} : undefined;
 Evaluate.evalFunc = x => eval(`(${x})`);
 // TODO: response = eval ('(' + JsonFX.stringify(response, true) + ')\n//# sourceURL=' + match[1] + '.js');
 export default Evaluate;
+//# sourceMappingURL=Evaluate.js.map
