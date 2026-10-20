@@ -8,7 +8,8 @@ const NodeState = Object.freeze({
     Registered: 1,
     NotRegistered: 2,
     UnregisterTimerRunning: 3,
-    Destructed: 4
+    ReregisterTimerRunning: 4,
+    Destructed: 5
 });
 
 class Node {
@@ -20,12 +21,16 @@ class Node {
     #observers;
     #unregisterObserverDelay;
     #unregisterObserverTimer;
+    #reregisterObserverDelay;
+    #reregisterObserverTimer;
     #state;
-    constructor(logger, source, unregisterObserverDelay, onLastObserverUnregistered) {
+    constructor(logger, source, unregisterObserverDelay, reregisterObserverDelay, onLastObserverUnregistered) {
         this.#logger = logger;
         this.#source = source;
         this.#unregisterObserverDelay = unregisterObserverDelay;
         this.#unregisterObserverTimer = null;
+        this.#reregisterObserverDelay = reregisterObserverDelay;
+        this.#reregisterObserverTimer = null;
         this.#onLastObserverUnregistered = onLastObserverUnregistered;
         this.#observers = [];
         this.#value = null;
@@ -46,6 +51,7 @@ class Node {
         if (typeof onRefresh !== 'function') {
             throw new Error('Access.Node.registerObserver(): onRefresh(value) is not a function');
         }
+        const isFirstObserver = this.#observers.length === 0;
         // Check if already registered
         for (const observer of this.#observers) {
             if (observer === onRefresh) {
@@ -59,7 +65,6 @@ class Node {
         this.#observers.push(onRefresh);
         switch (this.#state) {
             case NodeState.Constructed:
-            case NodeState.NotRegistered:
                 try {
                     this.#source.registerObserver(this.#onRefresh);
                     this.#logger.trace('Access.Node.registerObserver(): Registered observer on source');
@@ -68,6 +73,22 @@ class Node {
                     // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not yet running.
                     this.#logger.warn('Access.Node.registerObserver(): Failed to register observer on source', error);
                     this.#state = NodeState.NotRegistered;
+                }
+                break;
+            case NodeState.NotRegistered:
+                if (this.#reregisterObserverDelay) {
+                    this.#scheduleReregisterObserver();
+                    this.#logger.trace('Access.Node.registerObserver(): Delaying registration on source');
+                } else {
+                    try {
+                        this.#source.registerObserver(this.#onRefresh);
+                        this.#logger.trace('Access.Node.registerObserver(): Registered observer on source');
+                        this.#state = NodeState.Registered;
+                    } catch (error) {
+                        // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not yet running.
+                        this.#logger.warn('Access.Node.registerObserver(): Failed to register observer on source', error);
+                        this.#state = NodeState.NotRegistered;
+                    }
                 }
                 break;
             case NodeState.Registered:
@@ -79,6 +100,15 @@ class Node {
                 this.#logger.trace('Access.Node.registerObserver(): Timer to unregister has been interrupted because another observer has been registered');
                 this.#state = NodeState.Registered;
                 this.#refresh('Access.Node.registerObserver()', onRefresh);
+                break;
+            case NodeState.ReregisterTimerRunning:
+                if (isFirstObserver) {
+                    clearTimeout(this.#reregisterObserverTimer);
+                    this.#scheduleReregisterObserver();
+                    this.#logger.trace('Access.Node.registerObserver(): Delaying registration on source');
+                } else {
+                    this.#refresh('Access.Node.registerObserver()', onRefresh);
+                }
                 break;
         }
     }
@@ -119,8 +149,7 @@ class Node {
                                 // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not running anymore.
                                 this.#logger.warn('Access.Node.unregisterObserver(): Failed to unregister on source after delay has expired', error);
                             }
-                            this.#state = NodeState.Destructed;
-                            this.#onLastObserverUnregistered();
+                            this.#afterLastObserverUnregistered();
                         }, this.#unregisterObserverDelay);
                         this.#state = NodeState.UnregisterTimerRunning;
                     } else {
@@ -131,9 +160,15 @@ class Node {
                             // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not running anymore.
                             this.#logger.warn('Access.Node.unregisterObserver(): Failed to unregister on source without delay', error);
                         }
-                        this.#state = NodeState.Destructed;
-                        this.#onLastObserverUnregistered();
+                        this.#afterLastObserverUnregistered();
                     }
+                }
+                break;
+            case NodeState.ReregisterTimerRunning:
+                if (this.#observers.length === 0) {
+                    clearTimeout(this.#reregisterObserverTimer);
+                    this.#reregisterObserverTimer = null;
+                    this.#afterLastObserverUnregistered();
                 }
                 break;
         }
@@ -149,6 +184,20 @@ class Node {
                     this.#logger.warn('Access.Node.registerObserverOnSource(): Failed to register on source', error);
                 }
                 return;
+            case NodeState.ReregisterTimerRunning:
+                if (this.#observers.length > 0) {
+                    clearTimeout(this.#reregisterObserverTimer);
+                    this.#reregisterObserverTimer = null;
+                    try {
+                        this.#source.registerObserver(this.#onRefresh);
+                        this.#logger.trace('Access.Node.registerObserverOnSource(): Registered on source');
+                        this.#state = NodeState.Registered;
+                    } catch (error) {
+                        this.#logger.warn('Access.Node.registerObserverOnSource(): Failed to register on source', error);
+                        this.#state = NodeState.NotRegistered;
+                    }
+                }
+                return;
         }
     }
     unregisterObserverOnSource() {
@@ -161,6 +210,9 @@ class Node {
                     this.#logger.warn('Access.Node.unregisterObserverOnSource(): Failed to unregister on source', error);
                 }
                 this.#state = NodeState.NotRegistered;
+                if (this.#observers.length === 0) {
+                    this.#afterLastObserverUnregistered();
+                }
                 return;
             case NodeState.UnregisterTimerRunning:
                 clearTimeout(this.#unregisterObserverTimer);
@@ -172,8 +224,46 @@ class Node {
                     this.#logger.warn('Access.Node.unregisterObserverOnSource(): Interruppted unregister timer but failed to unregister on source', error);
                 }
                 this.#state = NodeState.NotRegistered;
+                if (this.#observers.length === 0) {
+                    this.#afterLastObserverUnregistered();
+                }
+                return;
+            case NodeState.ReregisterTimerRunning:
+                clearTimeout(this.#reregisterObserverTimer);
+                this.#reregisterObserverTimer = null;
+                this.#state = NodeState.NotRegistered;
+                if (this.#observers.length === 0) {
+                    this.#afterLastObserverUnregistered();
+                }
                 return;
         }
+    }
+    #afterLastObserverUnregistered() {
+        if (this.#reregisterObserverDelay) {
+            this.#scheduleReregisterObserver();
+        } else {
+            this.#state = NodeState.Destructed;
+            this.#onLastObserverUnregistered();
+        }
+    }
+    #scheduleReregisterObserver() {
+        this.#state = NodeState.ReregisterTimerRunning;
+        this.#reregisterObserverTimer = setTimeout(() => {
+            this.#reregisterObserverTimer = null;
+            if (this.#observers.length === 0) {
+                this.#state = NodeState.Destructed;
+                this.#onLastObserverUnregistered();
+                return;
+            }
+            try {
+                this.#source.registerObserver(this.#onRefresh);
+                this.#logger.trace('Access.Node.registerObserver(): Registered observer on source after delay');
+                this.#state = NodeState.Registered;
+            } catch (error) {
+                this.#logger.warn('Access.Node.registerObserver(): Failed to register observer on source after delay', error);
+                this.#state = NodeState.NotRegistered;
+            }
+        }, this.#reregisterObserverDelay);
     }
     #refresh(context, onRefresh) {
         if (this.#value !== undefined && this.#value !== null) {
@@ -190,11 +280,13 @@ class Buffer {
     #logger;
     #source;
     #unregisterObserverDelay;
+    #reregisterObserverDelay;
     #dataPointsByDataId;
-    constructor(logger, source, unregisterObserverDelay) {
+    constructor(logger, source, unregisterObserverDelay, reregisterObserverDelay) {
         this.#logger = Common.validateAsLogger(logger, true);
         this.#source = Common.validateAsDataAccessObject(source, true);
         this.#unregisterObserverDelay = typeof unregisterObserverDelay === 'number' && unregisterObserverDelay > 0 ? Math.ceil(unregisterObserverDelay) : false;
+        this.#reregisterObserverDelay = typeof reregisterObserverDelay === 'number' && reregisterObserverDelay > 0 ? Math.ceil(reregisterObserverDelay) : false;
         this.#dataPointsByDataId = {};
         Common.validateAsDataAccessObject(this, true);
     }
@@ -213,7 +305,7 @@ class Buffer {
                 registerObserver: onRefresh => this.#source.registerObserver(dataId, onRefresh),
                 unregisterObserver: onRefresh => this.#source.unregisterObserver(dataId, onRefresh)
             };
-            dataPoint.node = new Node(this.#logger, dataPoint, this.#unregisterObserverDelay, () => {
+            dataPoint.node = new Node(this.#logger, dataPoint, this.#unregisterObserverDelay, this.#reregisterObserverDelay, () => {
                 delete dataPoint.node;
                 delete this.#dataPointsByDataId[dataId];
             });
