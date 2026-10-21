@@ -272,7 +272,7 @@ class Decelerator {
         this.#stateChanged = stateChanged;
         this.#state = DeceleratorState.Idle;
     }
-    update(on) {
+    update(on, immediately) {
         switch (this.#state) {
             case DeceleratorState.Idle:
                 if (on === true) {
@@ -282,7 +282,7 @@ class Decelerator {
                 break;
             case DeceleratorState.On:
                 if (on !== true) {
-                    if (typeof this.#offDelay === 'number' && this.#offDelay > 0) {
+                    if (immediately !== true && typeof this.#offDelay === 'number' && this.#offDelay > 0) {
                         this.#state = DeceleratorState.OnTOF;
                         this.#timer = setTimeout(() => {
                             this.#timer = null;
@@ -304,7 +304,7 @@ class Decelerator {
                 break;
             case DeceleratorState.Off:
                 if (on === true) {
-                    if (typeof this.#onDelay === 'number' && this.#onDelay > 0) {
+                    if (immediately !== true && typeof this.#onDelay === 'number' && this.#onDelay > 0) {
                         this.#state = DeceleratorState.OffTOF;
                         this.#timer = setTimeout(() => {
                             this.#timer = null;
