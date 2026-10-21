@@ -249,6 +249,21 @@ describe('Core.Decelerator', () => {
         assert.deepEqual(changes, [true, false]);
     });
 
+    it('bypasses the configured delay when immediately is true', () => {
+        const offChanges = [];
+        const offDecelerator = new Core.Decelerator(30, 30, value => offChanges.push(value));
+        offDecelerator.update(true);
+        offDecelerator.update(false, true);
+        assert.deepEqual(offChanges, [true, false]);
+
+        const onChanges = [];
+        const onDecelerator = new Core.Decelerator(30, 0, value => onChanges.push(value));
+        onDecelerator.update(true);
+        onDecelerator.update(false);
+        onDecelerator.update(true, true);
+        assert.deepEqual(onChanges, [true, false, true]);
+    });
+
     it('delays turning on and cancels the pending on transition when switched off', async () => {
         const changes = [];
         const decelerator = new Core.Decelerator(15, 0, value => changes.push(value));
