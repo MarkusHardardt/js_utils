@@ -47,6 +47,17 @@ See [HMI_CONFIGURATION.md](./HMI_CONFIGURATION.md) for the object types,
 database content model, object-key rules, include behavior, lifecycle hooks,
 and configuration fields.
 
+## Tests
+
+Run the automated tests from the repository root with:
+
+```sh
+npm test
+```
+
+The test suite uses Node.js's built-in test runner and does not require an
+additional test framework.
+
 ## HTTPS and secure WebSockets
 
 The server uses HTTPS and WSS when both `secureKeyFile` and `secureCertFile`
