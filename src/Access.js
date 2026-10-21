@@ -56,7 +56,7 @@ class Node {
         for (const observer of this.#observers) {
             if (observer === onRefresh) {
                 this.#logger.warn('Access.Node.registerObserver(): onRefresh(value) has already been registered');
-                // If already stored and if we just call for refresh and return
+                // If already stored, we just call for refresh and return
                 this.#refresh('Access.Node.registerObserver()', onRefresh);
                 return;
             }
