@@ -359,7 +359,7 @@ class Buffer {
             }
             const dataPoint = this.#dataPointsByDataId[dataId];
             if (dataPoint) {
-                dataPoint.node.Value = value;
+                dataPoint.node.value = value;
             }
         }, onError);
     }
@@ -447,7 +447,7 @@ class Router {
     }
     // This will be called on server side when a new web socket connection has opened or an existing has reopened
     registerDataConnector(dataConnector) {
-        for (const connector in this.#dataConnectors) {
+        for (const connector of this.#dataConnectors) {
             if (dataConnector === connector) {
                 this.#logger.warn('Access.Router.registerDataConnector(): Data connector is already registered');
                 return;
