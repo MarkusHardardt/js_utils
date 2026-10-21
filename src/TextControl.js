@@ -10,6 +10,7 @@ import Mathematics from './Mathematics.js';
 import Common from './Common.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import Access from './Access.js';
+import Logger from './Logger.js';
 import ContentManager from './ContentManager.js';
 import { basicSetup, EditorView } from 'codemirror';
 import { Compartment, RangeSetBuilder, StateEffect, StateField } from '@codemirror/state';
@@ -32,6 +33,7 @@ const autocompleteScope = {
     Common,
     ObjectLifecycleManager,
     Access,
+    Logger,
     ContentManager
 };
 

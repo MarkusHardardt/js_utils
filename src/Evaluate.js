@@ -13,6 +13,10 @@ import ADS from './ADS.js';
 import Common from './Common.js';
 import OPCUA from './OPCUA.js';
 import SqlHelper from './SqlHelper.js';
+import ObjectLifecycleManager from './ObjectLifecycleManager.js';
+import Access from './Access.js';
+import Logger from './Logger.js';
+import ContentManager from './ContentManager.js';
 
 const Evaluate = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
