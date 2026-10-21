@@ -275,6 +275,7 @@ class Node {
         }
     }
 }
+Access.Node = Node; // TODO Remove after debugging
 
 class Buffer {
     #logger;
