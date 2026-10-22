@@ -130,7 +130,13 @@ function main(config = {}) {
             typeof admin.user === 'string' && typeof admin.password === 'string' &&
             credentials !== null && typeof credentials === 'object' &&
             credentials.user === admin.user && credentials.password === admin.password;
-        response.send(JsonFX.stringify({ result: isValid }, false));
+        if (isValid) {
+            response.send(JsonFX.stringify({ result: true }, false));
+        } else if (typeof admin.invalidCredentialsResponseDelay === 'number' && admin.invalidCredentialsResponseDelay > 0) {
+            setTimeout(() => response.send(JsonFX.stringify({ result: false }, false)), admin.invalidCredentialsResponseDelay)
+        } else {
+            response.send(JsonFX.stringify({ result: false }, false));
+        }
     });
     // handle requests
     if (config.postRequestHandler) {
