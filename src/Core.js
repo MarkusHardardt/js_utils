@@ -343,6 +343,8 @@ class OnOffDelay {
                     }
                 }
                 break;
+            case OnOffDelayState.Final:
+                throw new Error('On-Off-Delay is finalized');
             case OnOffDelayState.Disposed:
                 throw new Error('On-Off-Delay is disposed');
         }
@@ -366,6 +368,8 @@ class OnOffDelay {
                 this.#state = OnOffDelayState.Off;
                 this.#startFinalTimer();
                 break;
+            case OnOffDelayState.Final:
+                throw new Error('On-Off-Delay is finalized');
             case OnOffDelayState.Disposed:
                 throw new Error('On-Off-Delay is disposed');
         }

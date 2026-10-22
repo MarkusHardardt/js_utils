@@ -35,7 +35,7 @@ describe('Core.createIdGenerator', () => {
         assert.deepEqual(
             Array.from({ length: 38 }, () => nextId()),
             [...Array.from({ length: 10 }, (_, index) => `id-${index}-end`),
-                ...Array.from({ length: 26 }, (_, index) => `id-${(index + 10).toString(36)}-end`),
+            ...Array.from({ length: 26 }, (_, index) => `id-${(index + 10).toString(36)}-end`),
                 'id-10-end', 'id-11-end']
         );
     });
@@ -159,17 +159,17 @@ describe('Core.handleNotFound', () => {
 
 describe('Core.validateFunction', () => {
     it('accepts functions and optionally checks their argument names', () => {
-        assert.equal(Core.validateFunction(function (first, second) {}, 'first, second', true), undefined);
+        assert.equal(Core.validateFunction(function (first, second) { }, 'first, second', true), undefined);
         assert.equal(Core.validateFunction((first, second) => first + second, 'first, second', true), undefined);
         assert.equal(Core.validateFunction(first => first, 'first', true), undefined);
-        assert.equal(Core.validateFunction(function () {}, '', true), undefined);
-        assert.equal(Core.validateFunction(() => {}, '', false), undefined);
-        assert.equal(Core.validateFunction(() => {}, '', undefined), undefined);
+        assert.equal(Core.validateFunction(function () { }, '', true), undefined);
+        assert.equal(Core.validateFunction(() => { }, '', false), undefined);
+        assert.equal(Core.validateFunction(() => { }, '', undefined), undefined);
     });
 
     it('recognizes class-style methods and rejects incorrect argument counts or names', () => {
         const instance = {
-            method(first, second) {}
+            method(first, second) { }
         };
         assert.equal(Core.validateFunction(instance.method, 'first, second', true), undefined);
         assert.throws(
@@ -203,7 +203,7 @@ describe('Core.validateAs', () => {
     });
 
     it('reports missing properties, invalid types, invalid method signatures and malformed patterns', () => {
-        const instance = { count: 1, update(actual) {} };
+        const instance = { count: 1, update(actual) { } };
         assert.throws(() => Core.validateAs('Device', instance, 'missing: string'), /Device has no property 'missing'/);
         assert.throws(
             () => Core.validateAs('Device', instance, 'count: string'),
@@ -226,7 +226,7 @@ describe('Core.validateAs', () => {
 
 describe('Core.validateMethod', () => {
     it('returns the object when the requested method exists', () => {
-        const instance = { update() {} };
+        const instance = { update() { } };
         assert.equal(Core.validateMethod('Device', instance, 'update'), instance);
     });
 
@@ -239,16 +239,83 @@ describe('Core.validateMethod', () => {
 });
 
 describe('Core.OnOffDelay', () => {
-    it('behaves as required', () => {
+    it('behaves as required', async () => {
         const changes = [];
         // const sut = new Core.OnOffDelay(0, 0, 0, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
         const sut = new Core.OnOffDelay();
-        sut.onDelay = 0;
-        sut.offDelay = 0;
-        sut.finalizeDelay = 0;
+        sut.onDelay = 100;
+        sut.offDelay = 200;
+        sut.finalDelay = 300;
         sut.switchedOn = () => changes.push('on');
         sut.switchedOff = () => changes.push('off');
         sut.finalized = () => changes.push('final');
+        // first on
+        sut.switchOn();
+        assert.equal(sut.isOn, true);
+        assert.deepEqual(changes, ['on']);
+        // immediately of again
+        sut.switchOff();
+        assert.equal(sut.isOn, true);
+        assert.deepEqual(changes, ['on']);
+        // on again
+        sut.switchOn();
+        assert.equal(sut.isOn, true);
+        assert.deepEqual(changes, ['on']);
+        // again off and wait
+        sut.switchOff();
+        await wait(195);
+        assert.equal(sut.isOn, true);
+        assert.deepEqual(changes, ['on']);
+        await wait(10);
+        assert.equal(sut.isOn, false);
+        assert.deepEqual(changes, ['on', 'off']);
+        // on again
+        sut.switchOn();
+        assert.equal(sut.isOn, false);
+        assert.deepEqual(changes, ['on', 'off']);
+        // off again
+        sut.switchOff();
+        assert.equal(sut.isOn, false);
+        assert.deepEqual(changes, ['on', 'off']);
+        // and on again and wait
+        sut.switchOn();
+        await wait(95);
+        assert.equal(sut.isOn, false);
+        assert.deepEqual(changes, ['on', 'off']);
+        await wait(10);
+        assert.equal(sut.isOn, true);
+        assert.deepEqual(changes, ['on', 'off', 'on']);
+        // again off and wait
+        sut.switchOff();
+        await wait(195);
+        assert.equal(sut.isOn, true);
+        assert.deepEqual(changes, ['on', 'off', 'on']);
+        await wait(10);
+        assert.equal(sut.isOn, false);
+        assert.deepEqual(changes, ['on', 'off', 'on', 'off']);
+        await wait(290);
+        assert.equal(sut.isOn, false);
+        assert.deepEqual(changes, ['on', 'off', 'on', 'off']);
+        await wait(10);
+        assert.equal(sut.isOn, false);
+        assert.deepEqual(changes, ['on', 'off', 'on', 'off', 'final']);
+        assert.throws(() => sut.switchOn(), /is finalized/);
+        assert.throws(() => sut.switchOff(), /is finalized/);
+        sut.dispose();
+        assert.throws(() => sut.switchOn(), /is disposed/);
+        assert.throws(() => sut.switchOff(), /is disposed/);
+    });
+
+    it('changes immediately when all delays are disabled', () => {
+        const changes = [];
+        const sut = new Core.OnOffDelay();
+        sut.onDelay = 0;
+        sut.offDelay = 0;
+        sut.finalDelay = 0;
+        sut.switchedOn = () => changes.push('on');
+        sut.switchedOff = () => changes.push('off');
+        sut.finalized = () => changes.push('final');
+
         assert.equal(sut.isOn, false);
         sut.switchOff();
         sut.switchOn();
@@ -256,47 +323,35 @@ describe('Core.OnOffDelay', () => {
         sut.switchOn();
         sut.switchOff();
         assert.equal(sut.isOn, false);
-        sut.switchOn();
-        sut.switchOff();
+        assert.throws(() => sut.switchOn(), /is finalized/);
+        assert.throws(() => sut.switchOff(), /is finalized/);
 
         assert.equal(sut.isOn, false);
         assert.deepEqual(changes, ['on', 'off', 'final']);
     });
 
-    it('changes immediately when all delays are disabled', () => {
-        const changes = [];
-        const onOffDelay = new Core.OnOffDelay(0, 0, 0, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
-
-        assert.equal(onOffDelay.isOn, false);
-        onOffDelay.switchOff();
-        onOffDelay.switchOn();
-        assert.equal(onOffDelay.isOn, true);
-        onOffDelay.switchOn();
-        onOffDelay.switchOff();
-        assert.equal(onOffDelay.isOn, false);
-        onOffDelay.switchOn();
-        onOffDelay.switchOff();
-
-        assert.equal(onOffDelay.isOn, false);
-        assert.deepEqual(changes, ['on', 'off', 'final']);
-    });
-
     it('cancels a delayed off transition when switched on again', async () => {
         const changes = [];
-        const onOffDelay = new Core.OnOffDelay(0, 30, 200, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
+        const sut = new Core.OnOffDelay();
+        sut.onDelay = 0;
+        sut.offDelay = 30;
+        sut.finalDelay = 200;
+        sut.switchedOn = () => changes.push('on');
+        sut.switchedOff = () => changes.push('off');
+        sut.finalized = () => changes.push('final');
 
-        onOffDelay.switchOn();
-        onOffDelay.switchOff();
-        assert.equal(onOffDelay.isOn, true);
-        onOffDelay.switchOn();
+        sut.switchOn();
+        sut.switchOff();
+        assert.equal(sut.isOn, true);
+        sut.switchOn();
         await wait(45);
 
-        assert.equal(onOffDelay.isOn, true);
+        assert.equal(sut.isOn, true);
         assert.deepEqual(changes, ['on']);
 
-        onOffDelay.switchOff();
+        sut.switchOff();
         await wait(60);
-        assert.equal(onOffDelay.isOn, false);
+        assert.equal(sut.isOn, false);
         assert.deepEqual(changes, ['on', 'off']);
         await wait(100);
         assert.deepEqual(changes, ['on', 'off']);
@@ -306,17 +361,23 @@ describe('Core.OnOffDelay', () => {
 
     it('cancels a delayed on transition when switched off and starts the final delay', async () => {
         const changes = [];
-        const onOffDelay = new Core.OnOffDelay(30, 0, 100, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
+        const sut = new Core.OnOffDelay();
+        sut.onDelay = 30;
+        sut.offDelay = 0;
+        sut.finalDelay = 100;
+        sut.switchedOn = () => changes.push('on');
+        sut.switchedOff = () => changes.push('off');
+        sut.finalized = () => changes.push('final');
 
-        onOffDelay.switchOn();
-        onOffDelay.switchOff();
+        sut.switchOn();
+        sut.switchOff();
         assert.deepEqual(changes, ['on', 'off']);
 
-        onOffDelay.switchOn();
-        assert.equal(onOffDelay.isOn, false);
-        onOffDelay.switchOff();
+        sut.switchOn();
+        assert.equal(sut.isOn, false);
+        sut.switchOff();
         await wait(50);
-        assert.equal(onOffDelay.isOn, false);
+        assert.equal(sut.isOn, false);
         assert.deepEqual(changes, ['on', 'off']);
 
         await wait(70);
@@ -325,59 +386,68 @@ describe('Core.OnOffDelay', () => {
 
     it('cancels the final delay when switched on and cannot leave the final state', async () => {
         const changes = [];
-        const onOffDelay = new Core.OnOffDelay(0, 0, 40, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
+        const sut = new Core.OnOffDelay();
+        sut.onDelay = 0;
+        sut.offDelay = 0;
+        sut.finalDelay = 40;
+        sut.switchedOn = () => changes.push('on');
+        sut.switchedOff = () => changes.push('off');
+        sut.finalized = () => changes.push('final');
 
-        onOffDelay.switchOn();
-        onOffDelay.switchOff();
-        onOffDelay.switchOn();
+        sut.switchOn();
+        sut.switchOff();
+        sut.switchOn();
         await wait(55);
-        assert.equal(onOffDelay.isOn, true);
+        assert.equal(sut.isOn, true);
         assert.deepEqual(changes, ['on', 'off', 'on']);
 
-        onOffDelay.switchOff();
+        sut.switchOff();
         assert.deepEqual(changes, ['on', 'off', 'on', 'off']);
         await wait(80);
         assert.deepEqual(changes, ['on', 'off', 'on', 'off', 'final']);
 
-        onOffDelay.switchOn();
-        onOffDelay.switchOff();
-        assert.equal(onOffDelay.isOn, false);
+        assert.throws(() => sut.switchOn(), /is finalized/);
+        assert.throws(() => sut.switchOff(), /is finalized/);
+        assert.equal(sut.isOn, false);
         assert.deepEqual(changes, ['on', 'off', 'on', 'off', 'final']);
     });
 
     it('cancels pending delays when disposed', async () => {
         const changes = [];
-        const onOffDelay = new Core.OnOffDelay(0, 30, 30, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
+        const sut = new Core.OnOffDelay();
+        sut.onDelay = 0;
+        sut.offDelay = 30;
+        sut.finalDelay = 30;
+        sut.switchedOn = () => changes.push('on');
+        sut.switchedOff = () => changes.push('off');
+        sut.finalized = () => changes.push('final');
 
-        onOffDelay.switchOn();
-        onOffDelay.switchOff();
-        onOffDelay.dispose();
+        sut.switchOn();
+        sut.switchOff();
+        sut.dispose();
         await wait(45);
-
-        onOffDelay.switchOn();
-        assert.equal(onOffDelay.isOn, false);
+        assert.throws(() => sut.switchOn(), /is disposed/);
+        assert.equal(sut.isOn, false);
         assert.deepEqual(changes, ['on']);
     });
 
     it('does not start the final delay if the switched-off callback switches it on', () => {
         const changes = [];
-        let onOffDelay;
-        onOffDelay = new Core.OnOffDelay(
-            0,
-            0,
-            0,
-            () => changes.push('on'),
-            () => {
-                changes.push('off');
-                onOffDelay.switchOn();
-            },
-            () => changes.push('final')
-        );
+        const sut = new Core.OnOffDelay();
+        sut.onDelay = 0;
+        sut.offDelay = 0;
+        sut.finalDelay = 0;
+        sut.switchedOn = () => changes.push('on');
+        sut.switchedOff = () => {
+            changes.push('off');
+            sut.switchOn();
+        };
+        sut.finalized = () => changes.push('final');
 
-        onOffDelay.switchOn();
-        onOffDelay.switchOff();
+        sut.switchOn();
+        sut.switchOff();
 
-        assert.equal(onOffDelay.isOn, true);
+        assert.equal(sut.isOn, true);
         assert.deepEqual(changes, ['on', 'off', 'on']);
     });
 });
