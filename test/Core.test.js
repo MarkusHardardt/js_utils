@@ -239,21 +239,45 @@ describe('Core.validateMethod', () => {
 });
 
 describe('Core.OnOffDelay', () => {
+    it('behaves as required', () => {
+        const changes = [];
+        // const sut = new Core.OnOffDelay(0, 0, 0, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
+        const sut = new Core.OnOffDelay();
+        sut.onDelay = 0;
+        sut.offDelay = 0;
+        sut.finalizeDelay = 0;
+        sut.switchedOn = () => changes.push('on');
+        sut.switchedOff = () => changes.push('off');
+        sut.finalized = () => changes.push('final');
+        assert.equal(sut.isOn, false);
+        sut.switchOff();
+        sut.switchOn();
+        assert.equal(sut.isOn, true);
+        sut.switchOn();
+        sut.switchOff();
+        assert.equal(sut.isOn, false);
+        sut.switchOn();
+        sut.switchOff();
+
+        assert.equal(sut.isOn, false);
+        assert.deepEqual(changes, ['on', 'off', 'final']);
+    });
+
     it('changes immediately when all delays are disabled', () => {
         const changes = [];
         const onOffDelay = new Core.OnOffDelay(0, 0, 0, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
 
-        assert.equal(onOffDelay.on, false);
-        onOffDelay.update(false);
-        onOffDelay.update(true);
-        assert.equal(onOffDelay.on, true);
-        onOffDelay.update(true);
-        onOffDelay.update(false);
-        assert.equal(onOffDelay.on, false);
-        onOffDelay.update(true);
-        onOffDelay.update(false);
+        assert.equal(onOffDelay.isOn, false);
+        onOffDelay.switchOff();
+        onOffDelay.switchOn();
+        assert.equal(onOffDelay.isOn, true);
+        onOffDelay.switchOn();
+        onOffDelay.switchOff();
+        assert.equal(onOffDelay.isOn, false);
+        onOffDelay.switchOn();
+        onOffDelay.switchOff();
 
-        assert.equal(onOffDelay.on, false);
+        assert.equal(onOffDelay.isOn, false);
         assert.deepEqual(changes, ['on', 'off', 'final']);
     });
 
@@ -261,18 +285,18 @@ describe('Core.OnOffDelay', () => {
         const changes = [];
         const onOffDelay = new Core.OnOffDelay(0, 30, 200, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
 
-        onOffDelay.update(true);
-        onOffDelay.update(false);
-        assert.equal(onOffDelay.on, true);
-        onOffDelay.update(true);
+        onOffDelay.switchOn();
+        onOffDelay.switchOff();
+        assert.equal(onOffDelay.isOn, true);
+        onOffDelay.switchOn();
         await wait(45);
 
-        assert.equal(onOffDelay.on, true);
+        assert.equal(onOffDelay.isOn, true);
         assert.deepEqual(changes, ['on']);
 
-        onOffDelay.update(false);
+        onOffDelay.switchOff();
         await wait(60);
-        assert.equal(onOffDelay.on, false);
+        assert.equal(onOffDelay.isOn, false);
         assert.deepEqual(changes, ['on', 'off']);
         await wait(100);
         assert.deepEqual(changes, ['on', 'off']);
@@ -284,15 +308,15 @@ describe('Core.OnOffDelay', () => {
         const changes = [];
         const onOffDelay = new Core.OnOffDelay(30, 0, 100, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
 
-        onOffDelay.update(true);
-        onOffDelay.update(false);
+        onOffDelay.switchOn();
+        onOffDelay.switchOff();
         assert.deepEqual(changes, ['on', 'off']);
 
-        onOffDelay.update(true);
-        assert.equal(onOffDelay.on, false);
-        onOffDelay.update(false);
+        onOffDelay.switchOn();
+        assert.equal(onOffDelay.isOn, false);
+        onOffDelay.switchOff();
         await wait(50);
-        assert.equal(onOffDelay.on, false);
+        assert.equal(onOffDelay.isOn, false);
         assert.deepEqual(changes, ['on', 'off']);
 
         await wait(70);
@@ -303,21 +327,21 @@ describe('Core.OnOffDelay', () => {
         const changes = [];
         const onOffDelay = new Core.OnOffDelay(0, 0, 40, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
 
-        onOffDelay.update(true);
-        onOffDelay.update(false);
-        onOffDelay.update(true);
+        onOffDelay.switchOn();
+        onOffDelay.switchOff();
+        onOffDelay.switchOn();
         await wait(55);
-        assert.equal(onOffDelay.on, true);
+        assert.equal(onOffDelay.isOn, true);
         assert.deepEqual(changes, ['on', 'off', 'on']);
 
-        onOffDelay.update(false);
+        onOffDelay.switchOff();
         assert.deepEqual(changes, ['on', 'off', 'on', 'off']);
         await wait(80);
         assert.deepEqual(changes, ['on', 'off', 'on', 'off', 'final']);
 
-        onOffDelay.update(true);
-        onOffDelay.update(false);
-        assert.equal(onOffDelay.on, false);
+        onOffDelay.switchOn();
+        onOffDelay.switchOff();
+        assert.equal(onOffDelay.isOn, false);
         assert.deepEqual(changes, ['on', 'off', 'on', 'off', 'final']);
     });
 
@@ -325,13 +349,13 @@ describe('Core.OnOffDelay', () => {
         const changes = [];
         const onOffDelay = new Core.OnOffDelay(0, 30, 30, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
 
-        onOffDelay.update(true);
-        onOffDelay.update(false);
+        onOffDelay.switchOn();
+        onOffDelay.switchOff();
         onOffDelay.dispose();
         await wait(45);
 
-        onOffDelay.update(true);
-        assert.equal(onOffDelay.on, false);
+        onOffDelay.switchOn();
+        assert.equal(onOffDelay.isOn, false);
         assert.deepEqual(changes, ['on']);
     });
 
@@ -345,15 +369,15 @@ describe('Core.OnOffDelay', () => {
             () => changes.push('on'),
             () => {
                 changes.push('off');
-                onOffDelay.update(true);
+                onOffDelay.switchOn();
             },
             () => changes.push('final')
         );
 
-        onOffDelay.update(true);
-        onOffDelay.update(false);
+        onOffDelay.switchOn();
+        onOffDelay.switchOff();
 
-        assert.equal(onOffDelay.on, true);
+        assert.equal(onOffDelay.isOn, true);
         assert.deepEqual(changes, ['on', 'off', 'on']);
     });
 });

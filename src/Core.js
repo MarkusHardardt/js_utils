@@ -271,17 +271,35 @@ class OnOffDelay {
     #switchedOff;
     #finalized;
     #state;
-    constructor(onDelay, offDelay, finalDelay, switchedOn, switchedOff, finalized) {
+    constructor() {
         this.#timer = null;
-        this.#onDelay = onDelay;
-        this.#offDelay = offDelay;
-        this.#finalDelay = finalDelay;
-        this.#switchedOn = switchedOn;
-        this.#switchedOff = switchedOff;
-        this.#finalized = finalized;
+        this.#onDelay = 0;
+        this.#offDelay = 0;
+        this.#finalDelay = 0;
+        this.#switchedOn = null;
+        this.#switchedOff = null;
+        this.#finalized = null;
         this.#state = OnOffDelayState.Idle;
     }
-    get on() {
+    set onDelay(value) {
+        this.#onDelay = value;
+    }
+    set offDelay(value) {
+        this.#offDelay = value;
+    }
+    set finalDelay(value) {
+        this.#finalDelay = value;
+    }
+    set switchedOn(value) {
+        this.#switchedOn = value;
+    }
+    set switchedOff(value) {
+        this.#switchedOff = value;
+    }
+    set finalized(value) {
+        this.#finalized = value;
+    }
+    get isOn() {
         switch (this.#state) {
             case OnOffDelayState.On:
             case OnOffDelayState.OnTOF:
@@ -290,67 +308,73 @@ class OnOffDelay {
                 return false;
         }
     }
-    update(on) {
+    switchOn() {
         switch (this.#state) {
             case OnOffDelayState.Idle:
-                if (on === true) {
-                    this.#state = OnOffDelayState.On;
+                this.#state = OnOffDelayState.On;
+                if (typeof this.#switchedOn === 'function') {
                     this.#switchedOn();
                 }
                 break;
-            case OnOffDelayState.On:
-                if (on !== true) {
-                    if (typeof this.#offDelay === 'number' && this.#offDelay > 0) {
-                        this.#state = OnOffDelayState.OnTOF;
-                        this.#timer = setTimeout(() => {
-                            this.#timer = null;
-                            this.#enterOff();
-                        }, this.#offDelay);
-                    } else {
-                        this.#enterOff();
-                    }
-                }
-                break;
             case OnOffDelayState.OnTOF:
-                if (on === true) {
-                    clearTimeout(this.#timer);
-                    this.#timer = null;
-                    this.#state = OnOffDelayState.On;
-                }
-                break;
-            case OnOffDelayState.OffTOF:
-                if (on !== true) {
-                    clearTimeout(this.#timer);
-                    this.#timer = null;
-                    this.#state = OnOffDelayState.Off;
-                    this.#startFinalTimer();
-                }
+                clearTimeout(this.#timer);
+                this.#timer = null;
+                this.#state = OnOffDelayState.On;
                 break;
             case OnOffDelayState.Off:
             case OnOffDelayState.OffFinalTOF:
-                if (on === true) {
-                    if (this.#state === OnOffDelayState.OffFinalTOF) {
-                        clearTimeout(this.#timer);
+                if (this.#state === OnOffDelayState.OffFinalTOF) {
+                    clearTimeout(this.#timer);
+                    this.#timer = null;
+                }
+                if (typeof this.#onDelay === 'number' && this.#onDelay > 0) {
+                    this.#state = OnOffDelayState.OffTOF;
+                    this.#timer = setTimeout(() => {
                         this.#timer = null;
-                    }
-                    if (typeof this.#onDelay === 'number' && this.#onDelay > 0) {
-                        this.#state = OnOffDelayState.OffTOF;
-                        this.#timer = setTimeout(() => {
-                            this.#timer = null;
-                            this.#state = OnOffDelayState.On;
-                            this.#switchedOn();
-                        }, this.#onDelay);
-                    } else {
                         this.#state = OnOffDelayState.On;
+                        if (typeof this.#switchedOn === 'function') {
+                            this.#switchedOn();
+                        }
+                    }, this.#onDelay);
+                } else {
+                    this.#state = OnOffDelayState.On;
+                    if (typeof this.#switchedOn === 'function') {
                         this.#switchedOn();
                     }
                 }
                 break;
+            case OnOffDelayState.Disposed:
+                throw new Error('On-Off-Delay is disposed');
+        }
+    }
+    switchOff() {
+        switch (this.#state) {
+            case OnOffDelayState.On:
+                if (typeof this.#offDelay === 'number' && this.#offDelay > 0) {
+                    this.#state = OnOffDelayState.OnTOF;
+                    this.#timer = setTimeout(() => {
+                        this.#timer = null;
+                        this.#enterOff();
+                    }, this.#offDelay);
+                } else {
+                    this.#enterOff();
+                }
+                break;
+            case OnOffDelayState.OffTOF:
+                clearTimeout(this.#timer);
+                this.#timer = null;
+                this.#state = OnOffDelayState.Off;
+                this.#startFinalTimer();
+                break;
+            case OnOffDelayState.Disposed:
+                throw new Error('On-Off-Delay is disposed');
         }
     }
     #enterOff() {
         this.#state = OnOffDelayState.Off;
-        this.#switchedOff();
+        if (typeof this.#switchedOff === 'function') {
+            this.#switchedOff();
+        }
         if (this.#state !== OnOffDelayState.Off) {
             return;
         }
@@ -362,11 +386,15 @@ class OnOffDelay {
             this.#timer = setTimeout(() => {
                 this.#timer = null;
                 this.#state = OnOffDelayState.Final;
-                this.#finalized();
+                if (typeof this.#finalized === 'function') {
+                    this.#finalized();
+                }
             }, this.#finalDelay);
         } else {
             this.#state = OnOffDelayState.Final;
-            this.#finalized();
+            if (typeof this.#finalized === 'function') {
+                this.#finalized();
+            }
         }
     }
     dispose() {
