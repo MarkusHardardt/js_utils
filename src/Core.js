@@ -251,7 +251,7 @@ function validateMethod(instanceType, objectInstance, methodName) {
 }
 Core.validateMethod = validateMethod;
 
-const ShutdownLatchState = Object.freeze({
+const OnOffDelayState = Object.freeze({
     Idle: 0,
     On: 1,
     OnTOF: 2,
@@ -262,7 +262,7 @@ const ShutdownLatchState = Object.freeze({
     Disposed: 7
 });
 
-class ShutdownLatch {
+class OnOffDelay {
     #timer;
     #onDelay;
     #offDelay;
@@ -279,12 +279,12 @@ class ShutdownLatch {
         this.#switchedOn = switchedOn;
         this.#switchedOff = switchedOff;
         this.#finalized = finalized;
-        this.#state = ShutdownLatchState.Idle;
+        this.#state = OnOffDelayState.Idle;
     }
     get on() {
         switch (this.#state) {
-            case ShutdownLatchState.On:
-            case ShutdownLatchState.OnTOF:
+            case OnOffDelayState.On:
+            case OnOffDelayState.OnTOF:
                 return true;
             default:
                 return false;
@@ -292,16 +292,16 @@ class ShutdownLatch {
     }
     update(on) {
         switch (this.#state) {
-            case ShutdownLatchState.Idle:
+            case OnOffDelayState.Idle:
                 if (on === true) {
-                    this.#state = ShutdownLatchState.On;
+                    this.#state = OnOffDelayState.On;
                     this.#switchedOn();
                 }
                 break;
-            case ShutdownLatchState.On:
+            case OnOffDelayState.On:
                 if (on !== true) {
                     if (typeof this.#offDelay === 'number' && this.#offDelay > 0) {
-                        this.#state = ShutdownLatchState.OnTOF;
+                        this.#state = OnOffDelayState.OnTOF;
                         this.#timer = setTimeout(() => {
                             this.#timer = null;
                             this.#enterOff();
@@ -311,37 +311,37 @@ class ShutdownLatch {
                     }
                 }
                 break;
-            case ShutdownLatchState.OnTOF:
+            case OnOffDelayState.OnTOF:
                 if (on === true) {
                     clearTimeout(this.#timer);
                     this.#timer = null;
-                    this.#state = ShutdownLatchState.On;
+                    this.#state = OnOffDelayState.On;
                 }
                 break;
-            case ShutdownLatchState.OffTOF:
+            case OnOffDelayState.OffTOF:
                 if (on !== true) {
                     clearTimeout(this.#timer);
                     this.#timer = null;
-                    this.#state = ShutdownLatchState.Off;
+                    this.#state = OnOffDelayState.Off;
                     this.#startFinalTimer();
                 }
                 break;
-            case ShutdownLatchState.Off:
-            case ShutdownLatchState.OffFinalTOF:
+            case OnOffDelayState.Off:
+            case OnOffDelayState.OffFinalTOF:
                 if (on === true) {
-                    if (this.#state === ShutdownLatchState.OffFinalTOF) {
+                    if (this.#state === OnOffDelayState.OffFinalTOF) {
                         clearTimeout(this.#timer);
                         this.#timer = null;
                     }
                     if (typeof this.#onDelay === 'number' && this.#onDelay > 0) {
-                        this.#state = ShutdownLatchState.OffTOF;
+                        this.#state = OnOffDelayState.OffTOF;
                         this.#timer = setTimeout(() => {
                             this.#timer = null;
-                            this.#state = ShutdownLatchState.On;
+                            this.#state = OnOffDelayState.On;
                             this.#switchedOn();
                         }, this.#onDelay);
                     } else {
-                        this.#state = ShutdownLatchState.On;
+                        this.#state = OnOffDelayState.On;
                         this.#switchedOn();
                     }
                 }
@@ -349,23 +349,23 @@ class ShutdownLatch {
         }
     }
     #enterOff() {
-        this.#state = ShutdownLatchState.Off;
+        this.#state = OnOffDelayState.Off;
         this.#switchedOff();
-        if (this.#state !== ShutdownLatchState.Off) {
+        if (this.#state !== OnOffDelayState.Off) {
             return;
         }
         this.#startFinalTimer();
     }
     #startFinalTimer() {
         if (typeof this.#finalDelay === 'number' && this.#finalDelay > 0) {
-            this.#state = ShutdownLatchState.OffFinalTOF;
+            this.#state = OnOffDelayState.OffFinalTOF;
             this.#timer = setTimeout(() => {
                 this.#timer = null;
-                this.#state = ShutdownLatchState.Final;
+                this.#state = OnOffDelayState.Final;
                 this.#finalized();
             }, this.#finalDelay);
         } else {
-            this.#state = ShutdownLatchState.Final;
+            this.#state = OnOffDelayState.Final;
             this.#finalized();
         }
     }
@@ -377,11 +377,11 @@ class ShutdownLatch {
         this.#switchedOn = null;
         this.#switchedOff = null;
         this.#finalized = null;
-        this.#state = ShutdownLatchState.Disposed;
+        this.#state = OnOffDelayState.Disposed;
     }
 }
 
-Core.ShutdownLatch = ShutdownLatch;
+Core.OnOffDelay = OnOffDelay;
 
 Object.freeze(Core);
 

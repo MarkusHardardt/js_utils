@@ -238,47 +238,122 @@ describe('Core.validateMethod', () => {
     });
 });
 
-describe('Core.Decelerator', () => {
-    it('changes immediately when both delays are disabled', () => {
+describe('Core.OnOffDelay', () => {
+    it('changes immediately when all delays are disabled', () => {
         const changes = [];
-        const decelerator = new Core.Decelerator(0, 0, value => changes.push(value));
-        decelerator.update(false);
-        decelerator.update(true);
-        decelerator.update(true);
-        decelerator.update(false);
-        assert.deepEqual(changes, [true, false]);
+        const onOffDelay = new Core.OnOffDelay(0, 0, 0, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
+
+        assert.equal(onOffDelay.on, false);
+        onOffDelay.update(false);
+        onOffDelay.update(true);
+        assert.equal(onOffDelay.on, true);
+        onOffDelay.update(true);
+        onOffDelay.update(false);
+        assert.equal(onOffDelay.on, false);
+        onOffDelay.update(true);
+        onOffDelay.update(false);
+
+        assert.equal(onOffDelay.on, false);
+        assert.deepEqual(changes, ['on', 'off', 'final']);
     });
 
-    it('delays turning on and cancels the pending on transition when switched off', async () => {
+    it('cancels a delayed off transition when switched on again', async () => {
         const changes = [];
-        const decelerator = new Core.Decelerator(15, 0, value => changes.push(value));
-        decelerator.update(true);
-        assert.deepEqual(changes, [true]);
-        decelerator.update(false);
-        assert.deepEqual(changes, [true, false]);
+        const onOffDelay = new Core.OnOffDelay(0, 30, 200, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
 
-        decelerator.update(true);
-        decelerator.update(false);
-        await wait(25);
-        assert.deepEqual(changes, [true, false]);
+        onOffDelay.update(true);
+        onOffDelay.update(false);
+        assert.equal(onOffDelay.on, true);
+        onOffDelay.update(true);
+        await wait(45);
 
-        decelerator.update(true);
-        await wait(25);
-        assert.deepEqual(changes, [true, false, true]);
+        assert.equal(onOffDelay.on, true);
+        assert.deepEqual(changes, ['on']);
+
+        onOffDelay.update(false);
+        await wait(60);
+        assert.equal(onOffDelay.on, false);
+        assert.deepEqual(changes, ['on', 'off']);
+        await wait(100);
+        assert.deepEqual(changes, ['on', 'off']);
+        await wait(80);
+        assert.deepEqual(changes, ['on', 'off', 'final']);
     });
 
-    it('delays turning off and cancels the pending off transition when switched on', async () => {
+    it('cancels a delayed on transition when switched off and starts the final delay', async () => {
         const changes = [];
-        const decelerator = new Core.Decelerator(0, 15, value => changes.push(value));
-        decelerator.update(true);
-        decelerator.update(false);
-        assert.deepEqual(changes, [true]);
-        decelerator.update(true);
-        await wait(25);
-        assert.deepEqual(changes, [true]);
+        const onOffDelay = new Core.OnOffDelay(30, 0, 100, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
 
-        decelerator.update(false);
-        await wait(25);
-        assert.deepEqual(changes, [true, false]);
+        onOffDelay.update(true);
+        onOffDelay.update(false);
+        assert.deepEqual(changes, ['on', 'off']);
+
+        onOffDelay.update(true);
+        assert.equal(onOffDelay.on, false);
+        onOffDelay.update(false);
+        await wait(50);
+        assert.equal(onOffDelay.on, false);
+        assert.deepEqual(changes, ['on', 'off']);
+
+        await wait(70);
+        assert.deepEqual(changes, ['on', 'off', 'final']);
+    });
+
+    it('cancels the final delay when switched on and cannot leave the final state', async () => {
+        const changes = [];
+        const onOffDelay = new Core.OnOffDelay(0, 0, 40, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
+
+        onOffDelay.update(true);
+        onOffDelay.update(false);
+        onOffDelay.update(true);
+        await wait(55);
+        assert.equal(onOffDelay.on, true);
+        assert.deepEqual(changes, ['on', 'off', 'on']);
+
+        onOffDelay.update(false);
+        assert.deepEqual(changes, ['on', 'off', 'on', 'off']);
+        await wait(80);
+        assert.deepEqual(changes, ['on', 'off', 'on', 'off', 'final']);
+
+        onOffDelay.update(true);
+        onOffDelay.update(false);
+        assert.equal(onOffDelay.on, false);
+        assert.deepEqual(changes, ['on', 'off', 'on', 'off', 'final']);
+    });
+
+    it('cancels pending delays when disposed', async () => {
+        const changes = [];
+        const onOffDelay = new Core.OnOffDelay(0, 30, 30, () => changes.push('on'), () => changes.push('off'), () => changes.push('final'));
+
+        onOffDelay.update(true);
+        onOffDelay.update(false);
+        onOffDelay.dispose();
+        await wait(45);
+
+        onOffDelay.update(true);
+        assert.equal(onOffDelay.on, false);
+        assert.deepEqual(changes, ['on']);
+    });
+
+    it('does not start the final delay if the switched-off callback switches it on', () => {
+        const changes = [];
+        let onOffDelay;
+        onOffDelay = new Core.OnOffDelay(
+            0,
+            0,
+            0,
+            () => changes.push('on'),
+            () => {
+                changes.push('off');
+                onOffDelay.update(true);
+            },
+            () => changes.push('final')
+        );
+
+        onOffDelay.update(true);
+        onOffDelay.update(false);
+
+        assert.equal(onOffDelay.on, true);
+        assert.deepEqual(changes, ['on', 'off', 'on']);
     });
 });
