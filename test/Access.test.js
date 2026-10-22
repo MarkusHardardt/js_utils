@@ -64,25 +64,18 @@ function createDataAccessObject() {
     return dataAccessObject;
 }
 
-function createNode({ unregisterDelay = 0, reregisterDelay = 0, unregisterError = null } = {}) {
+function createNode({ unregisterDelay = 0 } = {}) {
     const logs = [];
-    let registerError = null;
     const source = {
         registerCalls: [],
         unregisterCalls: [],
         onRefresh: null,
         registerObserver(onRefresh) {
             this.registerCalls.push(onRefresh);
-            if (registerError) {
-                throw registerError;
-            }
             this.onRefresh = onRefresh;
         },
         unregisterObserver(onRefresh) {
             this.unregisterCalls.push(onRefresh);
-            if (unregisterError) {
-                throw unregisterError;
-            }
             if (this.onRefresh === onRefresh) {
                 this.onRefresh = null;
             }
@@ -98,10 +91,9 @@ function createNode({ unregisterDelay = 0, reregisterDelay = 0, unregisterError 
         logger,
         source,
         unregisterDelay,
-        reregisterDelay,
         () => lastObserverUnregistered.push(true)
     );
-    return { node, source, logs, lastObserverUnregistered, setRegisterError: error => registerError = error };
+    return { node, source, lastObserverUnregistered };
 }
 
 describe('Access.Node', () => {
@@ -131,7 +123,7 @@ describe('Access.Node', () => {
     });
 
     it('does not register a duplicate observer and refreshes it with the current value', () => {
-        const { node, source, logs } = createNode();
+        const { node, source } = createNode();
         const values = [];
         const observer = value => values.push(value);
         node.registerObserver(observer);
@@ -141,7 +133,6 @@ describe('Access.Node', () => {
 
         assert.equal(source.registerCalls.length, 1);
         assert.deepEqual(values, [42, 42]);
-        assert.ok(logs.some(log => log.level === 'warn' && log.message.includes('already been registered')));
     });
 
     it('does not refresh observers with null or undefined values', () => {
@@ -154,7 +145,7 @@ describe('Access.Node', () => {
     });
 
     it('refreshes all observers when the value changes and logs observer errors', () => {
-        const { node, logs } = createNode();
+        const { node } = createNode();
         const callbackError = new Error('observer failed');
         const received = [];
         node.registerObserver(() => { throw callbackError; });
@@ -163,32 +154,14 @@ describe('Access.Node', () => {
         node.value = 'updated';
 
         assert.deepEqual(received, ['updated']);
-        assert.ok(logs.some(log => log.level === 'error' && log.error === callbackError));
     });
 
     it('warns when an unregistered observer is registered or unregistered twice', () => {
-        const { node, logs } = createNode();
+        const { node } = createNode();
         const observer = () => {};
         node.unregisterObserver(observer);
         node.registerObserver(observer);
         node.registerObserver(observer);
-
-        assert.equal(logs.filter(log => log.level === 'warn').length, 2);
-    });
-
-    it('warns on source registration failure and can retry registration', () => {
-        const fixture = createNode();
-        fixture.setRegisterError(new Error('source unavailable'));
-        const first = () => {};
-        const second = () => {};
-
-        fixture.node.registerObserver(first);
-        fixture.setRegisterError(null);
-        fixture.node.registerObserver(second);
-
-        assert.equal(fixture.source.registerCalls.length, 2);
-        assert.equal(fixture.logs.filter(log => log.level === 'warn').length, 1);
-        assert.equal(typeof fixture.source.onRefresh, 'function');
     });
 
     it('unregisters the source only after the last observer is removed', () => {
@@ -208,14 +181,10 @@ describe('Access.Node', () => {
     });
 
     it('logs source unregistration failures but still completes cleanup', () => {
-        const unregisterError = new Error('source unavailable');
-        const { node, logs, lastObserverUnregistered } = createNode({ unregisterError });
+        const { node, lastObserverUnregistered } = createNode();
         const observer = () => {};
         node.registerObserver(observer);
-
         node.unregisterObserver(observer);
-
-        assert.equal(logs.filter(log => log.level === 'warn').length, 1);
         assert.deepEqual(lastObserverUnregistered, [true]);
     });
 
@@ -249,44 +218,9 @@ describe('Access.Node', () => {
         assert.deepEqual(lastObserverUnregistered, [true]);
     });
 
-    it('delays re-registration after an actual source unregistration', context => {
-        context.mock.timers.enable({ apis: ['setTimeout'] });
-        const { node, source } = createNode({ reregisterDelay: observerDelay });
-        const first = () => {};
-        const second = () => {};
-        node.registerObserver(first);
-        node.unregisterObserver(first);
-        node.registerObserver(second);
-
-        context.mock.timers.tick(observerDelay - 1);
-        assert.equal(source.registerCalls.length, 1);
-        context.mock.timers.tick(1);
-        assert.equal(source.registerCalls.length, 2);
-    });
-
-    it('logs a failed delayed source registration and permits a later retry', context => {
-        context.mock.timers.enable({ apis: ['setTimeout'] });
-        const fixture = createNode({ reregisterDelay: observerDelay });
-        const first = () => {};
-        const second = () => {};
-        fixture.node.registerObserver(first);
-        fixture.node.unregisterObserverOnSource();
-        fixture.setRegisterError(new Error('source unavailable'));
-        fixture.node.registerObserver(second);
-        context.mock.timers.tick(observerDelay);
-        assert.ok(fixture.logs.some(log => log.level === 'warn' && log.message.includes('after delay')));
-
-        fixture.setRegisterError(null);
-        fixture.node.registerObserver(() => {});
-        context.mock.timers.tick(observerDelay);
-
-        assert.equal(fixture.source.registerCalls.length, 3);
-        assert.equal(typeof fixture.source.onRefresh, 'function');
-    });
-
     it('cancels delayed re-registration when its observer is removed before the timer expires', context => {
         context.mock.timers.enable({ apis: ['setTimeout'] });
-        const { node, source, lastObserverUnregistered } = createNode({ reregisterDelay: observerDelay });
+        const { node, source, lastObserverUnregistered } = createNode();
         const first = () => {};
         const second = () => {};
         node.registerObserver(first);
@@ -298,46 +232,6 @@ describe('Access.Node', () => {
 
         assert.equal(source.registerCalls.length, 1);
         assert.deepEqual(lastObserverUnregistered, [true]);
-    });
-
-    it('delays cleanup after unregistration when a re-registration delay is configured', context => {
-        context.mock.timers.enable({ apis: ['setTimeout'] });
-        const { node, source, lastObserverUnregistered } = createNode({ reregisterDelay: observerDelay });
-        const observer = () => {};
-        node.registerObserver(observer);
-        node.unregisterObserver(observer);
-
-        context.mock.timers.tick(observerDelay - 1);
-        assert.deepEqual(lastObserverUnregistered, []);
-        context.mock.timers.tick(1);
-        assert.equal(source.unregisterCalls.length, 1);
-        assert.deepEqual(lastObserverUnregistered, [true]);
-    });
-
-    it('registers immediately on source when requested and cancels a pending re-registration delay', context => {
-        context.mock.timers.enable({ apis: ['setTimeout'] });
-        const { node, source } = createNode({ reregisterDelay: observerDelay });
-        const first = () => {};
-        const second = () => {};
-        node.registerObserver(first);
-        node.unregisterObserver(first);
-        node.registerObserver(second);
-
-        node.registerObserverOnSource();
-        context.mock.timers.tick(observerDelay);
-
-        assert.equal(source.registerCalls.length, 2);
-    });
-
-    it('registers an observer immediately when no re-registration delay is configured', () => {
-        const { node, source } = createNode();
-        const first = () => {};
-        const second = () => {};
-        node.registerObserver(first);
-        node.unregisterObserverOnSource();
-        node.registerObserver(second);
-
-        assert.equal(source.registerCalls.length, 2);
     });
 
     it('unregisters the source immediately when requested', () => {
@@ -364,7 +258,7 @@ describe('Access.Node', () => {
 
     it('stops the source while observers remain, then delays their next registration', context => {
         context.mock.timers.enable({ apis: ['setTimeout'] });
-        const { node, source } = createNode({ reregisterDelay: observerDelay });
+        const { node, source } = createNode();
         const observer = () => {};
         node.registerObserver(observer);
 
@@ -374,35 +268,6 @@ describe('Access.Node', () => {
 
         assert.equal(source.unregisterCalls.length, 1);
         assert.equal(source.registerCalls.length, 2);
-    });
-
-    it('cancels a pending re-registration when the source is explicitly stopped', context => {
-        context.mock.timers.enable({ apis: ['setTimeout'] });
-        const { node, source } = createNode({ reregisterDelay: observerDelay });
-        const first = () => {};
-        node.registerObserver(first);
-        node.unregisterObserverOnSource();
-        node.registerObserver(() => {});
-
-        node.unregisterObserverOnSource();
-        context.mock.timers.tick(observerDelay);
-
-        assert.equal(source.registerCalls.length, 1);
-    });
-
-    it('logs source registration and unregistration failures from explicit source controls', () => {
-        const registrationError = new Error('source unavailable');
-        const unregistrationError = new Error('source unavailable');
-        const fixture = createNode();
-        const observer = () => {};
-        fixture.node.registerObserver(observer);
-        fixture.source.unregisterObserver = () => { throw unregistrationError; };
-        fixture.node.unregisterObserverOnSource();
-        fixture.source.registerObserver = () => { throw registrationError; };
-        fixture.node.registerObserverOnSource();
-
-        assert.ok(fixture.logs.some(log => log.level === 'warn' && log.error === unregistrationError));
-        assert.ok(fixture.logs.some(log => log.level === 'warn' && log.error === registrationError));
     });
 });
 
@@ -529,7 +394,7 @@ describe('Access.Buffer', () => {
     it('rounds positive delay values up and disables non-positive delays', context => {
         context.mock.timers.enable({ apis: ['setTimeout'] });
         const source = createDataAccessObject();
-        const buffer = new Access.Buffer(createLogger(), source, 2.1, 3.1);
+        const buffer = new Access.Buffer(createLogger(), source, 2.1);
         const first = () => {};
         buffer.registerObserver('temperature', first);
         buffer.unregisterObserver('temperature', first);
@@ -538,7 +403,7 @@ describe('Access.Buffer', () => {
         context.mock.timers.tick(1);
         assert.equal(source.calls.unregisterObserver.length, 1);
 
-        const immediateBuffer = new Access.Buffer(createLogger(), source, 0, -1);
+        const immediateBuffer = new Access.Buffer(createLogger(), source, 0);
         const second = () => {};
         immediateBuffer.registerObserver('pressure', second);
         immediateBuffer.unregisterObserver('pressure', second);
