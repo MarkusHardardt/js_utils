@@ -251,32 +251,40 @@ function validateMethod(instanceType, objectInstance, methodName) {
 }
 Core.validateMethod = validateMethod;
 
-const DeceleratorState = Object.freeze({
-    Created: 0,
+const ShutdownLatchState = Object.freeze({
+    Idle: 0,
     On: 1,
     OnTOF: 2,
     Off: 3,
     OffTOF: 4,
-    Disposed: 5
+    OffFinalTOF: 5,
+    Final: 6,
+    Disposed: 7
 });
 
-class Decelerator {
+class ShutdownLatch {
     #timer;
     #onDelay;
     #offDelay;
-    #stateChanged;
+    #finalDelay;
+    #switchedOn;
+    #switchedOff;
+    #finalized;
     #state;
-    constructor(onDelay, offDelay, stateChanged) {
+    constructor(onDelay, offDelay, finalDelay, switchedOn, switchedOff, finalized) {
         this.#timer = null;
         this.#onDelay = onDelay;
         this.#offDelay = offDelay;
-        this.#stateChanged = stateChanged;
-        this.#state = DeceleratorState.Created;
+        this.#finalDelay = finalDelay;
+        this.#switchedOn = switchedOn;
+        this.#switchedOff = switchedOff;
+        this.#finalized = finalized;
+        this.#state = ShutdownLatchState.Idle;
     }
     get on() {
         switch (this.#state) {
-            case DeceleratorState.On:
-            case DeceleratorState.OnTOF:
+            case ShutdownLatchState.On:
+            case ShutdownLatchState.OnTOF:
                 return true;
             default:
                 return false;
@@ -284,69 +292,96 @@ class Decelerator {
     }
     update(on) {
         switch (this.#state) {
-            case DeceleratorState.Created:
+            case ShutdownLatchState.Idle:
                 if (on === true) {
-                    this.#state = DeceleratorState.On;
-                    this.#stateChanged(true);
+                    this.#state = ShutdownLatchState.On;
+                    this.#switchedOn();
                 }
                 break;
-            case DeceleratorState.On:
+            case ShutdownLatchState.On:
                 if (on !== true) {
                     if (typeof this.#offDelay === 'number' && this.#offDelay > 0) {
-                        this.#state = DeceleratorState.OnTOF;
+                        this.#state = ShutdownLatchState.OnTOF;
                         this.#timer = setTimeout(() => {
                             this.#timer = null;
-                            this.#state = DeceleratorState.Off;
-                            this.#stateChanged(false);
+                            this.#enterOff();
                         }, this.#offDelay);
                     } else {
-                        this.#state = DeceleratorState.Off;
-                        this.#stateChanged(false);
+                        this.#enterOff();
                     }
                 }
                 break;
-            case DeceleratorState.OnTOF:
+            case ShutdownLatchState.OnTOF:
                 if (on === true) {
                     clearTimeout(this.#timer);
                     this.#timer = null;
-                    this.#state = DeceleratorState.On;
+                    this.#state = ShutdownLatchState.On;
                 }
                 break;
-            case DeceleratorState.Off:
-                if (on === true) {
-                    if (typeof this.#onDelay === 'number' && this.#onDelay > 0) {
-                        this.#state = DeceleratorState.OffTOF;
-                        this.#timer = setTimeout(() => {
-                            this.#timer = null;
-                            this.#state = DeceleratorState.On;
-                            this.#stateChanged(true);
-                        }, this.#onDelay);
-                    } else {
-                        this.#state = DeceleratorState.On;
-                        this.#stateChanged(true);
-                    }
-                }
-                break;
-            case DeceleratorState.OffTOF:
+            case ShutdownLatchState.OffTOF:
                 if (on !== true) {
                     clearTimeout(this.#timer);
                     this.#timer = null;
-                    this.#state = DeceleratorState.Off;
+                    this.#state = ShutdownLatchState.Off;
+                    this.#startFinalTimer();
                 }
                 break;
+            case ShutdownLatchState.Off:
+            case ShutdownLatchState.OffFinalTOF:
+                if (on === true) {
+                    if (this.#state === ShutdownLatchState.OffFinalTOF) {
+                        clearTimeout(this.#timer);
+                        this.#timer = null;
+                    }
+                    if (typeof this.#onDelay === 'number' && this.#onDelay > 0) {
+                        this.#state = ShutdownLatchState.OffTOF;
+                        this.#timer = setTimeout(() => {
+                            this.#timer = null;
+                            this.#state = ShutdownLatchState.On;
+                            this.#switchedOn();
+                        }, this.#onDelay);
+                    } else {
+                        this.#state = ShutdownLatchState.On;
+                        this.#switchedOn();
+                    }
+                }
+                break;
+        }
+    }
+    #enterOff() {
+        this.#state = ShutdownLatchState.Off;
+        this.#switchedOff();
+        if (this.#state !== ShutdownLatchState.Off) {
+            return;
+        }
+        this.#startFinalTimer();
+    }
+    #startFinalTimer() {
+        if (typeof this.#finalDelay === 'number' && this.#finalDelay > 0) {
+            this.#state = ShutdownLatchState.OffFinalTOF;
+            this.#timer = setTimeout(() => {
+                this.#timer = null;
+                this.#state = ShutdownLatchState.Final;
+                this.#finalized();
+            }, this.#finalDelay);
+        } else {
+            this.#state = ShutdownLatchState.Final;
+            this.#finalized();
         }
     }
     dispose() {
-        if (this.#timer) {
+        if (this.#timer !== null) {
             clearTimeout(this.#timer);
             this.#timer = null;
         }
-        this.#stateChanged = null;
-        this.#state = DeceleratorState.Disposed;
+        this.#switchedOn = null;
+        this.#switchedOff = null;
+        this.#finalized = null;
+        this.#state = ShutdownLatchState.Disposed;
     }
 }
 
-Core.Decelerator = Decelerator;
+Core.ShutdownLatch = ShutdownLatch;
 
 Object.freeze(Core);
 
