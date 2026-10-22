@@ -252,11 +252,12 @@ function validateMethod(instanceType, objectInstance, methodName) {
 Core.validateMethod = validateMethod;
 
 const DeceleratorState = Object.freeze({
-    Idle: 0,
+    Created: 0,
     On: 1,
     OnTOF: 2,
     Off: 3,
-    OffTOF: 4
+    OffTOF: 4,
+    Disposed: 5
 });
 
 class Decelerator {
@@ -270,11 +271,20 @@ class Decelerator {
         this.#onDelay = onDelay;
         this.#offDelay = offDelay;
         this.#stateChanged = stateChanged;
-        this.#state = DeceleratorState.Idle;
+        this.#state = DeceleratorState.Created;
     }
-    update(on, immediately) {
+    get on() {
         switch (this.#state) {
-            case DeceleratorState.Idle:
+            case DeceleratorState.On:
+            case DeceleratorState.OnTOF:
+                return true;
+            default:
+                return false;
+        }
+    }
+    update(on) {
+        switch (this.#state) {
+            case DeceleratorState.Created:
                 if (on === true) {
                     this.#state = DeceleratorState.On;
                     this.#stateChanged(true);
@@ -282,7 +292,7 @@ class Decelerator {
                 break;
             case DeceleratorState.On:
                 if (on !== true) {
-                    if (immediately !== true && typeof this.#offDelay === 'number' && this.#offDelay > 0) {
+                    if (typeof this.#offDelay === 'number' && this.#offDelay > 0) {
                         this.#state = DeceleratorState.OnTOF;
                         this.#timer = setTimeout(() => {
                             this.#timer = null;
@@ -304,7 +314,7 @@ class Decelerator {
                 break;
             case DeceleratorState.Off:
                 if (on === true) {
-                    if (immediately !== true && typeof this.#onDelay === 'number' && this.#onDelay > 0) {
+                    if (typeof this.#onDelay === 'number' && this.#onDelay > 0) {
                         this.#state = DeceleratorState.OffTOF;
                         this.#timer = setTimeout(() => {
                             this.#timer = null;
@@ -325,6 +335,14 @@ class Decelerator {
                 }
                 break;
         }
+    }
+    dispose() {
+        if (this.#timer) {
+            clearTimeout(this.#timer);
+            this.#timer = null;
+        }
+        this.#stateChanged = null;
+        this.#state = DeceleratorState.Disposed;
     }
 }
 
