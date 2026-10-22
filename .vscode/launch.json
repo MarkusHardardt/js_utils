@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "Launch Program",
-            "program": "${workspaceFolder}/test/Core.test.js",
+            "program": "${workspaceFolder}/test/Access.test.js",
             "request": "launch",
             "skipFiles": [
                 "<node_internals>/**"
@@ -15,7 +15,7 @@
         },
         {
             "name": "Launch Program",
-            "program": "${workspaceFolder}/test/Access.test.js",
+            "program": "${workspaceFolder}/test/Core.test.js",
             "request": "launch",
             "skipFiles": [
                 "<node_internals>/**"

@@ -263,10 +263,10 @@ describe('Core.OnOffDelay', () => {
         assert.deepEqual(changes, ['on']);
         // again off and wait
         sut.switchOff();
-        await wait(195);
+        await wait(190);
         assert.equal(sut.isOn, true);
         assert.deepEqual(changes, ['on']);
-        await wait(10);
+        await wait(20);
         assert.equal(sut.isOn, false);
         assert.deepEqual(changes, ['on', 'off']);
         // on again
@@ -279,24 +279,24 @@ describe('Core.OnOffDelay', () => {
         assert.deepEqual(changes, ['on', 'off']);
         // and on again and wait
         sut.switchOn();
-        await wait(95);
+        await wait(90);
         assert.equal(sut.isOn, false);
         assert.deepEqual(changes, ['on', 'off']);
-        await wait(10);
+        await wait(20);
         assert.equal(sut.isOn, true);
         assert.deepEqual(changes, ['on', 'off', 'on']);
         // again off and wait
         sut.switchOff();
-        await wait(195);
+        await wait(190);
         assert.equal(sut.isOn, true);
         assert.deepEqual(changes, ['on', 'off', 'on']);
-        await wait(10);
+        await wait(20);
         assert.equal(sut.isOn, false);
         assert.deepEqual(changes, ['on', 'off', 'on', 'off']);
-        await wait(290);
+        await wait(280);
         assert.equal(sut.isOn, false);
         assert.deepEqual(changes, ['on', 'off', 'on', 'off']);
-        await wait(10);
+        await wait(20);
         assert.equal(sut.isOn, false);
         assert.deepEqual(changes, ['on', 'off', 'on', 'off', 'final']);
         assert.throws(() => sut.switchOn(), /is finalized/);

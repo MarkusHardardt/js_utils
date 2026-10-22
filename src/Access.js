@@ -14,16 +14,42 @@ const NodeState = Object.freeze({
 class Node {
     #logger;
     #source;
+    #delay;
     #onLastObserverUnregistered;
     #value;
     #onRefresh;
     #observers;
-    #unregisterObserverDelay;
-    #unregisterObserverTimer;
+    #unregisterObserverDelay; // TODO remove
+    #unregisterObserverTimer; // TODO remove
     #state;
     constructor(logger, source, unregisterObserverDelay, onLastObserverUnregistered) {
         this.#logger = logger;
         this.#source = source;
+        this.#delay = new Core.OnOffDelay();
+        this.#delay.onDelay = unregisterObserverDelay;
+        this.#delay.offDelay = unregisterObserverDelay;
+        this.#delay.finalDelay = unregisterObserverDelay;
+        this.#delay.switchedOn = () => {
+            try {
+                this.#source.registerObserver(this.#onRefresh);
+                this.#logger.trace('Access.Node.registerObserver(): Registered observer on source');
+                this.#state = NodeState.Registered;
+            } catch (error) {
+                // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not yet running.
+                this.#logger.warn('Access.Node.registerObserver(): Failed to register observer on source', error);
+                this.#state = NodeState.NotRegistered;
+            }
+        }
+        this.#delay.switchedOff = () => {
+            try {
+                this.#source.unregisterObserver(this.#onRefresh);
+                this.#logger.trace('Access.Node.unregisterObserver(): Unregistered on source after delay has expired');
+            } catch (error) {
+                // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not running anymore.
+                this.#logger.warn('Access.Node.unregisterObserver(): Failed to unregister on source after delay has expired', error);
+            }
+        };
+        this.#delay.finalized = onLastObserverUnregistered;
         this.#unregisterObserverDelay = unregisterObserverDelay;
         this.#unregisterObserverTimer = null;
         this.#onLastObserverUnregistered = onLastObserverUnregistered;
@@ -57,29 +83,10 @@ class Node {
         }
         // Add to list and depending on the state register on source, kill unregister timer or just refresh
         this.#observers.push(onRefresh);
-        switch (this.#state) {
-            case NodeState.Constructed:
-            case NodeState.NotRegistered:
-                try {
-                    this.#source.registerObserver(this.#onRefresh);
-                    this.#logger.trace('Access.Node.registerObserver(): Registered observer on source');
-                    this.#state = NodeState.Registered;
-                } catch (error) {
-                    // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not yet running.
-                    this.#logger.warn('Access.Node.registerObserver(): Failed to register observer on source', error);
-                    this.#state = NodeState.NotRegistered;
-                }
-                break;
-            case NodeState.Registered:
-                this.#refresh('Access.Node.registerObserver()', onRefresh);
-                break;
-            case NodeState.UnregisterTimerRunning:
-                clearTimeout(this.#unregisterObserverTimer);
-                this.#unregisterObserverTimer = null;
-                this.#logger.trace('Access.Node.registerObserver(): Timer to unregister has been interrupted because another observer has been registered');
-                this.#state = NodeState.Registered;
-                this.#refresh('Access.Node.registerObserver()', onRefresh);
-                break;
+        if (this.#observers.length === 1) {
+            this.#delay.switchOn();
+        } else {
+            this.#refresh('Access.Node.registerObserver()', onRefresh);
         }
     }
     unregisterObserver(onRefresh) {
@@ -100,42 +107,8 @@ class Node {
         }
         // Remove from list and depending on the state unregister on source or create unregister timer
         this.#observers.splice(observerIndex, 1);
-        switch (this.#state) {
-            case NodeState.NotRegistered:
-                if (this.#observers.length === 0) {
-                    this.#state = NodeState.Destructed;
-                    this.#onLastObserverUnregistered();
-                }
-                break;
-            case NodeState.Registered:
-                if (this.#observers.length === 0) {
-                    if (this.#unregisterObserverDelay) {
-                        this.#unregisterObserverTimer = setTimeout(() => {
-                            this.#unregisterObserverTimer = null;
-                            try {
-                                this.#source.unregisterObserver(this.#onRefresh);
-                                this.#logger.trace('Access.Node.unregisterObserver(): Unregistered on source after delay has expired');
-                            } catch (error) {
-                                // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not running anymore.
-                                this.#logger.warn('Access.Node.unregisterObserver(): Failed to unregister on source after delay has expired', error);
-                            }
-                            this.#state = NodeState.Destructed;
-                            this.#onLastObserverUnregistered();
-                        }, this.#unregisterObserverDelay);
-                        this.#state = NodeState.UnregisterTimerRunning;
-                    } else {
-                        try {
-                            this.#source.unregisterObserver(this.#onRefresh);
-                            this.#logger.trace('Access.Node.unregisterObserver(): Unregistered on source without delay');
-                        } catch (error) {
-                            // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not running anymore.
-                            this.#logger.warn('Access.Node.unregisterObserver(): Failed to unregister on source without delay', error);
-                        }
-                        this.#state = NodeState.Destructed;
-                        this.#onLastObserverUnregistered();
-                    }
-                }
-                break;
+        if (this.#observers.length === 0) {
+            this.#delay.switchOff();
         }
     }
     registerObserverOnSource() {
