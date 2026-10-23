@@ -47,6 +47,10 @@ See [HMI_CONFIGURATION.md](./HMI_CONFIGURATION.md) for the object types,
 database content model, object-key rules, include behavior, lifecycle hooks,
 and configuration fields.
 
+For the end-to-end data access flow—from HMI `watch` and `hmi.access` through
+WebSockets to OPC UA/ADS subscriptions, including browser-side database labels
+and HTML—see [DATA_ACCESS.md](./DATA_ACCESS.md).
+
 ## Tests
 
 Run the automated tests from the repository root with:
