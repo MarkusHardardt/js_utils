@@ -21,7 +21,10 @@ class Node {
         this.#registrationDelay.finalDelay = finalDelay;
         this.#registrationDelay.switchedOn = () => this.#tryRegisterOnSource();
         this.#registrationDelay.switchedOff = () => this.#tryUnregisterOnSource();
-        this.#registrationDelay.finalized = onLastObserverUnregistered;
+        this.#registrationDelay.finalized = () => {
+            this.#registrationDelay.dispose();
+            onLastObserverUnregistered();
+        };
         this.#observers = [];
         this.#value = null;
         this.#onRefresh = value => this.value = value;
@@ -49,9 +52,11 @@ class Node {
             }
         }
         this.#observers.push(onRefresh);
+        const isOnRefreshCallRequired = this.#registrationDelay.isOn;
         if (this.#observers.length === 1) {
             this.#registrationDelay.switchOn();
-        } else {
+        } 
+        if (isOnRefreshCallRequired) {
             this.#refresh('Access.Node.registerObserver()', onRefresh);
         }
     }
@@ -151,7 +156,6 @@ class Buffer {
                 unregisterObserver: onRefresh => this.#source.unregisterObserver(dataId, onRefresh)
             };
             dataPoint.node = new Node(this.#logger, dataPoint, this.#unregisterObserverDelay, this.#reregisterObserverDelay, this.#finalDelay, () => {
-                dataPoint.node.dispose();
                 delete dataPoint.node;
                 delete this.#dataPointsByDataId[dataId];
             });
