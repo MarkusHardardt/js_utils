@@ -300,6 +300,9 @@ function applyTextArea(that, onSuccess) {
         });
         _code.readOnly = readOnly;
         _code.contentDOM.setAttribute('aria-readonly', String(readOnly));
+        if (readOnly) {
+            _code.contentDOM.setAttribute('tabindex', '0');
+        }
         _code.getValue = () => _code.state.doc.toString();
         _code.setValue = value => _code.dispatch({
             changes: { from: 0, to: _code.state.doc.length, insert: value }
@@ -315,6 +318,11 @@ function applyTextArea(that, onSuccess) {
                 _code.readOnly = editorReadOnly;
                 _code.dispatch({ effects: editable.reconfigure(EditorView.editable.of(!editorReadOnly)) });
                 _code.contentDOM.setAttribute('aria-readonly', String(_code.readOnly));
+                if (editorReadOnly) {
+                    _code.contentDOM.setAttribute('tabindex', '0');
+                } else {
+                    _code.contentDOM.removeAttribute('tabindex');
+                }
             }
         };
         _code.getOption = name => name === 'readOnly' ? _code.readOnly : undefined;
