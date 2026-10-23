@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Program",
+            "name": "Core.test.js",
             "program": "${workspaceFolder}/test/Core.test.js",
             "request": "launch",
             "skipFiles": [
@@ -14,7 +14,7 @@
             "type": "node"
         },
         {
-            "name": "Launch Program",
+            "name": "Access.test.js",
             "program": "${workspaceFolder}/test/Access.test.js",
             "request": "launch",
             "skipFiles": [
@@ -25,11 +25,11 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
+            "name": "js_utils_generator.js",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}\\js_utils_generator.js"
+            "program": "${workspaceFolder}/js_utils_generator.js"
         }
     ]
 }
