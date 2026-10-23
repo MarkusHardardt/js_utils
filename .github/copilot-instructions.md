@@ -1,5 +1,13 @@
 # Copilot instructions
 
+## Arbeitsbereich, Werkzeuge und Codequalität
+
+- Lese- und Schreibzugriffe auf Dateien innerhalb von `js_utils` und des benachbarten Projekts `../js_hmi` sind für Aufgaben in diesen Projekten grundsätzlich freigegeben.
+- Der Zugriff auf npm ist freigegeben. Installiere oder ändere Abhängigkeiten dennoch nur, wenn die Aufgabe es erfordert oder ein benötigtes Paket fehlt.
+- Tests dürfen ausgeführt und erstellt werden. Prüfe in Tests niemals Logging-Nachrichten oder deren genaue Inhalte.
+- Richte Codeerzeugung und Änderungen an SOLID, Clean Code und Clean Architecture aus. Schreibe übersichtlichen, intuitiv verständlichen Code und verwende so wenig Code wie nötig.
+- Ändere bei jeder Aufgabe ausschließlich Code, der direkt von der Aufgabe betroffen ist.
+
 ## Project overview
 
 `js_utils` is a Node.js ES-module library for browser-based SCADA/HMI systems on machines reachable through OPC UA or Beckhoff ADS. Shared library code runs at every installation; machine-specific HMI and server tasks are stored in the installation's SQL database. Deployments can host Node.js and MariaDB on an industrial PC, a Linux/Raspberry Pi, or a panel PC. This repo has about 70 tracked files (39 first-party JavaScript files), no TypeScript or build framework, and no standalone application.
