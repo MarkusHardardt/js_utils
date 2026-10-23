@@ -151,6 +151,7 @@ class Buffer {
                 unregisterObserver: onRefresh => this.#source.unregisterObserver(dataId, onRefresh)
             };
             dataPoint.node = new Node(this.#logger, dataPoint, this.#unregisterObserverDelay, this.#reregisterObserverDelay, this.#finalDelay, () => {
+                dataPoint.node.dispose();
                 delete dataPoint.node;
                 delete this.#dataPointsByDataId[dataId];
             });
