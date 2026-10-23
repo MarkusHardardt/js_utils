@@ -37,8 +37,8 @@ flowchart TB
     end
 
     subgraph Transport["WebSocket (one DataConnector per connection)"]
-        UP["Configuration and observer requests"]
-        DOWN["Data refreshes"]
+        DOWN["Configuration and observer requests"]
+        UP["Data refreshes"]
     end
 
     subgraph Server
@@ -47,19 +47,19 @@ flowchart TB
         SS["Access.Switch"]
         R["Access.Router"]
         TASK["Server task or other server consumer"]
-        SDC --> SA --> SS --> R
         TASK --> SA
+        SDC --> SA --> SS --> R
+        R --> SS --> SA --> SDC
     end
 
     subgraph Machine["Machine data source"]
         PROTO["OPCUA.Client or ADS.Client"]
     end
 
-    DC --> UP --> SDC
-    SDC --> DOWN --> DC
+    DC --> DOWN --> SDC
+    SDC --> UP --> DC
     R --> PROTO
     PROTO --> R
-    R --> SS --> SA --> SDC
 ```
 
 The database branch is browser-local after language values are loaded. Machine
@@ -86,7 +86,7 @@ This lets database HTML, labels, and machine values use the same `watch`
 subscription and callback mechanism. The selected `type` determines the
 default rendering path.
 
-Server-side task objects processed by `ObjectLifecycleManager` can also use
+Any browser-side user object and also server-side task objects processed by `ObjectLifecycleManager` can also use
 `that.hmi.access`. Those subscriptions are local to the server and do not need
 the browser DataConnector or WebSocket.
 
