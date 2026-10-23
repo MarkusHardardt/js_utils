@@ -28,7 +28,7 @@ class Node {
         this.#delay = new Core.OnOffDelay();
         this.#delay.onDelay = unregisterObserverDelay;
         this.#delay.offDelay = unregisterObserverDelay;
-        this.#delay.finalDelay = unregisterObserverDelay;
+        this.#delay.finalDelay = 0;
         this.#delay.switchedOn = () => {
             try {
                 this.#source.registerObserver(this.#onRefresh);
