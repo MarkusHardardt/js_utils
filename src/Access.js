@@ -3,60 +3,28 @@ import Common from './Common.js';
 
 const Access = {};
 
-const NodeState = Object.freeze({
-    Constructed: 0,
-    Registered: 1,
-    NotRegistered: 2,
-    UnregisterTimerRunning: 3,
-    Destructed: 4
-});
-
 class Node {
     #logger;
     #source;
-    #delay;
-    #onLastObserverUnregistered;
+    #isRegisteredOnSource;
+    #registrationDelay;
     #value;
     #onRefresh;
     #observers;
-    #unregisterObserverDelay; // TODO remove
-    #unregisterObserverTimer; // TODO remove
-    #state;
-    constructor(logger, source, unregisterObserverDelay, onLastObserverUnregistered) {
+    constructor(logger, source, unregisterObserverDelay, reregisterObserverDelay, finalDelay, onLastObserverUnregistered) {
         this.#logger = logger;
         this.#source = source;
-        this.#delay = new Core.OnOffDelay();
-        this.#delay.onDelay = unregisterObserverDelay;
-        this.#delay.offDelay = unregisterObserverDelay;
-        this.#delay.finalDelay = 0;
-        this.#delay.switchedOn = () => {
-            try {
-                this.#source.registerObserver(this.#onRefresh);
-                this.#logger.trace('Access.Node.registerObserver(): Registered observer on source');
-                this.#state = NodeState.Registered;
-            } catch (error) {
-                // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not yet running.
-                this.#logger.warn('Access.Node.registerObserver(): Failed to register observer on source', error);
-                this.#state = NodeState.NotRegistered;
-            }
-        }
-        this.#delay.switchedOff = () => {
-            try {
-                this.#source.unregisterObserver(this.#onRefresh);
-                this.#logger.trace('Access.Node.unregisterObserver(): Unregistered on source after delay has expired');
-            } catch (error) {
-                // Changed to warning to prevent error stack traces for server tasks requesting access to items of other server tasks not running anymore.
-                this.#logger.warn('Access.Node.unregisterObserver(): Failed to unregister on source after delay has expired', error);
-            }
-        };
-        this.#delay.finalized = onLastObserverUnregistered;
-        this.#unregisterObserverDelay = unregisterObserverDelay;
-        this.#unregisterObserverTimer = null;
-        this.#onLastObserverUnregistered = onLastObserverUnregistered;
+        this.#isRegisteredOnSource = false;
+        this.#registrationDelay = new Core.OnOffDelay();
+        this.#registrationDelay.onDelay = reregisterObserverDelay;
+        this.#registrationDelay.offDelay = unregisterObserverDelay;
+        this.#registrationDelay.finalDelay = finalDelay;
+        this.#registrationDelay.switchedOn = () => this.#tryRegisterOnSource();
+        this.#registrationDelay.switchedOff = () => this.#tryUnregisterOnSource();
+        this.#registrationDelay.finalized = onLastObserverUnregistered;
         this.#observers = [];
         this.#value = null;
         this.#onRefresh = value => this.value = value;
-        this.#state = NodeState.Constructed;
         Common.validateAsObservable(this, true);
     }
     get value() {
@@ -72,7 +40,6 @@ class Node {
         if (typeof onRefresh !== 'function') {
             throw new Error('Access.Node.registerObserver(): onRefresh(value) is not a function');
         }
-        // Check if already registered
         for (const observer of this.#observers) {
             if (observer === onRefresh) {
                 this.#logger.warn('Access.Node.registerObserver(): onRefresh(value) has already been registered');
@@ -81,10 +48,9 @@ class Node {
                 return;
             }
         }
-        // Add to list and depending on the state register on source, kill unregister timer or just refresh
         this.#observers.push(onRefresh);
         if (this.#observers.length === 1) {
-            this.#delay.switchOn();
+            this.#registrationDelay.switchOn();
         } else {
             this.#refresh('Access.Node.registerObserver()', onRefresh);
         }
@@ -93,7 +59,6 @@ class Node {
         if (typeof onRefresh !== 'function') {
             throw new Error('Access.Node.unregisterObserver(): onRefresh(value) is not a function');
         }
-        // Check for index
         let observerIndex = -1;
         for (let i = 0; i < this.#observers.length; i++) {
             if (this.#observers[i] === onRefresh) {
@@ -105,47 +70,41 @@ class Node {
             this.#logger.warn('Access.Node.unregisterObserver(): onRefresh(value) is not registered');
             return;
         }
-        // Remove from list and depending on the state unregister on source or create unregister timer
         this.#observers.splice(observerIndex, 1);
         if (this.#observers.length === 0) {
-            this.#delay.switchOff();
+            this.#registrationDelay.switchOff();
         }
     }
     registerObserverOnSource() {
-        switch (this.#state) {
-            case NodeState.NotRegistered:
-                try {
-                    this.#source.registerObserver(this.#onRefresh);
-                    this.#logger.trace('Access.Node.registerObserverOnSource(): Registered on source');
-                    this.#state = NodeState.Registered;
-                } catch (error) {
-                    this.#logger.warn('Access.Node.registerObserverOnSource(): Failed to register on source', error);
-                }
-                return;
+        if (this.#registrationDelay.isOn) {
+            this.#tryRegisterOnSource();
         }
     }
     unregisterObserverOnSource() {
-        switch (this.#state) {
-            case NodeState.Registered:
-                try {
-                    this.#source.unregisterObserver(this.#onRefresh);
-                    this.#logger.trace('Access.Node.unregisterObserverOnSource(): Unregistered on source');
-                } catch (error) {
-                    this.#logger.warn('Access.Node.unregisterObserverOnSource(): Failed to unregister on source', error);
-                }
-                this.#state = NodeState.NotRegistered;
-                return;
-            case NodeState.UnregisterTimerRunning:
-                clearTimeout(this.#unregisterObserverTimer);
-                this.#unregisterObserverTimer = null;
-                try {
-                    this.#source.unregisterObserver(this.#onRefresh);
-                    this.#logger.trace('Access.Node.unregisterObserverOnSource(): Interruppted unregister timer and unregistered on source');
-                } catch (error) {
-                    this.#logger.warn('Access.Node.unregisterObserverOnSource(): Interruppted unregister timer but failed to unregister on source', error);
-                }
-                this.#state = NodeState.NotRegistered;
-                return;
+        if (this.#registrationDelay.isOn) {
+            this.#tryUnregisterOnSource();
+        }
+    }
+    #tryRegisterOnSource() {
+        if (!this.#isRegisteredOnSource) {
+            try {
+                this.#source.registerObserver(this.#onRefresh);
+                this.#isRegisteredOnSource = true;
+                this.#logger.trace('Access.Node.registerObserver(): Registered observer on source');
+            } catch (error) {
+                this.#logger.warn('Access.Node.registerObserver(): Failed to register observer on source', error);
+            }
+        }
+    }
+    #tryUnregisterOnSource() {
+        if (this.#isRegisteredOnSource) {
+            try {
+                this.#source.unregisterObserver(this.#onRefresh);
+                this.#isRegisteredOnSource = false;
+                this.#logger.trace('Access.Node.unregisterObserver(): Unregistered on source after delay has expired');
+            } catch (error) {
+                this.#logger.warn('Access.Node.unregisterObserver(): Failed to unregister on source after delay has expired', error);
+            }
         }
     }
     #refresh(context, onRefresh) {
@@ -164,11 +123,15 @@ class Buffer {
     #logger;
     #source;
     #unregisterObserverDelay;
+    #reregisterObserverDelay;
+    #finalDelay;
     #dataPointsByDataId;
-    constructor(logger, source, unregisterObserverDelay) {
+    constructor(logger, source, unregisterObserverDelay, reregisterObserverDelay, finalDelay) {
         this.#logger = Common.validateAsLogger(logger, true);
         this.#source = Common.validateAsDataAccessObject(source, true);
         this.#unregisterObserverDelay = typeof unregisterObserverDelay === 'number' && unregisterObserverDelay > 0 ? Math.ceil(unregisterObserverDelay) : false;
+        this.#reregisterObserverDelay = typeof reregisterObserverDelay === 'number' && reregisterObserverDelay > 0 ? Math.ceil(reregisterObserverDelay) : false;
+        this.#finalDelay = typeof finalDelay === 'number' && finalDelay > 0 ? Math.ceil(finalDelay) : false;
         this.#dataPointsByDataId = {};
         Common.validateAsDataAccessObject(this, true);
     }
@@ -187,7 +150,7 @@ class Buffer {
                 registerObserver: onRefresh => this.#source.registerObserver(dataId, onRefresh),
                 unregisterObserver: onRefresh => this.#source.unregisterObserver(dataId, onRefresh)
             };
-            dataPoint.node = new Node(this.#logger, dataPoint, this.#unregisterObserverDelay, () => {
+            dataPoint.node = new Node(this.#logger, dataPoint, this.#unregisterObserverDelay, this.#reregisterObserverDelay, this.#finalDelay, () => {
                 delete dataPoint.node;
                 delete this.#dataPointsByDataId[dataId];
             });

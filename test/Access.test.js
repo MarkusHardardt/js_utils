@@ -64,7 +64,7 @@ function createDataAccessObject() {
     return dataAccessObject;
 }
 
-function createNode({ unregisterDelay = 0 } = {}) {
+function createNode({ unregisterDelay = 0, reregisterDelay = 0, finalDelay = 0} = {}) {
     const logs = [];
     const source = {
         registerCalls: [],
@@ -91,6 +91,8 @@ function createNode({ unregisterDelay = 0 } = {}) {
         logger,
         source,
         unregisterDelay,
+        reregisterDelay,
+        finalDelay,
         () => lastObserverUnregistered.push(true)
     );
     return { node, source, lastObserverUnregistered };
@@ -220,7 +222,7 @@ describe('Access.Node', () => {
 
     it('cancels delayed re-registration when its observer is removed before the timer expires', context => {
         context.mock.timers.enable({ apis: ['setTimeout'] });
-        const { node, source, lastObserverUnregistered } = createNode();
+        const { node, source, lastObserverUnregistered } = createNode({ unregisterDelay: observerDelay });
         const first = () => {};
         const second = () => {};
         node.registerObserver(first);
@@ -258,7 +260,7 @@ describe('Access.Node', () => {
 
     it('stops the source while observers remain, then delays their next registration', context => {
         context.mock.timers.enable({ apis: ['setTimeout'] });
-        const { node, source } = createNode();
+        const { node, source } = createNode({ unregisterDelay: observerDelay });
         const observer = () => {};
         node.registerObserver(observer);
 
@@ -267,7 +269,7 @@ describe('Access.Node', () => {
         context.mock.timers.tick(observerDelay);
 
         assert.equal(source.unregisterCalls.length, 1);
-        assert.equal(source.registerCalls.length, 2);
+        assert.equal(source.registerCalls.length, 1);
     });
 });
 

@@ -135,7 +135,7 @@ $(() => {
         const isValidLanguageValueId = hmi.cms.getIdValidTestFunctionForLanguageValue();
         const dataAccessSwitch = new Access.Switch(dataId => isValidLanguageValueId(dataId) ? hmi.lang : dataConnector);
         // Create collection providing multiple subscriptions from any context
-        const bufferedDataAccess = new Access.Buffer(hmi.logger, dataAccessSwitch, config.accessPointUnregisterObserverDelay); // Use the router as source
+        const bufferedDataAccess = new Access.Buffer(hmi.logger, dataAccessSwitch, config.accessPointUnregisterObserverDelay, config.accessPointReregisterObserverDelay, config.accessPointFinalDelay); // Use the router as source
         hmi.access = bufferedDataAccess; // Enable access from anyhwere
         onSuccess();
     });

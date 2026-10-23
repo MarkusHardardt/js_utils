@@ -121,7 +121,9 @@ function main(config = {}) {
         applicationName: config.applicationName,
         logLevel: config.clientLogLevel,
         requestAnimationFrameCycle: config.clientRequestAnimationFrameCycle,
-        accessPointUnregisterObserverDelay: config.clientAccessPointUnregisterObserverDelay
+        accessPointUnregisterObserverDelay: config.clientAccessPointUnregisterObserverDelay,
+        accessPointReregisterObserverDelay: config.clientAccessPointReregisterObserverDelay,
+        accessPointFinalDelay: config.clientAccessPointFinalDelay
     }, false)));
     webServer.post(Client.VERIFY_CONTENT_MANAGER_ADMIN, (request, response) => {
         const admin = config.contentManagerAdmin;
@@ -168,7 +170,7 @@ function main(config = {}) {
     // Set up a simple router using the target system router
     const dataAccessSwitch = new Access.Switch(dataAccessRouter.getDataAccessObject); // Use the access router handler as source
     // Set up the server side access point
-    const bufferedDataAccess = new Access.Buffer(hmi.logger, dataAccessSwitch, config.serverAccessPointUnregisterObserverDelay); // Use the switch as source
+    const bufferedDataAccess = new Access.Buffer(hmi.logger, dataAccessSwitch, config.serverAccessPointUnregisterObserverDelay, config.serverAccessPointReregisterObserverDelay, config.serverAccessPointFinalDelay); // Use the switch as source
     dataAccessRouter.onRegisterObserversOnSource = filter => bufferedDataAccess.registerObserversOnSource(filter);
     dataAccessRouter.onUnregisterObserversOnSource = filter => bufferedDataAccess.unregisterObserversOnSource(filter);
     hmi.access = bufferedDataAccess; // Enable access from anyhwere
