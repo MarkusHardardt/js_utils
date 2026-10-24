@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 330" role="img" aria-labelledby="title desc">
+  <title id="title">Affine coordinate transformation</title>
+  <desc id="desc">A metric coordinate plane is mapped by scale, rotation and translation into a pixel coordinate plane whose vertical axis points downward.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#315b7d"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#c66b32"/>
+    </marker>
+  </defs>
+  <rect width="720" height="330" rx="14" fill="#f7f9fb"/>
+  <g font-family="Arial, sans-serif" fill="#253746">
+    <text x="36" y="36" font-size="18" font-weight="bold">Metric coordinates</text>
+    <text x="448" y="36" font-size="18" font-weight="bold">Pixel coordinates</text>
+    <text x="36" y="62" font-size="13">x increases right · y increases up</text>
+    <text x="448" y="62" font-size="13">x increases right · y increases down</text>
+  </g>
+  <g stroke="#315b7d" stroke-width="2" marker-end="url(#arrow)">
+    <path d="M70 255 H210"/>
+    <path d="M70 255 V100"/>
+    <path d="M455 255 H650"/>
+    <path d="M455 255 V100"/>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="14" fill="#315b7d">
+    <text x="214" y="260">x</text><text x="59" y="94">y</text>
+    <text x="655" y="260">x</text><text x="444" y="94">y</text>
+  </g>
+  <g transform="translate(70 255) rotate(-28) scale(1.1 .8)" fill="none" stroke="#c66b32" stroke-width="3">
+    <path d="M20 -20 L130 -20 L130 -105 L20 -105 Z"/>
+    <circle cx="20" cy="-20" r="5" fill="#c66b32"/>
+  </g>
+  <g transform="translate(455 255)" fill="none" stroke="#c66b32" stroke-width="3">
+    <path d="M35 -30 L185 -30 L185 80 L35 80 Z"/>
+    <circle cx="35" cy="-30" r="5" fill="#c66b32"/>
+  </g>
+  <path d="M248 170 C302 125 365 125 421 170" fill="none" stroke="#738795" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow-orange)"/>
+  <g font-family="Arial, sans-serif" font-size="14" fill="#526571" text-anchor="middle">
+    <text x="335" y="118">scale · rotate · translate</text>
+    <text x="335" y="218">optional mirroring</text>
+  </g>
+</svg>
