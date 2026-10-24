@@ -1,4 +1,5 @@
 import Core from './Core.js';
+import Common from './Common.js';
 
 const ADS = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
@@ -62,6 +63,64 @@ function getAsCoreDataType(typeName, adsDataTypeStr, isArray) {
             return Core.DataType.String;
         default:
             return Core.DataType.Unknown;
+    }
+}
+
+class DatapointInfo {
+    #client;
+    #symbol;
+    #symbols;
+
+    constructor(client, symbol, symbols) {
+        this.#client = client;
+        this.#symbol = symbol;
+        this.#symbols = symbols;
+        this.fullName = symbol.name;
+        this.name = symbol.name.split('.').pop();
+        this.type = symbol.type;
+        this.indexGroup = symbol.indexGroup;
+        this.indexOffset = symbol.indexOffset;
+        this.size = symbol.size;
+        Common.validateAsDatapointInfo(this, true);
+    }
+
+    getChildDatapointInfos(onResponse, onError) {
+        if (typeof onResponse !== 'function') {
+            throw new Error('ADS.DatapointInfo.getChildDatapointInfos(): onResponse is not a function');
+        } else if (typeof onError !== 'function') {
+            throw new Error('ADS.DatapointInfo.getChildDatapointInfos(): onError is not a function');
+        }
+        this.#getChildren().then(onResponse).catch(onError);
+    }
+
+    async #getChildren() {
+        if (this.#symbol.adsDataTypeStr !== 'ADST_BIGTYPE') {
+            return [];
+        }
+        const prefix = `${this.fullName.toLowerCase()}.`;
+        const directSymbols = Object.values(this.#symbols).filter(symbol => {
+            const name = symbol.name.toLowerCase();
+            return name.startsWith(prefix) && !name.substring(prefix.length).includes('.');
+        });
+        if (directSymbols.length > 0) {
+            return directSymbols.map(symbol => new DatapointInfo(this.#client, symbol, this.#symbols));
+        }
+
+        const dataType = await this.#client.getDataType(this.#symbol.type);
+        const subItems = Array.isArray(dataType.subItems) ? dataType.subItems : [];
+        return subItems.map(subItem => {
+            const fullName = `${this.fullName}.${subItem.name}`;
+            const symbol = this.#symbols[fullName.toLowerCase()] || {
+                name: fullName,
+                type: subItem.type || subItem.name,
+                indexGroup: this.indexGroup,
+                indexOffset: this.indexOffset + subItem.offset,
+                size: subItem.size,
+                adsDataTypeStr: subItem.adsDataTypeStr,
+                arrayDimension: subItem.arrayDimension
+            };
+            return new DatapointInfo(this.#client, symbol, this.#symbols);
+        });
     }
 }
 
@@ -420,9 +479,33 @@ class Client {
     getDataPoints() {
         return Object.values(this.#nodes).map(node => ({ id: node.dataId, type: node.type }));
     }
+
+    getRootDatapointInfos(onResponse, onError) {
+        if (typeof onResponse !== 'function') {
+            throw new Error('ADS.Client.getRootDatapointInfos(): onResponse is not a function');
+        } else if (typeof onError !== 'function') {
+            throw new Error('ADS.Client.getRootDatapointInfos(): onError is not a function');
+        }
+        this.#client.getSymbols().then(symbols => {
+            const allSymbols = Object.values(symbols);
+            const rootSymbols = allSymbols.filter(symbol => {
+                const name = symbol.name.toLowerCase();
+                let separator = name.lastIndexOf('.');
+                while (separator !== -1) {
+                    if (symbols[name.substring(0, separator)]) {
+                        return false;
+                    }
+                    separator = name.lastIndexOf('.', separator - 1);
+                }
+                return true;
+            });
+            onResponse(rootSymbols.map(symbol => new DatapointInfo(this.#client, symbol, symbols)));
+        }).catch(onError);
+    }
 }
 
 ADS.getAsCoreDataType = (typeName, adsDataTypeStr, isArray = false) => getAsCoreDataType(typeName, adsDataTypeStr, isArray);
+ADS.DatapointInfo = DatapointInfo;
 ADS.Client = Client;
 
 Object.freeze(ADS);

@@ -37,6 +37,17 @@ function validateAsDataAccessObject(instance, validateMethodArguments) {
 }
 Common.validateAsDataAccessObject = validateAsDataAccessObject;
 
+/* Datapoint info interface */
+function validateAsDatapointInfo(instance, validateMethodArguments) {
+    return Core.validateAs('DatapointInfo', instance, [
+        'fullName:string',
+        'name:string',
+        'type:string',
+        'getChildDatapointInfos(onResponse, onError)'
+    ], validateMethodArguments);
+}
+Common.validateAsDatapointInfo = validateAsDatapointInfo;
+
 /*  DataAccessServerObject inferface  */
 function validateAsDataAccessServerObject(instance, validateMethodArguments) {
     validateAsDataAccessObject(instance, validateMethodArguments);
