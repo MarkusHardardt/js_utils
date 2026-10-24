@@ -9,6 +9,18 @@ const START_TRY_RECONNECT_DELAY = 2;
 const MAX_TRY_RECONNECT_DELAY = 32;
 const UPDATE_SUBSCRIPTIONS_DELAY = 100;
 
+function validateDatapointAddress(datapointInfo) {
+    if (!datapointInfo || typeof datapointInfo !== 'object' ||
+        typeof datapointInfo.fullName !== 'string' ||
+        typeof datapointInfo.type !== 'string' ||
+        !Number.isInteger(datapointInfo.indexGroup) ||
+        !Number.isInteger(datapointInfo.indexOffset) ||
+        !Number.isInteger(datapointInfo.size) ||
+        datapointInfo.size <= 0) {
+        throw new Error('ADS.Client: Invalid datapoint info for sum operation');
+    }
+}
+
 function getAsCoreDataType(typeName, adsDataTypeStr, isArray) {
     if (isArray || adsDataTypeStr === 'ADST_BIGTYPE') {
         return Core.DataType.Object;
@@ -474,6 +486,108 @@ class Client {
         }).catch(error => {
             this.#logger.error(`ADS.Client: Failed writing value ${value} to '${node.rawNodeId}'`, error);
         });
+    }
+
+    /**
+     * Reads datapoint infos in one ADS sum command. onResponse receives values in input order.
+     */
+    sumRead(datapointInfos, onResponse, onError) {
+        if (!Array.isArray(datapointInfos)) {
+            throw new Error('ADS.Client.sumRead(): datapointInfos must be an array');
+        } else if (typeof onResponse !== 'function') {
+            throw new Error('ADS.Client.sumRead(): onResponse is not a function');
+        } else if (typeof onError !== 'function') {
+            throw new Error('ADS.Client.sumRead(): onError is not a function');
+        }
+        try {
+            datapointInfos.forEach(validateDatapointAddress);
+        } catch (error) {
+            throw new Error(`ADS.Client.sumRead(): ${error.message}`);
+        }
+        this.#sumRead(datapointInfos).then(values => {
+            try {
+                onResponse(values);
+            } catch (error) {
+                this.#logger.error('ADS.Client.sumRead(): Failed calling onResponse()', error);
+            }
+        }).catch(error => {
+            this.#logger.error('ADS.Client.sumRead(): Failed reading datapoints', error);
+            onError(error.message);
+        });
+    }
+
+    async #sumRead(datapointInfos) {
+        if (datapointInfos.length === 0) {
+            return [];
+        }
+        const results = await this.#client.readRawMulti(datapointInfos.map(info => ({
+            indexGroup: info.indexGroup,
+            indexOffset: info.indexOffset,
+            size: info.size
+        })));
+        const failedResults = results.filter(result => !result.success);
+        if (failedResults.length > 0) {
+            throw new Error(failedResults.map(result =>
+                `Failed reading '${result.command.indexGroup}:${result.command.indexOffset}': ${result.errorStr || result.errorCode}`
+            ).join('; '));
+        }
+        const values = await Promise.all(results.map((result, index) =>
+            this.#client.convertFromRaw(result.value, datapointInfos[index].type)
+        ));
+        for (let index = 0; index < datapointInfos.length; index++) {
+            const node = Object.values(this.#nodes).find(item => item.rawNodeId === datapointInfos[index].fullName);
+            if (node) {
+                node.value = values[index];
+            }
+        }
+        return values;
+    }
+
+    /**
+     * Writes entries shaped as { datapointInfo, value } in one ADS sum command.
+     */
+    sumWrite(datapointValues, onResponse, onError) {
+        if (!Array.isArray(datapointValues)) {
+            throw new Error('ADS.Client.sumWrite(): datapointValues must be an array');
+        } else if (typeof onResponse !== 'function') {
+            throw new Error('ADS.Client.sumWrite(): onResponse is not a function');
+        } else if (typeof onError !== 'function') {
+            throw new Error('ADS.Client.sumWrite(): onError is not a function');
+        }
+        try {
+            datapointValues.forEach(item => validateDatapointAddress(item && item.datapointInfo));
+        } catch (error) {
+            throw new Error(`ADS.Client.sumWrite(): ${error.message}`);
+        }
+        this.#sumWrite(datapointValues).then(results => {
+            try {
+                onResponse(results);
+            } catch (error) {
+                this.#logger.error('ADS.Client.sumWrite(): Failed calling onResponse()', error);
+            }
+        }).catch(error => {
+            this.#logger.error('ADS.Client.sumWrite(): Failed writing datapoints', error);
+            onError(error.message);
+        });
+    }
+
+    async #sumWrite(datapointValues) {
+        if (datapointValues.length === 0) {
+            return [];
+        }
+        const commands = await Promise.all(datapointValues.map(async ({ datapointInfo, value }) => ({
+            indexGroup: datapointInfo.indexGroup,
+            indexOffset: datapointInfo.indexOffset,
+            value: await this.#client.convertToRaw(value, datapointInfo.type)
+        })));
+        const results = await this.#client.writeRawMulti(commands);
+        const failedResults = results.filter(result => !result.success);
+        if (failedResults.length > 0) {
+            throw new Error(failedResults.map(result =>
+                `Failed writing '${result.command.indexGroup}:${result.command.indexOffset}': ${result.errorStr || result.errorCode}`
+            ).join('; '));
+        }
+        return results;
     }
 
     getDataPoints() {
