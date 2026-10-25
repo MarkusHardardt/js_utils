@@ -1,6 +1,6 @@
 {
     "name": "@markus.hardardt/js_utils",
-    "version": "2.0.10",
+    "version": "2.0.11",
     "description": "",
     "type": "module",
     "main": "js_utils.js",
