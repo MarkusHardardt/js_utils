@@ -13,6 +13,11 @@ curve geometry, chain and rope models, discretization, maze generation, and
 weighted-graph path finding. Angles passed to methods are in radians unless
 otherwise stated.
 
+For curve offsets, `left` is a signed distance measured to the left of the
+curve's direction of travel: a positive value moves left, and a negative value
+moves right. This convention applies to `ArcLine`, `RopeLine`, and
+`CurveSection` offsets, including drawing methods that accept a `left` argument.
+
 ## Constants
 
 | Member | Meaning |
@@ -46,7 +51,7 @@ otherwise stated.
 | `toS16(value)` / `toU16(value)` | Floors and wraps a value to a 16-bit signed / unsigned integer. |
 | `toS32(value)` / `toU32(value)` | Floors and wraps a value to a 32-bit signed / unsigned integer. |
 | `getS32bit(value, bit)` | Tests the signed 32-bit integer bit at `bit % 32`; returns a boolean. |
-| `setOffset(offset, point)` | Converts a number or offset object into `{x, y}`. A number or `offset.offset` supplies `x`; `offset.left` supplies positive `y`, while `offset.right` supplies negative `y`. Reuses and returns `point` when supplied. |
+| `setOffset(offset, point)` | Converts a number or offset object into `{x, y}`. A number or `offset.offset` supplies `x`; `offset.left` supplies signed `y` (negative means a shift right), while `offset.right` supplies the inverse sign (positive means a shift right). Reuses and returns `point` when supplied. |
 | `getArc(x1, y1, x2, y2, x3, y3, radius)` | Calculates a circular fillet tangent to the segments `(x1,y1)→(x2,y2)` and `(x2,y2)→(x3,y3)`. Returns `false` if the geometry is degenerate; otherwise returns `{left, right, centerX, centerY, radius, startX, startY, startPhi, endX, endY, endPhi}`. Angles are radians. |
 
 ### Integer conversion notes
@@ -124,8 +129,8 @@ Coordinate-transform settings on `curve` are applied through `Transform`.
 | --- | --- |
 | `adjust()` | Reapplies the curve's coordinate transform. |
 | `getLength()` | Returns the calculated path length. The same value is exposed as `length`. |
-| `transform(position, left, point)` | Maps distance along the path to `{x, y, phi}`. `left` offsets to the left of the path; an optional result object is reused. Closed paths wrap; open paths extrapolate along the end tangent. Returns `false` when there is no usable path. |
-| `stroke(context, transform, start, end, left)` | Draws the selected distance interval to a Canvas 2D context, optionally offset to the left. |
+| `transform(position, left, point)` | Maps distance along the path to `{x, y, phi}`. `left` is a signed lateral offset: positive is left and negative is right. An optional result object is reused. Closed paths wrap; open paths extrapolate along the end tangent. Returns `false` when there is no usable path. |
+| `stroke(context, transform, start, end, left)` | Draws the selected distance interval to a Canvas 2D context, optionally offset by signed `left` (negative offsets draw on the right). |
 | `closed` | Indicates whether the path wraps around. |
 
 ### `CurveSection`
@@ -146,14 +151,22 @@ items, positioned by a numeric `position` or by their order in `elements`.
 | `getItemCount()` | Returns the number of elements without a positive length. |
 | `getItem(item)` | Returns a point item's record by index or by its `child` reference, or `undefined`. |
 | `getItemPosition(item)` | Returns a point item's section position by index or `child` reference, or `undefined`. |
-| `transform(sectionPosition, offset, point)` | Maps a section position to the underlying curve and returns `{x, y, phi}`. `offset` may be a numeric along-curve offset or `{offset, left}` / `{offset, right}`. |
+| `transform(sectionPosition, offset, point)` | Maps a section position to the underlying curve and returns `{x, y, phi}`. `offset` may be a numeric along-curve offset or `{offset, left}` / `{offset, right}`. The `left` property is signed: negative values shift right; `right` is interpreted as a positive distance to the right. |
 | `fromSectionToCurve(position)` | Converts a section distance to the underlying curve distance. |
 
 ### `ChainFunction`
 
 `ChainFunction` models a flexible chain as a catenary where possible, and uses
-linear/parabolic fallbacks for degenerate two-/three-point cases. The
-suspended curve is illustrated in
+linear fallbacks for degenerate three-point input. In normalized coordinates,
+the catenary is represented by
+
+```text
+y = cosh(a*x + b) / a + c
+```
+
+The solver first shifts and scales the coordinates so the endpoint span is
+centered and has a stable working scale. This reduces sensitivity to the units
+and absolute location of the input data. The suspended curve is illustrated in
 [the chain diagram](./docs/images/mathematics-chain.svg).
 
 `new ChainFunction(maxIterations, distanceTolerance, lengthTolerance)` accepts
@@ -178,17 +191,192 @@ used. `reset()` clears the current solution.
 | `isCosinusHyperbolicus()` | Indicates whether the solution uses the hyperbolic-cosine catenary form rather than a fallback. |
 | `getA()` / `getB()` / `getC()` | Returns the current equation coefficients for `y = cosh(A*x + B) / A + C` in the original coordinate system. |
 
+### Chain fitting methods
+
+#### Through three prescribed points
+
+`initForThreePoints(x1, y1, x2, y2, x3, y3)` first orders the points by
+horizontal coordinate, allowing for the configured distance tolerance. When
+the coordinates are distinct, it solves for the catenary parameters that pass
+through all three points. It begins by fitting a parabola through the three
+points. Since a second-order Taylor approximation of `cosh` is parabolic, that
+fit gives useful initial estimates for `a` and `b`.
+
+The solver then performs a two-dimensional Newton iteration on `a` and `b`.
+Its two residual equations enforce the height differences from the middle
+point to each endpoint; after convergence, `c` is chosen to match the common
+vertical offset. The iteration stops when both residuals are within
+`distanceTolerance`, or fails if it reaches `maxIterations` or encounters a
+singular/non-finite Jacobian determinant. The iteration count and distance
+tolerance are configurable through the constructor.
+
+If two adjacent points have effectively the same `x` coordinate, the method
+falls back to the straight line between the two distinct endpoints instead of
+trying to fit a catenary. Three coincident points are invalid. If the
+two-dimensional iteration for three distinct points does not converge, the
+initial three-point parabola remains available. The current public method does
+not propagate that inner iteration's failure and still marks this fallback as
+valid; `isValid()` therefore does not by itself prove that the result is a
+catenary. A successful straight-line or parabolic fallback also has
+`isCosinusHyperbolicus() === false`.
+
+#### Between two endpoints with a prescribed chain length
+
+`initForLength(x1, y1, x2, y2, length)` requires two distinct horizontal
+endpoints and a requested length strictly greater than their straight-line
+distance. It first fits a straight line through the endpoints and uses a
+midpoint sag as a one-dimensional search variable:
+
+1. Starting at zero sag, it increases the trial sag geometrically until the
+   catenary through the endpoints and trial midpoint is at least as long as
+   the requested chain. Each trial catenary is initialized using the
+   three-point solver above.
+2. Once the requested length is bracketed, it bisects the sag interval. At
+   each midpoint it evaluates the catenary's arc length; the interval is
+   narrowed until the length is within `lengthTolerance`.
+3. It refines the catenary parameters with a two-dimensional Newton iteration.
+   The two equations now enforce the endpoint height difference and the
+   requested arc length. A singular Jacobian or failure to meet
+   `distanceTolerance` within `maxIterations` makes the fit fail.
+
+The length search uses the analytic catenary arc-length expression; the
+`lengthTolerance` controls the bisection stage, while `distanceTolerance`
+controls the final parameter solve. Impossible/too-short lengths, coincident
+endpoints, and non-convergent iterations return `false` and leave no valid
+solution.
+
+#### Between two endpoints with a prescribed force
+
+`initForForce(x1, y1, x2, y2, x, force, q0)` fits a catenary with the specified
+force at horizontal position `x`. It is a two-stage solve:
+
+1. It calls `initForMinimumForce` at `x` to find the catenary with the least
+   possible force there for the given endpoints. This minimum is found by a
+   golden-section search over candidate midpoint sag values. The search
+   repeatedly fits a catenary through the endpoints and a trial midpoint,
+   evaluates the force at `x`, and discards the higher-force portion of the
+   bracket. It stops when the sag bracket is within `distanceTolerance` or
+   fails at `maxIterations`.
+2. If the requested force is below that minimum, the requested state is
+   infeasible. Otherwise, a shrinking step search varies the sag to approach
+   the requested force. A final two-dimensional Newton iteration refines `a`
+   and `b`, simultaneously satisfying the endpoint height difference and the
+   force condition at `x`. As in the other catenary fits, a singular Jacobian
+   or failure to converge returns `false`.
+
+When `q0` is a positive line weight, the requested physical force is divided by
+`q0` before solving; otherwise `force` is used directly as the force scale.
+`initForMinimumForce` is also exposed independently and returns the
+minimum-force catenary without requiring a target force. For all catenary
+methods, `getHeight`, `getGradient`, `getAngle`, `getLength`, `getLocation`,
+and `getForce` evaluate the accepted solution; check `isValid()` before
+depending on a result.
+
 ### `RopeLine`
 
 `new RopeLine(curve)` builds a rope from a configuration object. `curve.points`
 must be an array containing support objects (`{type: 'support', x, y}`); each
-consecutive pair of supports defines a span. Intermediate `{type: 'field'}`
-entries may configure a span's rope shape. Spans must proceed consistently in
-increasing or decreasing `x`. Relevant optional configuration fields are
-`weightPerMeter`, `stressX`, `stressSag`, `maxIterations`,
-`distanceTolerance`, and transform fields supported by
-`Transform.setToCoordinateTransform`. Support entries may specify `counterweight`
-or `rope` (a diameter, or an array of diameters, in meters).
+consecutive pair defines a span. Any number of intermediate supports can be
+used, but their `x` coordinates must progress consistently in one direction.
+Each span is modeled by its own `ChainFunction`. Intermediate
+`{type: 'field'}` entries associate a shape constraint with the span between
+the surrounding supports. The class calculates the curve in this order:
+determine each span's catenary, solve circular transitions at supports, and
+then construct an arc-length coordinate along the resulting rope.
+
+The configuration can include the following optional fields:
+
+| Configuration | Meaning |
+| --- | --- |
+| `weightPerMeter` | Positive rope mass per meter. It is multiplied by gravitational acceleration to obtain line weight for force calculations. |
+| `maxIterations`, `distanceTolerance` | Solver limits passed to the support-transition calculation and used as defaults by field-chain solvers. |
+| Transform fields | `x`, `y`, `scale`, `phi` / `angle`, `mirrorX`, `mirrorY`, and `upright`, as supported by `Transform.setToCoordinateTransform`. |
+| Support `r` | Positive bend radius at an intermediate support. If absent or invalid, that support is not replaced by a circular transition. |
+| Support `counterweight` | Counterweight mass at an end support. The first support's value is preferred; if it is absent, the last support's value can seed the solution. |
+| Support `rope` | Steel rope diameter in meters, or an array of diameters, used to derive the line weight when `weightPerMeter` has not supplied one. |
+| Field `length` | Positive desired catenary length for the span. |
+| Field `x` and `y` | Prescribed point through which the span must pass. If `x` is omitted, the span midpoint is used. The point must lie below the straight chord between supports. |
+| Field `x` and `sag` | Positive downward sag below the straight chord at `x`; if `x` is omitted, the midpoint is used. |
+| Field `x` and `force` | Positive prescribed force at `x`; if `x` is omitted, the midpoint is used. |
+
+For field constraints, `length` takes precedence, followed by a `y` point, a
+positive `sag`, and then a positive `force`. A field `x` must be strictly
+inside its support span. A support's `counterweight` is interpreted as mass
+and multiplied by gravity when it is used as the endpoint force.
+
+#### Span catenaries and force propagation
+
+For every adjacent pair of supports, `RopeLine` creates a `ChainFunction`.
+Explicit field constraints initialize their span as follows:
+
+- A prescribed span length uses `initForLength`.
+- A prescribed point `(x, y)` or a sag-derived point uses `initForThreePoints`.
+- A prescribed force at `x` uses `initForForce`, with the available line
+  weight used to convert force to force per unit line weight.
+
+An endpoint counterweight, when configured, instead seeds the first or last
+span with `initForForce` at that endpoint. If no explicit constraint initializes
+a span, valid seeded spans propagate their endpoint force into each adjacent,
+unconfigured span. The procedure moves outward from each seed: calculate the
+force at the shared support from the known catenary, fit the neighboring
+span with `initForForce` at that support, then carry the resulting force from
+the neighboring span's opposite support to the next span. This preserves the
+model's scalar force level at each shared support while allowing each span's
+own geometry and length to differ.
+
+If an unconfigured span cannot be reached by force propagation, it receives a
+minimum-force catenary at the lower of its two supports. Thus a complete
+multi-span profile can be produced without explicit settings for every field,
+but only explicitly configured constraints and a counterweight impose
+additional boundary conditions. Every initialized span uses the chain solvers'
+iteration and tolerance behavior. `RopeLine` treats a span as initialized when
+its `ChainFunction` reports either a valid result or a hyperbolic-cosine
+solution; in particular, documented linear or parabolic fallbacks may also be
+used. The solver does not guarantee that every arbitrary set of constraints
+has a physically meaningful solution.
+
+#### Circular transitions at supports
+
+After span curves have been computed, each internal support with a positive
+radius is considered for a rounded rope transition. The two neighboring
+catenaries generally meet at that support with different tangents. The solver
+therefore searches for one contact point on each catenary and a circle center
+such that the circle has the requested radius and is tangent to both curves.
+It chooses whether the connecting arc passes above or below the support from
+the neighboring gradients and the overall `x` direction.
+
+The two unknown contact `x` coordinates are found with a two-dimensional
+Newton iteration. Its residuals enforce that the two radius-offset tangent
+constructions identify the same circle center; analytic derivatives form the
+2×2 Jacobian. Convergence is tested against `distanceTolerance` and bounded
+by `maxIterations`. A singular Jacobian or failure to converge prevents the
+transition from being installed. On success, the catenary endpoints are
+trimmed back to the tangent contact points and a circular arc of the
+configured radius joins them. This rounds the rope path rather than leaving
+an abrupt kink; the radius should respect the rope's permitted minimum bend
+radius to avoid damaging it.
+
+#### Arc-length parameterization and optional vehicle sag
+
+Finally, the class assembles an ordered list of catenary spans and successful
+support arcs. Each span contributes its analytic catenary length between its
+trimmed contact points; each support arc contributes
+`radius × absolute angular sweep`. The public `length` and `getLength()` value
+is the resulting total distance. `transform(position, left, point)` converts
+a position on that distance axis to `{x, y, phi}` on the appropriate catenary
+or support arc. Optional numeric `position` values on support configuration
+objects act as calibration anchors: an internal `Adjuster` maps those
+configured positions to calculated arc-length stations and linearly
+interpolates/extrapolates between them.
+
+The separate `stressX` and `stressSag` settings support a simplified moving
+vehicle/sag adjustment after the baseline curve is built. `adjust()` distributes
+the specified sag across spans according to relative span-length and
+mid-span-sag factors. `setVehiclePosition(position)` locates the vehicle on
+the rope's distance coordinate; when transforming a point in that span, a
+piecewise-linear sag profile through the vehicle location adjusts both height
+and gradient. This affects the reported curve locally but does not rerun the
+span-force or support-radius solvers.
 
 | Method / field | Description |
 | --- | --- |
@@ -196,8 +384,8 @@ or `rope` (a diameter, or an array of diameters, in meters).
 | `setVehiclePosition(position)` | Places/updates the stress vehicle at a distance along the rope. |
 | `getLength()` | Returns the calculated rope length; also exposed as `length`. |
 | `isIncreasingX()` | Returns whether spans progress in increasing `x`; may be `undefined` for an invalid/unconfigured rope. |
-| `transform(position, left, point)` | Maps distance along the rope, including support wrap geometry, to `{x, y, phi}`. `left` offsets from the rope; an optional result object is reused. Open ends extrapolate along their tangent. |
-| `stroke(context, transform, start, end, left)` | Draws the selected rope interval to a Canvas 2D context. |
+| `transform(position, left, point)` | Maps distance along the rope, including support wrap geometry, to `{x, y, phi}`. `left` is a signed lateral offset: positive is left and negative is right. An optional result object is reused. Open ends extrapolate along their tangent. |
+| `stroke(context, transform, start, end, left)` | Draws the selected rope interval to a Canvas 2D context with optional signed lateral offset. |
 
 ## Discretization and maze generation
 
