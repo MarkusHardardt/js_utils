@@ -192,9 +192,25 @@ cms.getModificationParams(id, language, value, params => {
   Validation failures are returned in the preparation object's `error`
   property.
 - **`performRefactoring(source, target, action, checksum, onResponse, onError)`**
-  — executes a prepared operation using its checksum. Copy and move rewrite
-  references within the affected key set; move also updates references from
-  other objects. Folder operations apply to contained keys.
+  — executes a prepared operation using its checksum. `COPY` and `MOVE` affect
+  both object keys and references stored in content values:
+  - For a single object, references to its source key inside the copied or
+    moved object's own stored values are rewritten to the target key.
+  - For a folder operation, every contained object is assigned its matching
+    target path, and references between objects in the affected set are
+    rewritten to those target paths. On `COPY`, references in the copies to
+    objects outside the copied set remain unchanged; original objects and
+    external users are not rewritten.
+  - On `MOVE`, references from objects outside the moved set are also rewritten
+    from each old key to its corresponding target key. Consequently, objects
+    that referenced the moved content continue to reference it after the move.
+    This applies to a single object as well as to a folder move.
+  - If a destination key already exists, `COPY` updates that destination;
+    `MOVE` updates it and removes the source key.
+
+  `DELETE` removes the selected record or all records in the folder; its
+  preparation may report `externalUsers`, but deletion does not rewrite those
+  references.
 - **`getSearchResults(key, value, onResponse, onError)`** — returns content
   identifiers matching a key substring, a stored-value substring, or both.
   Provide at least one non-empty search term.
