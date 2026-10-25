@@ -7,6 +7,27 @@ and editing content stored in the installation's database. It is created by
 attributes and creates the page, including its split panes, tables, text
 editors, buttons, and live HMI preview.
 
+## Content Manager
+
+The editor accesses database objects through the `ContentManager` API. On the
+server, the manager maps configured content keys and types to SQL tables; in
+the browser, `ContentManager.getInstance(...)` creates a proxy with the same
+core read, search, write, and refactoring interface. The proxy sends requests
+to the server, so editor operations and HMI runtime content access use the
+same data and key rules. Read operations support raw stored content, expanded
+includes, and parsed JsonFX objects. Writes are prepared with a checksum and
+committed only if the stored value has not changed in the meantime.
+
+Includes allow database objects to share templates in two ways. An object
+such as `{ include: '$path/to/data.j' }` inherits the included object's
+properties, with properties on the including object taking precedence;
+`source: true` retains replaced base values under `source`. A string such as
+`{ data: 'include:$path/to/data.j' }` instead substitutes the referenced
+content into that string. Both forms can be resolved recursively, and cycle
+detection prevents repeated recursive expansion. The [Content Manager
+reference](./CONTENT_MANAGER.md) documents the complete public API, data
+types, callbacks, and include behavior.
+
 ## Opening the editor
 
 Open the application URL without an `hmi` query parameter, for example

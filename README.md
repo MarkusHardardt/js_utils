@@ -55,6 +55,10 @@ The [Executor module](./EXECUTOR.md) provides callback-based helpers for
 running asynchronous tasks sequentially or concurrently, queuing tasks,
 limiting trigger frequency, and keeping only the latest pending task.
 
+The [Content Manager module](./CONTENT_MANAGER.md) provides a shared
+callback-based API for accessing configured SQL content from the server and
+through a browser proxy, including recursive object and string includes.
+
 For the end-to-end data access flow—from HMI `watch` and `hmi.access` through
 WebSockets to OPC UA/ADS subscriptions, including browser-side database labels
 and HTML—see [DATA_ACCESS.md](./DATA_ACCESS.md).
