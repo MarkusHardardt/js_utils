@@ -51,6 +51,10 @@ The [Mathematics module](./MATHEMATICS.md) provides reusable numeric helpers,
 coordinate transforms, curve and rope geometry, discretization, maze
 generation, and weighted-graph path finding.
 
+The [Executor module](./EXECUTOR.md) provides callback-based helpers for
+running asynchronous tasks sequentially or concurrently, queuing tasks,
+limiting trigger frequency, and keeping only the latest pending task.
+
 For the end-to-end data access flow—from HMI `watch` and `hmi.access` through
 WebSockets to OPC UA/ADS subscriptions, including browser-side database labels
 and HTML—see [DATA_ACCESS.md](./DATA_ACCESS.md).
