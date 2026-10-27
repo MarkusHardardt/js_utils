@@ -67,6 +67,60 @@ resolved object. Include directives are also supported in text content. Avoid
 introducing include cycles; the manager detects a cycle and logs a warning
 rather than recursively expanding the same object.
 
+### Data-driven documents and object navigation
+
+The HMI is a **Data-Driven Document**: a JavaScript object tree stored as
+database content describes the view at runtime, instead of installation-
+specific HMI source files. Objects can be used as templates with `include`;
+properties on the including object act as parameters and override matching
+properties from the template.
+
+HTML is also a tree. A page is often laid out using nested elements such as
+`<div>`s, which form the DOM tree. The JavaScript configuration tree supplies
+the basic structure for that layout, but does not map one-to-one to DOM
+elements: one configured object may create multiple nested `<div>`s, making
+the DOM tree deeper and giving it more nodes than the JavaScript object tree.
+Lifecycle callbacks on an object make its corresponding HTML participate in
+the running HMI; `refresh(object, date)` is especially useful for periodically
+updating it. The lifecycle manager creates the DOM and manages event listeners
+as objects are mounted, then removes that runtime wiring on teardown. Objects
+can be added to or removed from an existing tree at runtime; teardown releases
+manager-managed listeners and references so a removed object can be garbage
+collected when no other references remain.
+
+An object may optionally define `id` as a string. These IDs form a reduced
+navigation tree: objects without an `id` are omitted as navigation nodes, even
+though they remain part of the full configuration tree. From an HMI object,
+`hmi_node(path)` can navigate this tree to another identified object, allowing
+identified objects to coordinate behavior—for example, to show or hide
+another object's HTML. Navigation follows direct ID-bearing child nodes;
+objects without IDs do not add path components.
+
+`hmi_node(path)` is attached by `ObjectLifecycleManager` at runtime and is not
+a database field. Its slash-separated `path` works similarly to a
+Linux-style path:
+
+| Path part | Meaning |
+| --- | --- |
+| `.` | Stay at the current navigation node. |
+| `..` | Move to its parent navigation node. It cannot move above the root; that lookup returns `undefined`. |
+| `<id>` | Move to a direct child navigation node whose `id` matches. A missing child returns `undefined`. |
+| Leading `/` | Start at the root of the navigation tree, then resolve the remaining ID parts from there. |
+| Empty string `''` | Resolve to the root navigation node. |
+
+When called on an object with an `id`, navigation starts at that object.
+Otherwise, it starts at the object's parent navigation node (or at the object
+itself if it has no parent). For example, `this.hmi_node('../sibling')`
+resolves an identified sibling through the parent, while
+`this.hmi_node('/section/status')` resolves `section` and then `status` from
+the root. Calling `hmi_node()` without a string path returns the starting
+navigation node.
+
+`hmi_path()` returns the slash-separated IDs from the root to the current
+navigation node, without a leading slash. For an object without an `id`, this
+is the path of its parent navigation node. Both methods are runtime APIs:
+they are available while the object is mounted and removed during teardown.
+
 ## Object model and type selection
 
 An HMI definition is a JavaScript object. `type` selects a built-in renderer:
