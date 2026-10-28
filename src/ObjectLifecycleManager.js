@@ -799,6 +799,7 @@ function applyDefaultHtmlObject(that) {
     const inlineStyles = _cont[0].style;
     const background = inlineStyles.background;
     const color = inlineStyles.color;
+    const originalClasses = _cont.attr('class');
     _cont.data('hmi_object', that);
     that._hmi_resizes = [];
     // RESIZE
@@ -943,6 +944,11 @@ function applyDefaultHtmlObject(that) {
         }
         inlineStyles.background = background;
         inlineStyles.color = color;
+        if (originalClasses === undefined) {
+            _cont.removeAttr('class');
+        } else {
+            _cont.attr('class', originalClasses);
+        }
         delete that.hmi_updateBorder;
         delete that.hmi_setVisible;
         delete that.hmi_isVisible;
