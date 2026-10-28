@@ -78,6 +78,16 @@ function getAsCoreDataType(typeName, adsDataTypeStr, isArray) {
     }
 }
 
+function getAsCoreDataValue(coreType, value) {
+    switch (coreType) {
+        case Core.DataType.Int64:
+        case Core.DataType.UInt64:
+            return Number(value);
+        default:
+            return value;
+    }
+}
+
 class DatapointInfo {
     #client;
     #symbol;
@@ -281,11 +291,11 @@ class Client {
         await Promise.all(Object.values(this.#nodes).map(async node => {
             try {
                 const result = await this.#client.readValue(node.rawNodeId);
-                node.value = result.value;
                 const symbol = result.symbol || {};
                 const dataType = result.dataType || {};
                 const typeName = symbol.type || dataType.name || dataType.type || '';
                 node.type = getAsCoreDataType(typeName, dataType.adsDataTypeStr || symbol.adsDataTypeStr, symbol.arrayDimension > 0);
+                node.value = getAsCoreDataValue(node.type, result.value);
             } catch (error) {
                 node.value = null;
                 node.type = Core.DataType.Unknown;
@@ -392,7 +402,7 @@ class Client {
                         node.subscription = await this.#client.subscribe({
                             target: node.rawNodeId,
                             callback: data => {
-                                node.value = data.value;
+                                node.value = getAsCoreDataValue(node.type, data.value);
                                 this.#logger.trace(`ADS.Client: Value of symbol '${node.rawNodeId}' changed: ${node.value}`);
                                 if (node.onRefresh) {
                                     this.#notifyObserver(node, node.value);
@@ -461,12 +471,12 @@ class Client {
             throw new Error(`ADS.Client: Unknown data id '${dataId}'`);
         }
         this.#client.readValue(node.rawNodeId).then(result => {
-            node.value = result.value;
+            node.value = getAsCoreDataValue(node.type, result.value);
             const typeName = (result.symbol && result.symbol.type) || (result.dataType && (result.dataType.name || result.dataType.type)) || '';
             node.type = getAsCoreDataType(typeName, result.dataType && result.dataType.adsDataTypeStr, result.symbol && result.symbol.arrayDimension > 0);
             this.#logger.trace(`ADS.Client: Value ${result.value} read from symbol '${node.rawNodeId}'`);
             try {
-                onResponse(result.value);
+                onResponse(node.value);
             } catch (error) {
                 this.#logger.error(`ADS.Client: Failed calling read response for '${node.dataId}'`, error);
             }
@@ -537,7 +547,7 @@ class Client {
         for (let index = 0; index < datapointInfos.length; index++) {
             const node = Object.values(this.#nodes).find(item => item.rawNodeId === datapointInfos[index].fullName);
             if (node) {
-                node.value = values[index];
+                node.value = getAsCoreDataValue(node.type, values[index]);
             }
         }
         return values;
