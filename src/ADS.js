@@ -106,6 +106,10 @@ class DatapointInfo {
         Common.validateAsDatapointInfo(this, true);
     }
 
+    get symbol() {
+        return this.#symbol;
+    }
+
     getChildDatapointInfos(onResponse, onError) {
         if (typeof onResponse !== 'function') {
             throw new Error('ADS.DatapointInfo.getChildDatapointInfos(): onResponse is not a function');

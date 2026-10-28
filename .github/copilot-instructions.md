@@ -3,6 +3,7 @@
 ## Arbeitsbereich, Werkzeuge und Codequalität
 
 - Lese- und Schreibzugriffe auf Dateien innerhalb von `js_utils` und des benachbarten Projekts `../js_hmi` sind für Aufgaben in diesen Projekten grundsätzlich freigegeben.
+- Lesender Zugriff auf alle Dateien im benachbarten Projekt `../BML_HMI` ist für Aufgaben in diesen Projekten grundsätzlich freigegeben.
 - Der Zugriff auf npm ist freigegeben. Installiere oder ändere Abhängigkeiten dennoch nur, wenn die Aufgabe es erfordert oder ein benötigtes Paket fehlt.
 - Tests dürfen ausgeführt und erstellt werden. Prüfe in Tests niemals Logging-Nachrichten oder deren genaue Inhalte.
 - Richte Codeerzeugung und Änderungen an SOLID, Clean Code und Clean Architecture aus. Schreibe übersichtlichen, intuitiv verständlichen Code und verwende so wenig Code wie nötig.

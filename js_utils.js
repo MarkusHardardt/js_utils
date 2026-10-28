@@ -12,6 +12,7 @@ import WebServer from './src/WebServer.js';
 import HashLists from './src/HashLists.js';
 import Mathematics from './src/Mathematics.js';
 import ADS from './src/ADS.js';
+import ADS_PLC_ItemInfo from './src/ADS_PLC_ItemInfo.js';
 import Common from './src/Common.js';
 import OPCUA from './src/OPCUA.js';
 import ObjectLifecycleManager from './src/ObjectLifecycleManager.js';
@@ -54,6 +55,7 @@ const js_utils = {
     HashLists,
     Mathematics,
     ADS,
+    ADS_PLC_ItemInfo,
     Common,
     OPCUA,
     ObjectLifecycleManager,
@@ -78,5 +80,5 @@ const js_utils = {
     addStaticWebServerJsUtilsFiles
 };
 Object.seal(js_utils);
-export { Executor, JsonFX, ObjectPositionSystem, Regex, Server, Sorting, Utilities, Client, Core, WebServer, HashLists, Mathematics, ADS, Common, OPCUA, ObjectLifecycleManager, Access, DataConnector, Logger, SqlHelper, WebSocketConnection, FloatLayout, GraphControl, SplitLayout, TableControl, TreeControl, ContentManager, Evaluate, ContentEditor, GridLayout, LanguageSwitching, TaskManager, TextControl, md5, js_utils, addStaticWebServerJsUtilsFiles };
+export { Executor, JsonFX, ObjectPositionSystem, Regex, Server, Sorting, Utilities, Client, Core, WebServer, HashLists, Mathematics, ADS, ADS_PLC_ItemInfo, Common, OPCUA, ObjectLifecycleManager, Access, DataConnector, Logger, SqlHelper, WebSocketConnection, FloatLayout, GraphControl, SplitLayout, TableControl, TreeControl, ContentManager, Evaluate, ContentEditor, GridLayout, LanguageSwitching, TaskManager, TextControl, md5, js_utils, addStaticWebServerJsUtilsFiles };
 export default js_utils;
