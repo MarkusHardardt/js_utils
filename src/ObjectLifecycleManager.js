@@ -796,6 +796,9 @@ ObjectLifecycleManager.getTextSize = getTextSize;
 
 function applyDefaultHtmlObject(that) {
     let _cont = that._hmi_context.container;
+    const inlineStyles = _cont[0].style;
+    const background = inlineStyles.background;
+    const color = inlineStyles.color;
     _cont.data('hmi_object', that);
     that._hmi_resizes = [];
     // RESIZE
@@ -938,6 +941,8 @@ function applyDefaultHtmlObject(that) {
         if (that.bold === true) {
             _cont.removeClass('font-bold');
         }
+        inlineStyles.background = background;
+        inlineStyles.color = color;
         delete that.hmi_updateBorder;
         delete that.hmi_setVisible;
         delete that.hmi_isVisible;
