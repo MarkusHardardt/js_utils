@@ -10,6 +10,7 @@ import Core from './Core.js';
 import HashLists from './HashLists.js';
 import Mathematics from './Mathematics.js';
 import ADS from './ADS.js';
+import ADS_PLC_ItemInfo from './ADS_PLC_ItemInfo.js';
 import Common from './Common.js';
 import OPCUA from './OPCUA.js';
 import SqlHelper from './SqlHelper.js';
@@ -21,6 +22,7 @@ import ContentManager from './ContentManager.js';
 const Evaluate = {};
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 const md5 = isNodeJS ? {} : undefined;
+const fs = isNodeJS ? await import('node:fs') : undefined;
 /*  Note: This eval function must be defined here!
     When tasks on server side must be executed, they will be loaded from the database as text and then evaluated to get the executable task object.
     The evaluated text possibly references modules in js_utils.
