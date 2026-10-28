@@ -13,7 +13,7 @@ import Access from './Access.js';
 import Logger from './Logger.js';
 import ContentManager from './ContentManager.js';
 import { basicSetup, EditorView } from 'codemirror';
-import { Compartment, RangeSetBuilder, StateEffect, StateField } from '@codemirror/state';
+import { Compartment, EditorState, RangeSetBuilder, StateEffect, StateField } from '@codemirror/state';
 import { Decoration, ViewPlugin } from '@codemirror/view';
 import { html } from '@codemirror/lang-html';
 import { javascript, javascriptLanguage, scopeCompletionSource } from '@codemirror/lang-javascript';
@@ -261,7 +261,7 @@ function applyTextArea(that, onSuccess) {
     _textarea.appendTo(_cont);
     if (typeof that.code === 'string' && that.code.length > 0) {
         const readOnly = that.readonly === true || that.editable === false;
-        const editable = new Compartment();
+        const readOnlyConfig = new Compartment();
         let editorReadOnly = readOnly;
         const language = that.code === 'javascript'
             ? [
@@ -283,9 +283,9 @@ function applyTextArea(that, onSuccess) {
                 textSearchTheme,
                 language,
                 EditorView.lineWrapping,
-                editable.of(EditorView.editable.of(!readOnly)),
+                EditorView.editable.of(true),
+                readOnlyConfig.of(EditorState.readOnly.of(readOnly)),
                 EditorView.updateListener.of(update => {
-                    update.view.contentDOM.setAttribute('contenteditable', String(!editorReadOnly));
                     if (update.docChanged) {
                         for (const listener of _changeListeners) {
                             listener(update.view, update);
@@ -300,9 +300,6 @@ function applyTextArea(that, onSuccess) {
         });
         _code.readOnly = readOnly;
         _code.contentDOM.setAttribute('aria-readonly', String(readOnly));
-        if (readOnly) {
-            _code.contentDOM.setAttribute('tabindex', '0');
-        }
         _code.getValue = () => _code.state.doc.toString();
         _code.setValue = value => _code.dispatch({
             changes: { from: 0, to: _code.state.doc.length, insert: value }
@@ -316,13 +313,8 @@ function applyTextArea(that, onSuccess) {
             if (name === 'readOnly') {
                 editorReadOnly = value === true;
                 _code.readOnly = editorReadOnly;
-                _code.dispatch({ effects: editable.reconfigure(EditorView.editable.of(!editorReadOnly)) });
+                _code.dispatch({ effects: readOnlyConfig.reconfigure(EditorState.readOnly.of(editorReadOnly)) });
                 _code.contentDOM.setAttribute('aria-readonly', String(_code.readOnly));
-                if (editorReadOnly) {
-                    _code.contentDOM.setAttribute('tabindex', '0');
-                } else {
-                    _code.contentDOM.removeAttribute('tabindex');
-                }
             }
         };
         _code.getOption = name => name === 'readOnly' ? _code.readOnly : undefined;
