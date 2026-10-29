@@ -2,6 +2,10 @@ import Regex from './Regex.js';
 
 const Core = {};
 
+Core.breakpoint = () => {
+    console.log('breakpoint');
+}
+
 /*  Standard datatypes */
 const DataType = Object.freeze({
     Null: 0,

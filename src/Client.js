@@ -1,6 +1,7 @@
 import JsonFX from './JsonFX.js';
 
 const Client = {};
+
 const isNodeJS = typeof process !== 'undefined' && Boolean(process.versions?.node);
 Client.GET_CLIENT_CONFIG = '/get_client_config';
 Client.HANDLE_REQUEST = '/handle_request';
@@ -28,10 +29,6 @@ if (!isNodeJS) {
             globalThis.cancelAnimationFrame = timeout => clearTimeout(timeout);
         }
     }());
-
-    Client.breakpoint = () => {
-        console.log('breakpoint');
-    }
 
     /*  refresh cycle  */
     let refreshCycleEnabled = false;
