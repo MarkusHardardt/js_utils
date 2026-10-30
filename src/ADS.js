@@ -615,7 +615,9 @@ class Client {
             throw new Error('ADS.Client.getRootDatapointInfos(): onError is not a function');
         }
         this.#client.getSymbols().then(symbols => {
+            // This contains both all root symbols and all mappable I/O variables.
             const allSymbols = Object.values(symbols);
+            // This filters out the IO variables present at deeper levels
             const rootSymbols = allSymbols.filter(symbol => {
                 const name = symbol.name.toLowerCase();
                 let separator = name.lastIndexOf('.');

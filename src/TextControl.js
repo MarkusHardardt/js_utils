@@ -7,7 +7,10 @@ import Client from './Client.js';
 import Core from './Core.js';
 import HashLists from './HashLists.js';
 import Mathematics from './Mathematics.js';
+import ADS from './ADS.js';
+import ADS_PLC_ItemInfo from './ADS_PLC_ItemInfo.js';
 import Common from './Common.js';
+import OPCUA from './OPCUA.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
 import Access from './Access.js';
 import Logger from './Logger.js';
@@ -30,7 +33,10 @@ const autocompleteScope = {
     Core,
     HashLists,
     Mathematics,
+    ADS,
+    ADS_PLC_ItemInfo,
     Common,
+    OPCUA,
     ObjectLifecycleManager,
     Access,
     Logger,
