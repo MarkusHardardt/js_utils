@@ -4,7 +4,7 @@ import Common from './Common.js';
 const ADS_PLC_ItemInfo = {};
 
 function validateAsAdsConnection(instance, validateMethodArguments) {
-    return Core.validateAs('AdsConnection', instance, 'getRootDatapointInfos(onResponse, onError)', validateMethodArguments);
+    return Core.validateAs('AdsConnection', instance, 'getRootDatapointInfos(onResponse, onError, accept)', validateMethodArguments);
 }
 ADS_PLC_ItemInfo.validateAsAdsConnection = validateAsAdsConnection;
 
@@ -65,10 +65,6 @@ const InfiniteProcessControllerType = /^(?:[a-z0-9_]+\.)?LTAG_HMI_InfiniteProces
 const ProcessParameterSetType = /^(?:[a-z0-9_]+\.)?LTAG_HMI_Parameter_\w+$/i;
 const AnyDiagnosisType = /^(?:[a-z0-9_]+\.)?Diagnosis_(?:Message|Warning|ControlError|SafetyError|FatalError)$/i;
 
-function getRootDatapointInfos(connection) {
-    return new Promise((resolve, reject) => connection.getRootDatapointInfos(resolve, reject));
-}
-
 function getChildDatapointInfos(info) {
     return new Promise((resolve, reject) => {
         info.getChildDatapointInfos(children => {
@@ -120,7 +116,11 @@ async function browseInfos(infos, diagnosisCallback, processTriggerCallback, par
     return found;
 }
 
-async function browse(connection, diagnosisCallback, processTriggerCallback, parameterSetCallback) {
+function getRootDatapointInfos(connection, acceptRoot) {
+    return new Promise((resolve, reject) => connection.getRootDatapointInfos(resolve, reject, acceptRoot));
+}
+
+async function browse(connection, diagnosisCallback, processTriggerCallback, parameterSetCallback, acceptRoot) {
     validateAsAdsConnection(connection);
     if (typeof diagnosisCallback !== 'function') {
         throw new Error('ADS_PLC_ItemInfo.browse(): diagnosisCallback is not a function');
@@ -130,7 +130,7 @@ async function browse(connection, diagnosisCallback, processTriggerCallback, par
         throw new Error('ADS_PLC_ItemInfo.browse(): parameterSetCallback is not a function');
     }
 
-    const rootInfos = await getRootDatapointInfos(connection);
+    const rootInfos = await getRootDatapointInfos(connection, acceptRoot);
     if (!Array.isArray(rootInfos)) {
         throw new Error('ADS_PLC_ItemInfo.browse(): root datapoint infos must be an array');
     }
@@ -155,7 +155,7 @@ class ItemInfoProvider {
         validateAsAdsPlcProcessInfoProvider(this);
     }
 
-    static async create(connection) {
+    static async create(connection, acceptRoot) {
         const diagnoses = [];
         const processDiagnoses = new Map();
         const processTriggerItems = [];
@@ -182,7 +182,7 @@ class ItemInfoProvider {
             });
         }, path => {
             parameterSets.push(path[path.length - 1]);
-        });
+        }, acceptRoot);
 
         const triggers = processTriggerItems.map(trigger => {
             if (!trigger.root) {

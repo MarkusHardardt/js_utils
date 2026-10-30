@@ -128,9 +128,6 @@ class DatapointInfo {
             const name = symbol.name.toLowerCase();
             return name.startsWith(prefix) && !name.substring(prefix.length).includes('.');
         });
-        if (directSymbols.length > 0) {
-            return directSymbols.map(symbol => new DatapointInfo(this.#client, symbol, this.#symbols));
-        }
 
         const dataType = await this.#client.getDataType(this.#symbol.type);
         const subItems = Array.isArray(dataType.subItems) ? dataType.subItems : [];
@@ -146,7 +143,7 @@ class DatapointInfo {
                 arrayDimension: subItem.arrayDimension
             };
             return new DatapointInfo(this.#client, symbol, this.#symbols);
-        });
+        }).concat(directSymbols.map(symbol => new DatapointInfo(this.#client, symbol, this.#symbols)));
     }
 }
 
@@ -608,7 +605,7 @@ class Client {
         return Object.values(this.#nodes).map(node => ({ id: node.dataId, type: node.type }));
     }
 
-    getRootDatapointInfos(onResponse, onError) {
+    getRootDatapointInfos(onResponse, onError, accept) {
         if (typeof onResponse !== 'function') {
             throw new Error('ADS.Client.getRootDatapointInfos(): onResponse is not a function');
         } else if (typeof onError !== 'function') {
@@ -627,7 +624,7 @@ class Client {
                     }
                     separator = name.lastIndexOf('.', separator - 1);
                 }
-                return true;
+                return typeof accept === 'function' ? accept(symbol.name, symbol.type) : true;
             });
             onResponse(rootSymbols.map(symbol => new DatapointInfo(this.#client, symbol, symbols)));
         }).catch(onError);
