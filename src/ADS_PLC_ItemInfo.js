@@ -64,6 +64,21 @@ const FiniteProcessControllerType = /^(?:[a-z0-9_]+\.)?LTAG_HMI_FiniteProcessCon
 const InfiniteProcessControllerType = /^(?:[a-z0-9_]+\.)?LTAG_HMI_InfiniteProcessController$/i;
 const ProcessParameterSetType = /^(?:[a-z0-9_]+\.)?LTAG_HMI_Parameter_\w+$/i;
 const AnyDiagnosisType = /^(?:[a-z0-9_]+\.)?Diagnosis_(?:Message|Warning|ControlError|SafetyError|FatalError)$/i;
+const BROWSE_YIELD_INTERVAL = 100;
+
+async function yieldToEventLoopIfNeeded(state) {
+    state.workSinceYield++;
+    if (state.workSinceYield >= BROWSE_YIELD_INTERVAL) {
+        state.workSinceYield = 0;
+        await new Promise(resolve => {
+            if (typeof setImmediate === 'function') {
+                setImmediate(resolve);
+            } else {
+                setTimeout(resolve, 0);
+            }
+        });
+    }
+}
 
 function getChildDatapointInfos(info) {
     return new Promise((resolve, reject) => {
@@ -77,17 +92,23 @@ function getChildDatapointInfos(info) {
     });
 }
 
-async function browseInfos(infos, diagnosisCallback, processTriggerCallback, parameterSetCallback, process = null, path = [], ignorable = new Set()) {
+async function browseInfos(infos, diagnosisCallback, processTriggerCallback, parameterSetCallback, process = null, path = [], ignorable = new Set(), state = { workSinceYield: 0 }) {
     if (!Array.isArray(infos)) {
         throw new Error('ADS_PLC_ItemInfo.browse(): datapoint infos must be an array');
     }
-    infos.forEach(info => validateAsVariableInfo(info));
-    if (process === null && infos.some(info => AnyProcessControllerType.test(info.type))) {
+    let containsProcessController = false;
+    for (const info of infos) {
+        validateAsVariableInfo(info);
+        containsProcessController = containsProcessController || AnyProcessControllerType.test(info.type);
+        await yieldToEventLoopIfNeeded(state);
+    }
+    if (process === null && containsProcessController) {
         process = path[path.length - 1] || null;
     }
 
     let found = false;
     for (const info of infos) {
+        await yieldToEventLoopIfNeeded(state);
         const key = info.type;
         if (ignorable.has(key)) {
             continue;
@@ -104,7 +125,7 @@ async function browseInfos(infos, diagnosisCallback, processTriggerCallback, par
             } else if (AnyDiagnosisType.test(key)) {
                 diagnosisCallback(path.slice(), process);
                 found = true;
-            } else if (await browseInfos(await getChildDatapointInfos(info), diagnosisCallback, processTriggerCallback, parameterSetCallback, process, path, ignorable)) {
+            } else if (await browseInfos(await getChildDatapointInfos(info), diagnosisCallback, processTriggerCallback, parameterSetCallback, process, path, ignorable, state)) {
                 found = true;
             } else {
                 ignorable.add(key);
