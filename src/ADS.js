@@ -150,7 +150,11 @@ class DatapointInfo {
     }
 
     async #getChildren() {
-        const isArray = this.#symbol.arrayDimension > 0;
+        const symbolArrayInfo = Array.isArray(this.#symbol.arrayInfo) ? this.#symbol.arrayInfo : [];
+        const arrayDimension = symbolArrayInfo.length > 0
+            ? symbolArrayInfo.length
+            : this.#symbol.arrayDimension;
+        const isArray = arrayDimension > 0;
         const isBigType = this.#symbol.adsDataTypeStr === 'ADST_BIGTYPE';
         if (!isArray && !isBigType) {
             return [];
@@ -161,17 +165,16 @@ class DatapointInfo {
             return name.startsWith(prefix) && !name.substring(prefix.length).includes('.');
         });
 
-        const hasArrayInfo = Array.isArray(this.#symbol.arrayInfo) &&
-            this.#symbol.arrayInfo.length >= this.#symbol.arrayDimension;
+        const hasArrayInfo = symbolArrayInfo.length >= arrayDimension;
         const dataType = isBigType || (isArray && !hasArrayInfo)
             ? await this.#client.getDataType(this.#symbol.type)
             : null;
         if (isArray) {
-            const arrayInfo = hasArrayInfo ? this.#symbol.arrayInfo : dataType?.arrayInfos;
-            if (!Array.isArray(arrayInfo) || arrayInfo.length < this.#symbol.arrayDimension) {
+            const arrayInfo = hasArrayInfo ? symbolArrayInfo : dataType?.arrayInfos;
+            if (!Array.isArray(arrayInfo) || arrayInfo.length < arrayDimension) {
                 throw new Error(`ADS.DatapointInfo.getChildDatapointInfos(): Missing array dimensions for '${this.#fullName}'`);
             }
-            const dimensions = arrayInfo.slice(0, this.#symbol.arrayDimension);
+            const dimensions = arrayInfo.slice(0, arrayDimension);
             if (dimensions.some(dimension =>
                 !Number.isInteger(dimension.startIndex) ||
                 !Number.isInteger(dimension.length) ||
@@ -187,7 +190,7 @@ class DatapointInfo {
             const elementInfos = [];
             const indices = [];
             const addElements = (dimensionIndex, linearIndex) => {
-                if (dimensionIndex === this.#symbol.arrayDimension) {
+                if (dimensionIndex === arrayDimension) {
                     const fullName = `${this.#fullName}[${indices.join(',')}]`;
                     const symbol = this.#symbols[fullName.toLowerCase()] || {
                         name: fullName,
