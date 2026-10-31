@@ -150,16 +150,69 @@ class DatapointInfo {
     }
 
     async #getChildren() {
-        if (this.#symbol.adsDataTypeStr !== 'ADST_BIGTYPE') {
+        const isArray = this.#symbol.arrayDimension > 0;
+        const isBigType = this.#symbol.adsDataTypeStr === 'ADST_BIGTYPE';
+        if (!isArray && !isBigType) {
             return [];
         }
-        const prefix = `${this.fullName.toLowerCase()}.`;
+        const prefix = `${this.#fullName.toLowerCase()}.`;
         const directSymbols = Object.values(this.#symbols).filter(symbol => {
             const name = symbol.name.toLowerCase();
             return name.startsWith(prefix) && !name.substring(prefix.length).includes('.');
         });
 
-        const dataType = await this.#client.getDataType(this.#symbol.type);
+        const hasArrayInfo = Array.isArray(this.#symbol.arrayInfo) &&
+            this.#symbol.arrayInfo.length >= this.#symbol.arrayDimension;
+        const dataType = isBigType || (isArray && !hasArrayInfo)
+            ? await this.#client.getDataType(this.#symbol.type)
+            : null;
+        if (isArray) {
+            const arrayInfo = hasArrayInfo ? this.#symbol.arrayInfo : dataType?.arrayInfos;
+            if (!Array.isArray(arrayInfo) || arrayInfo.length < this.#symbol.arrayDimension) {
+                throw new Error(`ADS.DatapointInfo.getChildDatapointInfos(): Missing array dimensions for '${this.#fullName}'`);
+            }
+            const dimensions = arrayInfo.slice(0, this.#symbol.arrayDimension);
+            if (dimensions.some(dimension =>
+                !Number.isInteger(dimension.startIndex) ||
+                !Number.isInteger(dimension.length) ||
+                dimension.length <= 0
+            )) {
+                throw new Error(`ADS.DatapointInfo.getChildDatapointInfos(): Invalid array dimensions for '${this.#fullName}'`);
+            }
+            const elementCount = dimensions.reduce((count, dimension) => count * dimension.length, 1);
+            const elementSize = this.#size / elementCount;
+            if (!Number.isInteger(elementSize) || elementSize <= 0) {
+                throw new Error(`ADS.DatapointInfo.getChildDatapointInfos(): Invalid array element size for '${this.#fullName}'`);
+            }
+            const elementInfos = [];
+            const indices = [];
+            const addElements = (dimensionIndex, linearIndex) => {
+                if (dimensionIndex === this.#symbol.arrayDimension) {
+                    const fullName = `${this.#fullName}[${indices.join(',')}]`;
+                    const symbol = this.#symbols[fullName.toLowerCase()] || {
+                        name: fullName,
+                        type: this.#symbol.type,
+                        indexGroup: this.#indexGroup,
+                        indexOffset: this.#indexOffset + linearIndex * elementSize,
+                        size: elementSize,
+                        adsDataTypeStr: dataType?.adsDataTypeStr || this.#symbol.adsDataTypeStr,
+                        arrayDimension: 0,
+                        arrayInfo: []
+                    };
+                    elementInfos.push(new DatapointInfo(this.#client, symbol, this.#symbols));
+                    return;
+                }
+                const dimension = arrayInfo[dimensionIndex];
+                for (let index = dimension.startIndex; index < dimension.startIndex + dimension.length; index++) {
+                    indices.push(index);
+                    addElements(dimensionIndex + 1, linearIndex * dimension.length + index - dimension.startIndex);
+                    indices.pop();
+                }
+            };
+            addElements(0, 0);
+            return elementInfos.concat(directSymbols.map(symbol => new DatapointInfo(this.#client, symbol, this.#symbols)));
+        }
+
         const subItems = Array.isArray(dataType.subItems) ? dataType.subItems : [];
         return subItems.map(subItem => {
             const fullName = `${this.fullName}.${subItem.name}`;
@@ -170,7 +223,8 @@ class DatapointInfo {
                 indexOffset: this.indexOffset + subItem.offset,
                 size: subItem.size,
                 adsDataTypeStr: subItem.adsDataTypeStr,
-                arrayDimension: subItem.arrayDimension
+                arrayDimension: subItem.arrayDimension,
+                arrayInfo: subItem.arrayInfos
             };
             return new DatapointInfo(this.#client, symbol, this.#symbols);
         }).concat(directSymbols.map(symbol => new DatapointInfo(this.#client, symbol, this.#symbols)));
