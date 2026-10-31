@@ -182,8 +182,7 @@ class DatapointInfo {
             )) {
                 throw new Error(`ADS.DatapointInfo.getChildDatapointInfos(): Invalid array dimensions for '${this.#fullName}'`);
             }
-            const elementCount = dimensions.reduce((count, dimension) => count * dimension.length, 1);
-            const elementSize = this.#size / elementCount;
+            const elementSize = this.#size;
             if (!Number.isInteger(elementSize) || elementSize <= 0) {
                 throw new Error(`ADS.DatapointInfo.getChildDatapointInfos(): Invalid array element size for '${this.#fullName}'`);
             }
@@ -198,7 +197,7 @@ class DatapointInfo {
                         indexGroup: this.#indexGroup,
                         indexOffset: this.#indexOffset + linearIndex * elementSize,
                         size: elementSize,
-                        adsDataTypeStr: dataType?.adsDataTypeStr || this.#symbol.adsDataTypeStr,
+                        adsDataTypeStr: this.#symbol.adsDataTypeStr,
                         arrayDimension: 0,
                         arrayInfo: []
                     };
