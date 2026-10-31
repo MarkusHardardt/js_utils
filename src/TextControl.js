@@ -8,7 +8,9 @@ import Core from './Core.js';
 import HashLists from './HashLists.js';
 import Mathematics from './Mathematics.js';
 import ADS from './ADS.js';
+import ADS_PLC_Diagnoses from './ADS_PLC_Diagnoses.js';
 import ADS_PLC_ItemInfo from './ADS_PLC_ItemInfo.js';
+import ADS_PLC_Processes from './ADS_PLC_Processes.js';
 import Common from './Common.js';
 import OPCUA from './OPCUA.js';
 import ObjectLifecycleManager from './ObjectLifecycleManager.js';
@@ -34,7 +36,9 @@ const autocompleteScope = {
     HashLists,
     Mathematics,
     ADS,
+    ADS_PLC_Diagnoses,
     ADS_PLC_ItemInfo,
+    ADS_PLC_Processes,
     Common,
     OPCUA,
     ObjectLifecycleManager,

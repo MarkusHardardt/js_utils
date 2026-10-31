@@ -26,12 +26,14 @@ import GraphControl from './src/GraphControl.js';
 import SplitLayout from './src/SplitLayout.js';
 import TableControl from './src/TableControl.js';
 import TreeControl from './src/TreeControl.js';
+import ADS_PLC_Diagnoses from './src/ADS_PLC_Diagnoses.js';
+import ADS_PLC_Processes from './src/ADS_PLC_Processes.js';
 import ContentManager from './src/ContentManager.js';
-import Evaluate from './src/Evaluate.js';
 import ContentEditor from './src/ContentEditor.js';
 import GridLayout from './src/GridLayout.js';
 import LanguageSwitching from './src/LanguageSwitching.js';
 import TaskManager from './src/TaskManager.js';
+import Evaluate from './src/Evaluate.js';
 import TextControl from './src/TextControl.js';
 
 function addStaticWebServerJsUtilsFiles(server, addMain) {
@@ -69,16 +71,18 @@ const js_utils = {
     SplitLayout,
     TableControl,
     TreeControl,
+    ADS_PLC_Diagnoses,
+    ADS_PLC_Processes,
     ContentManager,
-    Evaluate,
     ContentEditor,
     GridLayout,
     LanguageSwitching,
     TaskManager,
+    Evaluate,
     TextControl,
     md5, // external compatibility export
     addStaticWebServerJsUtilsFiles
 };
 Object.seal(js_utils);
-export { Executor, JsonFX, ObjectPositionSystem, Regex, Server, Sorting, Utilities, Client, Core, WebServer, HashLists, Mathematics, ADS, ADS_PLC_ItemInfo, Common, OPCUA, ObjectLifecycleManager, Access, DataConnector, Logger, SqlHelper, WebSocketConnection, FloatLayout, GraphControl, SplitLayout, TableControl, TreeControl, ContentManager, Evaluate, ContentEditor, GridLayout, LanguageSwitching, TaskManager, TextControl, md5, js_utils, addStaticWebServerJsUtilsFiles };
+export { Executor, JsonFX, ObjectPositionSystem, Regex, Server, Sorting, Utilities, Client, Core, WebServer, HashLists, Mathematics, ADS, ADS_PLC_ItemInfo, ADS_PLC_Diagnoses, ADS_PLC_Processes, Common, OPCUA, ObjectLifecycleManager, Access, DataConnector, Logger, SqlHelper, WebSocketConnection, FloatLayout, GraphControl, SplitLayout, TableControl, TreeControl, ContentManager, Evaluate, ContentEditor, GridLayout, LanguageSwitching, TaskManager, TextControl, md5, js_utils, addStaticWebServerJsUtilsFiles };
 export default js_utils;

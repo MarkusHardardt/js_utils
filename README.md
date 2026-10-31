@@ -93,6 +93,33 @@ For the end-to-end data access flow—from HMI `watch` and `hmi.access` through
 WebSockets to OPC UA/ADS subscriptions, including browser-side database labels
 and HTML—see [DATA_ACCESS.md](./DATA_ACCESS.md).
 
+## PLC diagnoses and processes
+
+`ADS_PLC_ItemInfo.ItemInfoProvider.create(connection)` browses the PLC symbols
+and discovers diagnosis instances, process triggers, and parameter sets. Pass
+the resulting provider to both domain providers to reuse the same browse:
+
+```js
+const items = await js_utils.ADS_PLC_ItemInfo.ItemInfoProvider.create(adsClient);
+const diagnoses = await js_utils.ADS_PLC_Diagnoses.DiagnosisProvider.create(adsClient, items);
+const processes = await js_utils.ADS_PLC_Processes.ProcessProvider.create(adsClient, items, diagnoses);
+
+await processes.startMonitoring(change => {
+    // General diagnosis snapshots or process state/diagnosis events.
+});
+await processes.processes[0].start();
+await processes.parameterSets[0].write({ Settings: { Target: 42 } });
+await processes.processes[0].stop();
+await processes.stopMonitoring();
+```
+
+Diagnosis instances expose their path-derived `id`/`instanceId`, `identifier`,
+origin, active flag, reason, and context. Call `diagnosis.acknowledge()` when an
+acknowledge variable exists. Process state is a bitmask exposed by
+`ADS_PLC_Processes.ProcessState`; monitoring uses ADS subscriptions, and
+parameter-set writes use the client's ADS sum-write operation. All subscriptions
+are removed by `stopMonitoring()`.
+
 ## Tests
 
 Run the automated tests from the repository root with:

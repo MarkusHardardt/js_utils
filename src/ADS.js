@@ -238,6 +238,7 @@ class Client {
     #options;
     #client;
     #nodes;
+    #datapointInfoNodes;
     #running;
     #online;
     #connectTask;
@@ -261,6 +262,7 @@ class Client {
         this.#logger = logger;
         this.#options = options;
         this.#nodes = Object.create(null);
+        this.#datapointInfoNodes = new Map();
         for (const dataId of Object.keys(options.nodesConfig)) {
             const rawNodeId = options.nodesConfig[dataId];
             if (typeof rawNodeId !== 'string' || rawNodeId.trim().length === 0) {
@@ -448,6 +450,78 @@ class Client {
         }
     }
 
+    registerDatapointInfoObserver(datapointInfo, onRefresh) {
+        Common.validateAsDatapointInfo(datapointInfo);
+        if (typeof onRefresh !== 'function') {
+            throw new Error('ADS.Client.registerDatapointInfoObserver(): onRefresh is not a function');
+        } else if (typeof datapointInfo.fullName !== 'string' || datapointInfo.fullName.length === 0) {
+            throw new Error('ADS.Client.registerDatapointInfoObserver(): Invalid datapoint fullName');
+        }
+
+        const key = datapointInfo.fullName.toLowerCase();
+        let node = this.#datapointInfoNodes.get(key);
+        if (!node) {
+            const symbol = datapointInfo.symbol || {};
+            const observers = new Set();
+            const notifyObservers = value => {
+                for (const observer of observers) {
+                    try {
+                        const result = observer(value);
+                        if (result && typeof result.catch === 'function') {
+                            result.catch(error => {
+                                this.#logger.error(`ADS.Client: Failed calling datapoint info observer for '${datapointInfo.fullName}'`, error);
+                            });
+                        }
+                    } catch (error) {
+                        this.#logger.error(`ADS.Client: Failed calling datapoint info observer for '${datapointInfo.fullName}'`, error);
+                    }
+                }
+            };
+            node = {
+                dataId: datapointInfo.fullName,
+                rawNodeId: datapointInfo.fullName,
+                value: null,
+                type: getAsCoreDataType(datapointInfo.type, symbol.adsDataTypeStr, false),
+                observers,
+                notifyObservers,
+                onRefresh: notifyObservers,
+                subscription: null
+            };
+            this.#datapointInfoNodes.set(key, node);
+        } else if (
+            node.rawNodeId !== datapointInfo.fullName ||
+            node.type !== getAsCoreDataType(datapointInfo.type, datapointInfo.symbol?.adsDataTypeStr, false)
+        ) {
+            throw new Error(`ADS.Client.registerDatapointInfoObserver(): Conflicting datapoint info '${datapointInfo.fullName}'`);
+        }
+
+        if (node.observers.has(onRefresh)) {
+            throw new Error(`ADS.Client.registerDatapointInfoObserver(): Observer is already registered for '${datapointInfo.fullName}'`);
+        }
+        node.observers.add(onRefresh);
+        node.onRefresh = node.notifyObservers;
+        this.#observationRevision++;
+        this.#scheduleSubscriptionUpdate();
+    }
+
+    unregisterDatapointInfoObserver(datapointInfo, onRefresh) {
+        Common.validateAsDatapointInfo(datapointInfo);
+        if (typeof onRefresh !== 'function') {
+            throw new Error('ADS.Client.unregisterDatapointInfoObserver(): onRefresh is not a function');
+        }
+        const key = datapointInfo.fullName.toLowerCase();
+        const node = this.#datapointInfoNodes.get(key);
+        if (!node || !node.observers.has(onRefresh)) {
+            throw new Error(`ADS.Client.unregisterDatapointInfoObserver(): Observer is not registered for '${datapointInfo.fullName}'`);
+        }
+        node.observers.delete(onRefresh);
+        if (node.observers.size === 0) {
+            node.onRefresh = null;
+        }
+        this.#observationRevision++;
+        this.#scheduleSubscriptionUpdate();
+    }
+
     unregisterObserver(dataId, onRefresh) {
         const node = this.#nodes[dataId];
         if (!node) {
@@ -480,7 +554,8 @@ class Client {
 
         const revision = this.#observationRevision;
         const task = (async () => {
-            for (const node of Object.values(this.#nodes)) {
+            const nodes = [...Object.values(this.#nodes), ...this.#datapointInfoNodes.values()];
+            for (const node of nodes) {
                 if (!this.#running || !this.#online) {
                     break;
                 }
@@ -510,6 +585,9 @@ class Client {
                     } catch (error) {
                         this.#logger.error(`ADS.Client: Failed unsubscribing from '${node.rawNodeId}'`, error);
                     }
+                }
+                if (node.observers && node.observers.size === 0 && !node.subscription) {
+                    this.#datapointInfoNodes.delete(node.rawNodeId.toLowerCase());
                 }
             }
         })();
