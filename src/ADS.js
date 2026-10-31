@@ -92,22 +92,52 @@ class DatapointInfo {
     #client;
     #symbol;
     #symbols;
+    #name;
+    #type;
+    #fullName;
+    #indexGroup;
+    #indexOffset;
+    #size;
 
     constructor(client, symbol, symbols) {
         this.#client = client;
         this.#symbol = symbol;
         this.#symbols = symbols;
-        this.fullName = symbol.name;
-        this.name = symbol.name.split('.').pop();
-        this.type = symbol.type;
-        this.indexGroup = symbol.indexGroup;
-        this.indexOffset = symbol.indexOffset;
-        this.size = symbol.size;
+        this.#fullName = symbol.name;
+        this.#name = symbol.name.split('.').pop();
+        this.#type = symbol.type;
+        this.#indexGroup = symbol.indexGroup;
+        this.#indexOffset = symbol.indexOffset;
+        this.#size = symbol.size;
         Common.validateAsDatapointInfo(this, true);
     }
 
     get symbol() {
         return this.#symbol;
+    }
+
+    get name() {
+        return this.#name;
+    }
+
+    get fullName() {
+        return this.#fullName;
+    }
+
+    get type() {
+        return this.#type;
+    }
+
+    get indexGroup() {
+        return this.#indexGroup;
+    }
+
+    get indexOffset() {
+        return this.#indexOffset;
+    }
+
+    get size() {
+        return this.#size;
     }
 
     getChildDatapointInfos(onResponse, onError) {
