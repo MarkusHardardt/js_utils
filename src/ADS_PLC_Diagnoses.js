@@ -30,6 +30,10 @@ function sumWrite(connection, datapointValues) {
     return new Promise((resolve, reject) => connection.sumWrite(datapointValues, resolve, reject));
 }
 
+/*  Note:
+    This is not identical to TryGetDiagnosisIdentifier(...) in
+    Source\Leister.Communication\Leister.Communication.Ads\Logic\AdsPlcItemBrowseHelper.cs
+*/
 function findDiagnosisIds(fullName) {
     const components = { task: null, module: null, block: 0, diagnosis: 0 };
     for (const [component, pattern] of [
@@ -52,10 +56,9 @@ function findDiagnosisIds(fullName) {
             }
         }
     }
-
-    for (const [component, pattern] of [
-        ['block', /_bi\[(\d+)\]/ig],
-        ['diagnosis', /_di\[(\d+)\]/ig]
+    for (const [component, pattern] of [ // _([bd])i(?:_[0-9a-z]+)*\[(\d+)\] ==> mising: (?:_[0-9a-z]+)*
+        ['block', /_bi(?:_[0-9a-z]+)*\[(\d+)\]/ig],
+        ['diagnosis', /_di(?:_[0-9a-z]+)*\[(\d+)\]/ig]
     ]) {
         for (const match of fullName.matchAll(pattern)) {
             const value = Number(match[1]);

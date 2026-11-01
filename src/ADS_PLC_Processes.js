@@ -36,10 +36,15 @@ function sumWrite(connection, datapointValues) {
     return new Promise((resolve, reject) => connection.sumWrite(datapointValues, resolve, reject));
 }
 
+/*  Note:
+    This is different from PlcProcessPatterns in Source\Leister.Core\Leister.Core.ProcessControl\Constants\PlcProcessPatterns.cs, 
+    and GetIdentifier(...) in Source\Leister.Core\Leister.Core.ProcessControl\Logic\Processes\PlcProcesses.cs
+*/
 function getComponent(fullName, suffix, sum = true) {
     const values = [...fullName.matchAll(new RegExp(`_${suffix}(\\d+)`, 'ig'))]
         .map(match => Number(match[1]));
-    const indexedValues = [...fullName.matchAll(new RegExp(`_${suffix}i\\[(\\d+)\\]`, 'ig'))]
+    // _([bp])i(?:_[0-9a-z]+)*\[(\d+)\] ==> missing (?:_[0-9a-z]+)*
+    const indexedValues = [...fullName.matchAll(new RegExp(`_${suffix}i(?:_[0-9a-z]+)*\\[(\\d+)\\]`, 'ig'))]
         .map(match => Number(match[1]));
     if (values.some(value => !Number.isSafeInteger(value)) ||
         indexedValues.some(value => !Number.isSafeInteger(value)) ||
