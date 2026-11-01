@@ -31,7 +31,7 @@ function sumWrite(connection, datapointValues) {
 }
 
 /*  Note:
-    This is not identical to TryGetDiagnosisIdentifier(...) in
+    This is different from TryGetDiagnosisIdentifier(...) in
     Source\Leister.Communication\Leister.Communication.Ads\Logic\AdsPlcItemBrowseHelper.cs
 */
 function findDiagnosisIds(fullName) {

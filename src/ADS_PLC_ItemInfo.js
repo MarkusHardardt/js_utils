@@ -1,3 +1,4 @@
+import Regex from './Regex.js';
 import Core from './Core.js';
 import Common from './Common.js';
 
@@ -62,8 +63,165 @@ ADS_PLC_ItemInfo.validateAsAdsPlcProcessTrigger = validateAsAdsPlcProcessTrigger
 const AnyProcessControllerType = /^(?:[a-z0-9_]+\.)?LTAG_HMI_(?:In)?FiniteProcessController$/i;
 const FiniteProcessControllerType = /^(?:[a-z0-9_]+\.)?LTAG_HMI_FiniteProcessController$/i;
 const InfiniteProcessControllerType = /^(?:[a-z0-9_]+\.)?LTAG_HMI_InfiniteProcessController$/i;
+const TriggerId = /_([tmbp])(\d+)/i;
+const TriggerIdIndexed = /_([bp])i(?:_[0-9a-z]+)*\[(\d+)\]/i;
+
 const ProcessParameterSetType = /^(?:[a-z0-9_]+\.)?LTAG_HMI_Parameter_\w+$/i;
+const ParameterSetId = /_([tmbpc])(\d+)/i;
+const ParameterSetIdIndexed = /_([bpc])i(?:_[0-9a-z]+)*\[(\d+)\]/i;
+
 const AnyDiagnosisType = /^(?:[a-z0-9_]+\.)?Diagnosis_(?:Message|Warning|ControlError|SafetyError|FatalError)$/i;
+const DiagnosisIdentifierRegex = /_([tmbd])(\d+)/i;
+const DiagnosisIdentifierIndexedRegex = /_([bd])i(?:_[0-9a-z]+)*\[(\d+)\]/i;
+function tryGetDiagnosisIdentifier(fullName, result) {
+    let task = -1;
+    let module = -1;
+    let block = -1;
+    let diagnose = -1;
+    // First we search for occurrences of '_tNUM', '_mNUM', '_bNUM' and '_dNUM', where NUM is an integer.
+    Regex.each(DiagnosisIdentifierRegex, fullName, (start, end, match) => {
+        const num = parseInt(match[2]);
+        switch (match[1]) {
+            case 't':
+            case 'T':
+                if (task === -1)
+                    task = num;
+                break;
+            case 'm':
+            case 'M':
+                if (module === -1)
+                    module = num;
+                break;
+            case 'b':
+            case 'B':
+                if (block === -1)
+                    block = num;
+                else
+                    block += num;
+                break;
+            case 'd':
+            case 'D':
+                if (diagnose === -1)
+                    diagnose = num;
+                else
+                    diagnose += num;
+                break;
+        }
+    }, true);
+    // Next we search for occurrences of '_bi' and '_di' followed by an one dimensional array index.
+    Regex.each(DiagnosisIdentifierIndexedRegex, fullName, (start, end, match) => {
+        const num = parseInt(match.Groups[2].Value);
+        switch (match.Groups[1].Value) {
+            case 'b':
+            case 'B':
+                if (block === -1)
+                    block = num;
+                else
+                    block += num;
+                break;
+            case 'd':
+            case 'D':
+                if (diagnose === -1)
+                    diagnose = num;
+                else
+                    diagnose += num;
+                break;
+        }
+    }, true);
+    result.task = task;
+    result.module = module;
+    result.block = block;
+    result.diagnose = diagnose;
+    return task != -1 && module != -1 && block != -1 && diagnose != -1;
+}
+ADS_PLC_ItemInfo.tryGetDiagnosisIdentifier = tryGetDiagnosisIdentifier;
+
+// private static (bool valid, string processId, string parameterSetId, int parameterSetNumber)
+function GetIdentifier(fullName, isParamInstance, result) {
+    let task = -1;
+    let module = -1;
+    let block = -1;
+    let process = -1;
+    let config = -1;
+    // First we search for occurrences of '_tNUM', '_mN', '_bNUM', '_pNUM' and '_cNUM', where NUM is an integer.
+    Regex.each(isParamInstance ? ParameterSetId : TriggerId, fullName, (start, end, match) => {
+        const num = parseInt(match[2]);
+        switch (match[1]) {
+            case 't':
+            case 'T':
+                if (task === -1)
+                    task = num;
+                break;
+            case 'm':
+            case 'M':
+                if (module === -1)
+                    module = num;
+                break;
+            case 'b':
+            case 'B':
+                if (block === -1)
+                    block = num;
+                else
+                    block += num;
+                break;
+            case 'p':
+            case 'P':
+                if (process === -1)
+                    process = num;
+                else
+                    process += num;
+                break;
+            case 'c':
+            case 'C':
+                if (config === -1)
+                    config = num;
+                else
+                    config += num;
+                break;
+        }
+    }, true);
+    // Next we search for occurrences of '_bi' and '_di' followed by an array index.
+    Regex.each(isParamInstance ? ParameterSetIdIndexed : TriggerIdIndexed, fullName, (start, end, match) => {
+        const num = parseInt(match[2]);
+        switch (match[1]) {
+            case 'b':
+            case 'B':
+                if (block === -1)
+                    block = num;
+                else
+                    block += num;
+                break;
+            case 'p':
+            case 'P':
+                if (process === -1)
+                    process = num;
+                else
+                    process += num;
+                break;
+            case 'c':
+            case 'C':
+                if (config === -1)
+                    config = num;
+                else
+                    config += num;
+                break;
+        }
+    }, true);
+    result.task = task;
+    result.module = module;
+    result.block = block;
+    result.diagnose = diagnose;
+    if (result.valid = (task !== -1 && module !== -1 && block !== -1 && process !== -1 && (!isParamInstance || config !== -1))) {
+        result.processId = `t${task}m${module}b${block}p${process}`;
+        result.parameterSetId = config !== -1 ? `${processId}c${config}` : null;
+        result.parameterSetNumber = config;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
 const BROWSE_YIELD_INTERVAL = 100;
 
 async function yieldToEventLoopIfNeeded(state) {
