@@ -40,6 +40,7 @@ function sumWrite(connection, datapointValues) {
     This is different from PlcProcessPatterns in Source\Leister.Core\Leister.Core.ProcessControl\Constants\PlcProcessPatterns.cs, 
     and GetIdentifier(...) in Source\Leister.Core\Leister.Core.ProcessControl\Logic\Processes\PlcProcesses.cs
 */
+// TODO: reuse or remove
 function getComponent(fullName, suffix, sum = true) {
     const values = [...fullName.matchAll(new RegExp(`_${suffix}(\\d+)`, 'ig'))]
         .map(match => Number(match[1]));
@@ -58,7 +59,7 @@ function getComponent(fullName, suffix, sum = true) {
     const total = components.reduce((result, value) => result + value, 0);
     return Number.isSafeInteger(total) ? total : null;
 }
-
+// TODO: reuse or remove
 function getProcessId(fullName) {
     const task = getComponent(fullName, 't', false);
     const module = getComponent(fullName, 'm', false);
@@ -69,7 +70,7 @@ function getProcessId(fullName) {
     }
     return `t${task}m${module}b${block}p${process}`;
 }
-
+// TODO: reuse or remove
 function getParameterSetId(fullName) {
     const processId = getProcessId(fullName);
     const config = getComponent(fullName, 'c');
@@ -154,7 +155,7 @@ function getParameterValue(values, path) {
 }
 
 async function createParameterSet(connection, info) {
-    const identity = getParameterSetId(info.fullName);
+    const identity = getParameterSetId(info.fullName); // TODO: replace
     if (!identity) {
         throw new Error(`ADS_PLC_Processes: Invalid parameter-set path '${info.fullName}'`);
     }
@@ -368,7 +369,7 @@ class ProcessProvider {
         const processes = [];
         const processIds = new Set();
         for (const trigger of provider.triggers) {
-            const id = getProcessId(trigger.root.fullName);
+            const id = getProcessId(trigger.root.fullName); // returns `t${task}m${module}b${block}p${process}`
             if (id === null) {
                 throw new Error(`ADS_PLC_Processes: Invalid process path '${trigger.root.fullName}'`);
             }

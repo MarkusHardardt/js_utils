@@ -143,7 +143,7 @@ function tryGetDiagnosisIdentifier(fullName) {
 ADS_PLC_ItemInfo.tryGetDiagnosisIdentifier = tryGetDiagnosisIdentifier;
 
 // private static (bool valid, string processId, string parameterSetId, int parameterSetNumber)
-function tryGetProcessIdentifier(fullName, isParamInstance, result) {
+function tryGetProcessIdentifier(fullName, isParamInstance) {
     let task = -1;
     let module = -1;
     let block = -1;
@@ -213,18 +213,13 @@ function tryGetProcessIdentifier(fullName, isParamInstance, result) {
                 break;
         }
     }, true);
-    result.task = task;
-    result.module = module;
-    result.block = block;
-    result.diagnose = diagnose;
+    const result = {task, module, block, diagnose};
     if (result.valid = (task !== -1 && module !== -1 && block !== -1 && process !== -1 && (!isParamInstance || config !== -1))) {
         result.processId = `t${task}m${module}b${block}p${process}`;
         result.parameterSetId = config !== -1 ? `${result.processId}c${config}` : null;
         result.parameterSetNumber = config;
-        return true;
-    } else {
-        return false;
     }
+    return result;
 }
 ADS_PLC_ItemInfo.tryGetProcessIdentifier = tryGetProcessIdentifier;
 

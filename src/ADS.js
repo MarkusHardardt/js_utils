@@ -150,6 +150,9 @@ class DatapointInfo {
     }
 
     async #getChildren() {
+        if (this.#fullName === 'Main_t1._main._digitalInputs_EL1008_m1008._devices_b0_p0_d0._h2p_params_ci') {  
+            console.log('DEBUG BREAK'); // TODO: Why do we never arrive here?
+        }
         const symbolArrayInfo = Array.isArray(this.#symbol.arrayInfo) ? this.#symbol.arrayInfo : [];
         const arrayDimension = symbolArrayInfo.length > 0
             ? symbolArrayInfo.length
