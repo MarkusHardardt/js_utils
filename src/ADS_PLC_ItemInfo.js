@@ -78,7 +78,7 @@ const NumberIdentifierBlockMultiplier = 100000;
 const NumberIdentifierModuleMultiplier = NumberIdentifierBlockMultiplier * 100000;
 const NumberIdentifierTaskMultiplier = NumberIdentifierModuleMultiplier * 100000;
 
-function tryGetDiagnosisIdentifier(fullName, result) {
+function tryGetDiagnosisIdentifier(fullName) {
     let task = -1;
     let module = -1;
     let block = -1;
@@ -133,17 +133,12 @@ function tryGetDiagnosisIdentifier(fullName, result) {
                 break;
         }
     }, true);
-    result.task = task;
-    result.module = module;
-    result.block = block;
-    result.diagnosis = diagnosis;
+    const result = {task, module, block, diagnosis};
     if (result.valid = (task != -1 && module != -1 && block != -1 && diagnosis != -1)) {
         result.id = task * NumberIdentifierTaskMultiplier + module * NumberIdentifierModuleMultiplier + block * NumberIdentifierBlockMultiplier + diagnosis;
         result.identifier = `${task}.${String(module).padStart(2, '0')}-${String(block).padStart(2, '0')}.${String(diagnosis).padStart(2, '0')}`;
-        return true;
-    } else {
-        return false;
     }
+    return result;
 }
 ADS_PLC_ItemInfo.tryGetDiagnosisIdentifier = tryGetDiagnosisIdentifier;
 
