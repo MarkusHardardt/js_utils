@@ -30,73 +30,6 @@ function sumWrite(connection, datapointValues) {
     return new Promise((resolve, reject) => connection.sumWrite(datapointValues, resolve, reject));
 }
 
-/*  Note:
-    This is different from TryGetDiagnosisIdentifier(...) in
-    Source\Leister.Communication\Leister.Communication.Ads\Logic\AdsPlcItemBrowseHelper.cs
-*/
-function findDiagnosisIds(fullName) {
-    const components = { task: null, module: null, block: 0, diagnosis: 0 };
-    for (const [component, pattern] of [
-        ['task', /_t(\d+)/ig],
-        ['module', /_m(\d+)/ig],
-        ['block', /_b(\d+)/ig],
-        ['diagnosis', /_d(\d+)/ig]
-    ]) {
-        for (const match of fullName.matchAll(pattern)) {
-            const value = Number(match[1]);
-            if (!Number.isSafeInteger(value)) {
-                return null;
-            }
-            if (component === 'task' || component === 'module') {
-                if (components[component] === null) {
-                    components[component] = value;
-                }
-            } else {
-                components[component] += value;
-            }
-        }
-    }
-    for (const [component, pattern] of [ // _([bd])i(?:_[0-9a-z]+)*\[(\d+)\] ==> mising: (?:_[0-9a-z]+)*
-        ['block', /_bi(?:_[0-9a-z]+)*\[(\d+)\]/ig],
-        ['diagnosis', /_di(?:_[0-9a-z]+)*\[(\d+)\]/ig]
-    ]) {
-        for (const match of fullName.matchAll(pattern)) {
-            const value = Number(match[1]);
-            if (!Number.isSafeInteger(value)) {
-                return null;
-            }
-            components[component] += value;
-        }
-    }
-    if (components.task === null || components.module === null ||
-        components.block === 0 && !/_b\d+|_bi\[\d+\]/i.test(fullName) ||
-        components.diagnosis === 0 && !/_d\d+|_di\[\d+\]/i.test(fullName)) {
-        return null;
-    }
-    if (![components.task, components.module, components.block, components.diagnosis].every(Number.isSafeInteger)) {
-        return null;
-    }
-    return components;
-}
-
-function getDiagnosisIdentity(fullName) {
-    const components = findDiagnosisIds(fullName);
-    if (!components) {
-        return { id: '-1', identifier: '?.??-??.??' };
-    }
-    const { task, module, block, diagnosis } = components;
-    const id = (
-        BigInt(task) * 1000000000000000n +
-        BigInt(module) * 10000000000n +
-        BigInt(block) * 100000n +
-        BigInt(diagnosis)
-    ).toString();
-    return {
-        id,
-        identifier: `${task}.${String(module).padStart(2, '0')}-${String(block).padStart(2, '0')}.${String(diagnosis).padStart(2, '0')}`
-    };
-}
-
 function findChild(children, suffix, required) {
     const child = children.find(info => info.fullName.toLowerCase().endsWith(suffix.toLowerCase()));
     if (!child && required) {
@@ -110,31 +43,23 @@ class Diagnosis {
     #fields;
     #listeners;
     #registeredObservers;
+    #identifier;
 
     constructor(connection, info, fields, processFullName = null) {
         this.#connection = connection;
-        this.info = info;
+        this.info = info; // TODO: Make private
         this.#fields = fields;
         this.#listeners = new Set();
         this.#registeredObservers = [];
-        this.processFullName = processFullName;
-        // TODO: use only first block
-        if (true) {
-            const result = {};
-            ADS_PLC_ItemInfo.tryGetDiagnosisIdentifier(info.fullName, result);
-            this.id = result.id;
-            this.instanceId = result.id;
-            this.identifier = result.identifier;
-        } else {
-            const identity = getDiagnosisIdentity(info.fullName);
-            this.id = identity.id;
-            this.instanceId = identity.id;
-            this.identifier = identity.identifier;
-        }
-        this.originId = null;
-        this.active = false;
-        this.reason = null;
-        this.context = null;
+        this.processFullName = processFullName; // TODO: Make private
+        this.#identifier = ADS_PLC_ItemInfo.tryGetDiagnosisIdentifier(info.fullName);
+        this.id = this.#identifier.id; // TODO: Make private
+        this.instanceId = this.#identifier.id; // TODO: Make private
+        this.identifier = this.#identifier.identifier; // TODO: Make private
+        this.originId = null; // TODO: Make private
+        this.active = false; // TODO: Make private
+        this.reason = null; // TODO: Make private
+        this.context = null; // TODO: Make private
     }
 
     get fullName() {
