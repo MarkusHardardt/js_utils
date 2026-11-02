@@ -118,10 +118,19 @@ class Diagnosis {
         this.#listeners = new Set();
         this.#registeredObservers = [];
         this.processFullName = processFullName;
-        const identity = getDiagnosisIdentity(info.fullName);
-        this.id = identity.id;
-        this.instanceId = identity.id;
-        this.identifier = identity.identifier;
+        // TODO: use only first block
+        if (true) {
+            const result = {};
+            ADS_PLC_ItemInfo.tryGetDiagnosisIdentifier(info.fullName, result);
+            this.id = result.id;
+            this.instanceId = result.id;
+            this.identifier = result.identifier;
+        } else {
+            const identity = getDiagnosisIdentity(info.fullName);
+            this.id = identity.id;
+            this.instanceId = identity.id;
+            this.identifier = identity.identifier;
+        }
         this.originId = null;
         this.active = false;
         this.reason = null;

@@ -71,13 +71,18 @@ const ParameterSetId = /_([tmbpc])(\d+)/i;
 const ParameterSetIdIndexed = /_([bpc])i(?:_[0-9a-z]+)*\[(\d+)\]/i;
 
 const AnyDiagnosisType = /^(?:[a-z0-9_]+\.)?Diagnosis_(?:Message|Warning|ControlError|SafetyError|FatalError)$/i;
-const DiagnosisIdentifierRegex = /_([tmbd])(\d+)/i;
-const DiagnosisIdentifierIndexedRegex = /_([bd])i(?:_[0-9a-z]+)*\[(\d+)\]/i;
+const DiagnosisIdentifierRegex = /_([tmbd])(\d+)/ig;
+const DiagnosisIdentifierIndexedRegex = /_([bd])i(?:_[0-9a-z]+)*\[(\d+)\]/ig;
+
+const NumberIdentifierBlockMultiplier = 100000;
+const NumberIdentifierModuleMultiplier = NumberIdentifierBlockMultiplier * 100000;
+const NumberIdentifierTaskMultiplier = NumberIdentifierModuleMultiplier * 100000;
+
 function tryGetDiagnosisIdentifier(fullName, result) {
     let task = -1;
     let module = -1;
     let block = -1;
-    let diagnose = -1;
+    let diagnosis = -1;
     // First we search for occurrences of '_tNUM', '_mNUM', '_bNUM' and '_dNUM', where NUM is an integer.
     Regex.each(DiagnosisIdentifierRegex, fullName, (start, end, match) => {
         const num = parseInt(match[2]);
@@ -101,17 +106,17 @@ function tryGetDiagnosisIdentifier(fullName, result) {
                 break;
             case 'd':
             case 'D':
-                if (diagnose === -1)
-                    diagnose = num;
+                if (diagnosis === -1)
+                    diagnosis = num;
                 else
-                    diagnose += num;
+                    diagnosis += num;
                 break;
         }
     }, true);
     // Next we search for occurrences of '_bi' and '_di' followed by an one dimensional array index.
     Regex.each(DiagnosisIdentifierIndexedRegex, fullName, (start, end, match) => {
-        const num = parseInt(match.Groups[2].Value);
-        switch (match.Groups[1].Value) {
+        const num = parseInt(match[2]);
+        switch (match[1]) {
             case 'b':
             case 'B':
                 if (block === -1)
@@ -121,23 +126,29 @@ function tryGetDiagnosisIdentifier(fullName, result) {
                 break;
             case 'd':
             case 'D':
-                if (diagnose === -1)
-                    diagnose = num;
+                if (diagnosis === -1)
+                    diagnosis = num;
                 else
-                    diagnose += num;
+                    diagnosis += num;
                 break;
         }
     }, true);
     result.task = task;
     result.module = module;
     result.block = block;
-    result.diagnose = diagnose;
-    return task != -1 && module != -1 && block != -1 && diagnose != -1;
+    result.diagnosis = diagnosis;
+    if (result.valid = (task != -1 && module != -1 && block != -1 && diagnosis != -1)) {
+        result.id = task * NumberIdentifierTaskMultiplier + module * NumberIdentifierModuleMultiplier + block * NumberIdentifierBlockMultiplier + diagnosis;
+        result.identifier = `${task}.${String(module).padStart(2, '0')}-${String(block).padStart(2, '0')}.${String(diagnosis).padStart(2, '0')}`;
+        return true;
+    } else {
+        return false;
+    }
 }
 ADS_PLC_ItemInfo.tryGetDiagnosisIdentifier = tryGetDiagnosisIdentifier;
 
 // private static (bool valid, string processId, string parameterSetId, int parameterSetNumber)
-function GetIdentifier(fullName, isParamInstance, result) {
+function tryGetProcessIdentifier(fullName, isParamInstance, result) {
     let task = -1;
     let module = -1;
     let block = -1;
@@ -213,14 +224,14 @@ function GetIdentifier(fullName, isParamInstance, result) {
     result.diagnose = diagnose;
     if (result.valid = (task !== -1 && module !== -1 && block !== -1 && process !== -1 && (!isParamInstance || config !== -1))) {
         result.processId = `t${task}m${module}b${block}p${process}`;
-        result.parameterSetId = config !== -1 ? `${processId}c${config}` : null;
+        result.parameterSetId = config !== -1 ? `${result.processId}c${config}` : null;
         result.parameterSetNumber = config;
         return true;
     } else {
         return false;
     }
 }
-
+ADS_PLC_ItemInfo.tryGetProcessIdentifier = tryGetProcessIdentifier;
 
 const BROWSE_YIELD_INTERVAL = 100;
 
